@@ -1,0 +1,156 @@
+/**index.wxss**/
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+
+
+.params {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.param-item {
+  margin-bottom: 16px;
+}
+.meal-type label {
+  margin-right: 16px;
+}
+.cta {
+  margin: 24px 16px 40px;
+}
+
+/* 我的菜谱区域 */
+.my-recipes {
+  margin: 24px 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.section-title .hint {
+  font-size: 12px;
+  font-weight: normal;
+  color: #999;
+}
+
+.recipe-list {
+  white-space: nowrap;
+  display: flex;
+  gap: 12px;
+}
+
+.recipe-item {
+  display: inline-block;
+  min-width: 200px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 2px solid #e5e5e5;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.recipe-item.selected {
+  background: #e8f5e9;
+  border-color: #07c160;
+}
+
+.recipe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.recipe-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+.delete-btn {
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  background: #ff4d4f;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.recipe-info {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.info-item {
+  font-size: 12px;
+  color: #666;
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.recipe-dishes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.dish-tag {
+  font-size: 11px;
+  color: #07c160;
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #07c160;
+}
+
+.selected-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #07c160;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(7, 193, 96, 0.3);
+}
+
+.unselect-btn {
+  margin-top: 12px;
+  text-align: center;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  color: #666;
+  font-size: 13px;
+}
+
+

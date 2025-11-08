@@ -1,0 +1,139 @@
+<!--pages/customize/customize.wxml-->
+<view class="customize-container">
+  <!-- 左侧分类菜单 -->
+  <view class="sidebar">
+    <view class="tab-item {{activeTab === item ? 'active' : ''}}" 
+          wx:for="{{tabs}}" wx:key="index"
+          data-tab="{{item}}"
+          bindtap="onTabChange">
+      <text>{{tabNames[item]}}</text>
+    </view>
+  </view>
+
+  <!-- 右侧内容区 -->
+  <view class="content-area">
+    <!-- 人数设置 -->
+    <view wx:if="{{activeTab === 'people'}}" class="content-section">
+      <view class="section-title">用餐人数</view>
+      <view class="people-selector">
+        <slider min="1" max="10" step="1" value="{{people}}" show-value bindchange="onPeopleChange" />
+        <text class="hint">建议根据人数调整菜品数量</text>
+      </view>
+      
+      <view class="section-title" style="margin-top: 24px;">菜品数量配置</view>
+      <view class="param-item">
+        <text>荤菜数量</text>
+        <slider min="0" max="5" step="1" value="{{meatCount}}" show-value bindchange="onMeatCountChange" />
+      </view>
+      <view class="param-item">
+        <text>素菜数量</text>
+        <slider min="0" max="5" step="1" value="{{vegCount}}" show-value bindchange="onVegCountChange" />
+      </view>
+      <view class="param-item">
+        <text>汤品数量</text>
+        <slider min="0" max="3" step="1" value="{{soupCount}}" show-value bindchange="onSoupCountChange" />
+      </view>
+      
+      <view class="section-title" style="margin-top: 24px;">餐次类型</view>
+      <radio-group class="meal-type" bindchange="onMealTypeChange">
+        <label><radio value="breakfast" checked="{{mealType==='breakfast'}}"/>早餐</label>
+        <label><radio value="lunch" checked="{{mealType==='lunch'}}"/>午餐</label>
+        <label><radio value="dinner" checked="{{mealType==='dinner'}}"/>晚餐</label>
+      </radio-group>
+    </view>
+
+    <!-- 荤菜/素菜/汤品 -->
+    <view wx:elif="{{activeTab === 'meat' || activeTab === 'veg' || activeTab === 'soup'}}" class="content-section">
+      <view class="section-header">
+        <view class="section-title">{{tabNames[activeTab]}}</view>
+        <button class="add-btn" size="mini" bindtap="onShowCustomInput">+ 自定义</button>
+      </view>
+      
+      <!-- 搜索框 -->
+      <view class="search-box">
+        <input class="search-input" 
+               type="text" 
+               placeholder="搜索菜品名称..." 
+               value="{{searchKeyword}}"
+               bindinput="onSearchInput" />
+      </view>
+
+      <!-- 已选择的菜品提示 -->
+      <view class="selected-count" wx:if="{{selectedDishes.length > 0}}">
+        <text>已选择 {{selectedDishes.length}} 道菜</text>
+      </view>
+
+      <!-- 菜品列表 -->
+      <scroll-view class="dish-scroll" scroll-y>
+        <view wx:if="{{searchKeyword && searchResults.length > 0}}" class="dish-list">
+          <view class="dish-item {{item.isSelected ? 'dish-selected' : ''}}" 
+                wx:for="{{searchResults}}" 
+                wx:key="name" 
+                data-dish="{{item}}" 
+                bindtap="onSelectDish">
+            <text class="dish-name">{{item.name}}</text>
+            <text class="dish-tags">{{item.tags.join(' / ')}}</text>
+            <text class="check-mark" wx:if="{{item.isSelected}}">✓</text>
+          </view>
+        </view>
+        
+        <view wx:elif="{{!searchKeyword && activeTab === 'meat'}}" class="dish-list">
+          <view class="dish-item {{item.isSelected ? 'dish-selected' : ''}}" 
+                wx:for="{{meatDishes}}" 
+                wx:key="name" 
+                data-dish="{{item}}" 
+                bindtap="onSelectDish">
+            <text class="dish-name">{{item.name}}</text>
+            <text class="dish-tags">{{item.tags.join(' / ')}}</text>
+            <text class="check-mark" wx:if="{{item.isSelected}}">✓</text>
+          </view>
+        </view>
+        
+        <view wx:elif="{{!searchKeyword && activeTab === 'veg'}}" class="dish-list">
+          <view class="dish-item {{item.isSelected ? 'dish-selected' : ''}}" 
+                wx:for="{{vegDishes}}" 
+                wx:key="name" 
+                data-dish="{{item}}" 
+                bindtap="onSelectDish">
+            <text class="dish-name">{{item.name}}</text>
+            <text class="dish-tags">{{item.tags.join(' / ')}}</text>
+            <text class="check-mark" wx:if="{{item.isSelected}}">✓</text>
+          </view>
+        </view>
+        
+        <view wx:elif="{{!searchKeyword && activeTab === 'soup'}}" class="dish-list">
+          <view class="dish-item {{item.isSelected ? 'dish-selected' : ''}}" 
+                wx:for="{{soupDishes}}" 
+                wx:key="name" 
+                data-dish="{{item}}" 
+                bindtap="onSelectDish">
+            <text class="dish-name">{{item.name}}</text>
+            <text class="dish-tags">{{item.tags.join(' / ')}}</text>
+            <text class="check-mark" wx:if="{{item.isSelected}}">✓</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 自定义分类 -->
+    <view wx:else class="content-section">
+      <view class="section-title">自定义菜品管理</view>
+      <view class="custom-dish-list">
+        <view class="custom-dish-item" wx:for="{{customRecipes}}" wx:key="name">
+          <view>
+            <text class="dish-name">{{item.name}}</text>
+            <text class="dish-type">{{item.type === 'meat' ? '荤' : item.type === 'veg' ? '素' : '汤'}}</text>
+          </view>
+          <text class="dish-tags">{{item.tags.join(' / ')}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作按钮 -->
+  <view class="bottom-actions">
+    <button type="default" bindtap="onBack">返回</button>
+    <button type="primary" bindtap="onSaveRecipe">保存菜谱</button>
+  </view>
+</view>
+

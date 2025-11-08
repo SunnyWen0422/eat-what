@@ -1,0 +1,34 @@
+<view class="result-page">
+  <view wx:if="{{loading}}" class="loading">
+    <text>正在为你生成推荐...</text>
+  </view>
+  <view wx:elif="{{empty}}" class="empty">
+    <text>暂无可用菜品，请稍后再试</text>
+  </view>
+  <view wx:else>
+    <swiper class="plan-swiper" indicator-dots="true" autoplay="false" circular="true">
+      <block wx:for="{{plans}}" wx:key="index">
+        <swiper-item>
+          <view class="plan-card">
+            <view class="dish-list">
+              <block wx:for="{{item.dishes}}" wx:key="name">
+                <view class="dish-card" bindtap="onTapDish" data-dish="{{item}}">
+                  <image class="dish-image" src="{{item.image || 'https://dummyimage.com/200x200/eeeeee/999&text=%E8%8F%9C'}}" mode="aspectFill" />
+                  <view class="dish-info">
+                    <text class="dish-name">{{item.name}}</text>
+                    <text class="dish-tags">{{item.tags[0]}}{{item.tags[1] ? ' / ' + item.tags[1] : ''}}</text>
+                  </view>
+                </view>
+              </block>
+            </view>
+          </view>
+        </swiper-item>
+      </block>
+    </swiper>
+    <view class="actions">
+      <button type="default" bindtap="onBack">返回修改参数</button>
+      <button type="primary" bindtap="onRegenerate">重新生成</button>
+    </view>
+  </view>
+</view>
+

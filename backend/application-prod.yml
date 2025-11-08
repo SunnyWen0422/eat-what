@@ -1,0 +1,54 @@
+# Spring Boot 生产环境配置文件
+# 服务器: 115.190.206.149
+# 域名: chishenme.icu
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  # 数据库配置（生产环境）
+  datasource:
+    url: jdbc:mysql://localhost:3306/food?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: eatwhat
+    password: Sunny418@Cloud  # 生产环境密码，请修改为更强的密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 连接池配置
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+
+# MyBatis配置
+mybatis:
+  type-aliases-package: com.eatwhat.entity
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    # 生产环境关闭SQL日志
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 日志配置（生产环境）
+logging:
+  level:
+    root: info
+    com.eatwhat: info
+    org.springframework.web: warn
+  file:
+    name: /var/log/eatwhat/application.log
+    max-size: 10MB
+    max-history: 30
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+

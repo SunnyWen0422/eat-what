@@ -1,0 +1,68 @@
+<!--index.wxml-->
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="container">
+    <view class="params">
+      <view class="param-item">
+        <text>用餐人数</text>
+        <slider min="1" max="10" step="1" value="{{people}}" show-value bindchange="onPeopleChange" />
+      </view>
+      <view class="param-item">
+        <text>荤菜数量</text>
+        <slider min="0" max="5" step="1" value="{{meat}}" show-value bindchange="onMeatChange" />
+      </view>
+      <view class="param-item">
+        <text>素菜数量</text>
+        <slider min="0" max="5" step="1" value="{{veg}}" show-value bindchange="onVegChange" />
+      </view>
+      <view class="param-item">
+        <text>汤品数量</text>
+        <slider min="0" max="3" step="1" value="{{soup}}" show-value bindchange="onSoupChange" />
+      </view>
+      <radio-group class="meal-type" bindchange="onMealTypeChange">
+        <label><radio value="breakfast" checked="{{mealType==='breakfast'}}"/>早餐</label>
+        <label><radio value="lunch" checked="{{mealType==='lunch'}}"/>午餐</label>
+        <label><radio value="dinner" checked="{{mealType==='dinner'}}"/>晚餐</label>
+      </radio-group>
+    </view>
+
+    <!-- 我的菜谱区域 -->
+    <view class="my-recipes" wx:if="{{savedRecipes.length > 0}}">
+      <view class="section-title">
+        <text>我的菜谱</text>
+        <text class="hint">点击应用菜谱配置</text>
+      </view>
+      <scroll-view class="recipe-list" scroll-x>
+        <view class="recipe-item {{selectedRecipeId === item.id ? 'selected' : ''}}" 
+              wx:for="{{savedRecipes}}" 
+              wx:key="id"
+              bindtap="onSelectRecipe"
+              data-id="{{item.id}}">
+          <view class="recipe-header">
+            <text class="recipe-name">{{item.name}}</text>
+            <view class="delete-btn" catchtap="onDeleteRecipe" data-id="{{item.id}}">×</view>
+          </view>
+          <view class="recipe-info">
+            <text class="info-item">👥 {{item.people}}人</text>
+            <text class="info-item">🍖 {{item.meatCount}}荤</text>
+            <text class="info-item">🥬 {{item.vegCount}}素</text>
+            <text class="info-item">🍲 {{item.soupCount}}汤</text>
+          </view>
+          <view class="recipe-dishes" wx:if="{{item.selectedDishes && item.selectedDishes.length > 0}}">
+            <text class="dish-tag" wx:for="{{item.selectedDishes}}" wx:for-item="dish" wx:key="name">{{dish.name}}</text>
+          </view>
+          <view class="selected-badge" wx:if="{{selectedRecipeId === item.id}}">
+            <text>✓ 已选</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="unselect-btn" wx:if="{{selectedRecipeId}}" bindtap="onUnselectRecipe">
+        <text>取消选择</text>
+      </view>
+    </view>
+
+    <view class="cta">
+      <button type="primary" size="default" bindtap="onStart">今天吃什么</button>
+      <button type="default" size="default" bindtap="onCustomize" style="margin-top: 12px;">定制菜谱</button>
+    </view>
+  </view>
+</scroll-view>
