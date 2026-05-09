@@ -1,302 +1,315 @@
 // pages/customize/customize.js
+const api = require('../../utils/api')
+
 Page({
   data: {
-    activeTab: 'people',
-    // 左侧分类
-    tabs: ['people', 'meat', 'veg', 'soup', 'custom'],
+    activeTab: 'meat',
+    tabs: ['meat', 'veg', 'soup'],
     tabNames: {
-      'people': '人数',
       'meat': '荤菜',
       'veg': '素菜',
-      'soup': '汤品',
-      'custom': '自定义'
+      'soup': '汤品'
     },
-    // 人数设置
-    people: 3,
-    // 菜品数量设置
-    meatCount: 2,
-    vegCount: 2,
-    soupCount: 1,
-    mealType: 'lunch',
-    // 菜品数据
-    meatDishes: [],
-    vegDishes: [],
-    soupDishes: [],
-    // 搜索相关
+    currentDishes: [],
+    loading: false,
+    loadingMore: false,
+    hasMore: true,
     searchKeyword: '',
-    searchResults: [],
-    isSearching: false,
-    // 自定义菜谱
-    customRecipes: [],
-    // 选中的菜品
-    selectedDishes: [],
-    currentRecipe: {
-      name: '',
-      type: 'meat',
-      tags: []
+    selectedIds: [],
+    selectedTotal: 0,
+    selectedList: [],
+    showSelectedPanel: false
+  },
+
+  pageSize: 20,
+  currentPage: 1,
+  // 全局缓存所有加载过的菜品（按 id），跨分类共享
+  allDishesMap: {},
+
+  onLoad() {
+    this.loadPage('meat', 1)
+  },
+
+  // 把菜品加入全局缓存
+  addToGlobalCache(dishes) {
+    for (const d of dishes) {
+      if (d.id) {
+        this.allDishesMap[d.id] = d
+      }
     }
   },
 
-  onLoad() {
-    this.loadDefaultDishes()
-    this.loadCustomRecipes()
+  // 根据 selectedIds 从全局缓存构建已选列表
+  buildSelectedList(selectedIds) {
+    const list = []
+    for (const id of selectedIds) {
+      const d = this.allDishesMap[id]
+      if (d) {
+        list.push({ id: d.id, name: d.name })
+      }
+    }
+    return list
   },
 
-  // 加载默认菜品数据
-  loadDefaultDishes() {
-    // 从全局或者API加载
-    const { getDefaultDishes } = require('../../utils/dishes')
-    const dishes = getDefaultDishes()
-    this.setData({
-      meatDishes: dishes.filter(d => d.type === 'meat').map(d => ({...d, isSelected: false})),
-      vegDishes: dishes.filter(d => d.type === 'veg').map(d => ({...d, isSelected: false})),
-      soupDishes: dishes.filter(d => d.type === 'soup').map(d => ({...d, isSelected: false}))
-    })
-  },
+  // 加载某一页数据
+  async loadPage(type, page) {
+    const { selectedIds, searchKeyword } = this.data
 
-  // 加载自定义菜谱
-  loadCustomRecipes() {
-    const recipes = wx.getStorageSync('customRecipes') || []
-    this.setData({ customRecipes: recipes })
-  },
-
-  // 切换分类标签
-  onTabChange(e) {
-    const tab = e.currentTarget.dataset.tab
-    this.setData({ activeTab: tab, searchKeyword: '', searchResults: [] })
-  },
-
-  // 人数选择
-  onPeopleChange(e) {
-    this.setData({ people: e.detail.value })
-  },
-  
-  // 菜品数量选择
-  onMeatCountChange(e) {
-    this.setData({ meatCount: e.detail.value })
-  },
-  
-  onVegCountChange(e) {
-    this.setData({ vegCount: e.detail.value })
-  },
-  
-  onSoupCountChange(e) {
-    this.setData({ soupCount: e.detail.value })
-  },
-  
-  onMealTypeChange(e) {
-    this.setData({ mealType: e.detail.value })
-  },
-
-  // 搜索输入
-  onSearchInput(e) {
-    const keyword = e.detail.value
-    this.setData({ searchKeyword: keyword, isSearching: true })
-    
-    if (keyword.trim() === '') {
-      this.setData({ searchResults: [], isSearching: false })
+    // 搜索模式
+    if (searchKeyword) {
+      this.setData({ loading: true })
+      try {
+        const dishes = await api.searchDishes(searchKeyword, type)
+        const simplified = (dishes || []).map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          isSelected: selectedIds.includes(d.id)
+        }))
+        this.setData({
+          currentDishes: simplified,
+          loading: false,
+          hasMore: false
+        })
+      } catch (err) {
+        console.error('搜索失败:', err)
+        this.setData({ loading: false })
+      }
       return
     }
 
-    // 搜索逻辑
-    this.performSearch(keyword)
-  },
-
-  // 执行搜索
-  performSearch(keyword) {
-    const { activeTab, selectedDishes } = this.data
-    let allDishes = []
-    
-    switch (activeTab) {
-      case 'meat':
-        allDishes = [...this.data.meatDishes, ...this.data.customRecipes.filter(r => r.type === 'meat')]
-        break
-      case 'veg':
-        allDishes = [...this.data.vegDishes, ...this.data.customRecipes.filter(r => r.type === 'veg')]
-        break
-      case 'soup':
-        allDishes = [...this.data.soupDishes, ...this.data.customRecipes.filter(r => r.type === 'soup')]
-        break
-    }
-
-    const results = allDishes.filter(dish => 
-      dish.name.includes(keyword)
-    ).map(dish => ({
-      ...dish,
-      isSelected: selectedDishes.some(d => d.name === dish.name)
-    }))
-    
-    this.setData({ searchResults: results, isSearching: false })
-  },
-
-  // 选择菜品
-  onSelectDish(e) {
-    const dish = e.currentTarget.dataset.dish
-    const selectedDishes = this.data.selectedDishes
-    
-    // 检查是否已选择
-    const index = selectedDishes.findIndex(d => d.name === dish.name)
-    
-    if (index >= 0) {
-      // 已选择，取消选择
-      selectedDishes.splice(index, 1)
-      wx.showToast({
-        title: `已取消 ${dish.name}`,
-        icon: 'none'
-      })
+    // 正常分页模式
+    if (page === 1) {
+      this.setData({ loading: true })
     } else {
-      // 未选择，添加
-      selectedDishes.push(dish)
-      wx.vibrateShort({ type: 'light' })
-      wx.showToast({
-        title: `已添加 ${dish.name}`,
-        icon: 'success'
-      })
+      this.setData({ loadingMore: true })
     }
-    
-    this.setData({ selectedDishes })
-    
-    // 更新菜品列表的选中状态
-    this.updateDishesSelectedState()
-  },
-  
-  // 更新菜品列表的选中状态
-  updateDishesSelectedState() {
-    const { selectedDishes, meatDishes, vegDishes, soupDishes, searchResults } = this.data
-    
-    const updateSelected = (dishes) => {
-      return dishes.map(dish => ({
-        ...dish,
-        isSelected: selectedDishes.some(d => d.name === dish.name)
+
+    try {
+      const result = await api.getDishes({ type: type, page: page, pageSize: this.pageSize })
+      const list = result.list || []
+      const total = result.total || 0
+
+      const simplified = list.map(d => ({
+        id: d.id,
+        name: d.name,
+        type: d.type,
+        isSelected: selectedIds.includes(d.id)
       }))
+
+      // 加入全局缓存
+      this.addToGlobalCache(simplified)
+
+      const hasMore = page * this.pageSize < total
+
+      if (page === 1) {
+        this.setData({
+          currentDishes: simplified,
+          hasMore: hasMore,
+          loading: false
+        })
+      } else {
+        this.setData({
+          currentDishes: [...this.data.currentDishes, ...simplified],
+          hasMore: hasMore,
+          loadingMore: false
+        })
+      }
+      this.currentPage = page
+    } catch (err) {
+      console.error('加载失败:', err)
+      this.setData({ loading: false, loadingMore: false })
     }
-    
+  },
+
+  // 切换分类
+  onTabChange(e) {
+    const tab = e.currentTarget.dataset.tab
+    const wasSearching = !!this.data.searchKeyword
+    this.setData({ activeTab: tab, searchKeyword: '' })
+    this.currentPage = 1
+    this.loadPage(tab, 1)
+  },
+
+  // 搜索输入（防抖）
+  onSearchInput(e) {
+    const keyword = e.detail.value.trim()
+    this.setData({ searchKeyword: keyword })
+
+    clearTimeout(this.searchTimer)
+    this.searchTimer = setTimeout(() => {
+      this.currentPage = 1
+      if (!keyword) {
+        this.loadPage(this.data.activeTab, 1)
+        return
+      }
+      this.loadPage(this.data.activeTab, 1)
+    }, 300)
+  },
+
+  // scroll-view 滚动到底部加载更多
+  onScrollToLower() {
+    const { activeTab, hasMore, loadingMore, searchKeyword } = this.data
+    if (!hasMore || loadingMore || searchKeyword) return
+
+    const nextPage = this.currentPage + 1
+    this.loadPage(activeTab, nextPage)
+  },
+
+  // 点击菜名 → 详情页
+  onTapDish(e) {
+    const dish = e.currentTarget.dataset.dish
+    if (!dish || !dish.id) return
+    wx.navigateTo({
+      url: `/pages/dish-detail/dish-detail?id=${dish.id}`
+    })
+  },
+
+  // 勾选/取消
+  onToggleSelect(e) {
+    const dish = e.currentTarget.dataset.dish
+    if (!dish || !dish.id) return
+    const selectedIds = [...this.data.selectedIds]
+    const idx = selectedIds.indexOf(dish.id)
+    if (idx >= 0) {
+      selectedIds.splice(idx, 1)
+    } else {
+      selectedIds.push(dish.id)
+      wx.vibrateShort({ type: 'light' })
+    }
+
+    // 只更新当前列表的选中状态和底栏数字
+    const currentDishes = this.data.currentDishes.map(d => ({
+      ...d,
+      isSelected: selectedIds.includes(d.id)
+    }))
     this.setData({
-      meatDishes: updateSelected(meatDishes),
-      vegDishes: updateSelected(vegDishes),
-      soupDishes: updateSelected(soupDishes),
-      searchResults: searchResults.length > 0 ? updateSelected(searchResults) : []
+      selectedIds: selectedIds,
+      selectedTotal: selectedIds.length,
+      currentDishes: currentDishes
     })
   },
-  
-  // 检查菜品是否已选择
-  isDishSelected(dishName) {
-    return this.data.selectedDishes.some(d => d.name === dishName)
+
+  // 显示已选面板
+  onShowSelected() {
+    const { selectedIds } = this.data
+    const selectedList = this.buildSelectedList(selectedIds)
+    this.setData({ selectedList: selectedList, showSelectedPanel: true })
   },
 
-  // 切换到自定义模式
-  onShowCustomInput() {
+  // 隐藏已选面板
+  onHideSelected() {
+    this.setData({ showSelectedPanel: false })
+  },
+
+  // 从面板中删除一道菜
+  onRemoveSelected(e) {
+    const id = e.currentTarget.dataset.id
+    const selectedIds = this.data.selectedIds.filter(x => x !== id)
+    const currentDishes = this.data.currentDishes.map(d => ({
+      ...d,
+      isSelected: selectedIds.includes(d.id)
+    }))
+    this.setData({
+      selectedIds: selectedIds,
+      selectedTotal: selectedIds.length,
+      currentDishes: currentDishes
+    })
+  },
+
+  // 清空全部
+  onClearSelected() {
     wx.showModal({
-      title: '添加自定义菜品',
-      editable: true,
-      placeholderText: '请输入菜品名称',
-      success: (res) => {
-        if (res.confirm && res.content) {
-          this.addCustomDish(res.content)
-        }
-      }
-    })
-  },
-
-  // 添加自定义菜品
-  addCustomDish(name) {
-    const { activeTab, currentRecipe } = this.data
-    
-    // 调用API保存自定义菜品
-    this.saveCustomDish({
-      name,
-      type: activeTab === 'meat' ? 'meat' : activeTab === 'veg' ? 'veg' : 'soup',
-      calories: 200,
-      protein: 10,
-      tags: ['自定义']
-    })
-  },
-
-  // 保存自定义菜品到本地和服务器
-  saveCustomDish(dish) {
-    const customRecipes = [...this.data.customRecipes, dish]
-    this.setData({ customRecipes })
-    
-    // 本地存储
-    wx.setStorageSync('customRecipes', customRecipes)
-    
-    // 调用后端API
-    this.callSaveDishAPI(dish)
-    
-    wx.showToast({
-      title: '保存成功',
-      icon: 'success'
-    })
-  },
-
-  // 调用后端API保存菜品
-  callSaveDishAPI(dish) {
-    // TODO: 调用实际的后端API
-    console.log('保存自定义菜品:', dish)
-    // wx.request({
-    //   url: 'https://your-api.com/dishes',
-    //   method: 'POST',
-    //   data: dish,
-    //   success: (res) => {
-    //     console.log('API保存成功', res)
-    //   }
-    // })
-  },
-
-  // 保存整个菜谱
-  onSaveRecipe() {
-    // 弹出输入框让用户输入菜谱名称
-    wx.showModal({
-      title: '保存菜谱',
-      editable: true,
-      placeholderText: '请输入菜谱名称',
-      content: `当前配置：${this.data.people}人餐，已选${this.data.selectedDishes.length}道菜`,
+      title: '清空已选',
+      content: '确定清空所有已选菜品？',
       success: (res) => {
         if (res.confirm) {
-          const recipeName = res.content || `我的菜谱-${this.data.people}人餐`
-          this.saveRecipeWithName(recipeName)
+          const currentDishes = this.data.currentDishes.map(d => ({
+            ...d,
+            isSelected: false
+          }))
+          this.setData({
+            selectedIds: [],
+            selectedTotal: 0,
+            currentDishes: currentDishes
+          })
         }
       }
     })
   },
-  
-  // 实际保存菜谱
-  saveRecipeWithName(name) {
-    const { people, meatCount, vegCount, soupCount, mealType, selectedDishes } = this.data
-    
-    const recipe = {
-      id: Date.now(),
-      name: name,
-      people: people,
-      meatCount: meatCount,
-      vegCount: vegCount,
-      soupCount: soupCount,
-      mealType: mealType,
-      selectedDishes: selectedDishes, // 用户选择的具体菜品
-      createdAt: new Date().toISOString()
+
+  // 保存到日历
+  async onSaveToCalendar() {
+    const { selectedIds } = this.data
+    if (!selectedIds.length) {
+      wx.showToast({ title: '请先勾选菜品', icon: 'none' })
+      return
     }
-    
-    const recipes = wx.getStorageSync('savedRecipes') || []
-    recipes.push(recipe)
-    wx.setStorageSync('savedRecipes', recipes)
-    
-    wx.showModal({
-      title: '保存成功',
-      content: `菜谱《${name}》已保存\n包含${selectedDishes.length}道菜品\n在主页可以选择使用`,
-      showCancel: true,
-      cancelText: '留在这里',
-      confirmText: '返回主页',
+    wx.showActionSheet({
+      itemList: ['早餐', '午餐', '晚餐'],
       success: (res) => {
-        if (res.confirm) {
-          wx.navigateBack()
-        }
+        const mealTypes = ['breakfast', 'lunch', 'dinner']
+        const mealType = mealTypes[res.tapIndex]
+        this.doSave(mealType, selectedIds)
       }
     })
   },
 
-  // 返回
+  async doSave(mealType, selectedIds) {
+    // 从全局缓存构建已选菜品详情
+    const selectedDishes = []
+    for (const id of selectedIds) {
+      const d = this.allDishesMap[id]
+      if (d) {
+        selectedDishes.push({ id: d.id, name: d.name, type: d.type })
+      }
+    }
+
+    const now = new Date()
+    const todayStr = this.getBeijingDateString(now)
+    const timeStr = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')].join(':')
+
+    try {
+      await api.saveRecipeRecord({
+        userId: this.getCurrentUserId(),
+        recordDateString: todayStr,
+        mealType: mealType,
+        recipeName: `定制菜谱 ${timeStr}`,
+        dishIds: selectedIds,
+        dishDetails: selectedDishes,
+        isManual: 1
+      })
+      wx.showToast({ title: '已保存到日历', icon: 'success' })
+      // 清空选中状态
+      const currentDishes = this.data.currentDishes.map(d => ({ ...d, isSelected: false }))
+      this.allDishesMap = {}
+      this.setData({
+        selectedIds: [],
+        selectedTotal: 0,
+        currentDishes: currentDishes,
+        showSelectedPanel: false
+      })
+    } catch (err) {
+      console.error('保存失败:', err)
+      wx.showToast({ title: '保存失败', icon: 'none' })
+    }
+  },
+
+  getCurrentUserId() {
+    const userInfo = wx.getStorageSync('userInfo') || {}
+    if (!userInfo.id) throw new Error('用户未登录')
+    return userInfo.id
+  },
+
+  getBeijingDateString(date) {
+    const d = new Date(date.getTime() + 8 * 3600000)
+    const y = d.getUTCFullYear()
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(d.getUTCDate()).padStart(2, '0')
+    return y + '-' + m + '-' + day
+  },
+
   onBack() {
     wx.navigateBack()
   }
 })
-

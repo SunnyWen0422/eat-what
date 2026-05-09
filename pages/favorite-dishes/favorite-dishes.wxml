@@ -1,0 +1,26 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{!loading && favorites.length === 0}}">
+    <text class="empty-icon">⭐</text>
+    <text class="empty-text">还没有收藏任何菜品</text>
+    <text class="empty-hint">在生成菜谱时点击菜品右上角的星标即可收藏</text>
+  </view>
+
+  <!-- 收藏列表 -->
+  <view class="favorites-list" wx:if="{{!loading && favorites.length > 0}}">
+    <view class="favorite-item" wx:for="{{favorites}}" wx:key="id">
+      <view class="dish-info" bindtap="onViewDish" data-dish="{{item.dish}}">
+        <text class="dish-name">{{item.dish.name}}</text>
+        <text class="dish-type">{{item.dish.type}}</text>
+      </view>
+      <view class="dish-actions">
+        <button class="btn-remove" bindtap="onRemoveFavorite" data-id="{{item.dish.id}}">取消收藏</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,31 @@
+<view class="shopping-page">
+  <view class="header">
+    <text class="title">购物清单</text>
+    <button class="btn" bindtap="onGenerate" type="primary" loading="{{loading}}">
+      {{loading ? '生成中...' : '生成清单'}}
+    </button>
+  </view>
+
+  <view class="content">
+    <block wx:if="{{!loading && (!items || items.length === 0)}}">
+      <view class="empty">
+        <text>暂无购物项，请点击“生成清单”。</text>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="list">
+        <block wx:for="{{items}}" wx:key="id || index">
+          <view class="item">
+            <view class="name">{{item.name || item.title || '未命名'}}</view>
+            <view class="meta">
+              <text class="qty">{{item.quantity || item.qty || ''}}</text>
+              <text class="unit">{{item.unit || ''}}</text>
+            </view>
+          </view>
+        </block>
+      </view>
+    </block>
+  </view>
+</view>
+

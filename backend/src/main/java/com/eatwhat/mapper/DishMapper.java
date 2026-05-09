@@ -9,73 +9,97 @@ import java.util.List;
  */
 @Mapper
 public interface DishMapper {
-    
+
     /**
-     * 获取所有菜品
+     * 按类型获取菜品（分页）
      */
-    @Select({
-        "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, CALORIE as calories, ",
-        "PROTEIN as protein, METERIAL as material, STEP as steps, ",
-        "TAGS as tagsString, IS_CUSTOM as isCustom, USER_ID as userId, ",
-        "CREATE_TIME as createTime ",
-        "FROM food ",
-        "WHERE 1=1 ",
-        "<if test='type != null'>AND TYPE = #{type}</if> ",
-        "<if test='keyword != null'>AND NAME LIKE CONCAT('%', #{keyword}, '%')</if> ",
-        "<if test='userId != null'>AND (IS_CUSTOM = 0 OR USER_ID = #{userId})</if> ",
-        "ORDER BY IS_CUSTOM ASC, CREATE_TIME DESC",
-        "</script>"
-    })
-    List<Dish> selectDishes(@Param("type") String type, 
-                           @Param("keyword") String keyword, 
-                           @Param("userId") Long userId);
-    
+    @Select("SELECT ID as id, NAME as name, TYPE as type " +
+            "FROM food WHERE TYPE = #{type} ORDER BY ID DESC LIMIT #{limit} OFFSET #{offset}")
+    List<Dish> selectDishesByTypePage(@Param("type") String type,
+                                       @Param("limit") int limit,
+                                       @Param("offset") int offset);
+
+    /**
+     * 按类型获取菜品总数
+     */
+    @Select("SELECT COUNT(*) FROM food WHERE TYPE = #{type}")
+    int countByType(@Param("type") String type);
+
+    /**
+     * 获取所有菜品（无过滤）
+     */
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step, " +
+            "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, " +
+            "COOK_TIME as cookTime, " +
+            "STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
+            "METHODS as methods, KCAL as kcal, " +
+            "0 as isCustom, NULL as userId, " +
+            "NOW() as createTime " +
+            "FROM food ORDER BY ID DESC")
+    List<Dish> selectAllDishes();
+
     /**
      * 根据ID查询菜品
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, CALORIE as calories, " +
-            "PROTEIN as protein, METERIAL as material, STEP as steps, " +
-            "TAGS as tagsString, IS_CUSTOM as isCustom, USER_ID as userId, " +
-            "CREATE_TIME as createTime " +
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "CL as cl, FL as fl, STEP as step, " +
+            "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, " +
+            "COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, " +
+            "STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
+            "METHODS as methods, KCAL as kcal, " +
+            "0 as isCustom, NULL as userId, " +
+            "NOW() as createTime " +
             "FROM food WHERE ID = #{id}")
     Dish selectById(@Param("id") Long id);
-    
+
     /**
      * 插入自定义菜品
      */
-    @Insert("INSERT INTO food (NAME, TYPE, CALORIE, PROTEIN, METERIAL, STEP, TAGS, IS_CUSTOM, USER_ID, CREATE_TIME) " +
-            "VALUES (#{name}, #{type}, #{calories}, #{protein}, #{material}, #{steps}, #{tagsString}, #{isCustom}, #{userId}, NOW())")
+    @Insert("INSERT INTO food (NAME, TYPE, CL, FL, STEP) " +
+            "VALUES (#{name}, #{type}, #{cl}, #{fl}, #{step})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Dish dish);
-    
+
     /**
-     * 搜索菜品
+     * 搜索菜品（按关键词 + 可选类型）
      */
-    @Select({
-        "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, CALORIE as calories, ",
-        "PROTEIN as protein, METERIAL as material, STEP as steps, ",
-        "TAGS as tagsString, IS_CUSTOM as isCustom, USER_ID as userId, ",
-        "CREATE_TIME as createTime ",
-        "FROM food ",
-        "WHERE NAME LIKE CONCAT('%', #{keyword}, '%') ",
-        "<if test='type != null'>AND TYPE = #{type}</if> ",
-        "ORDER BY IS_CUSTOM ASC, CREATE_TIME DESC",
-        "</script>"
-    })
-    List<Dish> searchDishes(@Param("keyword") String keyword, 
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "CL as cl, FL as fl, STEP as step, " +
+            "'' as tags, 0 as isCustom, NULL as userId, " +
+            "NOW() as createTime " +
+            "FROM food " +
+            "WHERE NAME LIKE CONCAT('%', #{keyword}, '%') " +
+            "AND TYPE = #{type} " +
+            "ORDER BY ID DESC")
+    List<Dish> searchDishes(@Param("keyword") String keyword,
                            @Param("type") String type);
-    
+
+    /**
+     * 搜索菜品（仅按关键词，不限类型）
+     */
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "CL as cl, FL as fl, STEP as step, " +
+            "'' as tags, 0 as isCustom, NULL as userId, " +
+            "NOW() as createTime " +
+            "FROM food " +
+            "WHERE NAME LIKE CONCAT('%', #{keyword}, '%') " +
+            "ORDER BY ID DESC")
+    List<Dish> searchDishesByKeyword(@Param("keyword") String keyword);
+
     /**
      * 根据IDs批量查询
      */
     @Select({
         "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, CALORIE as calories, ",
-        "PROTEIN as protein, METERIAL as material, STEP as steps, ",
-        "TAGS as tagsString, IS_CUSTOM as isCustom, USER_ID as userId, ",
-        "CREATE_TIME as createTime ",
+        "SELECT ID as id, NAME as name, TYPE as type, ",
+        "CL as cl, FL as fl, STEP as step, ",
+        "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, ",
+        "COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, ",
+        "STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, ",
+        "METHODS as methods, KCAL as kcal, ",
+        "0 as isCustom, NULL as userId, ",
+        "NOW() as createTime ",
         "FROM food WHERE ID IN ",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>",
         "#{id}",
@@ -83,5 +107,57 @@ public interface DishMapper {
         "</script>"
     })
     List<Dish> selectByIds(@Param("ids") List<Long> ids);
-}
 
+    /**
+     * 获取菜品总数
+     */
+    @Select("SELECT COUNT(*) FROM food")
+    int countAll();
+
+    /**
+     * 按类型获取菜品（轻量版）
+     */
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "TAGS as tags, IMAGE as image, " +
+            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
+            "FROM food WHERE TYPE = #{type} ORDER BY ID DESC")
+    List<Dish> selectDishesLiteByType(@Param("type") String type);
+
+    /**
+     * 获取所有菜品（轻量版，无过滤）
+     */
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "TAGS as tags, IMAGE as image, " +
+            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
+            "FROM food ORDER BY ID DESC")
+    List<Dish> selectAllDishesLite();
+
+    /**
+     * 按类型随机获取菜品（轻量版）
+     */
+    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+            "TAGS as tags, IMAGE as image, " +
+            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
+            "FROM food WHERE TYPE = #{type} ORDER BY RAND() LIMIT #{limit}")
+    List<Dish> selectDishesRandomByType(@Param("type") String type, @Param("limit") int limit);
+
+    /**
+     * 按类型随机获取一道菜（排除指定ID列表）
+     */
+    @Select({
+        "<script>",
+        "SELECT ID as id, NAME as name, TYPE as type, ",
+        "TAGS as tags, IMAGE as image, ",
+        "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
+        "FROM food WHERE TYPE = #{type} ",
+        "<if test='excludeIds != null and excludeIds.size() > 0'>",
+        "AND ID NOT IN ",
+        "<foreach item='id' collection='excludeIds' open='(' separator=',' close=')'>",
+        "#{id}",
+        "</foreach>",
+        "</if>",
+        "ORDER BY RAND() LIMIT 1",
+        "</script>"
+    })
+    Dish selectDishRandomByTypeExclude(@Param("type") String type, @Param("excludeIds") List<Long> excludeIds);
+}

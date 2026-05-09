@@ -2,7 +2,18 @@
   "compileType": "miniprogram",
   "libVersion": "trial",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {"type": "folder", "value": "backend"},
+      {"type": "folder", "value": "recommend-service"},
+      {"type": "folder", "value": "docs"},
+      {"type": "suffix", "value": ".tar.gz"},
+      {"type": "suffix", "value": ".bat"},
+      {"type": "suffix", "value": ".sql"},
+      {"type": "suffix", "value": ".md"},
+      {"type": "suffix", "value": ".jpg"},
+      {"type": "suffix", "value": ".png"},
+      {"type": "suffix", "value": ".mp3"}
+    ],
     "include": []
   },
   "setting": {

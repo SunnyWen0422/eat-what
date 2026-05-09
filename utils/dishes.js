@@ -43,17 +43,21 @@ function searchDishes(keyword, type = null) {
   })
 }
 
-// 添加自定义菜品
+// 添加自定义菜品（按用户隔离）
 function addCustomDish(dish) {
-  const customDishes = wx.getStorageSync('customDishes') || []
+  const { getUserStorageKey } = require('./util')
+  const customKey = getUserStorageKey('customDishes')
+  const customDishes = wx.getStorageSync(customKey) || []
   customDishes.push(dish)
-  wx.setStorageSync('customDishes', customDishes)
+  wx.setStorageSync(customKey, customDishes)
 }
 
-// 获取所有菜品（包括自定义）
+// 获取所有菜品（包括自定义，按用户隔离）
 function getAllDishes() {
   const defaultDishes = getDefaultDishes()
-  const customDishes = wx.getStorageSync('customDishes') || []
+  const { getUserStorageKey } = require('./util')
+  const customKey = getUserStorageKey('customDishes')
+  const customDishes = wx.getStorageSync(customKey) || []
   return [...defaultDishes, ...customDishes]
 }
 

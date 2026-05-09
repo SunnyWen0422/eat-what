@@ -8,7 +8,7 @@
 const USE_BACKEND_API = true  // 默认false，开发完成后改为true
 
 // API基础地址
-const API_BASE_URL = 'http://localhost:8080/api'
+const API_BASE_URL = 'https://chishenme.icu/api'
 
 // 生产环境API地址（需要HTTPS）
 const PROD_API_BASE_URL = 'https://chishenme.icu/api'
@@ -18,7 +18,7 @@ const PROD_API_BASE_URL = 'https://chishenme.icu/api'
 // ========================================
 
 // 是否启用用户登录
-const ENABLE_LOGIN = false
+const ENABLE_LOGIN = true
 
 // 是否启用触觉反馈
 const ENABLE_VIBRATE = true

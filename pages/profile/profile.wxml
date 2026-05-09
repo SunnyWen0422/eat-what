@@ -1,0 +1,54 @@
+<view class="profile-page">
+  <!-- 用户信息卡片 -->
+  <view class="user-card" bindtap="onUserInfoTap">
+    <view class="user-avatar">
+      <image class="avatar" src="{{userInfo.avatar}}" mode="aspectFill" />
+      <view class="edit-btn" bindtap="onEditProfile">
+        <text class="edit-icon">✏️</text>
+      </view>
+    </view>
+    <view class="user-info">
+      <text class="nickname">{{userInfo.nickname}}</text>
+      <text class="level">{{userInfo.level}}</text>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-section">
+    <view class="stat-item" bindtap="onStatTap" data-type="recipes">
+      <text class="stat-value">{{userInfo.totalRecipes}}</text>
+      <text class="stat-label">菜谱记录</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="onStatTap" data-type="favorites">
+      <text class="stat-value">{{userInfo.favoriteDishes}}</text>
+      <text class="stat-label">收藏菜品</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="onStatTap" data-type="days">
+      <text class="stat-value">{{userInfo.joinDays}}</text>
+      <text class="stat-label">使用天数</text>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <view class="menu-list">
+      <block wx:for="{{menuItems}}" wx:key="title">
+        <view class="menu-item" bindtap="onMenuTap" data-index="{{index}}">
+          <view class="menu-icon">{{item.icon}}</view>
+          <view class="menu-content">
+            <text class="menu-title">{{item.title}}</text>
+            <text class="menu-desc">{{item.desc}}</text>
+          </view>
+          <view class="menu-arrow">›</view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info">
+    <text class="version-text">吃什么 v3.0.0</text>
+  </view>
+</view>

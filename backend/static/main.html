@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>吃什么 - 选菜 & 我的菜谱</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    .page {
+      flex: 1;
+      padding: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: 26px;
+      margin-bottom: 6px;
+    }
+    header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title span.sub {
+      font-size: 12px;
+      color: #999;
+      font-weight: 400;
+    }
+    .param-item {
+      margin-bottom: 14px;
+    }
+    .param-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .param-label span.value {
+      color: #667eea;
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .meal-type {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .meal-type label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    button.primary {
+      background: #07c160;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(7, 193, 96, 0.3);
+    }
+    button.primary:hover {
+      filter: brightness(1.05);
+    }
+    button.secondary {
+      background: #f5f5f5;
+      color: #333;
+    }
+    button.danger {
+      background: #ff4d4f;
+      color: #fff;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    /* 推荐结果区域 */
+    .plans-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #666;
+    }
+    .plan-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .plan-nav button {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+    }
+    .plan-index {
+      font-size: 13px;
+      color: #999;
+    }
+    .plan-empty {
+      font-size: 13px;
+      color: #999;
+      padding: 6px 0;
+    }
+    .dish-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .dish-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f7f8fa;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .dish-item:hover {
+      background: #eef1f8;
+    }
+    .dish-main {
+      display: flex;
+      flex-direction: column;
+    }
+    .dish-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .dish-tags {
+      font-size: 11px;
+      color: #999;
+    }
+    .dish-type-badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      min-width: 40px;
+      text-align: center;
+    }
+    .dish-type-meat {
+      border-color: #ff7875;
+      color: #ff4d4f;
+    }
+    .dish-type-veg {
+      border-color: #52c41a;
+      color: #389e0d;
+    }
+    .dish-type-soup {
+      border-color: #40a9ff;
+      color: #1890ff;
+    }
+
+    /* 我的菜谱 */
+    .recipe-list {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 4px;
+    }
+    .recipe-card {
+      min-width: 200px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      border: 2px solid #e5e5e5;
+      padding: 10px;
+      position: relative;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .recipe-card.selected {
+      border-color: #07c160;
+      background: #e8f5e9;
+      box-shadow: 0 3px 10px rgba(7, 193, 96, 0.25);
+    }
+    .recipe-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      padding-right: 20px;
+    }
+    .recipe-meta {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .recipe-meta span {
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+    .recipe-dishes {
+      margin-top: 2px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .recipe-dish-tag {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #07c160;
+      color: #07c160;
+      background: #fff;
+    }
+    .recipe-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 13px;
+      text-align: center;
+      line-height: 17px;
+      cursor: pointer;
+    }
+    .recipe-selected-badge {
+      position: absolute;
+      top: -6px;
+      left: 8px;
+      font-size: 11px;
+      background: #07c160;
+      color: #fff;
+      padding: 1px 8px;
+      border-radius: 999px;
+    }
+    .recipes-empty {
+      font-size: 13px;
+      color: #999;
+    }
+    .unselect-row {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+    }
+
+    /* 菜品详情弹窗 */
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 420px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: auto;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .modal-text {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .modal-footer {
+      margin-top: 12px;
+      text-align: right;
+    }
+
+    footer {
+      padding: 10px 16px 16px;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    @media (min-width: 768px) {
+      header h1 {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>今天吃什么 · 网页版</h1>
+      <p>本页面基于小程序功能，只保留「选菜」和「我的菜谱」&「存储」能力，使用本地测试数据。</p>
+    </header>
+
+    <!-- 参数设置 -->
+    <section class="card" id="paramCard">
+      <div class="card-title">
+        <span>参数设置</span>
+        <span class="sub">根据人数和餐次选择合适的菜品数量</span>
+      </div>
+
+      <div class="param-item">
+        <div class="param-label">
+          <span>用餐人数</span>
+          <span class="value"><span id="peopleValue">2</span> 人</span>
+        </div>
+        <input id="peopleSlider" type="range" min="1" max="10" step="1" value="2" />
+      </div>
+
+      <div class="param-item">
+        <div class="param-label">
+          <span>荤菜数量</span>
+          <span class="value"><span id="meatValue">2</span> 道</span>
+        </div>
+        <input id="meatSlider" type="range" min="0" max="5" step="1" value="2" />
+      </div>
+
+      <div class="param-item">
+        <div class="param-label">
+          <span>素菜数量</span>
+          <span class="value"><span id="vegValue">2</span> 道</span>
+        </div>
+        <input id="vegSlider" type="range" min="0" max="5" step="1" value="2" />
+      </div>
+
+      <div class="param-item">
+        <div class="param-label">
+          <span>汤品数量</span>
+          <span class="value"><span id="soupValue">1</span> 道</span>
+        </div>
+        <input id="soupSlider" type="range" min="0" max="3" step="1" value="1" />
+      </div>
+
+      <div class="param-item">
+        <div class="param-label">
+          <span>餐次</span>
+        </div>
+        <div class="meal-type" id="mealTypeGroup">
+          <label><input type="radio" name="mealType" value="breakfast" /> 早餐</label>
+          <label><input type="radio" name="mealType" value="lunch" checked /> 午餐</label>
+          <label><input type="radio" name="mealType" value="dinner" /> 晚餐</label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" id="btnRecommend">今天吃什么</button>
+        <button class="secondary" id="btnSaveRecipe">保存为我的菜谱</button>
+      </div>
+    </section>
+
+    <!-- 推荐结果 -->
+    <section class="card">
+      <div class="card-title">
+        <span>推荐结果</span>
+        <span class="sub">本地测试数据随机推荐，不依赖后端</span>
+      </div>
+      <div class="plans-header">
+        <span id="plansSummary" class="plan-index">请先点击「今天吃什么」生成推荐</span>
+        <div class="plan-nav">
+          <button class="secondary" id="btnPrevPlan">上一套</button>
+          <button class="secondary" id="btnNextPlan">下一套</button>
+        </div>
+      </div>
+      <div id="planContainer">
+        <div class="plan-empty" id="planEmpty">暂无推荐方案</div>
+        <div class="dish-list" id="dishList" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- 我的菜谱 -->
+    <section class="card">
+      <div class="card-title">
+        <span>我的菜谱</span>
+        <span class="sub">本地浏览器 localStorage 存储</span>
+      </div>
+      <div id="recipesContainer">
+        <div id="recipesEmpty" class="recipes-empty">还没有保存任何菜谱，可以在上方点击「保存为我的菜谱」。</div>
+        <div id="recipesList" class="recipe-list" style="display:none;"></div>
+        <div id="unselectRow" class="unselect-row" style="display:none;">取消当前选择</div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    仅用于个人练习 · 所有数据保存在本地浏览器中，不会上传服务器
+  </footer>
+
+  <!-- 菜品详情弹窗 -->
+  <div id="modalMask" class="modal-mask" style="display:none;">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="modalTitle">菜品详情</span>
+        <span style="font-size:18px;cursor:pointer;" id="modalClose">&times;</span>
+      </div>
+      <div id="modalBody">
+        <!-- 动态填充 -->
+      </div>
+      <div class="modal-footer">
+        <button class="secondary" id="modalOk">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===============================
+    // 1. 本地测试菜品数据
+    // ===============================
+    const DISHES = [
+      // 荤菜
+      { id: 1, name: '红烧鸡翅', type: 'meat', cl: '鸡翅、中式调料', fl: '鸡翅中 8-10只', step: '鸡翅焯水后与调料一起小火焖煮入味即可。', tags: ['荤', '家常'] },
+      { id: 2, name: '番茄炒蛋', type: 'meat', cl: '鸡蛋、番茄', fl: '鸡蛋 3个，番茄 2个', step: '鸡蛋炒至定型盛出，番茄炒出汁后与鸡蛋翻炒均匀。', tags: ['荤', '快手'] },
+      { id: 3, name: '宫保鸡丁', type: 'meat', cl: '鸡胸肉、花生米、干辣椒', fl: '鸡胸肉 200g', step: '鸡丁腌制后与花生米、辣椒一起爆炒，加入调味汁翻炒均匀。', tags: ['荤', '川味'] },
+      { id: 4, name: '鱼香肉丝', type: 'meat', cl: '猪肉、木耳、胡萝卜', fl: '猪里脊 200g', step: '肉丝腌制后与配菜同炒，加入鱼香汁烧至入味。', tags: ['荤', '川味'] },
+      { id: 5, name: '回锅肉', type: 'meat', cl: '五花肉、青椒、蒜苗', fl: '五花肉 250g', step: '五花肉煮熟后切片，与豆瓣酱和蔬菜一起炒香。', tags: ['荤', '川味'] },
+      { id: 6, name: '糖醋排骨', type: 'meat', cl: '排骨、糖、醋', fl: '排骨 300g', step: '排骨焯水后油炸，再与糖醋汁一起收汁。', tags: ['荤', '下饭'] },
+      { id: 7, name: '可乐鸡翅', type: 'meat', cl: '鸡翅、可乐', fl: '鸡翅中 8只', step: '鸡翅煎至两面金黄，倒入可乐小火收汁。', tags: ['荤', '儿童喜爱'] },
+      { id: 8, name: '孜然牛肉', type: 'meat', cl: '牛肉、孜然', fl: '牛肉片 200g', step: '牛肉腌制后大火快炒，加入孜然粒和辣椒粉调味。', tags: ['荤', '香辣'] },
+      { id: 9, name: '黑椒牛柳', type: 'meat', cl: '牛肉、青红椒', fl: '牛里脊 200g', step: '牛柳快炒，加入黑椒汁翻炒均匀。', tags: ['荤', '西式'] },
+      { id: 10, name: '蒜香排骨', type: 'meat', cl: '排骨、大蒜', fl: '排骨 300g', step: '排骨与蒜蓉腌制后放入烤箱烤熟。', tags: ['荤', '蒜香'] },
+
+      // 素菜
+      { id: 11, name: '清炒西兰花', type: 'veg', cl: '西兰花、大蒜', fl: '西兰花 1颗', step: '西兰花焯水后与蒜片一起快炒。', tags: ['素', '清淡'] },
+      { id: 12, name: '凉拌黄瓜', type: 'veg', cl: '黄瓜、大蒜', fl: '黄瓜 2根', step: '黄瓜拍碎，加入蒜泥和调料拌匀即可。', tags: ['素', '凉菜'] },
+      { id: 13, name: '蒜蓉菠菜', type: 'veg', cl: '菠菜、大蒜', fl: '菠菜 300g', step: '菠菜焯水后与蒜蓉一起炒香。', tags: ['素', '清淡'] },
+      { id: 14, name: '干煸四季豆', type: 'veg', cl: '四季豆、肉末（可选）', fl: '四季豆 300g', step: '四季豆煎至表皮起皱，与调料一起干煸。', tags: ['素', '川味'] },
+      { id: 15, name: '醋溜白菜', type: 'veg', cl: '大白菜、醋', fl: '大白菜 300g', step: '白菜快炒，加入糖和醋调味。', tags: ['素', '家常'] },
+      { id: 16, name: '麻酱油麦菜', type: 'veg', cl: '油麦菜、芝麻酱', fl: '油麦菜 250g', step: '油麦菜焯水后淋上调好的芝麻酱。', tags: ['素', '凉菜'] },
+      { id: 17, name: '香菇青菜', type: 'veg', cl: '香菇、青菜', fl: '青菜 250g，香菇 6朵', step: '香菇煸香，加入青菜一起炒至断生。', tags: ['素', '清淡'] },
+      { id: 18, name: '酸辣土豆丝', type: 'veg', cl: '土豆、辣椒、醋', fl: '土豆 2个', step: '土豆丝泡水去淀粉，快炒后加入醋和辣椒。', tags: ['素', '开胃'] },
+      { id: 19, name: '凉拌木耳', type: 'veg', cl: '木耳、黄瓜、胡萝卜', fl: '木耳 100g', step: '木耳焯水后与蔬菜和调料拌匀。', tags: ['素', '凉菜'] },
+      { id: 20, name: '番茄豆腐', type: 'veg', cl: '番茄、嫩豆腐', fl: '嫩豆腐 1块', step: '番茄炒出汁后加入豆腐煮几分钟。', tags: ['素', '家常'] },
+
+      // 汤品
+      { id: 21, name: '紫菜蛋花汤', type: 'soup', cl: '紫菜、鸡蛋', fl: '鸡蛋 1个', step: '水煮开后加入紫菜和鸡蛋液，调味即可。', tags: ['汤', '清淡'] },
+      { id: 22, name: '西红柿牛腩汤', type: 'soup', cl: '牛腩、番茄', fl: '牛腩 300g', step: '牛腩炖煮至软烂，加入番茄继续炖煮。', tags: ['汤', '滋补'] },
+      { id: 23, name: '玉米排骨汤', type: 'soup', cl: '排骨、玉米', fl: '排骨 300g，玉米 1根', step: '排骨焯水后与玉米一起小火炖煮。', tags: ['汤', '家常'] },
+      { id: 24, name: '冬瓜排骨汤', type: 'soup', cl: '排骨、冬瓜', fl: '排骨 300g，冬瓜 300g', step: '排骨炖煮 40 分钟后加入冬瓜继续煮。', tags: ['汤', '清淡'] },
+      { id: 25, name: '西湖牛肉羹', type: 'soup', cl: '牛肉末、鸡蛋', fl: '牛肉末 150g', step: '牛肉末煮熟后勾芡，淋入蛋液。', tags: ['汤', '家常'] },
+      { id: 26, name: '萝卜牛腩汤', type: 'soup', cl: '牛腩、白萝卜', fl: '牛腩 300g，白萝卜 300g', step: '牛腩与萝卜一起炖煮至软烂。', tags: ['汤', '滋补'] },
+      { id: 27, name: '菌菇鸡汤', type: 'soup', cl: '鸡肉、香菇、金针菇', fl: '鸡肉 300g', step: '鸡肉与菌菇一起炖煮 40 分钟以上。', tags: ['汤', '滋补'] }
+    ];
+
+    // ===============================
+    // 2. 状态与工具函数
+    // ===============================
+    const state = {
+      people: 2,
+      meat: 2,
+      veg: 2,
+      soup: 1,
+      mealType: 'lunch',
+      plans: [],
+      planIndex: 0,
+      recipes: [],
+      selectedRecipeId: null,
+      recentNames: []
+    };
+
+    const RECENT_LIMIT = 12;
+    const STORAGE_KEY_RECIPES = 'savedRecipes_web';
+
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function clamp(num, min, max) {
+      return Math.min(max, Math.max(min, num));
+    }
+
+    function updateRecent(dishes) {
+      dishes.forEach(d => state.recentNames.push(d.name));
+      while (state.recentNames.length > RECENT_LIMIT) {
+        state.recentNames.shift();
+      }
+    }
+
+    function pickUnique(array, count, excludeSet) {
+      const candidates = array.filter(d => !excludeSet.has(d.name));
+      const pool = [...candidates];
+      const result = [];
+      while (result.length < count && pool.length > 0) {
+        const idx = Math.floor(Math.random() * pool.length);
+        result.push(pool.splice(idx, 1)[0]);
+      }
+      return result;
+    }
+
+    function getDishTypeLabel(type) {
+      if (type === 'meat') return '荤菜';
+      if (type === 'veg') return '素菜';
+      if (type === 'soup') return '汤品';
+      return type;
+    }
+
+    // ===============================
+    // 3. 参数 UI & 联动逻辑
+    // ===============================
+    function applyConstraints() {
+      const people = state.people;
+      let meatMax = 5;
+      if (people <= 1) meatMax = 2;
+      else if (people <= 3) meatMax = 3;
+      else if (people <= 6) meatMax = 4;
+      if (state.mealType === 'breakfast') {
+        meatMax = Math.min(meatMax, 1);
+      }
+      state.meat = clamp(state.meat, 0, meatMax);
+      $('meatSlider').value = String(state.meat);
+      $('meatValue').textContent = String(state.meat);
+    }
+
+    function bindParamEvents() {
+      const peopleSlider = $('peopleSlider');
+      const meatSlider = $('meatSlider');
+      const vegSlider = $('vegSlider');
+      const soupSlider = $('soupSlider');
+
+      peopleSlider.addEventListener('input', () => {
+        state.people = Number(peopleSlider.value);
+        $('peopleValue').textContent = String(state.people);
+        applyConstraints();
+      });
+
+      meatSlider.addEventListener('input', () => {
+        state.meat = Number(meatSlider.value);
+        $('meatValue').textContent = String(state.meat);
+        applyConstraints();
+      });
+
+      vegSlider.addEventListener('input', () => {
+        state.veg = Number(vegSlider.value);
+        $('vegValue').textContent = String(state.veg);
+      });
+
+      soupSlider.addEventListener('input', () => {
+        state.soup = Number(soupSlider.value);
+        $('soupValue').textContent = String(state.soup);
+      });
+
+      const mealRadios = document.querySelectorAll('input[name="mealType"]');
+      mealRadios.forEach(r => {
+        r.addEventListener('change', () => {
+          if (!r.checked) return;
+          state.mealType = r.value;
+          if (state.mealType === 'breakfast') {
+            state.meat = Math.min(state.meat, 1);
+            state.soup = Math.min(state.soup, 1);
+          } else if (state.mealType === 'dinner') {
+            state.meat = Math.max(state.meat, 2);
+          }
+          applyConstraints();
+        });
+      });
+    }
+
+    // ===============================
+    // 4. 推荐算法 & 渲染结果
+    // ===============================
+    function recommendPlans() {
+      const { meat, veg, soup } = state;
+      const all = DISHES;
+      const meatsPool = all.filter(d => d.type === 'meat');
+      const vegsPool = all.filter(d => d.type === 'veg');
+      const soupsPool = all.filter(d => d.type === 'soup');
+
+      const plans = [];
+      const exclude = new Set(state.recentNames);
+
+      for (let i = 0; i < 3; i++) {
+        const m = pickUnique(meatsPool, meat, exclude);
+        const v = pickUnique(vegsPool, veg, exclude);
+        const s = pickUnique(soupsPool, soup, exclude);
+        const dishes = [...m, ...v, ...s];
+        if (dishes.length === 0) continue;
+        plans.push({ dishes });
+      }
+
+      if (plans.length > 0) {
+        updateRecent(plans.flatMap(p => p.dishes));
+      }
+
+      state.plans = plans;
+      state.planIndex = 0;
+      renderPlans();
+    }
+
+    function renderPlans() {
+      const summary = $('plansSummary');
+      const dishList = $('dishList');
+      const empty = $('planEmpty');
+
+      if (!state.plans || state.plans.length === 0) {
+        summary.textContent = '请先点击「今天吃什么」生成推荐';
+        empty.style.display = 'block';
+        dishList.style.display = 'none';
+        dishList.innerHTML = '';
+        return;
+      }
+
+      const idx = clamp(state.planIndex, 0, state.plans.length - 1);
+      state.planIndex = idx;
+      const plan = state.plans[idx];
+      summary.textContent = `共 ${state.plans.length} 套方案，当前第 ${idx + 1} 套`;
+
+      empty.style.display = 'none';
+      dishList.style.display = 'flex';
+      dishList.innerHTML = '';
+
+      plan.dishes.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'dish-item';
+        item.dataset.id = d.id;
+
+        const main = document.createElement('div');
+        main.className = 'dish-main';
+        const name = document.createElement('div');
+        name.className = 'dish-name';
+        name.textContent = d.name;
+        const tags = document.createElement('div');
+        tags.className = 'dish-tags';
+        tags.textContent = d.tags && d.tags.length ? d.tags.join(' / ') : '无特别标签';
+
+        main.appendChild(name);
+        main.appendChild(tags);
+
+        const badge = document.createElement('div');
+        badge.className = 'dish-type-badge';
+        if (d.type === 'meat') badge.classList.add('dish-type-meat');
+        if (d.type === 'veg') badge.classList.add('dish-type-veg');
+        if (d.type === 'soup') badge.classList.add('dish-type-soup');
+        badge.textContent = getDishTypeLabel(d.type);
+
+        item.appendChild(main);
+        item.appendChild(badge);
+
+        item.addEventListener('click', () => {
+          showDishDetail(d);
+        });
+
+        dishList.appendChild(item);
+      });
+    }
+
+    // ===============================
+    // 5. 我的菜谱：localStorage 存储
+    // ===============================
+    function loadRecipes() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_RECIPES);
+        state.recipes = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('加载菜谱失败', e);
+        state.recipes = [];
+      }
+      renderRecipes();
+    }
+
+    function saveRecipesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_RECIPES, JSON.stringify(state.recipes));
+      } catch (e) {
+        console.error('保存菜谱失败', e);
+      }
+    }
+
+    function handleSaveRecipe() {
+      const name = window.prompt('请输入菜谱名称（例如：工作日晚餐常用搭配）：', '');
+      if (!name) return;
+
+      const id = 'recipe_' + Date.now();
+      const currentPlan = state.plans[state.planIndex] || null;
+
+      const recipe = {
+        id,
+        name,
+        people: state.people,
+        meatCount: state.meat,
+        vegCount: state.veg,
+        soupCount: state.soup,
+        mealType: state.mealType,
+        selectedDishes: currentPlan ? currentPlan.dishes.map(d => ({ id: d.id, name: d.name, type: d.type })) : []
+      };
+
+      state.recipes.push(recipe);
+      saveRecipesToStorage();
+      state.selectedRecipeId = id;
+      renderRecipes();
+      window.alert('菜谱已保存到本地浏览器。');
+    }
+
+    function applyRecipe(recipeId) {
+      const r = state.recipes.find(x => x.id === recipeId);
+      if (!r) return;
+      state.selectedRecipeId = recipeId;
+      state.people = r.people ?? state.people;
+      state.meat = r.meatCount ?? state.meat;
+      state.veg = r.vegCount ?? state.veg;
+      state.soup = r.soupCount ?? state.soup;
+      state.mealType = r.mealType ?? state.mealType;
+
+      $('peopleSlider').value = String(state.people);
+      $('meatSlider').value = String(state.meat);
+      $('vegSlider').value = String(state.veg);
+      $('soupSlider').value = String(state.soup);
+      $('peopleValue').textContent = String(state.people);
+      $('meatValue').textContent = String(state.meat);
+      $('vegValue').textContent = String(state.veg);
+      $('soupValue').textContent = String(state.soup);
+      const mealRadios = document.querySelectorAll('input[name="mealType"]');
+      mealRadios.forEach(radio => {
+        radio.checked = radio.value === state.mealType;
+      });
+
+      applyConstraints();
+      renderRecipes();
+
+      window.setTimeout(() => {
+        window.alert(`已应用菜谱「${r.name}」的参数配置。`);
+      }, 0);
+    }
+
+    function deleteRecipe(recipeId) {
+      const r = state.recipes.find(x => x.id === recipeId);
+      if (!r) return;
+      const ok = window.confirm(`确认删除菜谱「${r.name}」吗？`);
+      if (!ok) return;
+      state.recipes = state.recipes.filter(x => x.id !== recipeId);
+      if (state.selectedRecipeId === recipeId) {
+        state.selectedRecipeId = null;
+      }
+      saveRecipesToStorage();
+      renderRecipes();
+    }
+
+    function unselectRecipe() {
+      state.selectedRecipeId = null;
+      renderRecipes();
+    }
+
+    function renderRecipes() {
+      const empty = $('recipesEmpty');
+      const list = $('recipesList');
+      const unselectRow = $('unselectRow');
+
+      if (!state.recipes || state.recipes.length === 0) {
+        empty.style.display = 'block';
+        list.style.display = 'none';
+        list.innerHTML = '';
+        unselectRow.style.display = 'none';
+        return;
+      }
+
+      empty.style.display = 'none';
+      list.style.display = 'flex';
+      list.innerHTML = '';
+      unselectRow.style.display = state.selectedRecipeId ? 'block' : 'none';
+
+      state.recipes.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'recipe-card';
+        if (state.selectedRecipeId === r.id) {
+          card.classList.add('selected');
+        }
+
+        const name = document.createElement('div');
+        name.className = 'recipe-name';
+        name.textContent = r.name;
+
+        const meta = document.createElement('div');
+        meta.className = 'recipe-meta';
+        meta.innerHTML = `
+          <span>👥 ${r.people || '-'}人</span>
+          <span>🍖 ${r.meatCount || 0}荤</span>
+          <span>🥬 ${r.vegCount || 0}素</span>
+          <span>🍲 ${r.soupCount || 0}汤</span>
+        `;
+
+        const dishesWrap = document.createElement('div');
+        dishesWrap.className = 'recipe-dishes';
+        (r.selectedDishes || []).slice(0, 4).forEach(d => {
+          const tag = document.createElement('span');
+          tag.className = 'recipe-dish-tag';
+          tag.textContent = d.name;
+          dishesWrap.appendChild(tag);
+        });
+        if ((r.selectedDishes || []).length > 4) {
+          const more = document.createElement('span');
+          more.className = 'recipe-dish-tag';
+          more.textContent = `+${r.selectedDishes.length - 4}`;
+          dishesWrap.appendChild(more);
+        }
+
+        const del = document.createElement('div');
+        del.className = 'recipe-delete';
+        del.textContent = '×';
+        del.addEventListener('click', e => {
+          e.stopPropagation();
+          deleteRecipe(r.id);
+        });
+
+        card.appendChild(name);
+        card.appendChild(meta);
+        if ((r.selectedDishes || []).length > 0) {
+          card.appendChild(dishesWrap);
+        }
+        card.appendChild(del);
+
+        if (state.selectedRecipeId === r.id) {
+          const badge = document.createElement('div');
+          badge.className = 'recipe-selected-badge';
+          badge.textContent = '已选';
+          card.appendChild(badge);
+        }
+
+        card.addEventListener('click', () => {
+          applyRecipe(r.id);
+        });
+
+        list.appendChild(card);
+      });
+    }
+
+    // ===============================
+    // 6. 菜品详情弹窗
+    // ===============================
+    function showDishDetail(dish) {
+      $('modalTitle').textContent = dish.name;
+      const body = $('modalBody');
+      body.innerHTML = '';
+
+      const typeLine = document.createElement('div');
+      typeLine.className = 'modal-text';
+      typeLine.textContent = '类型：' + getDishTypeLabel(dish.type);
+
+      const tagTitle = document.createElement('div');
+      tagTitle.className = 'modal-section-title';
+      tagTitle.textContent = '标签';
+
+      const tagText = document.createElement('div');
+      tagText.className = 'modal-text';
+      tagText.textContent = dish.tags && dish.tags.length ? dish.tags.join(' / ') : '无特别标签';
+
+      // 菜品图片
+      if (dish.image) {
+        const img = document.createElement('img');
+        img.src = dish.image;
+        img.style.width = '100%';
+        img.style.maxHeight = '300px';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '8px';
+        img.style.marginBottom = '15px';
+        body.appendChild(img);
+      }
+
+      // 难度和烹饪时间
+      const metaLine = document.createElement('div');
+      metaLine.className = 'modal-text';
+      metaLine.style.display = 'flex';
+      metaLine.style.gap = '20px';
+      metaLine.style.marginBottom = '10px';
+
+      if (dish.difficulty) {
+        const diffSpan = document.createElement('span');
+        diffSpan.textContent = '难度：' + dish.difficulty;
+        metaLine.appendChild(diffSpan);
+      }
+
+      if (dish.cook_time) {
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = '时间：' + dish.cook_time;
+        metaLine.appendChild(timeSpan);
+      }
+
+      if (dish.kcal) {
+        const kcalSpan = document.createElement('span');
+        kcalSpan.textContent = '热量：' + dish.kcal + '千卡';
+        metaLine.appendChild(kcalSpan);
+      }
+
+      // 食材与用量
+      if (dish.ingredients_amounts) {
+        const ingredientsTitle = document.createElement('div');
+        ingredientsTitle.className = 'modal-section-title';
+        ingredientsTitle.textContent = '食材与用量';
+        body.appendChild(ingredientsTitle);
+
+        const ingredientsText = document.createElement('div');
+        ingredientsText.className = 'modal-text';
+        ingredientsText.style.whiteSpace = 'pre-line';
+        ingredientsText.textContent = dish.ingredients_amounts;
+        body.appendChild(ingredientsText);
+      }
+
+      // 烹饪方法
+      if (dish.methods) {
+        const methodsTitle = document.createElement('div');
+        methodsTitle.className = 'modal-section-title';
+        methodsTitle.textContent = '烹饪方法';
+        body.appendChild(methodsTitle);
+
+        const methodsText = document.createElement('div');
+        methodsText.className = 'modal-text';
+        methodsText.textContent = dish.methods;
+        body.appendChild(methodsText);
+      }
+
+      // 详细步骤
+      if (dish.steps) {
+        const stepsTitle = document.createElement('div');
+        stepsTitle.className = 'modal-section-title';
+        stepsTitle.textContent = '详细步骤';
+        body.appendChild(stepsTitle);
+
+        const steps = dish.steps.split('\n').filter(s => s.trim());
+        steps.forEach((step, idx) => {
+          const stepItem = document.createElement('div');
+          stepItem.style.marginBottom = '10px';
+
+          const stepNum = document.createElement('span');
+          stepNum.style.display = 'inline-block';
+          stepNum.style.width = '24px';
+          stepNum.style.height = '24px';
+          stepNum.style.background = '#4CAF50';
+          stepNum.style.color = 'white';
+          stepNum.style.borderRadius = '50%';
+          stepNum.style.textAlign = 'center';
+          stepNum.style.lineHeight = '24px';
+          stepNum.style.marginRight = '8px';
+          stepNum.style.fontSize = '12px';
+          stepNum.textContent = idx + 1;
+
+          const stepText = document.createElement('span');
+          stepText.textContent = step;
+
+          stepItem.appendChild(stepNum);
+          stepItem.appendChild(stepText);
+          body.appendChild(stepItem);
+        });
+
+        // 步骤图片
+        if (dish.step_images) {
+          try {
+            const stepImages = JSON.parse(dish.step_images);
+            if (Array.isArray(stepImages) && stepImages.length > 0) {
+              const imgGrid = document.createElement('div');
+              imgGrid.style.display = 'grid';
+              imgGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+              imgGrid.style.gap = '10px';
+              imgGrid.style.marginTop = '10px';
+
+              stepImages.forEach(imgUrl => {
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                img.style.width = '100%';
+                img.style.borderRadius = '8px';
+                imgGrid.appendChild(img);
+              });
+
+              body.appendChild(imgGrid);
+            }
+          } catch (e) {
+            console.error('解析步骤图片失败:', e);
+          }
+        }
+      }
+
+      // 小贴士
+      if (dish.tips) {
+        const tipsTitle = document.createElement('div');
+        tipsTitle.className = 'modal-section-title';
+        tipsTitle.textContent = '小贴士';
+        body.appendChild(tipsTitle);
+
+        const tipsText = document.createElement('div');
+        tipsText.className = 'modal-text';
+        tipsText.style.color = '#666';
+        tipsText.style.fontStyle = 'italic';
+        tipsText.textContent = dish.tips;
+        body.appendChild(tipsText);
+      }
+
+      body.appendChild(typeLine);
+      if (metaLine.children.length > 0) {
+        body.appendChild(metaLine);
+      }
+      body.appendChild(tagTitle);
+      body.appendChild(tagText);
+
+      $('modalMask').style.display = 'flex';
+    }
+
+    function hideModal() {
+      $('modalMask').style.display = 'none';
+    }
+
+    function bindModalEvents() {
+      $('modalClose').addEventListener('click', hideModal);
+      $('modalOk').addEventListener('click', hideModal);
+      $('modalMask').addEventListener('click', e => {
+        if (e.target === $('modalMask')) {
+          hideModal();
+        }
+      });
+    }
+
+    // ===============================
+    // 7. 入口初始化
+    // ===============================
+    function bindButtons() {
+      $('btnRecommend').addEventListener('click', () => {
+        recommendPlans();
+      });
+      $('btnPrevPlan').addEventListener('click', () => {
+        if (state.plans.length === 0) return;
+        state.planIndex = (state.planIndex - 1 + state.plans.length) % state.plans.length;
+        renderPlans();
+      });
+      $('btnNextPlan').addEventListener('click', () => {
+        if (state.plans.length === 0) return;
+        state.planIndex = (state.planIndex + 1) % state.plans.length;
+        renderPlans();
+      });
+      $('btnSaveRecipe').addEventListener('click', () => {
+        handleSaveRecipe();
+      });
+      $('unselectRow').addEventListener('click', () => {
+        unselectRecipe();
+      });
+    }
+
+    function init() {
+      bindParamEvents();
+      bindButtons();
+      bindModalEvents();
+      loadRecipes();
+      applyConstraints();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
+

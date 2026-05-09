@@ -6,18 +6,30 @@
     <text>暂无可用菜品，请稍后再试</text>
   </view>
   <view wx:else>
-    <swiper class="plan-swiper" indicator-dots="true" autoplay="false" circular="true">
-      <block wx:for="{{plans}}" wx:key="index">
+    <swiper class="plan-swiper" indicator-dots="true" autoplay="false" circular="false" interval="999999" duration="300" current="0">
+      <block wx:for="{{plans}}" wx:key="index" wx:for-index="planIndex">
         <swiper-item>
           <view class="plan-card">
             <view class="dish-list">
-              <block wx:for="{{item.dishes}}" wx:key="name">
-                <view class="dish-card" bindtap="onTapDish" data-dish="{{item}}">
-                  <image class="dish-image" src="{{item.image || 'https://dummyimage.com/200x200/eeeeee/999&text=%E8%8F%9C'}}" mode="aspectFill" />
-                  <view class="dish-info">
-                    <text class="dish-name">{{item.name}}</text>
-                    <text class="dish-tags">{{item.tags[0]}}{{item.tags[1] ? ' / ' + item.tags[1] : ''}}</text>
+              <block wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex">
+                <view class="dish-card">
+                  <view class="dish-main" bindtap="onTapDish" data-dish="{{item}}">
+                    <image class="dish-image" src="{{item.image || 'https://dummyimage.com/200x200/eeeeee/999&text=%E8%8F%9C'}}" mode="aspectFill" />
+                    <view class="dish-info">
+                      <text class="dish-name">{{item.name}}</text>
+                      <text class="dish-tags">{{item.tags[0]}}{{item.tags[1] ? ' / ' + item.tags[1] : ''}}</text>
+                    </view>
+                    <!-- 收藏按钮 -->
+                    <view class="favorite-btn {{item.isFavorite ? 'favorited' : ''}}" bindtap="onToggleFavorite" data-dish="{{item}}" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
+                      <text class="star-icon">{{item.isFavorite ? '★' : '☆'}}</text>
+                    </view>
                   </view>
+                  <text
+                    class="dish-refresh"
+                    bindtap="onRefreshDish"
+                    data-plan-index="{{planIndex}}"
+                    data-dish-index="{{dishIndex}}"
+                  >换一个</text>
                 </view>
               </block>
             </view>
@@ -28,6 +40,19 @@
     <view class="actions">
       <button type="default" bindtap="onBack">返回修改参数</button>
       <button type="primary" bindtap="onRegenerate">重新生成</button>
+      <button type="warn" bindtap="onSelectForMeal">选择此方案</button>
+      <button open-type="share">分享给朋友</button>
+    </view>
+  </view>
+
+  <!-- 日期选择器：当 showDatePicker 为 true 时显示 -->
+  <view class="date-picker-overlay" wx:if="{{showDatePicker}}" bindtap="onCancelDatePicker">
+    <view class="date-picker-container" catchtap="">
+      <text class="date-picker-title">请选择要保存菜谱的日期</text>
+      <picker mode="date" value="{{customDate}}" start="2025-01-01" end="2027-12-31" bindchange="onCustomDateChange">
+        <view class="date-picker-btn">点击选择日期</view>
+      </picker>
+      <view class="date-picker-cancel" bindtap="onCancelDatePicker">取消</view>
     </view>
   </view>
 </view>

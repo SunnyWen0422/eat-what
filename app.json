@@ -1,14 +1,43 @@
-{
+ {
   "pages": [
     "pages/index/index",
     "pages/logs/logs",
     "pages/result/result",
-    "pages/customize/customize"
+    "pages/dish-detail/dish-detail",
+    "pages/customize/customize",
+    "pages/calendar/calendar",
+    "pages/calendar-detail/calendar-detail",
+    "pages/profile/profile",
+    "pages/about/about",
+    "pages/statistics/statistics",
+    "pages/shopping-list/shopping-list",
+    "pages/sync/sync",
+    "pages/favorite-dishes/favorite-dishes"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
+    "navigationBarTitleText": "今天我们吃什么？",
     "navigationBarBackgroundColor": "#ffffff"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "选菜"
+      },
+      {
+        "pagePath": "pages/calendar/calendar",
+        "text": "日历"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",

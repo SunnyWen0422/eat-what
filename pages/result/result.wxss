@@ -19,10 +19,15 @@
 }
 .dish-card {
   display: flex;
+  align-items: stretch;
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
   box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+.dish-main {
+  display: flex;
+  flex: 1;
 }
 .dish-image {
   width: 120rpx;
@@ -42,9 +47,89 @@
   font-size: 24rpx;
   margin-top: 8rpx;
 }
+
+/* 收藏按钮 */
+.favorite-btn {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: 12rpx;
+  align-self: center;
+}
+
+.star-icon {
+  font-size: 40rpx;
+  color: #ccc;
+}
+
+.favorite-btn.favorited .star-icon {
+  color: #ff9500;
+}
+
+.dish-refresh {
+  padding: 0 12rpx;
+  font-size: 22rpx;
+  color: #1aad19;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid #f0f0f0;
+}
 .actions {
   margin-top: 12px;
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* 日期选择弹窗 */
+.date-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker-container {
+  width: 80%;
+  background-color: white;
+  border-radius: 16px;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.date-picker-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.date-picker-btn {
+  background-color: #3cc51f;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.date-picker-cancel {
+  margin-top: 15px;
+  color: #999;
+  font-size: 14px;
 }
 

@@ -2,7 +2,7 @@
 # 服务器初始化脚本
 # 用途：在新服务器上自动安装所有必要软件
 # 使用方法：
-#   1. 上传到服务器: scp server-setup.sh root@115.190.206.149:/root/
+#   1. 上传到服务器: scp server-setup.sh root@60.205.194.136:/root/
 #   2. 添加执行权限: chmod +x /root/server-setup.sh
 #   3. 运行: /root/server-setup.sh
 
@@ -10,7 +10,7 @@ set -e
 
 echo "========================================="
 echo "开始配置服务器环境"
-echo "服务器: 115.190.206.149"
+echo "服务器: 60.205.194.136"
 echo "域名: chishenme.icu"
 echo "========================================="
 
@@ -142,18 +142,18 @@ echo "========================================="
 echo ""
 echo "下一步操作："
 echo "1. 上传SQL脚本并执行:"
-echo "   scp backend/init_database.sql root@115.190.206.149:/root/"
+echo "   scp backend/init_database.sql root@60.205.194.136:/root/"
 echo "   mysql -u eatwhat -pSunny418@Cloud food < /root/init_database.sql"
 echo ""
 echo "2. 上传后端jar包:"
-echo "   scp target/eatwhat-backend-1.0.0.jar root@115.190.206.149:/root/"
+echo "   scp target/eatwhat-backend-1.0.0.jar root@60.205.194.136:/root/"
 echo ""
 echo "3. 上传并配置SSL证书:"
-echo "   scp chishenme.icu.pem root@115.190.206.149:/etc/nginx/ssl/"
-echo "   scp chishenme.icu.key root@115.190.206.149:/etc/nginx/ssl/"
+echo "   scp chishenme.icu.pem root@60.205.194.136:/etc/nginx/ssl/"
+echo "   scp chishenme.icu.key root@60.205.194.136:/etc/nginx/ssl/"
 echo ""
 echo "4. 上传Nginx配置:"
-echo "   scp nginx-chishenme.conf root@115.190.206.149:/etc/nginx/conf.d/"
+echo "   scp nginx-chishenme.conf root@60.205.194.136:/etc/nginx/conf.d/"
 echo "   sudo nginx -t"
 echo "   sudo systemctl restart nginx"
 echo ""

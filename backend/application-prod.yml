@@ -1,5 +1,5 @@
 # Spring Boot 生产环境配置文件
-# 服务器: 115.190.206.149
+# 服务器: 60.205.194.136
 # 域名: chishenme.icu
 
 server:
@@ -11,8 +11,8 @@ spring:
   # 数据库配置（生产环境）
   datasource:
     url: jdbc:mysql://localhost:3306/food?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: eatwhat
-    password: Sunny418@Cloud  # 生产环境密码，请修改为更强的密码
+    username: food
+    password: 770609
     driver-class-name: com.mysql.cj.jdbc.Driver
     
     # 连接池配置
@@ -52,3 +52,8 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
+# 微信小程序配置（生产环境）
+wechat:
+  miniapp:
+    appid: ${WECHAT_APPID:wxf0e75b670599834a}
+    secret: ${WECHAT_SECRET:520200c71a943119ef85cf17fdb6a037}

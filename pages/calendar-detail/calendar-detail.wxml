@@ -1,0 +1,139 @@
+<view class="detail-page">
+  <!-- 日期标题 -->
+  <view class="date-header">
+    <text class="date-display">{{dateDisplay}}</text>
+  </view>
+
+  <!-- 餐次列表 -->
+  <view class="meals-list">
+    <!-- 早餐 -->
+    <view class="meal-item">
+      <view class="meal-header">
+        <view class="meal-icon breakfast-icon">🌅</view>
+        <text class="meal-title">早餐</text>
+        <view class="meal-actions">
+          <button class="action-btn add-btn" wx:if="{{!meals.breakfast}}" bindtap="onSelectMeal" data-meal="breakfast">+</button>
+          <button class="action-btn delete-btn" wx:if="{{meals.breakfast}}" bindtap="onDeleteMeal" data-meal="breakfast">×</button>
+        </view>
+      </view>
+      <view class="meal-content" wx:if="{{meals.breakfast}}" bindtap="onViewMealDetail" data-meal="{{meals.breakfast}}">
+        <view class="meal-main-info">
+          <text class="meal-name">{{meals.breakfast.name}}</text>
+          <text class="meal-time" wx:if="{{meals.breakfast.createTimeFormatted}}">{{meals.breakfast.createTimeFormatted}} 保存</text>
+        </view>
+        <view class="meal-dishes" wx:if="{{meals.breakfast.dishDetails.length > 0}}">
+          <view class="dish-tag" wx:for="{{meals.breakfast.dishDetails}}" wx:key="id">{{item.name}}</view>
+        </view>
+        <view class="meal-dishes" wx:elif="{{meals.breakfast.dishNames}}">
+          <text class="dish-names-text">{{meals.breakfast.dishNames}}</text>
+        </view>
+        <view class="manual-tag" wx:if="{{meals.breakfast.manual}}">手动添加</view>
+      </view>
+      <view class="empty-meal" wx:if="{{!meals.breakfast}}">
+        <text class="empty-icon">🍽️</text>
+        <text>暂无早餐记录</text>
+        <text class="empty-hint">点击上方"+"添加</text>
+      </view>
+    </view>
+
+    <!-- 午餐 -->
+    <view class="meal-item">
+      <view class="meal-header">
+        <view class="meal-icon lunch-icon">☀️</view>
+        <text class="meal-title">午餐</text>
+        <view class="meal-actions">
+          <button class="action-btn add-btn" wx:if="{{!meals.lunch}}" bindtap="onSelectMeal" data-meal="lunch">+</button>
+          <button class="action-btn delete-btn" wx:if="{{meals.lunch}}" bindtap="onDeleteMeal" data-meal="lunch">×</button>
+        </view>
+      </view>
+      <view class="meal-content" wx:if="{{meals.lunch}}" bindtap="onViewMealDetail" data-meal="{{meals.lunch}}">
+        <view class="meal-main-info">
+          <text class="meal-name">{{meals.lunch.name}}</text>
+          <text class="meal-time" wx:if="{{meals.lunch.createTimeFormatted}}">{{meals.lunch.createTimeFormatted}} 保存</text>
+        </view>
+        <view class="meal-dishes" wx:if="{{meals.lunch.dishDetails.length > 0}}">
+          <view class="dish-tag" wx:for="{{meals.lunch.dishDetails}}" wx:key="id">{{item.name}}</view>
+        </view>
+        <view class="meal-dishes" wx:elif="{{meals.lunch.dishNames}}">
+          <text class="dish-names-text">{{meals.lunch.dishNames}}</text>
+        </view>
+        <view class="manual-tag" wx:if="{{meals.lunch.manual}}">手动添加</view>
+      </view>
+      <view class="empty-meal" wx:if="{{!meals.lunch}}">
+        <text class="empty-icon">🍽️</text>
+        <text>暂无午餐记录</text>
+        <text class="empty-hint">点击上方"+"添加</text>
+      </view>
+    </view>
+
+    <!-- 晚餐 -->
+    <view class="meal-item">
+      <view class="meal-header">
+        <view class="meal-icon dinner-icon">🌙</view>
+        <text class="meal-title">晚餐</text>
+        <view class="meal-actions">
+          <button class="action-btn add-btn" wx:if="{{!meals.dinner}}" bindtap="onSelectMeal" data-meal="dinner">+</button>
+          <button class="action-btn delete-btn" wx:if="{{meals.dinner}}" bindtap="onDeleteMeal" data-meal="dinner">×</button>
+        </view>
+      </view>
+      <view class="meal-content" wx:if="{{meals.dinner}}" bindtap="onViewMealDetail" data-meal="{{meals.dinner}}">
+        <view class="meal-main-info">
+          <text class="meal-name">{{meals.dinner.name}}</text>
+          <text class="meal-time" wx:if="{{meals.dinner.createTimeFormatted}}">{{meals.dinner.createTimeFormatted}} 保存</text>
+        </view>
+        <view class="meal-dishes" wx:if="{{meals.dinner.dishDetails.length > 0}}">
+          <view class="dish-tag" wx:for="{{meals.dinner.dishDetails}}" wx:key="id">{{item.name}}</view>
+        </view>
+        <view class="meal-dishes" wx:elif="{{meals.dinner.dishNames}}">
+          <text class="dish-names-text">{{meals.dinner.dishNames}}</text>
+        </view>
+        <view class="manual-tag" wx:if="{{meals.dinner.manual}}">手动添加</view>
+      </view>
+      <view class="empty-meal" wx:if="{{!meals.dinner}}">
+        <text class="empty-icon">🍽️</text>
+        <text>暂无晚餐记录</text>
+        <text class="empty-hint">点击上方"+"添加</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 使用说明 -->
+  <view class="usage-tips">
+    <view class="tip-title">💡 使用提示</view>
+    <view class="tip-content">
+      <text>1. 点击"+"添加餐次记录</text>
+      <text>2. 从首页推荐菜谱中选择会自动保存到此处</text>
+      <text>3. 点击已有记录可查看详情</text>
+      <text>4. 点击"×"可删除记录</text>
+    </view>
+  </view>
+
+  <!-- 详情弹窗 -->
+  <view class="modal-mask" wx:if="{{showDetailModal}}" bindtap="onCloseModal"></view>
+  <view class="detail-modal" wx:if="{{showDetailModal}}">
+    <view class="modal-header">
+      <text class="modal-title">{{modalMeal.name}}</text>
+      <view class="modal-close" bindtap="onCloseModal">×</view>
+    </view>
+    <view class="modal-body">
+      <scroll-view class="modal-scroll" scroll-y="true">
+        <view class="modal-time" wx:if="{{modalMeal.createTimeFormatted}}">
+          <text class="time-label">保存时间：</text>
+          <text class="time-value">{{modalMeal.createTimeFormatted}}</text>
+        </view>
+        <view class="modal-dishes">
+          <view class="dish-detail-item" wx:for="{{modalMeal.dishDetails}}" wx:key="id" bindtap="onViewDish" data-dish="{{item}}">
+            <view class="dish-detail-header">
+              <text class="dish-detail-name">{{item.name}}</text>
+              <text class="dish-detail-type" wx:if="{{item.type}}">{{item.type}}</text>
+              <text class="dish-detail-arrow">›</text>
+            </view>
+            <view class="dish-detail-hint">
+              <text>点击查看详情</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

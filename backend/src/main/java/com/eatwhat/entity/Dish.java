@@ -3,63 +3,67 @@ package com.eatwhat.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.util.Date;
-import java.util.List;
-import java.util.Arrays;
 
 /**
  * 菜品实体类 - 映射food表
  */
 @Data
 public class Dish {
-    
+
     @JsonProperty("id")
     private Long id;
-    
+
     @JsonProperty("name")
     private String name;
-    
+
     @JsonProperty("type")
     private String type;  // meat/veg/soup
-    
-    @JsonProperty("calories")
-    private Integer calories;
-    
-    @JsonProperty("protein")
-    private Integer protein;
-    
-    @JsonProperty("material")
-    private String material;  // 对应METERIAL字段
-    
-    @JsonProperty("steps")
-    private String steps;  // 对应STEP字段
-    
+
+    @JsonProperty("cl")
+    private String cl;  // 菜品材料
+
+    @JsonProperty("fl")
+    private String fl;  // 分量
+
+    @JsonProperty("step")
+    private String step;  // 步骤
+
     @JsonProperty("tags")
-    private String tagsString;  // 数据库存储格式（逗号分隔）
-    
+    private String tags;  // 标签，逗号分隔
+
+    @JsonProperty("image")
+    private String image;  // 菜品图片URL
+
+    @JsonProperty("difficulty")
+    private String difficulty;  // 难度：简单/普通/困难
+
+    @JsonProperty("cookTime")
+    private String cookTime;  // 烹饪时间
+
+    @JsonProperty("ingredientsAmounts")
+    private String ingredientsAmounts;  // 食材与用量
+
+    @JsonProperty("steps")
+    private String steps;  // 详细步骤
+
+    @JsonProperty("stepImages")
+    private String stepImages;  // 步骤图片URL，JSON数组格式
+
+    @JsonProperty("tips")
+    private String tips;  // 小贴士
+
+    @JsonProperty("methods")
+    private String methods;  // 烹饪方法
+
+    @JsonProperty("kcal")
+    private Integer kcal;  // 热量（千卡）
+
     @JsonProperty("isCustom")
     private Integer isCustom;  // 0-系统，1-用户自定义
-    
+
     @JsonProperty("userId")
     private Long userId;
-    
+
     @JsonProperty("createTime")
     private Date createTime;
-    
-    // 转换tags为数组（给前端使用）
-    public List<String> getTags() {
-        if (tagsString == null || tagsString.isEmpty()) {
-            return Arrays.asList("家常");
-        }
-        return Arrays.asList(tagsString.split(","));
-    }
-    
-    // 设置tags数组（从前端接收）
-    public void setTags(List<String> tags) {
-        if (tags != null && !tags.isEmpty()) {
-            this.tagsString = String.join(",", tags);
-        } else {
-            this.tagsString = "家常";
-        }
-    }
 }
-

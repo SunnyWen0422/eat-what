@@ -7,9 +7,9 @@ server:
 spring:
   # 数据库配置
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/food?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: Sunny418
+    url: jdbc:mysql://127.0.0.1:3306/food?useSSL=false&serverTimezone=Asia/Shanghai
+    username: food
+    password: 770609
     driver-class-name: com.mysql.cj.jdbc.Driver
     
     # 连接池配置
@@ -31,6 +31,12 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 微信小程序配置
+wechat:
+  miniapp:
+    appid: ${WECHAT_APPID:wxf0e75b670599834a}
+    secret: ${WECHAT_SECRET:520200c71a943119ef85cf17fdb6a037}
 
 # 日志配置
 logging:

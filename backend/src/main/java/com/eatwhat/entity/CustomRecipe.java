@@ -27,7 +27,7 @@ public class CustomRecipe {
     private Long userId;
     
     @JsonProperty("dishIdsString")
-    private String dishIdsString;  // 数据库存储格式（JSON）
+    private String dishIdsString;
     
     @JsonProperty("mealType")
     private String mealType;
@@ -37,24 +37,21 @@ public class CustomRecipe {
     
     private static final ObjectMapper mapper = new ObjectMapper();
     
-    // 转换为List<Long>
     public List<Long> getDishIds() {
         try {
             if (dishIdsString != null && !dishIdsString.isEmpty()) {
                 return mapper.readValue(dishIdsString, new TypeReference<List<Long>>(){});
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
+            // 解析失败时返回空列表
         }
         return new ArrayList<>();
     }
     
-    // 从List<Long>转换
     public void setDishIds(List<Long> dishIds) {
         try {
             this.dishIdsString = mapper.writeValueAsString(dishIds);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
             this.dishIdsString = "[]";
         }
     }

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 # 部署脚本
 # 用途：自动打包并上传到服务器
@@ -5,7 +6,7 @@
 set -e
 
 # ===== 配置信息 =====
-SERVER_IP="115.190.206.149"
+SERVER_IP="60.205.194.136"
 SERVER_USER="root"
 APP_NAME="eatwhat-backend-1.0.0.jar"
 REMOTE_DIR="/root"

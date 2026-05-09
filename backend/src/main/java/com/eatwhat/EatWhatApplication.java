@@ -12,10 +12,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class EatWhatApplication {
     public static void main(String[] args) {
         SpringApplication.run(EatWhatApplication.class, args);
-        System.out.println("\n========================================");
-        System.out.println("✅ 吃什么小程序后端服务启动成功！");
-        System.out.println("📡 API地址: http://localhost:8080/api");
-        System.out.println("========================================\n");
     }
 }
+
+
 
