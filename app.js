@@ -9,10 +9,7 @@ App({
     logs.unshift(Date.now())
     wx.setStorageSync('logs', logs)
 
-    // 立即开始预加载菜品数据（与登录并行，不等待登录）
-    this.precacheDishes()
-
-    // 登录（与预加载并行执行）
+    // 登录（登录成功后会自动预加载菜品数据）
     this.doLogin()
   },
 

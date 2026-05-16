@@ -9,7 +9,7 @@ Page({
     plans: [],
     params: null
   },
-  
+
   // 不在 data 中存储 allDishes，避免 setData 传输大量数据
   allDishes: [],
 
@@ -26,6 +26,7 @@ Page({
     // 检查是否有从日历页面选择返回的日期
     this.checkSelectedDateFromCalendar()
   },
+
   async generatePlans() {
     wx.vibrateShort({ type: 'light' })
 
@@ -94,6 +95,7 @@ Page({
     try {
       // 先尝试从全局缓存或本地存储获取菜品
       let allDishes = null
+      const app = getApp()
       if (app && app.globalData && app.globalData.allDishes) {
         allDishes = app.globalData.allDishes
         console.log('📦 使用全局缓存菜品:', allDishes.length, '条')
@@ -161,7 +163,7 @@ Page({
     } catch (e) {
       console.log('⚠️ 后端推荐（后台）失败，保持本地推荐:', e)
     }
-  },,
+  },
 
   // 检查收藏状态
   async checkFavoriteStatus() {
@@ -220,12 +222,15 @@ Page({
       wx.showToast({ title: '操作失败', icon: 'none' })
     }
   },
+
   onRegenerate() {
     this.generatePlans()
   },
+
   onBack() {
     wx.navigateBack()
   },
+
   onShareAppMessage() {
     const currentPlan = this.data.plans[this.data.current || 0]
     const dishNames = currentPlan && currentPlan.dishes
@@ -236,10 +241,11 @@ Page({
       path: '/pages/index/index'
     }
   },
+
   onTapDish(e) {
     const dish = e.currentTarget.dataset.dish
     if (!dish || !dish.id) return
-    
+
     // 跳转到菜品详情页
     wx.navigateTo({
       url: `/pages/dish-detail/dish-detail?id=${dish.id}`
@@ -450,7 +456,7 @@ Page({
       const existingRecords = await getRecipeRecordsByDate(dateToSave)
       const records = Array.isArray(existingRecords) ? existingRecords : []
       const existingRecord = records.find(r => r.mealType === mealType)
-      
+
       if (existingRecord) {
         const mealName = this.getMealName(mealType)
         const dateDisplay = dateToSave === todayStr ? '今天' : dateToSave
@@ -465,7 +471,7 @@ Page({
             fail: () => resolve({ confirm: false })
           })
         })
-        
+
         if (!confirmRes.confirm) {
           return
         }
@@ -475,7 +481,7 @@ Page({
     }
 
     try {
-      const dishIds = plan.dishes 
+      const dishIds = plan.dishes
         ? plan.dishes
             .map(dish => dish && dish.id ? Number(dish.id) : null)
             .filter(id => id !== null && !isNaN(id))
@@ -516,7 +522,7 @@ Page({
       this.showSuccessAndNavigate(dateToSave, mealType)
     } catch (error) {
       console.error('保存到后端失败:', error)
-      
+
       // 尝试显示后端返回的具体错误信息
       let errorMessage = '保存失败，请重试'
       if (error.data) {
@@ -529,13 +535,13 @@ Page({
           errorMessage = error.data.message
         }
       }
-      
+
       wx.showToast({
         title: errorMessage,
         icon: 'none',
         duration: 3000
       })
-      
+
       // 如果API调用失败，回退到本地存储
       this.saveToLocalStorage(mealType, plan, dateToSave, targetDate)
     }
@@ -642,5 +648,3 @@ Page({
     })
   }
 })
-
-
