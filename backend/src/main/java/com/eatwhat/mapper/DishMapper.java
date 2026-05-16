@@ -88,18 +88,13 @@ public interface DishMapper {
     List<Dish> searchDishesByKeyword(@Param("keyword") String keyword);
 
     /**
-     * 根据IDs批量查询
+     * 根据IDs批量查询（推荐路径，不含image等大字段）
      */
     @Select({
         "<script>",
         "SELECT ID as id, NAME as name, TYPE as type, ",
-        "CL as cl, FL as fl, STEP as step, ",
-        "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, ",
-        "COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, ",
-        "STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, ",
-        "METHODS as methods, KCAL as kcal, ",
-        "0 as isCustom, NULL as userId, ",
-        "NOW() as createTime ",
+        "TAGS as tags, ",
+        "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
         "FROM food WHERE ID IN ",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>",
         "#{id}",
@@ -115,49 +110,43 @@ public interface DishMapper {
     int countAll();
 
     /**
-     * 按类型获取菜品（轻量版）
+     * 按类型获取菜品（轻量版，不含image）
      */
     @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "TAGS as tags, IMAGE as image, " +
+            "TAGS as tags, " +
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
             "FROM food WHERE TYPE = #{type} ORDER BY ID DESC")
     List<Dish> selectDishesLiteByType(@Param("type") String type);
 
     /**
-     * 获取所有菜品（轻量版，无过滤）
+     * 获取所有菜品（轻量版，不含image）
      */
     @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "TAGS as tags, IMAGE as image, " +
+            "TAGS as tags, " +
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
             "FROM food ORDER BY ID DESC")
     List<Dish> selectAllDishesLite();
 
     /**
-     * 按类型随机获取菜品（轻量版）
+     * 按类型获取所有菜品ID（仅ID，极快）
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "TAGS as tags, IMAGE as image, " +
-            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
-            "FROM food WHERE TYPE = #{type} ORDER BY RAND() LIMIT #{limit}")
-    List<Dish> selectDishesRandomByType(@Param("type") String type, @Param("limit") int limit);
+    @Select("SELECT ID as id FROM food WHERE TYPE = #{type}")
+    List<Long> selectIdsByType(@Param("type") String type);
 
     /**
-     * 按类型随机获取一道菜（排除指定ID列表）
+     * 按类型获取指定ID范围的菜品ID（排除指定ID列表）
      */
     @Select({
         "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, ",
-        "TAGS as tags, IMAGE as image, ",
-        "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
-        "FROM food WHERE TYPE = #{type} ",
+        "SELECT ID as id FROM food WHERE TYPE = #{type} ",
         "<if test='excludeIds != null and excludeIds.size() > 0'>",
         "AND ID NOT IN ",
         "<foreach item='id' collection='excludeIds' open='(' separator=',' close=')'>",
         "#{id}",
         "</foreach>",
         "</if>",
-        "ORDER BY RAND() LIMIT 1",
+        "ORDER BY ID",
         "</script>"
     })
-    Dish selectDishRandomByTypeExclude(@Param("type") String type, @Param("excludeIds") List<Long> excludeIds);
+    List<Long> selectIdsByTypeExclude(@Param("type") String type, @Param("excludeIds") List<Long> excludeIds);
 }

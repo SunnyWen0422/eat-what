@@ -4,15 +4,14 @@ import com.eatwhat.dto.PlanDTO;
 import com.eatwhat.dto.RecommendRequest;
 import com.eatwhat.entity.Dish;
 import com.eatwhat.service.DishService;
+import com.eatwhat.service.FavoriteDishService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 推荐控制器 - 直出生成菜谱推荐方案
@@ -24,17 +23,18 @@ public class RecommendController {
     @Autowired
     private DishService dishService;
 
+    @Autowired
+    private FavoriteDishService favoriteDishService;
+
     /**
-     * 生成菜谱推荐方案
+     * 生成菜谱推荐方案（含收藏状态，前端无需二次请求）
      * POST /api/recommend
-     * 需要认证
      */
     @PostMapping
     public ResponseEntity<?> recommend(
             @RequestBody RecommendRequest req,
             HttpServletRequest request) {
 
-        // 从token获取用户ID（拦截器已验证）
         Object currentUserId = request.getAttribute("currentUserId");
         if (currentUserId == null) {
             return ResponseEntity.status(401).build();
@@ -43,9 +43,14 @@ public class RecommendController {
         try {
             List<PlanDTO> plans = dishService.generateRecommendPlans(req);
 
+            // 批量获取用户收藏的菜品ID，合并到响应中
+            Long userId = Long.valueOf(currentUserId.toString());
+            Set<Long> favoriteIds = new HashSet<>(favoriteDishService.getFavoriteDishIds(userId));
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("plans", plans);
+            result.put("favoriteIds", favoriteIds);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
@@ -58,7 +63,6 @@ public class RecommendController {
     /**
      * 获取单道推荐菜品（从整体数据中随机抽取）
      * GET /api/recommend/single?type=meat&exclude=1,2,3
-     * 需要认证
      */
     @GetMapping("/single")
     public ResponseEntity<?> recommendSingle(
@@ -76,9 +80,7 @@ public class RecommendController {
             if (exclude != null && !exclude.isEmpty()) {
                 for (String s : exclude.split(",")) {
                     s = s.trim();
-                    if (!s.isEmpty()) {
-                        excludeIds.add(Long.parseLong(s));
-                    }
+                    if (!s.isEmpty()) excludeIds.add(Long.parseLong(s));
                 }
             }
 
@@ -90,9 +92,14 @@ public class RecommendController {
                 return ResponseEntity.ok(empty);
             }
 
+            // 检查收藏状态
+            Long userId = Long.valueOf(currentUserId.toString());
+            boolean isFavorite = favoriteDishService.isFavorite(userId, dish.getId());
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("dish", dish);
+            result.put("isFavorite", isFavorite);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();

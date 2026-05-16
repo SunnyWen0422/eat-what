@@ -31,12 +31,9 @@ recommend-service/__pycache__/
 # WeChat private config
 project.private.config.json
 
-# Backend sensitive configs
+# Backend sensitive configs (remove from git first: git rm --cached)
 backend/application-prod.yml
 backend/application.yml
-backend/deploy.sh
-backend/server-setup.sh
-backend/nginx-chishenme.conf
 
 # Logs
 *.log

@@ -40,6 +40,8 @@ Page({
 
       if (result && result.success && result.plans && result.plans.length > 0) {
         // 后端返回的是 {dishes: [...]} 结构，转换为前端兼容格式
+        // 同时应用后端返回的 favoriteIds，无需二次网络请求
+        const favoriteSet = new Set(result.favoriteIds || []);
         const plans = result.plans.map(plan => ({
           dishes: (plan.dishes || []).map(dish => ({
             id: dish.id,
@@ -50,13 +52,13 @@ Page({
               : (dish.tags || []),
             image: dish.image || '',
             ingredientsAmounts: dish.ingredientsAmounts || '',
-            step: dish.step || ''
+            step: dish.step || '',
+            isFavorite: favoriteSet.has(dish.id)
           }))
         }))
 
         console.log('🎯 后端推荐方案:', plans.length, '套')
         this.setData({ plans, loading: false })
-        this.checkFavoriteStatus()
         return
       }
     } catch (e) {
@@ -218,7 +220,6 @@ Page({
       const result = await api.getSingleRecommendation(targetDish.type, excludeIds)
       if (result && result.success && result.dish) {
         const backendDish = result.dish
-        // 如果后端返回的菜名已被其他方案占用，降级到本地
         if (!usedNamesExceptTarget.has(backendDish.name)) {
           const newDish = {
             id: backendDish.id,
@@ -229,7 +230,8 @@ Page({
               : (backendDish.tags || []),
             image: backendDish.image || '',
             ingredientsAmounts: backendDish.ingredientsAmounts || '',
-            step: backendDish.step || ''
+            step: backendDish.step || '',
+            isFavorite: result.isFavorite || false
           }
 
           const newPlans = [...plans]
