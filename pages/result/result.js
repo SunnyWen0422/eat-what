@@ -28,9 +28,34 @@ Page({
   },
   async generatePlans() {
     wx.vibrateShort({ type: 'light' })
-    this.setData({ loading: true, empty: false })
 
     console.log('🚀 开始生成推荐方案，参数:', this.data.params)
+
+    // 优先检查全局缓存，如果存在则立即使用缓存生成推荐（秒开效果）
+    const app = getApp()
+    const hasCache = app && app.globalData && app.globalData.allDishes && app.globalData.allDishes.length > 0
+
+    if (hasCache) {
+      console.log('📦 使用缓存数据快速生成推荐')
+      this.setData({ loading: false, empty: false })
+
+      // 立即使用缓存数据生成推荐（不等待后端）
+      const { recommendPlans } = require('../../utils/recommend')
+      const plans = await recommendPlans(this.data.params, app.globalData.allDishes)
+      console.log('✅ 本地推荐方案（缓存）:', plans)
+
+      if (plans && plans.length > 0) {
+        this.setData({ plans, loading: false })
+        this.checkFavoriteStatus()
+
+        // 后台异步调用后端推荐，成功后更新（静默刷新）
+        this._tryBackendRecommendationSilently()
+        return
+      }
+    }
+
+    // 无缓存，显示loading并执行完整流程
+    this.setData({ loading: true, empty: false })
 
     try {
       // 第一步：优先调用后端直出推荐接口（最快路径）
@@ -69,7 +94,6 @@ Page({
     try {
       // 先尝试从全局缓存或本地存储获取菜品
       let allDishes = null
-      const app = getApp()
       if (app && app.globalData && app.globalData.allDishes) {
         allDishes = app.globalData.allDishes
         console.log('📦 使用全局缓存菜品:', allDishes.length, '条')
@@ -81,6 +105,7 @@ Page({
         }
       }
 
+      const { recommendPlans } = require('../../utils/recommend')
       const plans = await recommendPlans(this.data.params, allDishes)
       console.log('✅ 本地推荐方案:', plans)
 
@@ -106,6 +131,37 @@ Page({
       this.setData({ loading: false, empty: true })
     }
   },
+
+  // 后台静默调用后端推荐，成功后更新方案（不阻塞用户）
+  async _tryBackendRecommendationSilently() {
+    try {
+      const api = require('../../utils/api')
+      const result = await api.getRecommendations(this.data.params)
+
+      if (result && result.success && result.plans && result.plans.length > 0) {
+        const favoriteSet = new Set(result.favoriteIds || []);
+        const plans = result.plans.map(plan => ({
+          dishes: (plan.dishes || []).map(dish => ({
+            id: dish.id,
+            name: dish.name,
+            type: dish.type,
+            tags: typeof dish.tags === 'string' && dish.tags
+              ? dish.tags.split(',').map(t => t.trim()).filter(Boolean)
+              : (dish.tags || []),
+            image: dish.image || '',
+            ingredientsAmounts: dish.ingredientsAmounts || '',
+            step: dish.step || '',
+            isFavorite: favoriteSet.has(dish.id)
+          }))
+        }))
+
+        console.log('✅ 后端推荐（后台）更新:', plans.length, '套')
+        this.setData({ plans })
+      }
+    } catch (e) {
+      console.log('⚠️ 后端推荐（后台）失败，保持本地推荐:', e)
+    }
+  },,
 
   // 检查收藏状态
   async checkFavoriteStatus() {

@@ -9,10 +9,13 @@ App({
     logs.unshift(Date.now())
     wx.setStorageSync('logs', logs)
 
-    // 登录
+    // 立即开始预加载菜品数据（与登录并行，不等待登录）
+    this.precacheDishes()
+
+    // 登录（与预加载并行执行）
     this.doLogin()
   },
-  
+
   // 执行登录
   doLogin() {
     if (!config.ENABLE_LOGIN) {
@@ -26,7 +29,7 @@ App({
           try {
             // 发送 code 到后台换取 token 和用户信息
             const result = await api.login({ code: res.code })
-            
+
             if (result.success) {
               // 保存 token 和用户信息
               wx.setStorageSync('token', result.token)
@@ -40,21 +43,17 @@ App({
                 console.log('新用户注册成功')
               }
 
-              // 预加载菜品数据到全局缓存
-              this.precacheDishes()
+              // 登录成功后，如果全局缓存为空，再尝试加载一次（防止预加载失败）
+              if (!this.globalData.allDishes || this.globalData.allDishes.length === 0) {
+                this.precacheDishes()
+              }
             } else {
               console.error('登录失败:', result.message)
-              wx.showToast({
-                title: result.message || '登录失败',
-                icon: 'none'
-              })
+              // 登录失败不影响菜品加载，不显示toast
             }
           } catch (err) {
             console.error('登录请求失败:', err)
-            wx.showToast({
-              title: '网络错误，请重试',
-              icon: 'none'
-            })
+            // 登录失败不影响菜品加载
           }
         } else {
           console.error('获取code失败:', res.errMsg)
