@@ -114,9 +114,17 @@
       <view class="unselect-btn" wx:if="{{selectedRecipeId}}" bindtap="onUnselectRecipe">取消选择</view>
     </view>
 
+    <!-- 数据加载提示 -->
+    <view class="loading-tip" wx:if="{{isDataLoading}}">
+      <view class="loading-tip-content">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">数据加载中，请稍后...</text>
+      </view>
+    </view>
+
     <!-- 按钮区 -->
     <view class="cta-area">
-      <button class="primary-btn" bindtap="onStart">今天吃什么</button>
+      <button class="primary-btn" bindtap="onStart" disabled="{{isDataLoading}}">今天吃什么</button>
       <button class="secondary-btn" bindtap="onCustomize">✨ 定制菜谱</button>
     </view>
   </view>

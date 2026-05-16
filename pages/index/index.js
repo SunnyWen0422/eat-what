@@ -19,7 +19,9 @@ Page({
     // 菜品选择提示
     hasSelectedDishes: false,
     // 热门搭配标签
-    activeTag: ''
+    activeTag: '',
+    // 数据加载状态
+    isDataLoading: false
   },
   
   onLoad(options) {
@@ -215,14 +217,24 @@ Page({
   // 导航到结果页并传参
   onStart() {
     wx.vibrateShort({ type: 'medium' })
-    
+
+    // 检查数据是否正在加载
+    if (this.data.isDataLoading) {
+      wx.showToast({
+        title: '数据加载中，请稍后...',
+        icon: 'none',
+        duration: 2000
+      })
+      return
+    }
+
     const { selectedRecipeId, savedRecipes, selectedDishes, people, meat, veg, soup, dessert, mealType } = this.data
-    
+
     // 如果选择了菜谱，传递菜谱ID
-    const selectedRecipe = selectedRecipeId 
+    const selectedRecipe = selectedRecipeId
       ? savedRecipes.find(r => r.id === selectedRecipeId)
       : null
-    
+
     const params = {
       people: people,
       meat: meat,
@@ -260,6 +272,7 @@ Page({
     // 如果全局缓存已有数据，无需重复加载
     if (app.globalData.allDishes && app.globalData.allDishes.length > 0) {
       console.log('✅ 全局缓存已有菜品数据，跳过预加载')
+      this.setData({ isDataLoading: false })
       return
     }
 
@@ -270,6 +283,8 @@ Page({
     }
 
     this._isPreloading = true
+    this.setData({ isDataLoading: true })
+
     const api = require('../../utils/api')
 
     api.getDishesLite()
@@ -284,6 +299,7 @@ Page({
       })
       .finally(() => {
         this._isPreloading = false
+        this.setData({ isDataLoading: false })
       })
   },
 
