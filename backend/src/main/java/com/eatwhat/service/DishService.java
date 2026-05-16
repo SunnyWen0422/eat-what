@@ -91,39 +91,45 @@ public class DishService {
 
     /**
      * 生成推荐方案 - 后端直出，减少数据传输
-     * 三路并行取ID，应用层随机打乱，一次批量查详情
+     * 四路并行取ID（meat/veg/soup/dessert），应用层随机打乱，一次批量查详情
      */
     public List<PlanDTO> generateRecommendPlans(RecommendRequest req) {
         int meatCount = req.getMeat() != null ? req.getMeat() : 2;
         int vegCount = req.getVeg() != null ? req.getVeg() : 2;
         int soupCount = req.getSoup() != null ? req.getSoup() : 1;
+        int dessertCount = req.getDessert() != null ? req.getDessert() : 0;
 
         final int CANDIDATE_LIMIT = 100;
 
-        // 三路并行取ID（无 ORDER BY RAND()，极快）
+        // 四路并行取ID（无 ORDER BY RAND()，极快）
         CompletableFuture<List<Long>> meatFuture =
             CompletableFuture.supplyAsync(() -> dishMapper.selectIdsByType("meat"));
         CompletableFuture<List<Long>> vegFuture =
             CompletableFuture.supplyAsync(() -> dishMapper.selectIdsByType("veg"));
         CompletableFuture<List<Long>> soupFuture =
             CompletableFuture.supplyAsync(() -> dishMapper.selectIdsByType("soup"));
+        CompletableFuture<List<Long>> dessertFuture =
+            CompletableFuture.supplyAsync(() -> dishMapper.selectIdsByType("dessert"));
 
-        CompletableFuture.allOf(meatFuture, vegFuture, soupFuture).join();
+        CompletableFuture.allOf(meatFuture, vegFuture, soupFuture, dessertFuture).join();
 
         List<Long> meatIds = meatFuture.join();
         List<Long> vegIds = vegFuture.join();
         List<Long> soupIds = soupFuture.join();
+        List<Long> dessertIds = dessertFuture.join();
 
         // 应用层随机打乱
         Collections.shuffle(meatIds);
         Collections.shuffle(vegIds);
         Collections.shuffle(soupIds);
+        Collections.shuffle(dessertIds);
 
         // 取前100个ID，合并成一批，一次查询拿回所有菜品详情
         List<Long> batchIds = new ArrayList<>();
         batchIds.addAll(meatIds.subList(0, Math.min(CANDIDATE_LIMIT, meatIds.size())));
         batchIds.addAll(vegIds.subList(0, Math.min(CANDIDATE_LIMIT, vegIds.size())));
         batchIds.addAll(soupIds.subList(0, Math.min(CANDIDATE_LIMIT, soupIds.size())));
+        batchIds.addAll(dessertIds.subList(0, Math.min(CANDIDATE_LIMIT, dessertIds.size())));
 
         List<Dish> allCandidates = dishMapper.selectByIds(batchIds);
 
@@ -132,6 +138,7 @@ public class DishService {
         pool.put("meat", new ArrayList<>());
         pool.put("veg", new ArrayList<>());
         pool.put("soup", new ArrayList<>());
+        pool.put("dessert", new ArrayList<>());
         for (Dish d : allCandidates) {
             String t = d.getType();
             if (pool.containsKey(t)) {
@@ -142,6 +149,7 @@ public class DishService {
         List<Dish> meatPool = pool.get("meat");
         List<Dish> vegPool = pool.get("veg");
         List<Dish> soupPool = pool.get("soup");
+        List<Dish> dessertPool = pool.get("dessert");
         List<Dish> userSelected = req.getUserSelectedDishes();
 
         Set<String> usedNamesAcrossAllPlans = new HashSet<>();
@@ -163,11 +171,13 @@ public class DishService {
             int meatNeeded = meatCount;
             int vegNeeded = vegCount;
             int soupNeeded = soupCount;
+            int dessertNeeded = dessertCount;
             for (Dish d : planDishes) {
                 String t = d.getType();
                 if ("meat".equals(t)) meatNeeded--;
                 else if ("veg".equals(t)) vegNeeded--;
                 else if ("soup".equals(t)) soupNeeded--;
+                else if ("dessert".equals(t)) dessertNeeded--;
             }
 
             for (Dish d : meatPool) {
@@ -186,6 +196,14 @@ public class DishService {
                 if (soupNeeded <= 0) break;
                 if (d.getName() != null && !usedNames.contains(d.getName())) {
                     planDishes.add(d); usedNames.add(d.getName()); soupNeeded--;
+                }
+            }
+            if (dessertCount > 0 && dessertPool != null) {
+                for (Dish d : dessertPool) {
+                    if (dessertNeeded <= 0) break;
+                    if (d.getName() != null && !usedNames.contains(d.getName())) {
+                        planDishes.add(d); usedNames.add(d.getName()); dessertNeeded--;
+                    }
                 }
             }
 

@@ -24,6 +24,9 @@ public class RecommendRequest {
     @JsonProperty("soup")
     private Integer soup = 1;
 
+    @JsonProperty("dessert")
+    private Integer dessert = 0;
+
     @JsonProperty("mealType")
     private String mealType = "lunch";
 

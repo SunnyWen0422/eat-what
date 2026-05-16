@@ -9,6 +9,7 @@ Page({
     meat: 2,
     veg: 2,
     soup: 1,
+    dessert: 0,
     mealType: 'lunch',
     // 我的菜谱
     savedRecipes: [],
@@ -163,6 +164,22 @@ Page({
       this.applyConstraints()
     }
   },
+  onDessertMinus() {
+    wx.vibrateShort({ type: 'light' })
+    if (this.data.dessert > 0) {
+      const d = this.data.dessert - 1
+      this.setData({ dessert: d })
+      this.applyConstraints()
+    }
+  },
+  onDessertPlus() {
+    wx.vibrateShort({ type: 'light' })
+    if (this.data.dessert < 3) {
+      const d = this.data.dessert + 1
+      this.setData({ dessert: d })
+      this.applyConstraints()
+    }
+  },
   // 餐次按钮选择
   onMealTypeSelect(e) {
     wx.vibrateShort({ type: 'light' })
@@ -196,7 +213,7 @@ Page({
   onStart() {
     wx.vibrateShort({ type: 'medium' })
     
-    const { selectedRecipeId, savedRecipes, selectedDishes, people, meat, veg, soup, mealType } = this.data
+    const { selectedRecipeId, savedRecipes, selectedDishes, people, meat, veg, soup, dessert, mealType } = this.data
     
     // 如果选择了菜谱，传递菜谱ID
     const selectedRecipe = selectedRecipeId 
@@ -208,6 +225,7 @@ Page({
       meat: meat,
       veg: veg,
       soup: soup,
+      dessert: dessert,
       mealType: mealType,
       selectedRecipe: selectedRecipe,
       // 传递用户手动选中的菜品（用于在推荐菜谱中优先展示）
@@ -262,6 +280,7 @@ Page({
       meat: recipe.meatCount || this.data.meat,
       veg: recipe.vegCount || this.data.veg,
       soup: recipe.soupCount || this.data.soup,
+      dessert: recipe.dessertCount || this.data.dessert,
       mealType: recipe.mealType || this.data.mealType
     })
     

@@ -48,6 +48,16 @@
           <view class="count-btn plus" bindtap="onSoupPlus">+</view>
         </view>
       </view>
+
+      <!-- 甜品数量 -->
+      <view class="param-card">
+        <text class="card-label">🍰 甜品数量</text>
+        <view class="card-count">
+          <view class="count-btn minus" bindtap="onDessertMinus">−</view>
+          <text class="card-num">{{dessert}}</text>
+          <view class="count-btn plus" bindtap="onDessertPlus">+</view>
+        </view>
+      </view>
     </view>
 
     <!-- 今日小提示 -->
@@ -93,6 +103,7 @@
             <text class="info-tag meat-tag">🍖 {{item.meatCount}}荤</text>
             <text class="info-tag veg-tag">🥬 {{item.vegCount}}素</text>
             <text class="info-tag soup-tag">🍲 {{item.soupCount}}汤</text>
+            <text class="info-tag dessert-tag" wx:if="{{item.dessertCount > 0}}">🍰 {{item.dessertCount}}甜</text>
           </view>
           <view class="recipe-dishes" wx:if="{{item.selectedDishes && item.selectedDishes.length > 0}}">
             <text class="dish-tag" wx:for="{{item.selectedDishes}}" wx:for-item="dish" wx:key="name">{{dish.name}}</text>

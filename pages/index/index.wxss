@@ -206,6 +206,11 @@ page {
   background: #e6f7ff;
   border: 1px solid #91d5ff;
 }
+.dessert-tag {
+  color: #d44087;
+  background: #fff0f5;
+  border: 1px solid #ffb6c1;
+}
 
 /* ==================== 我的菜谱区域 ==================== */
 .my-recipes {

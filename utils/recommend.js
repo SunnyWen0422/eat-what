@@ -56,6 +56,8 @@ function _processDishes(dishes) {
       const name = dish.name || ''
       if (name.includes('汤') || name.includes('羹') || name.includes('粥')) {
         englishType = 'soup'
+      } else if (name.includes('甜') || name.includes('蜜') || name.includes('冰')) {
+        englishType = 'dessert'
       } else if (name.includes('炒') || name.includes('蒸') || name.includes('煮') ||
                  name.includes('炖') || name.includes('烤') || name.includes('炸')) {
         englishType = 'meat'
@@ -128,7 +130,7 @@ function applyMealBias(dishes, mealType) {
 function ensureBalance(meats, vegs) {
   // 简单规则：若全川味，替换一个为清淡菜品
   const isAllSpicy = [...meats, ...vegs].every(d => d.tags && d.tags.includes('川味'))
-    if (isAllSpicy) {
+  if (isAllSpicy) {
       const idx = meats.findIndex(d => d.tags && d.tags.includes('川味'))
       if (idx >= 0) {
         // 替换为清淡菜品，使用后端API返回的数据格式
@@ -148,7 +150,7 @@ function ensureBalance(meats, vegs) {
           kcal: 50
         }
       }
-    }
+  }
 }
 
 // 获取用户隔离的recentWindow key
@@ -186,10 +188,10 @@ function updateRecent(dishes) {
 }
 
 async function recommendPlans(params, externalAllDishes = null) {
-  const { people = 2, meat = 2, veg = 2, soup = 1, mealType = 'lunch', selectedRecipe = null, userSelectedDishes = null } = params || {}
+  const { people = 2, meat = 2, veg = 2, soup = 1, dessert = 0, mealType = 'lunch', selectedRecipe = null, userSelectedDishes = null } = params || {}
   const exclude = new Set(getRecentWindow())
 
-  console.log('🎯 开始推荐算法，参数:', {meat, veg, soup, mealType, userSelectedDishes})
+  console.log('🎯 开始推荐算法，参数:', {meat, veg, soup, dessert, mealType, userSelectedDishes})
 
   // 获取所有菜品：优先使用外部传入的，避免重复请求
   let allDishes = externalAllDishes
@@ -198,16 +200,18 @@ async function recommendPlans(params, externalAllDishes = null) {
   } else {
     console.log('📦 使用外部传入菜品数据:', allDishes.length, '条')
   }
-  
+
   // 按类型分组菜品池
   const meatsPool = allDishes.filter(d => d.type === 'meat')
   const vegsPool = allDishes.filter(d => d.type === 'veg')
   const soupsPool = allDishes.filter(d => d.type === 'soup')
+  const dessertsPool = allDishes.filter(d => d.type === 'dessert')
 
   console.log('🍖 菜品池统计:', {
     meats: meatsPool.length,
     vegs: vegsPool.length,
     soups: soupsPool.length,
+    desserts: dessertsPool.length,
     total: allDishes.length
   })
 
@@ -220,18 +224,20 @@ async function recommendPlans(params, externalAllDishes = null) {
 
   const plans = []
   for (let i = 0; i < 3; i++) {
-    let meats, vegs, soups
-    
+    let meats, vegs, soups, desserts
+
     if (userDishes.length > 0) {
       // 优先使用用户选中的菜品，按类型取出
       const userMeats = userDishes.filter(d => d.type === 'meat' || d.type === '荤菜' || d.type === 'meat' || d.type === '主菜')
       const userVegs = userDishes.filter(d => d.type === 'veg' || d.type === '素菜' || d.type === '蔬菜')
       const userSoups = userDishes.filter(d => d.type === 'soup' || d.type === '汤品' || d.type === '汤')
+      const userDesserts = userDishes.filter(d => d.type === 'dessert' || d.type === '甜品' || d.type === '甜点')
 
       meats = [...userMeats]
       vegs = [...userVegs]
       soups = [...userSoups]
-      
+      desserts = [...userDesserts]
+
       // 差额部分：从菜品池中随机补充
       if (meats.length < meat) {
         const excludeNames = new Set([...exclude, ...meats.map(d => d.name)])
@@ -240,7 +246,7 @@ async function recommendPlans(params, externalAllDishes = null) {
       } else if (meats.length > meat) {
         meats = meats.slice(0, meat)
       }
-      
+
       if (vegs.length < veg) {
         const excludeNames = new Set([...exclude, ...vegs.map(d => d.name)])
         const additional = pickUnique(vegsPool, veg - vegs.length, excludeNames)
@@ -248,7 +254,7 @@ async function recommendPlans(params, externalAllDishes = null) {
       } else if (vegs.length > veg) {
         vegs = vegs.slice(0, veg)
       }
-      
+
       if (soups.length < soup) {
         const excludeNames = new Set([...exclude, ...soups.map(d => d.name)])
         const additional = pickUnique(soupsPool, soup - soups.length, excludeNames)
@@ -256,15 +262,28 @@ async function recommendPlans(params, externalAllDishes = null) {
       } else if (soups.length > soup) {
         soups = soups.slice(0, soup)
       }
+
+      if (dessert > 0) {
+        if (desserts.length < dessert) {
+          const excludeNames = new Set([...exclude, ...desserts.map(d => d.name)])
+          const additional = pickUnique(dessertsPool, dessert - desserts.length, excludeNames)
+          desserts = [...desserts, ...additional]
+        } else if (desserts.length > dessert) {
+          desserts = desserts.slice(0, dessert)
+        }
+      }
     } else {
       // 正常推荐流程
       meats = pickUnique(meatsPool, meat, exclude)
       vegs = pickUnique(vegsPool, veg, exclude)
       soups = pickUnique(soupsPool, soup, exclude)
+      if (dessert > 0) {
+        desserts = pickUnique(dessertsPool, dessert, exclude)
+      }
     }
-    
+
     ensureBalance(meats, vegs)
-    const dishes = [...meats, ...vegs, ...soups]
+    const dishes = [...meats, ...vegs, ...soups, ...(dessert > 0 ? desserts : [])]
     if (dishes.length === 0) continue
     plans.push({ dishes })
   }
@@ -279,5 +298,3 @@ async function recommendPlans(params, externalAllDishes = null) {
 }
 
 module.exports = { recommendPlans, getAllDishes }
-
-
