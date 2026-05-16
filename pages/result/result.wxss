@@ -48,6 +48,9 @@
 .dish-type-icon.dish-type-soup {
   background: #e0f0ff;
 }
+.dish-type-icon.dish-type-dessert {
+  background: #fff0f5;
+}
 .dish-info {
   display: flex;
   flex-direction: column;

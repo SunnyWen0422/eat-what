@@ -51,6 +51,7 @@ function _processDishes(dishes) {
     if (dish.type === '荤菜' || dish.type === 'meat' || dish.type === '主菜') englishType = 'meat'
     else if (dish.type === '素菜' || dish.type === 'veg' || dish.type === '蔬菜') englishType = 'veg'
     else if (dish.type === '汤品' || dish.type === 'soup' || dish.type === '汤') englishType = 'soup'
+    else if (dish.type === '甜品' || dish.type === 'dessert' || dish.type === '甜点' || dish.type === '甜品') englishType = 'dessert'
     else {
       const name = dish.name || ''
       if (name.includes('汤') || name.includes('羹') || name.includes('粥')) {

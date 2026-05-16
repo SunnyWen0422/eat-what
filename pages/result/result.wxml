@@ -18,6 +18,7 @@
                       <text wx:if="{{item.type === 'meat'}}">🥩</text>
                       <text wx:elif="{{item.type === 'veg'}}">🥬</text>
                       <text wx:elif="{{item.type === 'soup'}}">🍲</text>
+                      <text wx:elif="{{item.type === 'dessert'}}">🍰</text>
                       <text wx:else>🍽️</text>
                     </view>
                     <view class="dish-info">
