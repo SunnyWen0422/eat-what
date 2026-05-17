@@ -15,8 +15,24 @@ App({
 
   // 执行登录
   doLogin() {
+    // 存储登录完成状态，供页面等待
+    this._loginResolve = null
+    this._loginReject = null
+    this._loginPromise = new Promise((resolve) => {
+      this._loginResolve = resolve
+    })
+    // 超时保护：最多等 8 秒（防止 wx.login 永久无回调）
+    this._loginTimer = setTimeout(() => {
+      console.log('⏰ 登录超时，释放等待')
+      this.globalData.loginReady = true
+      if (this._loginResolve) this._loginResolve()
+    }, 8000)
+
     if (!config.ENABLE_LOGIN) {
       console.log('登录功能已禁用')
+      this.globalData.loginReady = true
+      if (this._loginResolve) this._loginResolve()
+      clearTimeout(this._loginTimer)
       // 即使不登录，也预加载菜品数据到内存缓存
       this.precacheDishes()
       return
@@ -46,20 +62,32 @@ App({
               this.precacheDishes()
             } else {
               console.error('登录失败:', result.message)
-              // 登录失败不影响菜品加载，不显示toast
+              // 登录失败也不阻塞页面，token由autoReLogin兜底
             }
           } catch (err) {
             console.error('登录请求失败:', err)
-            // 登录失败不影响菜品加载
           }
         } else {
           console.error('获取code失败:', res.errMsg)
         }
+        // 无论成功或失败，标记登录流程已走完
+        this.globalData.loginReady = true
+        clearTimeout(this._loginTimer)
+        if (this._loginResolve) this._loginResolve()
       },
       fail: (err) => {
         console.error('wx.login失败:', err)
+        this.globalData.loginReady = true
+        clearTimeout(this._loginTimer)
+        if (this._loginResolve) this._loginResolve()
       }
     })
+  },
+
+  // 等待登录完成（页面可在导航前调用）
+  waitForLogin() {
+    if (this.globalData.loginReady) return Promise.resolve()
+    return this._loginPromise || Promise.resolve()
   },
   
   // 检查登录状态
@@ -94,6 +122,7 @@ App({
 
   globalData: {
     userInfo: null,
-    allDishes: null
+    allDishes: null,
+    loginReady: false  // 登录流程是否走完（成功或失败都置 true）
   }
 })

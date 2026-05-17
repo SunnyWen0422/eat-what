@@ -211,8 +211,17 @@ Page({
     // 已由±按钮的边界检查保证，此处无需额外约束
   },
   // 导航到结果页并传参
-  onStart() {
+  async onStart() {
     wx.vibrateShort({ type: 'medium' })
+
+    const app = getApp()
+    // 首次启动时登录可能还在进行中，短暂等待避免 401
+    if (!app.globalData.loginReady) {
+      wx.showLoading({ title: '准备中...', mask: true })
+      await app.waitForLogin()
+      wx.hideLoading()
+    }
+
     this._doNavigate()
   },
 
