@@ -1,9 +1,14 @@
 """MySQL 连接与菜品查询"""
 import json
+import time
 import pymysql
 from typing import List, Dict, Any, Optional
 
 from config import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+
+# 内存缓存（避免每次推荐都全量查询 4 万行）
+_cache: Dict[str, Any] = {}
+CACHE_TTL_SECONDS = 300  # 5 分钟过期
 
 
 def _get_connection():
@@ -52,8 +57,27 @@ def _infer_tags(dish: Dict[str, Any]) -> List[str]:
     return tags if tags else ["家常"]
 
 
+def _cache_get(key: str):
+    """读取缓存，过期返回 None"""
+    entry = _cache.get(key)
+    if not entry:
+        return None
+    if time.time() - entry["ts"] > CACHE_TTL_SECONDS:
+        del _cache[key]
+        return None
+    return entry["data"]
+
+
+def _cache_set(key: str, data: Any):
+    _cache[key] = {"ts": time.time(), "data": data}
+
+
 def fetch_all_dishes() -> List[Dict[str, Any]]:
-    """从 food 表获取所有菜品，映射 type 并补充 tags"""
+    """从 food 表获取所有菜品，映射 type 并补充 tags（5 分钟内存缓存）"""
+    cached = _cache_get("all_dishes")
+    if cached is not None:
+        return cached
+
     conn = _get_connection()
     try:
         with conn.cursor() as cur:
@@ -75,6 +99,7 @@ def fetch_all_dishes() -> List[Dict[str, Any]]:
                 "tags": _infer_tags(r),
             }
             result.append(dish)
+        _cache_set("all_dishes", result)
         return result
     finally:
         conn.close()
