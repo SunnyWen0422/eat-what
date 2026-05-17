@@ -119,7 +119,7 @@ public class DishController {
 
     /**
      * 获取所有菜品（轻量版 - 只返回推荐所需的必要字段）
-     * GET /api/dishes/lite?type=meat&keyword=鸡
+     * GET /api/dishes/lite?type=meat&keyword=鸡&limit=100
      * 用于前端推荐算法，大幅减少数据传输量
      * 需要认证
      */
@@ -127,6 +127,7 @@ public class DishController {
     public ResponseEntity<List<Dish>> getDishesLite(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "2147483647") int limit,
             HttpServletRequest request) {
 
         // 从token获取用户ID（拦截器已验证）
@@ -135,7 +136,7 @@ public class DishController {
             return ResponseEntity.status(401).build();
         }
 
-        List<Dish> dishes = dishService.getDishesLite(type, keyword);
+        List<Dish> dishes = dishService.getDishesLite(type, keyword, limit);
         return ResponseEntity.ok(dishes);
     }
 }

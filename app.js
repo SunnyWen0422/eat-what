@@ -17,6 +17,8 @@ App({
   doLogin() {
     if (!config.ENABLE_LOGIN) {
       console.log('登录功能已禁用')
+      // 即使不登录，也预加载菜品数据到内存缓存
+      this.precacheDishes()
       return
     }
 
@@ -40,10 +42,8 @@ App({
                 console.log('新用户注册成功')
               }
 
-              // 登录成功后，如果全局缓存为空，再尝试加载一次（防止预加载失败）
-              if (!this.globalData.allDishes || this.globalData.allDishes.length === 0) {
-                this.precacheDishes()
-              }
+              // 登录成功后，后台预加载菜品数据到内存缓存（静默，不阻塞UI）
+              this.precacheDishes()
             } else {
               console.error('登录失败:', result.message)
               // 登录失败不影响菜品加载，不显示toast

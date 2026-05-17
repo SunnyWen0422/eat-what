@@ -138,7 +138,7 @@ Page({
   async _tryBackendRecommendationSilently() {
     try {
       const api = require('../../utils/api')
-      const result = await api.getRecommendations(this.data.params)
+      const result = await api.requestSilent('/recommend', 'POST', this.data.params)
 
       if (result && result.success && result.plans && result.plans.length > 0) {
         const favoriteSet = new Set(result.favoriteIds || []);

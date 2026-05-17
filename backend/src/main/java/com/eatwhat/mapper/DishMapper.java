@@ -110,13 +110,14 @@ public interface DishMapper {
     int countAll();
 
     /**
-     * 按类型获取菜品（轻量版，不含image）
+     * 按类型获取菜品（轻量版，不含image，支持limit）
      */
     @Select("SELECT ID as id, NAME as name, TYPE as type, " +
             "TAGS as tags, " +
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
-            "FROM food WHERE TYPE = #{type} ORDER BY ID DESC")
-    List<Dish> selectDishesLiteByType(@Param("type") String type);
+            "FROM food WHERE TYPE = #{type} ORDER BY ID DESC LIMIT #{limit}")
+    List<Dish> selectDishesLiteByType(@Param("type") String type,
+                                       @Param("limit") int limit);
 
     /**
      * 获取所有菜品（轻量版，不含image）

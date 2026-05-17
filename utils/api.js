@@ -9,70 +9,201 @@
 // 生产环境：需要改为实际的HTTPS域名
 const API_BASE_URL = 'https://chishenme.icu/api'
 
+// 重试配置
+const RETRY_CONFIG = {
+  maxRetries: 3,           // 最多重试 3 次
+  baseDelayMs: 1000,       // 基础延迟 1 秒
+  maxDelayMs: 8000,        // 最大延迟 8 秒
+  retryableStatuses: [     // 哪些 HTTP 状态码会触发重试
+    502, 503, 504,         // 网关/服务不可用
+    408,                   // 请求超时
+    429                    // 限流
+  ]
+}
+
+// ETag 缓存（用于条件请求，减少数据传输）
+// 格式: { "https://...": { etag: "...", data: {...} } }
+const etagCache = {}
+
 /**
- * 内部请求实现，支持在 token 失效时自动重登并重试一次
- * @param {String} url - 接口路径
- * @param {String} method - 请求方法 GET/POST/PUT/DELETE
- * @param {Object} data - 请求数据
- * @param {Boolean} isRetry - 是否为重试请求，防止死循环
+ * 判断是否为可重试的错误
  */
-function doRequest(url, method = 'GET', data = null, isRetry = false) {
+function isRetryable(statusCode, isNetworkError) {
+  if (isNetworkError) return true  // 网络错误都可重试
+  return RETRY_CONFIG.retryableStatuses.includes(statusCode)
+}
+
+/**
+ * 延迟函数
+ */
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * 计算退避延迟（指数退避 + 随机抖动）
+ */
+function calcBackoff(attempt) {
+  const exp = Math.min(RETRY_CONFIG.maxDelayMs, RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt))
+  const jitter = Math.random() * 1000  // 0-1000ms 随机抖动
+  return exp + jitter
+}
+
+/**
+ * 执行单次 HTTP 请求（不包含重试逻辑）
+ * @returns {Promise<{ statusCode, data }>}
+ */
+function executeHttpRequest(url, method, data) {
   return new Promise((resolve, reject) => {
     const token = wx.getStorageSync('token') || ''
-
     const header = {
       'Content-Type': 'application/json'
     }
-
     if (token) {
       header['Authorization'] = `Bearer ${token}`
     }
 
+    // ETag 条件请求：如果缓存中有该 URL 的 ETag，携带 If-None-Match
+    const fullUrl = `${API_BASE_URL}${url}`
+    const cached = etagCache[fullUrl]
+    if (cached && cached.etag) {
+      header['If-None-Match'] = cached.etag
+    }
+
     wx.request({
-      url: `${API_BASE_URL}${url}`,
+      url: fullUrl,
       method,
       data,
       header,
-      success: async (res) => {
-        if (res.statusCode === 200) {
-          resolve(res.data)
-        } else if (res.statusCode === 401 && !isRetry) {
-          // token 失效，尝试自动重新登录并重试一次
-          try {
-            await autoReLogin()
-            const retryResult = await doRequest(url, method, data, true)
-            resolve(retryResult)
-          } catch (e) {
-            reject(e)
+      timeout: 15000,  // 15 秒超时
+      success: (res) => {
+        // 304 Not Modified：后端数据未变，返回缓存数据
+        if (res.statusCode === 304) {
+          if (cached && cached.data) {
+            console.log(`📦 ETag 命中 (304)，使用缓存: ${url}`)
+            return resolve({ statusCode: 200, data: cached.data })
           }
-        } else {
-          console.error('请求失败:', res)
-          if (res.data && res.data.message) {
-            wx.showToast({
-              title: res.data.message,
-              icon: 'none'
-            })
-          }
-          reject(res)
+          // 缓存不存在时降级为正常响应
+          return resolve({ statusCode: 304, data: null })
         }
+
+        // 提取并缓存 ETag（大小写兼容）
+        const etag = res.header &&
+          (res.header['ETag'] || res.header['etag'] || res.header['Etag'])
+        if (etag && res.statusCode === 200) {
+          etagCache[fullUrl] = { etag, data: res.data }
+        }
+
+        resolve({ statusCode: res.statusCode, data: res.data })
       },
       fail: (err) => {
-        console.error('网络错误:', err)
-        wx.showToast({
-          title: '网络请求失败',
-          icon: 'none'
-        })
-        reject(err)
+        reject({ isNetworkError: true, err })
       }
     })
   })
 }
 
 /**
- * 通用请求方法（对外暴露）
+ * 内部请求实现（带重试 + 401自动重登）
+ * @param {String} url - 接口路径
+ * @param {String} method - 请求方法
+ * @param {Object} data - 请求数据
+ * @param {Object} options - { silent, maxRetries, isAuthRetry }
+ *   silent: true 则不弹 toast（后台静默请求）
+ *   maxRetries: 最大重试次数（不含首次）
+ *   isAuthRetry: 是否为 401 重新登录后的重试
+ */
+function doRequest(url, method = 'GET', data = null, options = {}) {
+  const {
+    silent = false,
+    maxRetries = RETRY_CONFIG.maxRetries,
+    isAuthRetry = false
+  } = options
+
+  let lastError = null
+
+  async function attempt(attemptIndex) {
+    try {
+      const { statusCode, data: resData } = await executeHttpRequest(url, method, data)
+
+      // 成功
+      if (statusCode === 200) {
+        return resData
+      }
+
+      // 401：token 失效，自动重登（仅一次）
+      if (statusCode === 401 && !isAuthRetry) {
+        console.log('🔄 Token 失效，尝试自动重新登录...')
+        try {
+          await autoReLogin()
+          // 重新登录后用新 token 重试（仅一次，防止死循环）
+          return await doRequest(url, method, data, {
+            silent,
+            maxRetries: 0,       // 401 重试不再走网络重试
+            isAuthRetry: true
+          })
+        } catch (authErr) {
+          console.error('❌ 自动重新登录失败:', authErr)
+          if (!silent) {
+            wx.showToast({ title: '登录已过期，请重新打开', icon: 'none', duration: 2000 })
+          }
+          throw { statusCode: 401, data: resData, isAuthError: true }
+        }
+      }
+
+      // 可重试的状态码
+      if (attemptIndex < maxRetries && isRetryable(statusCode, false)) {
+        const backoff = calcBackoff(attemptIndex)
+        console.log(`⏳ 请求失败(HTTP ${statusCode})，${backoff / 1000}s 后第 ${attemptIndex + 1}/${maxRetries} 次重试...`)
+        await delay(backoff)
+        return attempt(attemptIndex + 1)
+      }
+
+      // 不可重试的错误
+      lastError = { statusCode, data: resData }
+      console.error(`❌ 请求失败(HTTP ${statusCode}):`, resData)
+      if (!silent && resData && resData.message) {
+        wx.showToast({ title: resData.message, icon: 'none', duration: 2000 })
+      }
+      throw lastError
+
+    } catch (err) {
+      // 网络错误
+      if (err && err.isNetworkError) {
+        if (attemptIndex < maxRetries) {
+          const backoff = calcBackoff(attemptIndex)
+          console.log(`⏳ 网络波动，${backoff / 1000}s 后第 ${attemptIndex + 1}/${maxRetries} 次重试...`)
+          await delay(backoff)
+          return attempt(attemptIndex + 1)
+        }
+        // 重试耗尽
+        lastError = err
+        console.error('❌ 网络请求失败（重试耗尽）:', err.err)
+        if (!silent) {
+          wx.showToast({ title: '网络连接失败，请检查网络', icon: 'none', duration: 2500 })
+        }
+        throw lastError
+      }
+      // 其他错误直接抛出
+      throw err
+    }
+  }
+
+  return attempt(0)
+}
+
+/**
+ * 通用请求方法（对外暴露，默认显示 toast）
  */
 function request(url, method = 'GET', data = null) {
-  return doRequest(url, method, data, false)
+  return doRequest(url, method, data, { silent: false, maxRetries: 1 })
+}
+
+/**
+ * 静默请求方法（后台调用，不弹 toast，更多重试次数）
+ */
+function requestSilent(url, method = 'GET', data = null) {
+  return doRequest(url, method, data, { silent: true, maxRetries: RETRY_CONFIG.maxRetries })
 }
 
 /**
@@ -156,7 +287,16 @@ function getDishesLite(params = {}) {
   if (params.type) queryString += `type=${params.type}&`
   if (params.keyword) queryString += `keyword=${encodeURIComponent(params.keyword)}&`
   
-  return request(`/dishes/lite?${queryString}`, 'GET')
+  return requestSilent(`/dishes/lite?${queryString}`, 'GET')
+}
+
+/**
+ * 按分类获取菜品（懒加载，只取 top-N，减少数据传输）
+ * @param {String} type - 菜品类型 meat/veg/soup/dessert
+ * @param {Number} limit - 每类最多取多少条（默认 100）
+ */
+function getDishesLiteByType(type, limit = 100) {
+  return requestSilent(`/dishes/lite?type=${type}&limit=${limit}`, 'GET')
 }
 
 /**
@@ -195,7 +335,7 @@ function getDishById(id) {
  * @param {Object} loginData - 登录数据 { code: string }
  */
 function login(loginData) {
-  return doRequest('/users/login', 'POST', loginData, false)
+  return doRequest('/users/login', 'POST', loginData, { silent: false, maxRetries: 2 })
 }
 
 /**
@@ -450,10 +590,12 @@ module.exports = {
 
   // 通用方法
   request,
+  requestSilent,
 
   // 菜品接口
   getDishes,
   getDishesLite,
+  getDishesLiteByType,
   searchDishes,
   createCustomDish,
   getDishById,

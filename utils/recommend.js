@@ -54,7 +54,7 @@ function _processDishes(dishes) {
     else if (dish.type === '甜品' || dish.type === 'dessert' || dish.type === '甜点' || dish.type === '甜品') englishType = 'dessert'
     else {
       const name = dish.name || ''
-      if (name.includes('汤') || name.includes('羹') || name.includes('粥')) {
+      if (name.includes('汤') || name.includes('粥')) {
         englishType = 'soup'
       } else if (name.includes('甜') || name.includes('蜜') || name.includes('冰')) {
         englishType = 'dessert'
@@ -64,6 +64,19 @@ function _processDishes(dishes) {
       } else {
         englishType = 'veg'
       }
+    }
+
+    // 甜品关键词强制覆盖（修正数据库中误分类的数据）
+    const dessertKeywords = ['糊', '糕', '酥', '酪', '冻', '糖水', '双皮奶', '姜撞奶', '布丁', '班戟', '糯米糍', '大福', '凉粉', '冰粉', '汤圆', '元宵', '月饼', '蛋黄酥', '蛋挞', '泡芙', '慕斯', '提拉米苏', '蛋糕', '面包', '饼干', '曲奇']
+    const dessertExcludePatterns = ['糖醋', '糖拌', '糖渍', '奶香', '奶酪', '排骨', '里脊', '肉', '鱼', '虾', '鸡', '鸭']
+    const name = dish.name || ''
+
+    const isDessert = dessertKeywords.some(kw => name.includes(kw))
+    const isNotMainDish = !dessertExcludePatterns.some(p => name.includes(p))
+
+    if (isDessert && isNotMainDish && englishType !== 'dessert') {
+      console.log(`🔧 甜品关键词修正: "${name}" ${englishType} → dessert`)
+      englishType = 'dessert'
     }
 
     return {

@@ -80,13 +80,22 @@ public class DishService {
     }
 
     /**
-     * 获取菜品列表（轻量版）
+     * 获取菜品列表（轻量版，支持limit）
+     */
+    public List<Dish> getDishesLite(String type, String keyword, int limit) {
+        if (type != null && !type.isEmpty()) {
+            return dishMapper.selectDishesLiteByType(type, limit);
+        }
+        // 无 type 时返回全量（旧行为兼容）
+        return dishMapper.selectAllDishesLite();
+    }
+
+    /**
+     * 获取菜品列表（轻量版，无limit兼容旧调用）
      */
     public List<Dish> getDishesLite(String type, String keyword) {
-        if (type != null && !type.isEmpty()) {
-            return dishMapper.selectDishesLiteByType(type);
-        }
-        return dishMapper.selectAllDishesLite();
+        // limit=Integer.MAX_VALUE 表示不限量，兼容旧调用
+        return getDishesLite(type, keyword, Integer.MAX_VALUE);
     }
 
     /**

@@ -19,9 +19,7 @@ Page({
     // 菜品选择提示
     hasSelectedDishes: false,
     // 热门搭配标签
-    activeTag: '',
-    // 数据加载状态
-    isDataLoading: false
+    activeTag: ''
   },
   
   onLoad(options) {
@@ -63,8 +61,6 @@ Page({
       })
     }
 
-    // 后台预加载菜品数据（不阻塞UI，提升后续推荐速度）
-    this.preloadDishesInBackground()
   },
 
   onShareAppMessage() {
@@ -217,17 +213,11 @@ Page({
   // 导航到结果页并传参
   onStart() {
     wx.vibrateShort({ type: 'medium' })
+    this._doNavigate()
+  },
 
-    // 检查数据是否正在加载
-    if (this.data.isDataLoading) {
-      wx.showToast({
-        title: '数据加载中，请稍后...',
-        icon: 'none',
-        duration: 2000
-      })
-      return
-    }
-
+  // 执行跳转
+  _doNavigate() {
     const { selectedRecipeId, savedRecipes, selectedDishes, people, meat, veg, soup, dessert, mealType } = this.data
 
     // 如果选择了菜谱，传递菜谱ID
@@ -264,43 +254,6 @@ Page({
     this.setData({
       activeTag: this.data.activeTag === tag ? '' : tag
     })
-  },
-
-  // 后台预加载菜品数据（不阻塞UI，提升后续推荐速度）
-  preloadDishesInBackground() {
-    const app = getApp()
-    // 如果全局缓存已有数据，无需重复加载
-    if (app.globalData.allDishes && app.globalData.allDishes.length > 0) {
-      console.log('✅ 全局缓存已有菜品数据，跳过预加载')
-      this.setData({ isDataLoading: false })
-      return
-    }
-
-    // 防止重复发起请求
-    if (this._isPreloading) {
-      console.log('⏳ 正在预加载中，跳过重复请求')
-      return
-    }
-
-    this._isPreloading = true
-    this.setData({ isDataLoading: true })
-
-    const api = require('../../utils/api')
-
-    api.getDishesLite()
-      .then(dishes => {
-        if (dishes && dishes.length > 0) {
-          app.globalData.allDishes = dishes
-          console.log('✅ 首页后台预加载完成:', dishes.length, '条')
-        }
-      })
-      .catch(err => {
-        console.log('⚠️ 首页后台预加载失败:', err)
-      })
-      .finally(() => {
-        this._isPreloading = false
-        this.setData({ isDataLoading: false })
-      })
   },
 
   // 清除已选菜品
