@@ -1,0 +1,41 @@
+<view class="page">
+  <!-- 头像区 -->
+  <view class="avatar-section">
+    <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+      <image class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
+      <view class="avatar-badge">📷</view>
+    </button>
+    <text class="avatar-hint">点击使用微信头像</text>
+  </view>
+
+  <!-- 信息卡片 -->
+  <view class="info-card">
+    <!-- 昵称 -->
+    <view class="info-row">
+      <text class="info-label">昵称</text>
+      <input
+        class="nick-input"
+        type="nickname"
+        placeholder="点击获取微信昵称"
+        value="{{userInfo.nickname !== '未设置' ? userInfo.nickname : ''}}"
+        bindblur="onNicknameSave"
+        bindinput="onNicknameInput"
+      />
+    </view>
+
+    <view class="info-row">
+      <text class="info-label">等级</text>
+      <text class="info-value muted">{{userInfo.level}}</text>
+    </view>
+
+    <view class="info-row">
+      <text class="info-label">使用天数</text>
+      <text class="info-value muted">{{joinDays}} 天</text>
+    </view>
+  </view>
+
+  <!-- 提示 -->
+  <view class="tip">
+    <text>点击头像使用微信头像，点击昵称自动获取微信昵称</text>
+  </view>
+</view>

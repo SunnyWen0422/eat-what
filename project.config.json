@@ -1,0 +1,39 @@
+{
+  "compileType": "miniprogram",
+  "libVersion": "trial",
+  "packOptions": {
+    "ignore": [
+      {"type": "folder", "value": "backend"},
+      {"type": "folder", "value": "recommend-service"},
+      {"type": "folder", "value": "docs"},
+      {"type": "suffix", "value": ".tar.gz"},
+      {"type": "suffix", "value": ".bat"},
+      {"type": "suffix", "value": ".sql"},
+      {"type": "suffix", "value": ".md"},
+      {"type": "suffix", "value": ".jpg"},
+      {"type": "suffix", "value": ".png"},
+      {"type": "suffix", "value": ".mp3"}
+    ],
+    "include": []
+  },
+  "setting": {
+    "coverView": true,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "enhance": true,
+    "showShadowRootInWxmlPanel": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "auto",
+    "tabSize": 2
+  },
+  "appid": "wxf0e75b670599834a"
+}

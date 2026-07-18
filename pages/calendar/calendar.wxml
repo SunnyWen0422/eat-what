@@ -1,0 +1,45 @@
+<view class="calendar-page">
+  <!-- 头部月份导航 -->
+  <view class="calendar-header">
+    <view class="month-nav">
+      <button class="nav-btn" bindtap="onPrevMonth">‹</button>
+      <view class="month-title">{{currentYear}}年 {{currentMonth}}月</view>
+      <button class="nav-btn" bindtap="onNextMonth">›</button>
+    </view>
+  </view>
+
+  <!-- 星期标题 -->
+  <view class="weekdays">
+    <text wx:for="{{['日', '一', '二', '三', '四', '五', '六']}}" wx:key="index">{{item}}</text>
+  </view>
+
+  <!-- 日历网格 -->
+  <view class="calendar-grid">
+    <view class="calendar-day {{!item.isCurrentMonth ? 'other-month' : ''}} {{item.fullDate === today ? 'today' : ''}} {{item.hasRecord ? 'has-record' : ''}}"
+          wx:for="{{calendarDays}}"
+          wx:key="fullDate"
+          bindtap="onSelectDate"
+          data-full-date="{{item.fullDate}}"
+          data-is-current-month="{{item.isCurrentMonth}}">
+      <text class="day-number">{{item.date}}</text>
+      <view class="record-indicator" wx:if="{{item.hasRecord}}">●</view>
+    </view>
+  </view>
+
+  <!-- 选择模式提示 -->
+  <view class="select-mode-notice" wx:if="{{selectMode}}">
+    <text>请选择要保存菜谱的日期</text>
+  </view>
+
+  <!-- 说明 -->
+  <view class="calendar-info">
+    <view class="info-item">
+      <view class="indicator today-indicator"></view>
+      <text>今天</text>
+    </view>
+    <view class="info-item">
+      <view class="indicator record-indicator"></view>
+      <text>有记录</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,252 @@
+/* pages/statistics/statistics.wxss */
+page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+.statistics-page {
+  padding-bottom: 30px;
+}
+
+/* 月份选择器 */
+.month-selector {
+  background-color: white;
+  margin: 20px;
+  border-radius: 12px;
+  padding: 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.nav-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background-color: #f0f0f0;
+  border-radius: 50%;
+  font-size: 22px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+.nav-btn:active {
+  background-color: #e0e0e0;
+}
+
+.month-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 加载中 */
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.loading-text {
+  font-size: 16px;
+  color: #999;
+}
+
+/* 空数据 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.empty-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+}
+.empty-text {
+  display: block;
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 8px;
+}
+.empty-hint {
+  display: block;
+  font-size: 14px;
+  color: #999;
+}
+
+/* 报告容器 */
+.report-container {
+  padding: 0 20px;
+}
+
+/* 概览卡片 */
+.overview-card {
+  background: linear-gradient(135deg, #07c160 0%, #10b83d 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(7, 193, 96, 0.3);
+}
+.overview-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 4px;
+}
+.overview-subtitle {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 20px;
+}
+.overview-dishes {
+  display: flex;
+  justify-content: space-between;
+}
+.dish-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.dish-emoji {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+.dish-count {
+  font-size: 22px;
+  font-weight: bold;
+  color: white;
+}
+.dish-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.8);
+  margin-top: 2px;
+}
+
+/* 通用卡片 */
+.calories-card, .ratio-card, .suggestion-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.card-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+/* 热量分析 */
+.calories-bar-section {
+  margin-bottom: 14px;
+}
+.calories-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.bar-label {
+  font-size: 14px;
+  color: #666;
+  width: 60px;
+  flex-shrink: 0;
+}
+.bar-wrapper {
+  flex: 1;
+  height: 12px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+.bar-fill.good { background: #52c41a; }
+.bar-fill.normal { background: #faad14; }
+.bar-fill.high { background: #ff4d4f; }
+.bar-fill.low { background: #1890ff; }
+
+.bar-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  width: 90px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.calories-range {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+.calories-verdict {
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 8px;
+}
+.calories-verdict.good { color: #52c41a; background: #f6ffed; }
+.calories-verdict.normal { color: #faad14; background: #fffbe6; }
+.calories-verdict.high { color: #ff4d4f; background: #fff2f0; }
+.calories-verdict.low { color: #1890ff; background: #e6f7ff; }
+
+/* 比例分析 */
+.ratio-chart {
+  margin-bottom: 12px;
+}
+.ratio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ratio-bar {
+  height: 14px;
+  border-radius: 7px;
+  min-width: 4px;
+  max-width: 100%;
+}
+.ratio-item.meat .ratio-bar { background: #ff7875; }
+.ratio-item.veg .ratio-bar { background: #95de64; }
+.ratio-item.soup .ratio-bar { background: #5cdbd3; }
+
+.ratio-text {
+  font-size: 14px;
+  color: #666;
+  width: 70px;
+  flex-shrink: 0;
+}
+.ratio-verdict {
+  text-align: center;
+  font-size: 14px;
+  color: #52c41a;
+  padding: 8px;
+  background: #f6ffed;
+  border-radius: 6px;
+}
+
+/* 建议卡片 */
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.suggestion-item {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-radius: 6px;
+  border-left: 3px solid #07c160;
+}

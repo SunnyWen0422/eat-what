@@ -1,0 +1,45 @@
+<view class="page">
+  <!-- 用户列表 -->
+  <view wx:if="{{!selectedUser}}">
+    <view class="title">用户管理 ({{users.length}})</view>
+    <view class="loading" wx:if="{{loading}}">加载中...</view>
+    <view class="user-item" wx:for="{{users}}" wx:key="id" bindtap="onSelectUser" data-id="{{item.id}}">
+      <text class="u-name">{{item.nickname || item.phone || '未命名'}}</text>
+      <text class="u-info">ID:{{item.id}} | {{item.phone||'无手机'}} | 菜谱:{{item.customCount}}</text>
+      <text class="u-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 用户详情 -->
+  <view wx:else>
+    <view class="bar">
+      <text class="bar-btn" bindtap="onBack">← 返回</text>
+      <text class="bar-btn" bindtap="onShowAdd">+ 添加菜谱</text>
+    </view>
+    <view class="u-detail">
+      <text class="u-title">{{selectedUser.nickname||'未命名'}} (ID:{{selectedUser.id}})</text>
+      <text class="u-sub">📱 {{selectedUser.phone||'未绑定'}} | 🕐 {{selectedUser.registerTime}}</text>
+    </view>
+    <view class="dish-list">
+      <view class="d-item" wx:for="{{userDishes}}" wx:key="id">
+        <text class="d-name">{{item.name}}</text>
+        <text class="d-remove" data-id="{{item.id}}" bindtap="onDeleteDish">删除</text>
+      </view>
+      <view wx:if="{{userDishes.length===0}}" class="empty">暂无自定义菜谱</view>
+    </view>
+  </view>
+
+  <!-- 添加菜谱弹层 -->
+  <view class="modal" wx:if="{{showAddForm}}">
+    <view class="modal-box">
+      <text class="modal-title">添加菜谱</text>
+      <input class="inp" placeholder="菜名" value="{{newDish.name}}" data-field="name" bindinput="onDishInput"/>
+      <textarea class="inp" placeholder="用料(每行一个)" value="{{newDish.cl}}" data-field="cl" bindinput="onDishInput"/>
+      <textarea class="inp" placeholder="做法" value="{{newDish.step}}" data-field="step" bindinput="onDishInput"/>
+      <view class="modal-btns">
+        <button class="btn-cancel" bindtap="onCancelAdd">取消</button>
+        <button class="btn-save" bindtap="onSaveDish">保存</button>
+      </view>
+    </view>
+  </view>
+</view>

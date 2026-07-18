@@ -1,0 +1,132 @@
+<!--index.wxml-->
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="container">
+    <!-- 标题区 -->
+    <view class="header-area">
+      <text class="header-title">🍳 今天我们吃什么？</text>
+      <text class="header-subtitle">智能搭配家常菜谱，告别选择困难</text>
+    </view>
+
+    <!-- 参数配置卡片（独立模块） -->
+    <view class="params-grid">
+      <!-- 荤菜数量 -->
+      <view class="param-card">
+        <text class="card-label">🍗 荤菜数量</text>
+        <view class="card-count">
+          <view class="count-btn minus" bindtap="onMeatMinus">−</view>
+          <text class="card-num">{{meat}}</text>
+          <view class="count-btn plus" bindtap="onMeatPlus">+</view>
+        </view>
+      </view>
+
+      <!-- 素菜数量 -->
+      <view class="param-card">
+        <text class="card-label">🥬 素菜数量</text>
+        <view class="card-count">
+          <view class="count-btn minus" bindtap="onVegMinus">−</view>
+          <text class="card-num">{{veg}}</text>
+          <view class="count-btn plus" bindtap="onVegPlus">+</view>
+        </view>
+      </view>
+
+      <!-- 汤品数量 -->
+      <view class="param-card">
+        <text class="card-label">🍲 汤品数量</text>
+        <view class="card-count">
+          <view class="count-btn minus" bindtap="onSoupMinus">−</view>
+          <text class="card-num">{{soup}}</text>
+          <view class="count-btn plus" bindtap="onSoupPlus">+</view>
+        </view>
+      </view>
+
+      <!-- 甜品数量 -->
+      <view class="param-card">
+        <text class="card-label">🍰 甜品数量</text>
+        <view class="card-count">
+          <view class="count-btn minus" bindtap="onDessertMinus">−</view>
+          <text class="card-num">{{dessert}}</text>
+          <view class="count-btn plus" bindtap="onDessertPlus">+</view>
+        </view>
+      </view>
+
+      <!-- 主食数量 -->
+      <view class="param-card">
+        <text class="card-label">🍚 主食数量</text>
+        <view class="card-count">
+          <view class="count-btn minus" bindtap="onStapleMinus">−</view>
+          <text class="card-num">{{staple}}</text>
+          <view class="count-btn plus" bindtap="onStaplePlus">+</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 今日小提示 -->
+    <view class="tip-card">
+      <text class="tip-icon">💡</text>
+      <text class="tip-text">今日小提示：荤素1:2搭配，营养更均衡~</text>
+    </view>
+
+    <!-- 热门搭配标签组 -->
+    <view class="tags-area">
+      <text class="tags-label">热门搭配</text>
+      <view class="tag-group">
+        <view class="hot-tag {{activeTag === 'home' ? 'active' : ''}}" bindtap="onTagTap" data-tag="home">
+          🏠 家常菜
+        </view>
+        <view class="hot-tag {{activeTag === 'quick' ? 'active' : ''}}" bindtap="onTagTap" data-tag="quick">
+          ⚡ 快手菜
+        </view>
+        <view class="hot-tag {{activeTag === 'diet' ? 'active' : ''}}" bindtap="onTagTap" data-tag="diet">
+          🥗 减脂餐
+        </view>
+      </view>
+    </view>
+
+    <!-- 我的菜谱区域 -->
+    <view class="my-recipes" wx:if="{{savedRecipes.length > 0}}">
+      <view class="section-header-row">
+        <text class="section-header-title">📖 我的菜谱</text>
+        <text class="section-header-hint">点击应用配置</text>
+      </view>
+      <scroll-view class="recipe-list" scroll-y>
+        <view class="recipe-item {{selectedRecipeId === item.id ? 'selected' : ''}}"
+              wx:for="{{savedRecipes}}"
+              wx:key="id"
+              bindtap="onSelectRecipe"
+              data-id="{{item.id}}">
+          <view class="recipe-header">
+            <text class="recipe-name">{{item.name}}</text>
+            <view class="delete-btn" catchtap="onDeleteRecipe" data-id="{{item.id}}">×</view>
+          </view>
+          <view class="recipe-info">
+            <text class="info-tag">👥 {{item.people}}人</text>
+            <text class="info-tag meat-tag">🍖 {{item.meatCount}}荤</text>
+            <text class="info-tag veg-tag">🥬 {{item.vegCount}}素</text>
+            <text class="info-tag soup-tag">🍲 {{item.soupCount}}汤</text>
+            <text class="info-tag dessert-tag" wx:if="{{item.dessertCount > 0}}">🍰 {{item.dessertCount}}甜</text>
+          </view>
+          <view class="recipe-dishes" wx:if="{{item.selectedDishes && item.selectedDishes.length > 0}}">
+            <text class="dish-tag" wx:for="{{item.selectedDishes}}" wx:for-item="dish" wx:key="name">{{dish.name}}</text>
+          </view>
+          <view class="selected-badge" wx:if="{{selectedRecipeId === item.id}}">✓ 已选</view>
+        </view>
+      </scroll-view>
+      <view class="unselect-btn" wx:if="{{selectedRecipeId}}" bindtap="onUnselectRecipe">取消选择</view>
+    </view>
+
+    <!-- 数据加载提示 -->
+    <view class="loading-tip" wx:if="{{isDataLoading}}">
+      <view class="loading-tip-content">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">数据加载中，请稍后...</text>
+      </view>
+    </view>
+
+    <!-- 按钮区 -->
+    <view class="cta-area">
+      <button class="chat-btn" bindtap="onOpenChat">🤖 AI 助手</button>
+      <button class="primary-btn" bindtap="onStart" disabled="{{isDataLoading}}">今天吃什么</button>
+      <button class="secondary-btn" bindtap="onCustomize">✨ 定制菜谱</button>
+    </view>
+  </view>
+</scroll-view>

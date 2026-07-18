@@ -1,0 +1,57 @@
+.page{display:flex;flex-direction:column;height:100vh;background:#F7F8FA}
+.msg-list{flex:1;padding:14px 12px;overflow-y:auto}
+
+.msg-row{display:flex;align-items:flex-start;margin-bottom:16px}
+.row-right{flex-direction:row-reverse}
+.row-left{flex-direction:row}
+
+.avatar-bot-fb{width:72rpx;height:72rpx;border-radius:50%;flex-shrink:0;margin:0 10px;
+  display:flex;align-items:center;justify-content:center;font-size:40rpx;
+  background:linear-gradient(135deg,#2BA471,#1A7A4C);color:#fff}
+.avatar-user{width:72rpx;height:72rpx;border-radius:50%;flex-shrink:0;margin:0 10px;background:#E8F5E9}
+.avatar-user-fb{width:72rpx;height:72rpx;border-radius:50%;flex-shrink:0;margin:0 10px;
+  display:flex;align-items:center;justify-content:center;font-size:36rpx;
+  background:#E5E5E5;color:#999}
+
+.msg-bubble{max-width:82%;padding:14px 18px;border-radius:18px;font-size:28rpx;
+  line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.bubble-left{background:#fff;color:#333;border-top-left-radius:6px;
+  box-shadow:0 2rpx 8rpx rgba(0,0,0,0.04)}
+.bubble-right{background:#2BA471;color:#fff;border-top-right-radius:6px}
+
+.typing-dots{display:flex;gap:6px;padding:10px 18px}
+.dot{font-size:16rpx;color:#999;animation:blink 1.2s infinite}
+.dot:nth-child(2){animation-delay:0.2s}
+.dot:nth-child(3){animation-delay:0.4s}
+@keyframes blink{0%,100%{opacity:0.2}50%{opacity:1}}
+
+.quick-bar{display:flex;gap:8px;padding:8px 12px;background:#fff;
+  border-top:1rpx solid #EEE;overflow-x:auto}
+.quick-btn{font-size:24rpx;color:#2BA471;background:#E8F5E9;
+  padding:8px 16px;border-radius:16px;white-space:nowrap;flex-shrink:0}
+
+.input-bar{display:flex;align-items:center;padding:10px 12px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  background:#fff;border-top:1rpx solid #EEE;gap:10px}
+.chat-input{flex:1;height:40px;background:#F5F5F5;
+  border-radius:20px;padding:0 16px;font-size:28rpx;box-sizing:border-box}
+.send-btn{width:40px;height:40px;border-radius:50%;background:#2BA471;
+  display:flex;align-items:center;justify-content:center;font-size:24rpx;flex-shrink:0}
+
+/* 菜品卡片 */
+.dish-cards{display:flex;flex-direction:column;gap:6px;padding:4px 8px 4px 92rpx;margin-bottom:8px}
+.dish-card{background:#fff;border-radius:12rpx;padding:12px 14px;
+  box-shadow:0 2rpx 8rpx rgba(0,0,0,0.04);display:flex;align-items:center;
+  width:100%;box-sizing:border-box;
+  border:2rpx solid #C8E6C9}
+.dish-card:active{background:#F0FDF4}
+.dc-img{width:64rpx;height:64rpx;border-radius:10rpx;flex-shrink:0;margin-right:10px;background:#f5f5f5}
+.dc-img-fb{width:64rpx;height:64rpx;border-radius:10rpx;flex-shrink:0;margin-right:10px;
+  background:#F5F5F5;display:flex;align-items:center;justify-content:center;font-size:32rpx}
+.dc-info{flex:1;min-width:0}
+.dc-name{font-size:26rpx;font-weight:600;color:#333;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-meta{display:flex;gap:6px;margin-top:3px}
+.dc-kcal{font-size:20rpx;color:#999}
+.dc-diff{font-size:20rpx;color:#999}
+.dc-arrow{font-size:28rpx;color:#ccc;flex-shrink:0;margin-left:4px}

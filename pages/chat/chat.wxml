@@ -1,0 +1,49 @@
+<view class="page">
+  <scroll-view class="msg-list" scroll-y enhanced scroll-top="{{scrollTop}}" scroll-with-animation>
+    <block wx:for="{{messages}}" wx:key="index">
+      <!-- 文本消息 -->
+      <view class="msg-row {{item.role === 'user' ? 'row-right' : 'row-left'}}">
+        <view wx:if="{{item.role === 'assistant'}}" class="avatar-bot-fb">🤖</view>
+        <image wx:if="{{item.role === 'user' && userAvatar}}" class="avatar-user" src="{{userAvatar}}" mode="aspectFill" />
+        <view wx:if="{{item.role === 'user' && !userAvatar}}" class="avatar-user-fb">👤</view>
+        <view class="msg-bubble {{item.role === 'user' ? 'bubble-right' : 'bubble-left'}}">
+          <text>{{item.content}}</text>
+        </view>
+      </view>
+      <!-- 菜品卡片 -->
+      <view class="dish-cards" wx:if="{{item.role === 'assistant' && item.dishes && item.dishes.length > 0}}">
+        <view class="dish-card" wx:for="{{item.dishes}}" wx:key="id" wx:for-item="d" bindtap="onTapDish" data-id="{{d.id}}">
+          <image class="dc-img" src="{{d.image}}" mode="aspectFill" lazy-load />
+          <view class="dc-img-fb" wx:if="{{!d.image}}">🍽️</view>
+          <view class="dc-info">
+            <text class="dc-name">{{d.name}}</text>
+            <view class="dc-meta">
+              <text class="dc-kcal" wx:if="{{d.kcal}}">🔥 {{d.kcal}}千卡</text>
+              <text class="dc-diff" wx:if="{{d.difficulty}}">📋 {{d.difficulty}}</text>
+            </view>
+          </view>
+          <text class="dc-arrow">›</text>
+        </view>
+      </view>
+    </block>
+    <view wx:if="{{loading}}" class="msg-row row-left">
+      <view class="avatar-bot-fb">🤖</view>
+      <view class="msg-bubble bubble-left typing-dots">
+        <text class="dot">●</text><text class="dot">●</text><text class="dot">●</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="quick-bar">
+    <text class="quick-btn" bindtap="onQuick" data-kw="推荐今天的晚餐">🍳 今晚吃什么</text>
+    <text class="quick-btn" bindtap="onQuick" data-kw="家里有鸡蛋番茄能做什么菜">🥬 看看冰箱</text>
+    <text class="quick-btn" bindtap="onQuick" data-kw="推荐几道低热量的菜">🥗 低卡推荐</text>
+    <text class="quick-btn" bindtap="onQuick" data-kw="帮我搭配三菜一汤">📋 搭配一桌</text>
+    <text class="quick-btn" bindtap="onQuick" data-kw="红烧排骨怎么做">📖 查做法</text>
+  </view>
+
+  <view class="input-bar">
+    <input class="chat-input" value="{{inputText}}" placeholder="输入食材或想问的..." bindinput="onInput" confirm-type="send" bindconfirm="onSend" />
+    <view class="send-btn" bindtap="onSend"><text>📤</text></view>
+  </view>
+</view>

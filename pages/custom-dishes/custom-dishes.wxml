@@ -1,0 +1,20 @@
+<view class="page">
+  <view class="tip" wx:if="{{!dishes.length && !loading}}">
+    <text>还没有自定义菜品</text>
+    <text class="tip-sub">去"定制菜谱"页面添加你的私房菜吧</text>
+  </view>
+
+  <view class="list" wx:if="{{dishes.length > 0}}">
+    <view class="item" wx:for="{{dishes}}" wx:key="id" bindtap="onViewDish" data-dish="{{item}}">
+      <view class="item-info">
+        <text class="item-name">{{item.name}}</text>
+        <text class="item-type">{{item.type === 'meat' ? '荤菜' : item.type === 'veg' ? '素菜' : item.type === 'soup' ? '汤品' : item.type === 'staple' ? '主食' : item.type === 'dessert' ? '甜品' : item.type}}</text>
+      </view>
+      <view class="item-del" data-id="{{item.id}}" catchtap="onDelete">删除</view>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>

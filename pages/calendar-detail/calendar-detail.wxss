@@ -1,0 +1,333 @@
+.detail-page {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.date-header {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.date-display {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.meals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.meal-item {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.meal-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.meal-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.breakfast-icon {
+  color: #ff9500;
+}
+
+.lunch-icon {
+  color: #ff3b30;
+}
+
+.dinner-icon {
+  color: #5856d6;
+}
+
+.meal-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.meal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: bold;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.add-btn {
+  background-color: #2BA471;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #ff3b30;
+  color: white;
+}
+
+.meal-content {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #3cc51f;
+  cursor: pointer;
+}
+
+.meal-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.meal-info {
+  margin-bottom: 8px;
+}
+
+.dish-count {
+  font-size: 14px;
+  color: #666;
+  background-color: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.manual-tag {
+  font-size: 12px;
+  color: #007aff;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 8px;
+  align-self: flex-start;
+}
+
+.empty-meal {
+  text-align: center;
+  color: #999;
+  padding: 20px 0;
+}
+
+.empty-meal text {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.empty-hint {
+  font-size: 14px !important;
+}
+
+.usage-tips {
+  margin-top: 30px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tip-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.tip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tip-content text {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 新增样式 */
+.meal-main-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.meal-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.meal-dishes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dish-tag {
+  font-size: 13px;
+  color: #333;
+  background-color: #e9ecef;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.dish-names-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+/* 弹窗样式 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.detail-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  max-height: 70%;
+  background-color: white;
+  border-radius: 16px;
+  z-index: 101;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 24px;
+  color: #999;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 400px;
+}
+
+.modal-scroll {
+  max-height: 360px;
+}
+
+.modal-time {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.time-label {
+  font-size: 14px;
+  color: #999;
+}
+
+.time-value {
+  font-size: 14px;
+  color: #333;
+}
+
+.modal-dishes {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.dish-detail-item {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.dish-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dish-detail-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.dish-detail-type {
+  font-size: 12px;
+  color: #666;
+  background-color: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.dish-detail-content {
+  margin-top: 8px;
+}
+
+.detail-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: bold;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}

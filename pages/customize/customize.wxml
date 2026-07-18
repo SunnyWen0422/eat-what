@@ -1,0 +1,134 @@
+<!--pages/customize/customize.wxml-->
+<view class="page">
+
+  <!-- 左侧竖边栏 -->
+  <view class="sidebar">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="*this"
+      class="sidebar-item {{activeTab === item ? 'sidebar-active' : ''}}"
+      data-tab="{{item}}"
+      bindtap="onTabChange"
+    >
+      <text>{{tabNames[item]}}</text>
+    </view>
+    <view
+      class="sidebar-item custom-btn {{activeTab === 'custom' ? 'sidebar-active' : ''}}"
+      data-tab="custom"
+      bindtap="onTabChange"
+    >
+      <text>+ 定制</text>
+    </view>
+  </view>
+
+  <!-- 右侧内容区 -->
+  <view class="content">
+
+    <!-- 定制菜品表单 -->
+    <view class="custom-form" wx:if="{{showCustomForm}}">
+      <view class="form-title">添加我的私房菜</view>
+      <input class="form-input" placeholder="菜品名称" value="{{customForm.name}}" data-field="name" bindinput="onCustomInput" />
+
+      <view class="type-row">
+        <text class="type-label">分类：</text>
+        <view class="type-options" wx:for="{{['meat','veg','soup','staple','dessert']}}" wx:key="*this" data-type="{{item}}" bindtap="onCustomTypeChange">
+          <text class="type-opt {{customForm.type === item ? 'opt-active' : ''}}">{{tabNames[item]}}</text>
+        </view>
+      </view>
+
+      <textarea class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" bindinput="onCustomInput" rows="4" />
+      <textarea class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" bindinput="onCustomInput" rows="6" />
+      <button class="save-custom-btn" bindtap="onSaveCustomDish">保存菜品</button>
+    </view>
+
+    <!-- 搜索框 -->
+    <view class="search-wrap" wx:if="{{!showCustomForm}}">
+      <input class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+      <view class="hot-tags" wx:if="{{!searchKeyword}}">
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="红烧">🔥 红烧</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="清蒸">🔥 清蒸</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="糖醋">🔥 糖醋</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="麻辣">🔥 麻辣</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="凉拌">🔥 凉拌</text>
+      </view>
+    </view>
+
+    <!-- 菜品列表 -->
+    <scroll-view
+      class="dish-list"
+      scroll-y
+      bindscrolltolower="onScrollToLower"
+      wx:if="{{!showCustomForm}}"
+    >
+      <view wx:if="{{loading}}" class="tip-text">加载中...</view>
+
+      <view
+        wx:for="{{currentDishes}}"
+        wx:key="id"
+        class="dish-row {{item.isSelected ? 'dish-selected' : ''}}"
+      >
+        <!-- 勾选圆圈 -->
+        <view class="check-wrap" data-dish="{{item}}" bindtap="onToggleSelect">
+          <view class="check-circle {{item.isSelected ? 'checked' : ''}}">
+            <text wx:if="{{item.isSelected}}" class="check-tick">✓</text>
+          </view>
+        </view>
+
+        <!-- 菜名（点击进入详情） -->
+        <view class="name-wrap" data-dish="{{item}}" bindtap="onTapDish">
+          <text class="dish-name">{{item.name}}</text>
+        </view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view wx:if="{{loadingMore}}" class="tip-text">加载更多...</view>
+      <view wx:if="{{!hasMore && currentDishes.length > 0}}" class="tip-text">
+        没有更多了
+      </view>
+
+      <view wx:if="{{!loading && !loadingMore && currentDishes.length === 0}}" class="tip-text">
+        暂无菜品
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar" wx:if="{{!showCustomForm}}">
+      <view class="selected-wrap" bindtap="onShowSelected">
+        <text class="selected-num">已选 {{selectedTotal}} 道</text>
+        <text class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}">›</text>
+      </view>
+      <button class="save-btn" bindtap="onSaveToCalendar">保存到日历</button>
+    </view>
+
+  </view>
+
+  <!-- 已选菜品弹出面板（从底部拉出） -->
+  <view class="panel-mask {{showSelectedPanel ? 'mask-show' : ''}}" bindtap="onHideSelected" />
+  <view class="selected-panel {{showSelectedPanel ? 'panel-show' : ''}}">
+    <view class="panel-header">
+      <text class="panel-title">已选菜品（{{selectedTotal}} 道）</text>
+      <text class="panel-close" bindtap="onHideSelected">✕</text>
+    </view>
+    <scroll-view class="panel-list" scroll-y>
+      <view
+        wx:for="{{selectedList}}"
+        wx:key="id"
+        class="panel-item"
+      >
+        <text class="panel-item-name">{{item.name}}</text>
+        <text
+          class="panel-item-remove"
+          data-id="{{item.id}}"
+          bindtap="onRemoveSelected"
+        >删除</text>
+      </view>
+      <view wx:if="{{selectedList.length === 0}}" class="panel-empty">
+        还没有勾选菜品
+      </view>
+    </scroll-view>
+    <view class="panel-footer">
+      <button class="panel-clear" bindtap="onClearSelected">清空全部</button>
+    </view>
+  </view>
+
+</view>

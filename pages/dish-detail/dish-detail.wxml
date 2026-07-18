@@ -1,0 +1,138 @@
+<!--pages/dish-detail/dish-detail.wxml-->
+<view class="container" wx:if="{{!loading && !error && dish}}">
+  <!-- 菜品图片 -->
+  <view class="dish-image-container">
+    <image 
+      wx:if="{{dish.image}}" 
+      class="dish-image" 
+      src="{{dish.image}}" 
+      mode="aspectFill"
+      bindtap="previewImage"
+      data-url="{{dish.image}}"
+    />
+    <view wx:else class="dish-image-placeholder">
+      <text class="placeholder-text">暂无图片</text>
+    </view>
+    
+    <!-- 收藏按钮 -->
+    <view class="favorite-btn {{isFavorite ? 'favorited' : ''}}" bindtap="toggleFavorite">
+      <text class="favorite-icon">{{isFavorite ? '★' : '☆'}}</text>
+    </view>
+    <button class="share-btn" open-type="share">
+      <text>🔗</text>
+    </button>
+  </view>
+
+  <!-- 菜品信息 -->
+  <view class="dish-info">
+    <view class="dish-header">
+      <text class="dish-name">{{dish.name}}</text>
+      <view class="dish-tags" wx:if="{{dish.tags}}">
+        <text class="tag" wx:for="{{dish.tags.split(',')}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 菜品属性 -->
+    <view class="dish-attributes">
+      <view class="attribute-item" wx:if="{{dish.difficulty}}">
+        <text class="attribute-label">难度</text>
+        <text class="attribute-value">{{dish.difficulty}}</text>
+      </view>
+      <view class="attribute-item" wx:if="{{dish.cookTime}}">
+        <text class="attribute-label">烹饪时间</text>
+        <text class="attribute-value">{{dish.cookTime}}</text>
+      </view>
+      <view class="attribute-item" wx:if="{{dish.kcal}}">
+        <text class="attribute-label">热量</text>
+        <text class="attribute-value">{{dish.kcal}} 千卡</text>
+      </view>
+      <view class="attribute-item" wx:if="{{dish.type}}">
+        <text class="attribute-label">类型</text>
+        <text class="attribute-value">{{dish.type}}</text>
+      </view>
+    </view>
+
+    <!-- 烹饪方法 -->
+    <view class="section" wx:if="{{dish.methods}}">
+      <view class="section-title">
+        <text class="section-title-text">烹饪方法</text>
+      </view>
+      <text class="section-content" user-select>{{dish.methods}}</text>
+    </view>
+
+    <!-- 食材与用量 -->
+    <view class="section" wx:if="{{dish.ingredientsList && dish.ingredientsList.length > 0}}">
+      <view class="section-title">
+        <text class="section-title-text">食材与用量</text>
+      </view>
+      <view class="ingredients-list">
+        <view class="ingredient-item" wx:for="{{dish.ingredientsList}}" wx:key="index">
+          <text class="ingredient-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 烹饪步骤 -->
+    <view class="section" wx:if="{{dish.stepsList && dish.stepsList.length > 0}}">
+      <view class="section-title">
+        <text class="section-title-text">烹饪步骤</text>
+      </view>
+      <view class="steps-list">
+        <view class="step-item" wx:for="{{dish.stepsList}}" wx:key="index">
+          <view class="step-number">{{index + 1}}</view>
+          <view class="step-content">
+            <text class="step-text" user-select>{{item}}</text>
+            <view class="step-images" wx:if="{{dish.stepImagesFlat[index] && dish.stepImagesFlat[index].length > 0}}">
+              <image 
+                wx:for="{{dish.stepImagesFlat[index]}}" wx:for-item="imgUrl" wx:key="*this"
+                class="step-image" 
+                src="{{imgUrl}}" 
+                mode="widthFix"
+                bindtap="previewStepImage"
+                data-url="{{imgUrl}}"
+              />
+            </view>
+          </view>
+        </view>
+      </view>
+      <!-- 所有步骤图片汇总 -->
+      <view class="section" wx:if="{{dish.allStepImages && dish.allStepImages.length > 0}}">
+        <view class="section-title">
+          <text class="section-title-text">步骤图片</text>
+        </view>
+        <view class="all-images">
+          <image
+            wx:for="{{dish.allStepImages}}" wx:key="*this"
+            class="all-image"
+            src="{{item}}"
+            mode="widthFix"
+            bindtap="previewStepImage"
+            data-url="{{item}}"
+          />
+        </view>
+      </view>
+    </view>
+
+    <!-- 小贴士 -->
+    <view class="section" wx:if="{{dish.tips}}">
+      <view class="section-title">
+        <text class="section-title-text">小贴士</text>
+      </view>
+      <view class="tips-content">
+        <text class="tips-text" user-select>{{dish.tips}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 加载中 -->
+<view class="loading-container" wx:if="{{loading}}">
+  <view class="loading-spinner"></view>
+  <text class="loading-text">加载中...</text>
+</view>
+
+<!-- 错误提示 -->
+<view class="error-container" wx:if="{{!loading && error}}">
+  <text class="error-text">加载失败，请重试</text>
+  <button class="retry-btn" bindtap="loadDishDetail" data-id="{{dish.id}}">重试</button>
+</view>

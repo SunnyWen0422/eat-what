@@ -1,0 +1,46 @@
+# Windows
+[Dd]esktop.ini
+Thumbs.db
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+
+# Node.js
+node_modules/
+
+
+# Backend Java
+backend/target/
+*.class
+*.jar
+
+# Python
+recommend-service/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+.env
+recommend-service/.env
+
+# IDE
+.vscode/
+.idea/
+
+# WeChat private config
+project.private.config.json
+
+# Backend sensitive configs (remove from git first: git rm --cached)
+backend/application-prod.yml
+backend/application.yml
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-prod.yml
+
+# Logs
+*.log
+
+# Unnecessary files

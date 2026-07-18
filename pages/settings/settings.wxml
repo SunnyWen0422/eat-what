@@ -1,0 +1,37 @@
+<view class="settings-page">
+  <view class="section">
+    <view class="section-title">🥗 健康偏好</view>
+    <view class="pref-item">
+      <view class="pref-info">
+        <text class="pref-name">低卡路里优先</text>
+        <text class="pref-desc">推荐更多低热量的菜品</text>
+      </view>
+      <switch
+        checked="{{preferences.lowCalorie}}"
+        data-field="lowCalorie"
+        bindchange="onToggle"
+        color="#07c160"
+      />
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">🍳 菜系偏好</view>
+    <view class="section-desc">勾选喜爱的菜系，推荐时该菜系的菜品会更多出现</view>
+    <view class="pref-item" wx:for="{{['preferChuan','preferYue','preferLu','preferHuaiyang','preferZhe','preferHu']}}" wx:key="*this">
+      <view class="pref-info">
+        <text class="pref-name">{{cuisineLabels[item]}}</text>
+      </view>
+      <switch
+        checked="{{preferences[item]}}"
+        data-field="{{item}}"
+        bindchange="onToggle"
+        color="#07c160"
+      />
+    </view>
+  </view>
+
+  <view class="tip">
+    <text>设置自动保存，下次推荐时生效</text>
+  </view>
+</view>

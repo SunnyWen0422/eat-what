@@ -1,0 +1,42 @@
+<view class="page">
+  <!-- 搜索框 -->
+  <view class="search-bar">
+    <input class="search-input" placeholder="搜索收藏的菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-box" wx:if="{{loading}}">
+    <view class="skeleton shimmer" style="width:100%;height:120rpx;border-radius:14rpx;margin-bottom:12rpx" wx:for="{{[1,2,3]}}" wx:key="*this" />
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-box" wx:elif="{{!loading && favorites.length === 0}}">
+    <view class="empty-icon">⭐</view>
+    <view class="empty-title">还没有收藏任何菜品</view>
+    <view class="empty-desc">在生成菜谱时点击菜品右侧的星标即可收藏</view>
+  </view>
+
+  <!-- 搜索结果为空 -->
+  <view class="empty-box" wx:elif="{{!loading && filtered.length === 0}}">
+    <view class="empty-icon">🔍</view>
+    <view class="empty-title">没有找到 "{{searchKeyword}}"</view>
+    <view class="empty-desc">换个关键词试试</view>
+  </view>
+
+  <!-- 收藏列表 -->
+  <view class="favorites-list" wx:else>
+    <view class="favorite-item" wx:for="{{filtered}}" wx:key="id" bindtap="onViewDish" data-dish="{{item}}">
+      <image class="fav-img" src="{{item.image}}" mode="aspectFill" lazy-load wx:if="{{item.image}}" />
+      <view class="fav-img-fb" wx:else>
+        <text>{{item.type === 'meat' ? '🥩' : item.type === 'veg' ? '🥬' : item.type === 'soup' ? '🍲' : item.type === 'dessert' ? '🍰' : item.type === 'staple' ? '🍚' : '🍽️'}}</text>
+      </view>
+      <view class="fav-info">
+        <text class="fav-name">{{item.name}}</text>
+        <text class="fav-type">{{item.type === 'meat' ? '荤菜' : item.type === 'veg' ? '素菜' : item.type === 'soup' ? '汤品' : item.type === 'dessert' ? '甜品' : item.type === 'staple' ? '主食' : item.type}}</text>
+      </view>
+      <view class="fav-action" catchtap="onRemoveFavorite" data-id="{{item.id}}">
+        <text class="fav-remove">取消</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,67 @@
+/**app.wxss - 全局样式 **/
+
+page {
+  background-color: #F7F8FA;
+  color: #222;
+  font-size: 28rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 通用卡片 */
+.card {
+  background: #fff;
+  border-radius: 14rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+/* 按钮重置 */
+button::after { border: none; }
+.btn-primary {
+  background: #2BA471;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 14rpx;
+}
+
+/* 标签 */
+.tag-green {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 10rpx;
+  background: #E8F5E9;
+  color: #2BA471;
+}
+
+/* 骨架屏动画 */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #e5e5e5 25%, #f0f0f0 50%, #e5e5e5 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 空状态 */
+.empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 40rpx;
+}
+.empty-icon { font-size: 80rpx; opacity: 0.5; margin-bottom: 20rpx; }
+.empty-title { font-size: 32rpx; font-weight: bold; color: #333; }
+.empty-desc { font-size: 24rpx; color: #999; margin-top: 10rpx; }

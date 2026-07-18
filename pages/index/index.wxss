@@ -1,0 +1,195 @@
+/**index.wxss**/
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #F7F8FA;
+  padding-top: 0;
+}
+.scrollarea {
+  flex: 1;
+  overflow-y: hidden;
+}
+.container {
+  padding-top: 0;
+}
+
+/* 标题区 */
+.header-area {
+  padding: 8px 16px 10px;
+  text-align: center;
+}
+.header-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #1A7A4C;
+  letter-spacing: 1px;
+  display: block;
+}
+.header-subtitle {
+  font-size: 12px;
+  color: #8fa996;
+  margin-top: 8px;
+  display: block;
+}
+
+/* 参数卡片列表 */
+.params-grid {
+  margin: 0 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.param-card {
+  background: #fff;
+  border-radius: 14rpx;
+  padding: 24rpx 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-label {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.card-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.card-num {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #2BA471;
+  min-width: 56rpx;
+  text-align: center;
+}
+.count-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #2BA471;
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  box-sizing: border-box;
+}
+.count-btn::after { border: none; }
+.count-btn.minus { background: #88C9A3; }
+
+/* 今日小提示 */
+.tip-card {
+  margin: 0 16px 8px;
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tip-icon { font-size: 15px; flex-shrink: 0; }
+.tip-text { font-size: 12px; color: #2d5a3d; line-height: 1.4; }
+
+/* 热门搭配标签组 */
+.tags-area { margin: 0 16px 10px; }
+.tags-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 10px;
+  display: block;
+}
+.tag-group { display: flex; gap: 10px; }
+.hot-tag {
+  padding: 8px 16px;
+  background: #f5f7f4;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #666;
+  border: 1px solid #e0e8dc;
+  transition: all 0.25s;
+}
+.hot-tag.active {
+  background: linear-gradient(135deg, #2BA471 0%, #1A7A4C 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(43,164,113,0.3);
+}
+
+/* 已选菜品提示区 */
+.selected-dishes-hint {
+  margin: 0 16px 10px;
+  padding: 10px 12px;
+  background: #E8F5E9;
+  border: 1px solid #C8E6C9;
+  border-radius: 10px;
+}
+.hint-header { display: flex; align-items: center; margin-bottom: 6px; }
+.hint-icon { color: #2BA471; font-size: 14px; font-weight: bold; margin-right: 4px; }
+.hint-title { font-size: 13px; font-weight: bold; color: #2d5a3d; flex: 1; }
+.hint-clear { font-size: 11px; color: #999; padding: 2px 8px; }
+.selected-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.dish-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.meat-tag { color: #E74C3C; background: #FDE8E8; border: 1px solid #ffbb96; }
+.veg-tag { color: #2BA471; background: #E8F5E9; border: 1px solid #b7e1b0; }
+.soup-tag { color: #2196F3; background: #E3F2FD; border: 1px solid #91d5ff; }
+.dessert-tag { color: #E91E63; background: #FCE4EC; border: 1px solid #ffb6c1; }
+
+/* 我的菜谱区域 */
+.my-recipes { margin: 0 16px 16px; padding: 14px; background: #fff; border-radius: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.section-header-title { font-size: 14px; font-weight: bold; color: #333; }
+.section-header-hint { font-size: 11px; color: #aaa; }
+.recipe-list { height: 180px; }
+.recipe-item { padding: 10px; background: #fafbfa; border-radius: 8px; border: 1px solid #eee; position: relative; margin-bottom: 8px; transition: all 0.2s; }
+.recipe-item.selected { background: #E8F5E9; border-color: #2BA471; }
+.recipe-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.recipe-name { font-size: 13px; font-weight: bold; color: #333; }
+.delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background: #ff7875; color: #fff; border-radius: 50%; font-size: 14px; font-weight: bold; }
+.recipe-info { display: flex; gap: 5px; flex-wrap: wrap; }
+.info-tag { font-size: 11px; color: #777; background: #fff; padding: 2px 5px; border-radius: 3px; }
+.recipe-dishes { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.recipe-dishes .dish-tag { font-size: 10px; color: #2BA471; background: #fff; padding: 1px 4px; border-radius: 3px; border: 1px solid #2BA471; }
+.selected-badge { position: absolute; top: -6px; right: -6px; background: #2BA471; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; box-shadow: 0 1px 4px rgba(43,164,113,0.3); }
+.unselect-btn { margin-top: 10px; text-align: center; padding: 6px; background: #f5f5f5; border-radius: 4px; color: #888; font-size: 12px; }
+
+/* 数据加载提示 */
+.loading-tip { margin: 0 16px 10px; padding: 12px 16px; background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%); border-radius: 10px; border: 1px solid rgba(212,160,23,0.2); }
+.loading-tip-content { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.loading-spinner { width: 20px; height: 20px; border: 3px solid #d4a017; border-top: 3px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: #d4a017; font-weight: 500; }
+
+/* 按钮区 */
+.cta-area { padding: 2px 16px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.chat-btn {
+  border: 2rpx solid #2BA471;
+  color: #2BA471;
+}
+.chat-btn::after { border: none; }
+.primary-btn {
+  width: 80%; height: 48px;
+  background: linear-gradient(135deg, #2BA471 0%, #1A7A4C 100%);
+  color: #fff; font-size: 34rpx; font-weight: bold;
+  border-radius: 28rpx; border: none;
+  box-shadow: 0 6rpx 24rpx rgba(43,164,113,0.3);
+  letter-spacing: 2rpx;
+}
+.primary-btn::after { border: none; }
+.secondary-btn {
+  width: 80%; height: 42px;
+  background: #fff; color: #FF7D3B; font-size: 28rpx; font-weight: bold;
+  border-radius: 24rpx; border: 2rpx solid #FFD5BF;
+  box-shadow: 0 2px 8px rgba(255,125,59,0.08);
+}
+.secondary-btn::after { border: none; }

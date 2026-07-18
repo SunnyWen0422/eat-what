@@ -1,0 +1,48 @@
+<view class="profile-page">
+  <!-- 用户信息卡片 -->
+  <view class="user-card" bindtap="onUserInfoTap">
+    <view class="user-avatar">
+      <image class="avatar" src="{{userInfo.avatar}}" mode="aspectFill" />
+      <view class="edit-btn" bindtap="onEditProfile">
+        <text class="edit-icon">✏️</text>
+      </view>
+    </view>
+    <view class="user-info">
+      <text class="nickname">{{userInfo.nickname}}</text>
+      <text class="level">{{userInfo.level}}</text>
+    </view>
+  </view>
+
+  <!-- 微信登录弹窗 -->
+  <view class="login-modal-mask {{showLoginModal ? 'mask-show' : ''}}" bindtap="onCloseLoginModal" />
+  <view class="login-modal {{showLoginModal ? 'modal-show' : ''}}">
+    <view class="login-modal-header">
+      <text class="login-modal-title">登录「吃什么」</text>
+      <text class="login-modal-close" bindtap="onCloseLoginModal">✕</text>
+    </view>
+    <view class="login-modal-desc">登录后可同步数据、使用全部功能</view>
+    <button class="wx-login-btn" bindtap="onWxLogin">微信一键登录</button>
+    <view class="login-skip" bindtap="onCloseLoginModal">暂不登录，游客体验</view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <view class="menu-list">
+      <block wx:for="{{menuItems}}" wx:key="title">
+        <view class="menu-item" bindtap="onMenuTap" data-index="{{index}}">
+          <view class="menu-icon">{{item.icon}}</view>
+          <view class="menu-content">
+            <text class="menu-title">{{item.title}}</text>
+            <text class="menu-desc">{{item.desc}}</text>
+          </view>
+          <view class="menu-arrow">›</view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info" bindtap="onVersionTap">
+    <text class="version-text">吃什么 v3.0.0</text>
+  </view>
+</view>

@@ -1,0 +1,174 @@
+<!--pages/about/about.wxml-->
+<view class="about-page">
+  <!-- 顶部标题区 -->
+  <view class="header">
+    <text class="app-name">吃什么</text>
+    <text class="app-slogan">每天帮你决定吃什么</text>
+    <text class="version">版本 {{version}}</text>
+  </view>
+
+  <!-- 使用指南 -->
+  <view class="guide-section">
+    <view class="section-title">📖 使用指南</view>
+
+    <!-- 第一步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">1</view>
+        <text class="step-title">首页选菜</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">打开小程序，在首页选择你的偏好：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 选择餐次（早餐/午餐/晚餐）</text>
+          <text class="detail-item">• 选择口味偏好（清淡/重口味/辣/不辣）</text>
+          <text class="detail-item">• 选择烹饪方式（炒/煮/蒸/凉拌等）</text>
+        </view>
+        <text class="step-text mt">点击"开始推荐"，系统会智能推荐多套菜谱方案。</text>
+      </view>
+    </view>
+
+    <!-- 第二步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">2</view>
+        <text class="step-title">查看推荐结果</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">推荐结果会显示多套方案，每套包含：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 菜品名称</text>
+          <text class="detail-item">• 菜品类型（荤菜/素菜/汤品）</text>
+          <text class="detail-item">• 食材清单</text>
+          <text class="detail-item">• 烹饪步骤</text>
+        </view>
+        <text class="step-text mt">你可以：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 点击"换一换"刷新某道菜</text>
+          <text class="detail-item">• 点击"重新推荐"生成新方案</text>
+          <text class="detail-item">• 点击菜品查看详情</text>
+          <text class="detail-item">• 点击❤️收藏喜欢的菜品</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 第三步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">3</view>
+        <text class="step-title">保存到日历</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">选好菜谱后，点击"选择此方案"：</text>
+        <view class="step-detail">
+          <text class="detail-item">① 选择日期（今天或其他日期）</text>
+          <text class="detail-item">② 选择餐次（早餐/午餐/晚餐）</text>
+        </view>
+        <text class="step-text mt">系统会自动保存到日历，方便你回顾每天的饮食记录。</text>
+        <text class="step-tip">💡 如果当天该餐次已有记录，会提示你是否覆盖。</text>
+      </view>
+    </view>
+
+    <!-- 第四步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">4</view>
+        <text class="step-title">查看日历</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">在底部导航栏点击"日历"：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 有记录的日期会高亮显示</text>
+          <text class="detail-item">• 点击日期查看当天的菜谱</text>
+          <text class="detail-item">• 可以删除不需要的记录</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 第五步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">5</view>
+        <text class="step-title">收藏菜品</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">遇到喜欢的菜品，可以收藏：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 在推荐结果中点击 ❤️ 收藏</text>
+          <text class="detail-item">• 在"我的"页面查看"收藏菜品"</text>
+          <text class="detail-item">• 快速找到常做的菜</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 第六步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">6</view>
+        <text class="step-title">购物清单</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">根据收藏的菜品，智能生成购物清单：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 自动汇总所需食材</text>
+          <text class="detail-item">• 按类别分组（蔬菜/肉类/调料等）</text>
+          <text class="detail-item">• 购物时勾选已购买的食材</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 第七步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">7</view>
+        <text class="step-title">定制菜谱</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">想自己搭配菜品？使用"定制菜谱"功能：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 按荤菜/素菜/汤品分类浏览</text>
+          <text class="detail-item">• 搜索菜品名称快速查找</text>
+          <text class="detail-item">• 勾选想要的菜品（可跨分类）</text>
+          <text class="detail-item">• 点击菜名查看详细做法</text>
+          <text class="detail-item">• 底栏显示已选数量，点击可查看清单</text>
+          <text class="detail-item">• 保存到日历，记录你的专属搭配</text>
+        </view>
+        <text class="step-text mt">往下滑动加载更多菜品，每次加载20道。</text>
+      </view>
+    </view>
+
+    <!-- 第八步 -->
+    <view class="step-card">
+      <view class="step-header">
+        <view class="step-number">8</view>
+        <text class="step-title">饮食统计</text>
+      </view>
+      <view class="step-content">
+        <text class="step-text">在"我的"页面查看"饮食统计"：</text>
+        <view class="step-detail">
+          <text class="detail-item">• 查看荤素搭配比例</text>
+          <text class="detail-item">• 统计有记录的日期数</text>
+          <text class="detail-item">• 了解自己的饮食习惯</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 小提示 -->
+  <view class="tips-section">
+    <view class="section-title">💡 小提示</view>
+    <view class="tip-card">
+      <text class="tip-item">• 首次使用建议先收藏一些常吃的菜品，推荐会更精准</text>
+      <text class="tip-item">• 定制菜谱支持跨分类勾选，荤素汤自由搭配</text>
+      <text class="tip-item">• 可以在"我的"中修改昵称和头像</text>
+      <text class="tip-item">• 数据会自动同步到云端，换手机也不怕丢失</text>
+      <text class="tip-item">• 有建议或问题？在"我的"→"联系我们"中反馈</text>
+    </view>
+  </view>
+
+  <!-- 底部 -->
+  <view class="footer">
+    <text class="footer-text">吃什么小程序</text>
+    <text class="footer-text">让每天吃饭不再纠结 🍽️</text>
+  </view>
+</view>

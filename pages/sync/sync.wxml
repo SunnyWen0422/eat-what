@@ -1,0 +1,80 @@
+<view class="sync-page">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="page-title">数据同步</text>
+    <text class="page-subtitle">将离线数据同步到云端</text>
+  </view>
+
+  <!-- 网络状态 -->
+  <view class="network-status">
+    <view class="status-item">
+      <text class="status-label">网络状态：</text>
+      <text class="status-value">{{networkType === 'none' ? '无网络' : '已连接'}}</text>
+    </view>
+    <view class="status-item">
+      <text class="status-label">待同步：</text>
+      <text class="status-value">{{pendingSync.length}} 条记录</text>
+    </view>
+  </view>
+
+  <!-- 待同步列表 -->
+  <view class="pending-list" wx:if="{{pendingSync.length > 0}}">
+    <view class="list-header">
+      <text class="list-title">待同步记录</text>
+      <text class="list-count">共 {{pendingSync.length}} 条</text>
+    </view>
+    <scroll-view class="list-scroll" scroll-y>
+      <view class="record-item" wx:for="{{pendingSync}}" wx:key="date">
+        <view class="record-info">
+          <text class="record-date">{{item.date}}</text>
+          <text class="record-meal">{{item.mealName}}</text>
+        </view>
+        <text class="record-name">{{item.record.name}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">✅</text>
+    <text class="empty-text">暂无待同步的数据</text>
+    <text class="empty-hint">所有数据都已同步到云端</text>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-buttons" wx:if="{{pendingSync.length > 0}}">
+    <button class="sync-btn primary" bindtap="syncData" loading="{{syncing}}" disabled="{{syncing}}">
+      {{syncing ? '同步中...' : '开始同步'}}
+    </button>
+  </view>
+
+  <!-- 同步结果 -->
+  <view class="sync-result" wx:if="{{syncResult.success > 0 || syncResult.failed > 0}}">
+    <view class="result-item success">
+      <text class="result-label">成功：</text>
+      <text class="result-value">{{syncResult.success}} 条</text>
+    </view>
+    <view class="result-item failed">
+      <text class="result-label">失败：</text>
+      <text class="result-value">{{syncResult.failed}} 条</text>
+    </view>
+  </view>
+
+  <!-- 高级操作 -->
+  <view class="advanced-actions">
+    <button class="action-btn" bindtap="clearSyncedData" type="warn" size="mini" plain>
+      清除已同步数据
+    </button>
+  </view>
+
+  <!-- 使用说明 -->
+  <view class="usage-tips">
+    <view class="tip-title">💡 使用说明</view>
+    <view class="tip-content">
+      <text>1. 离线时保存的数据会存储在本地</text>
+      <text>2. 网络恢复后可手动同步到云端</text>
+      <text>3. 已同步的数据可在多台设备查看</text>
+      <text>4. 清除已同步数据可释放本地存储空间</text>
+    </view>
+  </view>
+</view>

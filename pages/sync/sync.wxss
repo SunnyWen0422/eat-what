@@ -1,0 +1,241 @@
+/* pages/sync/sync.wxss */
+
+.sync-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 20rpx;
+}
+
+/* 页面标题 */
+.page-header {
+  text-align: center;
+  padding: 40rpx 0;
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.page-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.page-subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 网络状态 */
+.network-status {
+  background: #fff;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  justify-content: space-between;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+}
+
+.status-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-right: 10rpx;
+}
+
+.status-value {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #07c160;
+}
+
+/* 待同步列表 */
+.pending-list {
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  height: 400rpx;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx 30rpx 20rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.list-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.list-count {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.list-scroll {
+  height: 320rpx;
+  padding: 20rpx 30rpx;
+}
+
+.record-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.record-date {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.record-meal {
+  font-size: 24rpx;
+  color: #666;
+  background: #f0f0f0;
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.record-name {
+  font-size: 26rpx;
+  color: #666;
+  display: block;
+}
+
+/* 空状态 */
+.empty-state {
+  background: #fff;
+  padding: 80rpx 0;
+  border-radius: 16rpx;
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+
+.empty-icon {
+  display: block;
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  display: block;
+  font-size: 32rpx;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.empty-hint {
+  display: block;
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  margin-bottom: 20rpx;
+}
+
+.sync-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+}
+
+.sync-btn.primary {
+  background: #07c160;
+  color: #fff;
+}
+
+/* 同步结果 */
+.sync-result {
+  background: #fff;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  justify-content: space-around;
+}
+
+.result-item {
+  text-align: center;
+}
+
+.result-item.success .result-value {
+  color: #07c160;
+}
+
+.result-item.failed .result-value {
+  color: #ee0a24;
+}
+
+.result-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-right: 10rpx;
+}
+
+.result-value {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+/* 高级操作 */
+.advanced-actions {
+  text-align: center;
+  margin: 40rpx 0;
+}
+
+.action-btn {
+  margin: 0 auto;
+}
+
+/* 使用说明 */
+.usage-tips {
+  background: #fff;
+  padding: 30rpx;
+  border-radius: 16rpx;
+}
+
+.tip-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.tip-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.tip-content text {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 8rpx;
+}
