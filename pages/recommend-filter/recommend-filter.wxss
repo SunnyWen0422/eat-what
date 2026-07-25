@@ -1,0 +1,20 @@
+.filter-page { min-height: 100vh; box-sizing: border-box; padding: 16px 16px 92px; background: #f7f8f7; color: #202824; }
+.offline-tip { margin-bottom: 12px; padding: 9px 12px; background: #fff5d9; color: #765b13; font-size: 12px; border-left: 3px solid #e6b73d; }
+.mode-row { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; margin-bottom: 16px; background: #e9eeeb; border-radius: 6px; }
+.mode-btn { padding: 10px; text-align: center; color: #65716b; font-size: 14px; }
+.mode-btn.active { background: #fff; color: #137a55; font-weight: 600; border-radius: 4px; }
+.filter-section { padding: 16px 0; border-bottom: 1px solid #e4e8e6; }
+.section-title { margin-bottom: 12px; font-size: 16px; font-weight: 700; }
+.option-grid { display: flex; flex-wrap: wrap; gap: 9px; }
+.option-chip { min-width: 64px; box-sizing: border-box; padding: 9px 12px; border: 1px solid #d9dfdc; border-radius: 6px; background: #fff; color: #53605a; text-align: center; font-size: 13px; }
+.option-chip.selected { border-color: #16865f; background: #e8f5ef; color: #116747; font-weight: 600; }
+.option-count { margin-left: 5px; color: #8b9691; font-size: 10px; }
+.ingredient-row { display: flex; gap: 8px; }
+.ingredient-input { min-width: 0; flex: 1; height: 42px; box-sizing: border-box; padding: 0 12px; border: 1px solid #d9dfdc; background: #fff; border-radius: 6px; font-size: 14px; }
+.add-btn { width: 76px; height: 42px; line-height: 42px; padding: 0; background: #e8f5ef; color: #137a55; border-radius: 6px; font-size: 14px; }
+.ingredient-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ingredient-chip { padding: 7px 10px; background: #fff0ed; color: #a33e31; border-radius: 5px; font-size: 12px; }
+.action-bar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #e1e6e3; }
+.clear-btn, .apply-btn { height: 44px; line-height: 44px; border-radius: 6px; font-size: 15px; }
+.clear-btn { background: #eef1ef; color: #48534e; }
+.apply-btn { background: #16865f; color: #fff; font-weight: 600; }

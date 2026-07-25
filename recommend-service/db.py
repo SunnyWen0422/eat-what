@@ -24,6 +24,20 @@ TYPE_CN_TO_EN = {
 }
 
 
+def _cache_get(key: str):
+    entry = _cache.get(key)
+    if not entry:
+        return None
+    if time.time() - entry["time"] >= CACHE_TTL_SECONDS:
+        _cache.pop(key, None)
+        return None
+    return entry["value"]
+
+
+def _cache_set(key: str, value: Any) -> None:
+    _cache[key] = {"value": value, "time": time.time()}
+
+
 def _get_connection():
     return pymysql.connect(
         host=DB_HOST,

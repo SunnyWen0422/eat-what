@@ -1,5 +1,6 @@
 package com.eatwhat.mapper;
 
+import com.eatwhat.dto.AdminUserSummaryDTO;
 import com.eatwhat.entity.User;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -24,6 +25,40 @@ public interface UserMapper {
             "nickname, avatar, phone, register_time as registerTime, last_login_time as lastLoginTime, status " +
             "FROM users ORDER BY id DESC LIMIT 200")
     List<User> selectAll();
+
+    @Select({
+            "<script>",
+            "SELECT u.id AS id, u.nickname AS nickname, u.avatar AS avatar, u.phone AS phone, ",
+            "u.status AS status, u.register_time AS registerTime, u.last_login_time AS lastLoginTime, ",
+            "COUNT(f.ID) AS customCount ",
+            "FROM users u ",
+            "LEFT JOIN food f ON f.user_id = u.id AND f.is_custom = 1 ",
+            "<where>",
+            "<if test='keyword != null'>",
+            "CAST(u.id AS CHAR) = #{keyword} OR u.nickname LIKE CONCAT('%', #{keyword}, '%') ",
+            "OR u.phone LIKE CONCAT('%', #{keyword}, '%')",
+            "</if>",
+            "</where>",
+            "GROUP BY u.id, u.nickname, u.avatar, u.phone, u.status, u.register_time, u.last_login_time ",
+            "ORDER BY u.id DESC LIMIT #{limit} OFFSET #{offset}",
+            "</script>"
+    })
+    List<AdminUserSummaryDTO> selectAdminUserPage(@Param("keyword") String keyword,
+                                                   @Param("limit") int limit,
+                                                   @Param("offset") int offset);
+
+    @Select({
+            "<script>",
+            "SELECT COUNT(*) FROM users u ",
+            "<where>",
+            "<if test='keyword != null'>",
+            "CAST(u.id AS CHAR) = #{keyword} OR u.nickname LIKE CONCAT('%', #{keyword}, '%') ",
+            "OR u.phone LIKE CONCAT('%', #{keyword}, '%')",
+            "</if>",
+            "</where>",
+            "</script>"
+    })
+    int countAdminUsers(@Param("keyword") String keyword);
     
     @Insert("INSERT INTO users (open_id, session_key, union_id, nickname, avatar, phone, register_time, status) " +
             "VALUES (#{openId}, #{sessionKey}, #{unionId}, #{nickname}, #{avatar}, #{phone}, NOW(), #{status})")

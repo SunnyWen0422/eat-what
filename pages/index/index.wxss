@@ -126,6 +126,28 @@ page {
   box-shadow: 0 3px 10px rgba(43,164,113,0.3);
 }
 
+.filter-header,
+.filter-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.filter-more,
+.filter-clear { color: #16865f; font-size: 13px; }
+.selected-mark { margin-left: 4px; font-size: 10px; font-weight: 600; }
+.filter-feedback { margin-top: 9px; padding-top: 8px; border-top: 1px solid #e8ecea; }
+.filter-summary { min-width: 0; flex: 1; color: #4e5c56; font-size: 12px; line-height: 1.5; }
+.preference-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: #4e5c56;
+  font-size: 12px;
+}
+.preference-toggle-row switch { transform: scale(0.8); transform-origin: right center; }
+
 /* 已选菜品提示区 */
 .selected-dishes-hint {
   margin: 0 16px 10px;

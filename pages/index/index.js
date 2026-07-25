@@ -1,5 +1,15 @@
 // index.js
 const { getUserStorageKey } = require('../../utils/util')
+const {
+  HOME_QUICK_OPTIONS,
+  criteriaCount,
+  criteriaSummary,
+  emptyCriteria,
+  isQuickOptionSelected,
+  normalizeCriteria,
+  toggleQuickOption,
+} = require('../../utils/recommendation-criteria')
+const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 
 Page({
   data: {
@@ -18,11 +28,16 @@ Page({
     selectedDishes: [],
     // 菜品选择提示
     hasSelectedDishes: false,
-    // 热门搭配标签
-    activeTag: ''
+    homeQuickOptions: HOME_QUICK_OPTIONS.map(option => ({ ...option, selected: false })),
+    sessionCriteria: emptyCriteria(),
+    filterSummary: '',
+    filterCount: 0,
+    useSavedPreferences: true,
+    recommendationPreferencesEnabled: true
   },
   
   onLoad(options) {
+    this.loadRecommendationFeatureState()
     // 处理从定制页返回时带入的选中菜品
     if (options && options.selectedDishes) {
       try {
@@ -61,16 +76,23 @@ Page({
       })
     }
 
+    const criteriaKey = getUserStorageKey('pendingRecommendationCriteria')
+    const pendingCriteria = wx.getStorageSync(criteriaKey)
+    if (pendingCriteria) {
+      wx.removeStorageSync(criteriaKey)
+      this.applySessionCriteria(pendingCriteria)
+    }
+
   },
 
   onShareAppMessage() {
     return {
-      title: '吃什么？3万道好菜智能推荐，一秒解决今天吃什么！',
+      title: '吃什么？6000+道好菜智能推荐，一秒解决今天吃什么！',
       path: '/pages/index/index'
     }
   },
   onShareTimeline() {
-    return { title: '吃什么？3万道好菜智能推荐！' }
+    return { title: '吃什么？6000+道好菜智能推荐！' }
   },
 
   // 加载已保存的菜谱（按用户隔离）
@@ -218,7 +240,7 @@ Page({
 
   // 执行跳转
   _doNavigate() {
-    const { selectedRecipeId, savedRecipes, selectedDishes, meat, veg, soup, dessert, staple, mealType } = this.data
+    const { selectedRecipeId, savedRecipes, selectedDishes, meat, veg, soup, dessert, staple, mealType, sessionCriteria, useSavedPreferences } = this.data
 
     // 如果选择了菜谱，传递菜谱ID
     const selectedRecipe = selectedRecipeId
@@ -232,6 +254,8 @@ Page({
       dessert: dessert,
       staple: staple,
       mealType: mealType,
+      criteria: normalizeCriteria(sessionCriteria),
+      useSavedPreferences: useSavedPreferences,
       selectedRecipe: selectedRecipe,
       // 传递用户手动选中的菜品（用于在推荐菜谱中优先展示）
       userSelectedDishes: selectedDishes
@@ -251,14 +275,47 @@ Page({
     wx.navigateTo({ url: '/pages/chat/chat' })
   },
   
-  // 热门搭配标签切换
-  onTagTap(e) {
-    const tag = e.currentTarget.dataset.tag
+  onQuickFilterTap(e) {
+    const id = e.currentTarget.dataset.id
     wx.vibrateShort({ type: 'light' })
-    // 切换选中状态
+    this.applySessionCriteria(toggleQuickOption(this.data.sessionCriteria, id))
+  },
+
+  async loadRecommendationFeatureState() {
+    const result = await loadRecommendationOptions()
+    const enabled = result.options.preferencesEnabled !== false
+    this.setData({ recommendationPreferencesEnabled: enabled })
+    if (!enabled) {
+      this.setData({ useSavedPreferences: false })
+      this.applySessionCriteria(emptyCriteria())
+    }
+  },
+
+  onUseSavedPreferencesChange(e) {
+    this.setData({ useSavedPreferences: Boolean(e.detail.value) })
+  },
+
+  applySessionCriteria(criteria) {
+    const normalized = normalizeCriteria(criteria)
     this.setData({
-      activeTag: this.data.activeTag === tag ? '' : tag
+      sessionCriteria: normalized,
+      filterSummary: criteriaSummary(normalized),
+      filterCount: criteriaCount(normalized),
+      homeQuickOptions: HOME_QUICK_OPTIONS.map(option => ({
+        ...option,
+        selected: isQuickOptionSelected(normalized, option.id)
+      }))
     })
+  },
+
+  onClearFilters() {
+    wx.vibrateShort({ type: 'light' })
+    this.applySessionCriteria(emptyCriteria())
+  },
+
+  onOpenRecommendationFilter() {
+    wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'), this.data.sessionCriteria)
+    wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })
   },
 
   // 清除已选菜品

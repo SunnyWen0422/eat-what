@@ -7,11 +7,8 @@
 // 是否使用后端API（true=使用API，false=使用本地数据）
 const USE_BACKEND_API = true  // 默认false，开发完成后改为true
 
-// API基础地址
+// API 地址只有一个权威来源。需要切换部署环境时只修改此处。
 const API_BASE_URL = 'https://chishenme.icu/api'
-
-// 生产环境API地址（需要HTTPS）
-const PROD_API_BASE_URL = 'https://chishenme.icu/api'
 
 // ========================================
 // 功能开关
@@ -60,14 +57,7 @@ const DISH_COUNT_RANGE = {
  * 获取当前环境的API地址
  */
 function getApiBaseUrl() {
-  // 可以根据环境变量或其他条件判断
-  const accountInfo = wx.getAccountInfoSync()
-  const env = accountInfo.miniProgram.envVersion
-  
-  if (env === 'develop' || env === 'trial') {
-    return API_BASE_URL  // 开发/体验版使用本地
-  }
-  return PROD_API_BASE_URL  // 正式版使用生产环境
+  return API_BASE_URL
 }
 
 /**
@@ -96,7 +86,6 @@ module.exports = {
   // API配置
   USE_BACKEND_API,
   API_BASE_URL,
-  PROD_API_BASE_URL,
   getApiBaseUrl,
   
   // 功能开关

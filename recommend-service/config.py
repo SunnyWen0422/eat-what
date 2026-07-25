@@ -19,7 +19,7 @@ DEEPSEEK_BASE_URL = get_env("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 # MySQL
 DB_HOST = get_env("DB_HOST", "127.0.0.1")
 DB_PORT = int(get_env("DB_PORT", "3306"))
-DB_USER = get_env("DB_USER", "root")
+DB_USER = get_env("DB_USER", "food_reader")
 DB_PASSWORD = get_env("DB_PASSWORD")
 DB_NAME = get_env("DB_NAME", "food")
 

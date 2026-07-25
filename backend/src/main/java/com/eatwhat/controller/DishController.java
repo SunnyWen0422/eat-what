@@ -1,12 +1,20 @@
 package com.eatwhat.controller;
 
 import com.eatwhat.entity.Dish;
-import com.eatwhat.service.DishService;
+import com.eatwhat.dto.DishPageDTO;
+import com.eatwhat.dto.RecommendationCriteria;
+import com.eatwhat.service.CustomDishService;
+import com.eatwhat.service.DishQueryService;
+import com.eatwhat.service.RecommendationMetadataService;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 菜品控制器
@@ -14,9 +22,23 @@ import java.util.List;
 @RestController
 @RequestMapping("/dishes")
 public class DishController {
-    
+
+    private final DishQueryService dishQueryService;
+    private final CustomDishService customDishService;
+    private final RecommendationMetadataService metadataService;
+
+    public DishController(DishQueryService dishQueryService, CustomDishService customDishService) {
+        this(dishQueryService, customDishService, null);
+    }
+
     @Autowired
-    private DishService dishService;
+    public DishController(DishQueryService dishQueryService,
+                          CustomDishService customDishService,
+                          RecommendationMetadataService metadataService) {
+        this.dishQueryService = dishQueryService;
+        this.customDishService = customDishService;
+        this.metadataService = metadataService;
+    }
     
     /**
      * 获取菜品列表（分页）
@@ -27,6 +49,12 @@ public class DishController {
     public ResponseEntity<?> getDishes(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String cuisineCodes,
+            @RequestParam(required = false) String tagCodes,
+            @RequestParam(required = false) String methodCodes,
+            @RequestParam(required = false) String excludeTagCodes,
+            @RequestParam(required = false) String excludedIngredients,
+            @RequestParam(required = false) Integer maxCookMinutes,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int pageSize,
             HttpServletRequest request) {
@@ -37,17 +65,25 @@ public class DishController {
             return ResponseEntity.status(401).build();
         }
 
-        List<Dish> dishes = dishService.getDishes(type, keyword, page, pageSize);
-        int total = 0;
-        if (type != null && !type.isEmpty()) {
-            total = dishService.getDishesCountByType(type);
+        RecommendationCriteria criteria = new RecommendationCriteria();
+        criteria.setCuisineCodes(parseCodes(cuisineCodes));
+        List<String> wantedTags = parseCodes(tagCodes);
+        wantedTags.addAll(parseCodes(methodCodes));
+        criteria.setIncludeTagCodes(new ArrayList<>(new java.util.LinkedHashSet<>(wantedTags)));
+        criteria.setExcludeTagCodes(parseCodes(excludeTagCodes));
+        criteria.setExcludedIngredients(parseText(excludedIngredients));
+        criteria.setMaxCookMinutes(maxCookMinutes);
+
+        Map<String, String> errors = validateCriteria(criteria);
+        if (!errors.isEmpty()) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("message", "Invalid dish filter criteria");
+            error.put("errors", errors);
+            return ResponseEntity.badRequest().body(error);
         }
 
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("list", dishes);
-        result.put("total", total);
-        result.put("page", page);
-        result.put("pageSize", pageSize);
+        Long userId = Long.valueOf(currentUserId.toString());
+        DishPageDTO result = dishQueryService.getFilteredDishes(userId, type, keyword, criteria, page, pageSize);
         return ResponseEntity.ok(result);
     }
     
@@ -68,7 +104,7 @@ public class DishController {
             return ResponseEntity.status(401).build();
         }
         
-        List<Dish> dishes = dishService.searchDishes(keyword, type);
+        List<Dish> dishes = dishQueryService.searchDishes(keyword, type);
         return ResponseEntity.ok(dishes);
     }
     
@@ -79,11 +115,10 @@ public class DishController {
     @PostMapping("/custom")
     public ResponseEntity<Dish> createCustomDish(@RequestBody Dish dish, HttpServletRequest request) {
         Object currentUserId = request.getAttribute("currentUserId");
-        if (currentUserId instanceof Long) {
-            dish.setUserId((Long) currentUserId);
+        if (!(currentUserId instanceof Long)) {
+            return ResponseEntity.status(401).build();
         }
-
-        Dish created = dishService.createDish(dish);
+        Dish created = customDishService.createDish((Long) currentUserId, dish);
         return ResponseEntity.ok(created);
     }
 
@@ -96,7 +131,7 @@ public class DishController {
         if (!(currentUserId instanceof Long)) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(dishService.getCustomDishes((Long) currentUserId));
+        return ResponseEntity.ok(customDishService.getCustomDishes((Long) currentUserId));
     }
     
     /**
@@ -112,7 +147,7 @@ public class DishController {
             return ResponseEntity.status(401).build();
         }
         
-        Dish dish = dishService.getDishById(id);
+        Dish dish = dishQueryService.getDishById(id, Long.valueOf(currentUserId.toString()));
         if (dish == null) {
             return ResponseEntity.notFound().build();
         }
@@ -125,7 +160,7 @@ public class DishController {
      */
     @GetMapping("/count")
     public ResponseEntity<Integer> getDishCount() {
-        int count = dishService.getDishCount();
+        int count = dishQueryService.getDishCount();
         return ResponseEntity.ok(count);
     }
 
@@ -148,8 +183,39 @@ public class DishController {
             return ResponseEntity.status(401).build();
         }
 
-        List<Dish> dishes = dishService.getDishesLite(type, keyword, limit);
+        List<Dish> dishes = dishQueryService.getDishesLite(type, keyword, limit);
         return ResponseEntity.ok(dishes);
+    }
+
+    private List<String> parseCodes(String value) {
+        if (value == null || value.trim().isEmpty()) return new ArrayList<>();
+        List<String> result = new ArrayList<>();
+        for (String item : value.split(",")) {
+            String code = item.trim().toUpperCase();
+            if (!code.isEmpty() && !result.contains(code)) result.add(code);
+        }
+        return result;
+    }
+
+    private List<String> parseText(String value) {
+        if (value == null || value.trim().isEmpty()) return new ArrayList<>();
+        List<String> result = new ArrayList<>();
+        for (String item : value.split(",")) {
+            String text = item.trim();
+            if (!text.isEmpty() && !result.contains(text)) result.add(text);
+        }
+        return result;
+    }
+
+    private Map<String, String> validateCriteria(RecommendationCriteria criteria) {
+        Map<String, String> errors = metadataService == null
+                ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(metadataService.validateCriteria(criteria));
+        if (criteria.getMaxCookMinutes() != null
+                && (criteria.getMaxCookMinutes() <= 0 || criteria.getMaxCookMinutes() > 240)) {
+            errors.put("maxCookMinutes", "Must be between 1 and 240");
+        }
+        return errors;
     }
 }
 

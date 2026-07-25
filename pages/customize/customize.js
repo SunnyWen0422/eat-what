@@ -1,5 +1,26 @@
 // pages/customize/customize.js
 const api = require('../../utils/api')
+const { loadRecommendationOptions } = require('../../utils/recommendation-options')
+
+const BROWSE_GROUPS = [
+  { key: 'cuisine', label: '菜系', field: 'cuisineCodes' },
+  { key: 'flavor', label: '口味', field: 'tagCodes' },
+  { key: 'scene', label: '场景', field: 'tagCodes' },
+  { key: 'diet', label: '饮食', field: 'tagCodes' },
+  { key: 'method', label: '做法', field: 'methodCodes' },
+]
+const BROWSE_DURATIONS = [
+  { key: 'none', label: '不限', value: null },
+  { key: '10', label: '10分钟', value: 10 },
+  { key: '20', label: '20分钟', value: 20 },
+  { key: '30', label: '30分钟', value: 30 },
+  { key: '45', label: '45分钟', value: 45 },
+  { key: '60', label: '60分钟', value: 60 },
+]
+
+function emptyBrowseCriteria() {
+  return { cuisineCodes: [], tagCodes: [], methodCodes: [], maxCookMinutes: null }
+}
 
 Page({
   data: {
@@ -22,13 +43,25 @@ Page({
     selectedTotal: 0,
     selectedList: [],
     showSelectedPanel: false,
+    showBrowseFilters: false,
+    browseCriteria: emptyBrowseCriteria(),
+    browseFilterGroups: [],
+    browseDurationOptions: BROWSE_DURATIONS,
+    browseFilterCount: 0,
+    browseFilterSummary: '',
     // 定制菜品表单
     showCustomForm: false,
+    cuisineOptions: [],
+    customTagOptions: [],
     customForm: {
       name: '',
       type: 'meat',
       ingredients: '',
-      steps: ''
+      steps: '',
+      cuisineCode: '',
+      cuisineLabel: '未设置',
+      tagCodes: [],
+      cookMinutes: ''
     }
   },
 
@@ -39,6 +72,78 @@ Page({
 
   onLoad() {
     this.loadPage('meat', 1)
+    this.loadCustomMetadata()
+  },
+
+  async loadCustomMetadata() {
+    const result = await loadRecommendationOptions()
+    const groups = result.options.groups || {}
+    this.recommendationGroups = groups
+    const customTagOptions = ['flavor', 'scene', 'diet', 'method']
+      .flatMap(group => groups[group] || [])
+      .map(item => ({ ...item, selected: false }))
+    this.setData({ cuisineOptions: groups.cuisine || [], customTagOptions })
+    this.renderBrowseFilters()
+  },
+
+  renderBrowseFilters() {
+    if (!this.recommendationGroups) return
+    const criteria = this.data.browseCriteria || emptyBrowseCriteria()
+    const browseFilterGroups = BROWSE_GROUPS.map(group => ({
+      ...group,
+      items: (this.recommendationGroups[group.key] || []).map(item => ({
+        ...item,
+        selected: (criteria[group.field] || []).includes(item.code),
+      })),
+    }))
+    const selectedLabels = browseFilterGroups
+      .flatMap(group => group.items.filter(item => item.selected).map(item => item.label))
+    const browseFilterCount = selectedLabels.length + (criteria.maxCookMinutes ? 1 : 0)
+    if (criteria.maxCookMinutes) selectedLabels.push(`${criteria.maxCookMinutes}分钟内`)
+    this.setData({
+      browseFilterGroups,
+      browseFilterCount,
+      browseFilterSummary: selectedLabels.join('、'),
+    })
+  },
+
+  onToggleBrowseFilters() {
+    this.setData({ showBrowseFilters: !this.data.showBrowseFilters })
+  },
+
+  onBrowseOptionTap(e) {
+    const { group, code } = e.currentTarget.dataset
+    const definition = BROWSE_GROUPS.find(item => item.key === group)
+    if (!definition) return Promise.resolve()
+    const criteria = { ...this.data.browseCriteria }
+    const values = new Set(criteria[definition.field] || [])
+    if (values.has(code)) values.delete(code)
+    else values.add(code)
+    criteria[definition.field] = [...values].sort()
+    this.setData({ browseCriteria: criteria })
+    this.renderBrowseFilters()
+    wx.vibrateShort({ type: 'light' })
+    this.currentPage = 1
+    return this.loadPage(this.data.activeTab, 1)
+  },
+
+  onBrowseDurationTap(e) {
+    const raw = e.currentTarget.dataset.value
+    const browseCriteria = {
+      ...this.data.browseCriteria,
+      maxCookMinutes: raw === 'none' ? null : Number(raw),
+    }
+    this.setData({ browseCriteria })
+    this.renderBrowseFilters()
+    this.currentPage = 1
+    return this.loadPage(this.data.activeTab, 1)
+  },
+
+  onClearBrowseFilters() {
+    this.setData({ browseCriteria: emptyBrowseCriteria() })
+    this.renderBrowseFilters()
+    this.currentPage = 1
+    return this.loadPage(this.data.activeTab, 1)
   },
 
   // 把菜品加入全局缓存
@@ -66,29 +171,6 @@ Page({
   async loadPage(type, page) {
     const { selectedIds, searchKeyword } = this.data
 
-    // 搜索模式
-    if (searchKeyword) {
-      this.setData({ loading: true })
-      try {
-        const dishes = await api.searchDishes(searchKeyword, type)
-        const simplified = (dishes || []).map(d => ({
-          id: d.id,
-          name: d.name,
-          type: d.type,
-          isSelected: selectedIds.includes(d.id)
-        }))
-        this.setData({
-          currentDishes: simplified,
-          loading: false,
-          hasMore: false
-        })
-      } catch (err) {
-        console.error('搜索失败:', err)
-        this.setData({ loading: false })
-      }
-      return
-    }
-
     // 正常分页模式
     if (page === 1) {
       this.setData({ loading: true })
@@ -97,7 +179,13 @@ Page({
     }
 
     try {
-      const result = await api.getDishes({ type: type, page: page, pageSize: this.pageSize })
+      const result = await api.getDishes({
+        type: type,
+        keyword: searchKeyword || undefined,
+        page: page,
+        pageSize: this.pageSize,
+        ...this.data.browseCriteria,
+      })
       const list = result.list || []
       const total = result.total || 0
 
@@ -149,13 +237,31 @@ Page({
     this.setData({ 'customForm.type': e.currentTarget.dataset.type })
   },
 
+  onCustomCuisineChange(e) {
+    const selected = this.data.cuisineOptions[Number(e.detail.value)]
+    if (!selected) return
+    this.setData({ 'customForm.cuisineCode': selected.code, 'customForm.cuisineLabel': selected.label })
+  },
+
+  onCustomTagTap(e) {
+    const code = e.currentTarget.dataset.code
+    const values = new Set(this.data.customForm.tagCodes)
+    if (values.has(code)) values.delete(code)
+    else values.add(code)
+    const tagCodes = [...values].sort()
+    this.setData({
+      'customForm.tagCodes': tagCodes,
+      customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: tagCodes.includes(item.code) })),
+    })
+  },
+
   onCustomInput(e) {
     const field = e.currentTarget.dataset.field
     this.setData({ [`customForm.${field}`]: e.detail.value })
   },
 
   async onSaveCustomDish() {
-    const { name, type, ingredients, steps } = this.data.customForm
+    const { name, type, ingredients, steps, cuisineCode, tagCodes, cookMinutes } = this.data.customForm
     if (!name.trim()) {
       wx.showToast({ title: '请输入菜品名称', icon: 'none' })
       return
@@ -164,13 +270,25 @@ Page({
       wx.showToast({ title: '请输入食材用料', icon: 'none' })
       return
     }
+    if (!steps.trim()) {
+      wx.showToast({ title: '请输入烹饪步骤', icon: 'none' })
+      return
+    }
+    if (cookMinutes !== '' && (!Number.isInteger(Number(cookMinutes)) || Number(cookMinutes) < 1 || Number(cookMinutes) > 240)) {
+      wx.showToast({ title: '烹饪时间应为1-240分钟', icon: 'none' })
+      return
+    }
     wx.showLoading({ title: '保存中...', mask: true })
     try {
-      await api.createCustomDish({
+      const payload = {
         name: name.trim(), type: type,
         cl: ingredients.trim().replace(/\n/g, '#'),
-        step: steps.trim().replace(/\n/g, '#')
-      })
+        step: steps.trim().replace(/\n/g, '#'),
+        cuisineCode: cuisineCode || null,
+        tagCodes: tagCodes.join(','),
+        cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null,
+      }
+      await api.createCustomDish(payload)
       wx.hideLoading()
       wx.showToast({ title: '添加成功', icon: 'success' })
       this.setData({ 'customForm.name': '', 'customForm.ingredients': '', 'customForm.steps': '' })
@@ -182,7 +300,10 @@ Page({
       dishes.push({
         id: Date.now(), name: name.trim(), type: type,
         cl: ingredients.trim().replace(/\n/g, '#'),
-        step: steps.trim().replace(/\n/g, '#'), isCustom: true
+        step: steps.trim().replace(/\n/g, '#'),
+        cuisineCode: cuisineCode || '', tagCodes: tagCodes.join(','),
+        cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null,
+        isCustom: true
       })
       wx.setStorageSync(key, dishes)
       wx.showToast({ title: '已保存到本地', icon: 'success' })

@@ -2,7 +2,6 @@ package com.eatwhat.service;
 
 import com.eatwhat.entity.User;
 import com.eatwhat.mapper.UserMapper;
-import com.eatwhat.util.TokenUtil;
 import com.eatwhat.util.WeChatUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,11 +17,15 @@ import java.util.Map;
 @Service
 public class UserService {
     
-    @Autowired
-    private UserMapper userMapper;
-    
-    @Autowired
-    private WeChatUtil weChatUtil;
+    private final UserMapper userMapper;
+    private final WeChatUtil weChatUtil;
+    private final TokenService tokenService;
+
+    public UserService(UserMapper userMapper, WeChatUtil weChatUtil, TokenService tokenService) {
+        this.userMapper = userMapper;
+        this.weChatUtil = weChatUtil;
+        this.tokenService = tokenService;
+    }
     
     /**
      * 通过微信code登录/注册
@@ -57,7 +60,7 @@ public class UserService {
                 userMapper.insert(user);
                 
                 // 生成token
-                String token = TokenUtil.generateToken(user.getId());
+                String token = tokenService.generateToken(user.getId());
                 
                 Map<String, Object> result = new HashMap<>();
                 result.put("token", token);
@@ -80,7 +83,7 @@ public class UserService {
                 user.setLastLoginTime(new Date());
                 
                 // 生成token
-                String token = TokenUtil.generateToken(user.getId());
+                String token = tokenService.generateToken(user.getId());
                 
                 Map<String, Object> result = new HashMap<>();
                 result.put("token", token);

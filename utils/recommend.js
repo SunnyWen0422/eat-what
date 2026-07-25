@@ -1,4 +1,7 @@
 // 获取所有菜品（优先从缓存读取）
+const { filterAndRankDishes } = require('./recommendation-matcher')
+const { createPreferenceStore } = require('./preference-store')
+
 async function getAllDishes() {
   // 1. 优先从 App 全局缓存读取
   const app = getApp && getApp()
@@ -36,7 +39,7 @@ async function getAllDishes() {
     const { getDefaultDishes } = require('./dishes')
     const defaultDishes = getDefaultDishes()
     const { getUserStorageKey } = require('./util')
-    const customKey = getUserStorageKey('customRecipes')
+    const customKey = getUserStorageKey('customDishes')
     const customDishes = wx.getStorageSync(customKey) || []
 
     console.log('✅ 本地数据加载完成:', defaultDishes.length, '个默认菜品')
@@ -111,6 +114,11 @@ function _processDishes(dishes) {
       kcal: dish.kcal || null,
       difficulty: dish.difficulty || '',
       cookTime: dish.cookTime || '',
+      cookMinutes: dish.cookMinutes || null,
+      cuisineCode: dish.cuisineCode || '',
+      tagCodes: dish.tagCodes || '',
+      metadataVersion: dish.metadataVersion || 1,
+      cl: dish.cl || '',
       ingredientsAmounts: dish.ingredientsAmounts || '',
       step: dish.step || ''
     }
@@ -174,32 +182,6 @@ function applyMealBias(dishes, mealType) {
   return filtered
 }
 
-function ensureBalance(meats, vegs) {
-  // 简单规则：若全川味，替换一个为清淡菜品
-  const isAllSpicy = [...meats, ...vegs].every(d => d.tags && d.tags.includes('川味'))
-  if (isAllSpicy) {
-      const idx = meats.findIndex(d => d.tags && d.tags.includes('川味'))
-      if (idx >= 0) {
-        // 替换为清淡菜品，使用后端API返回的数据格式
-        meats[idx] = {
-          id: 999,
-          name: '清蒸南瓜',
-          type: 'veg',
-          ingredientsAmounts: '南瓜: 适量',
-          steps: '蒸熟即可',
-          tags: '素,清淡',
-          image: '',
-          difficulty: '简单',
-          cookTime: '15分钟',
-          stepImages: '',
-          tips: '选择成熟的南瓜，口感更甜',
-          methods: '蒸',
-          kcal: 50
-        }
-      }
-  }
-}
-
 // 获取用户隔离的recentWindow key
 function getRecentWindowKey() {
   const { getUserStorageKey } = require('./util')
@@ -236,39 +218,11 @@ function updateRecent(dishes) {
 
 // 读取用户偏好设置
 function getUserPreferences() {
-  const { getUserStorageKey } = require('./util')
-  const key = getUserStorageKey('userPreferences')
-  return wx.getStorageSync(key) || {}
-}
-
-// 根据用户偏好对菜品池加权排序
-function applyPreferenceWeights(pool, pref) {
-  if (!pref || Object.keys(pref).length === 0) return pool
-  const weighted = pool.map(d => {
-    let score = 0
-    const raw = d.tags
-    const tags = (Array.isArray(raw) ? raw : (typeof raw === 'string' ? raw.split(',').map(t => t.trim()).filter(Boolean) : []))
-    const tagStr = Array.isArray(tags) ? tags.join(',') : ''
-    const name = d.name || ''
-    // 低卡路里优先
-    if (pref.lowCalorie && d.kcal != null && d.kcal > 0) {
-      score += Math.max(0, (500 - d.kcal) / 100)
-    }
-    // 菜系偏好 — 用 indexOf 替代 some，完全免疫类型问题
-    if (pref.preferChuan && (tagStr.indexOf('川') >= 0 || name.indexOf('川') >= 0)) score += 3
-    if (pref.preferYue && (tagStr.indexOf('粤') >= 0 || tagStr.indexOf('广东') >= 0 || tagStr.indexOf('潮汕') >= 0 || name.indexOf('粤') >= 0 || name.indexOf('广东') >= 0)) score += 3
-    if (pref.preferLu && (tagStr.indexOf('鲁') >= 0 || tagStr.indexOf('山东') >= 0 || name.indexOf('鲁') >= 0 || name.indexOf('山东') >= 0)) score += 3
-    if (pref.preferHuaiyang && (tagStr.indexOf('淮扬') >= 0 || tagStr.indexOf('江苏') >= 0 || tagStr.indexOf('苏') >= 0 || name.indexOf('淮扬') >= 0)) score += 3
-    if (pref.preferZhe && (tagStr.indexOf('浙') >= 0 || tagStr.indexOf('浙江') >= 0 || name.indexOf('浙') >= 0 || name.indexOf('浙江') >= 0)) score += 3
-    if (pref.preferHu && (tagStr.indexOf('上海') >= 0 || tagStr.indexOf('本帮') >= 0 || tagStr.indexOf('沪') >= 0 || name.indexOf('上海') >= 0 || name.indexOf('本帮') >= 0)) score += 3
-    return { ...d, _weight: score }
-  })
-  weighted.sort((a, b) => b._weight - a._weight)
-  return weighted
+  return createPreferenceStore().readCache()
 }
 
 async function recommendPlans(params, externalAllDishes = null) {
-  const { people = 2, meat = 2, veg = 2, soup = 1, dessert = 0, staple = 0, mealType = 'lunch', selectedRecipe = null, userSelectedDishes = null } = params || {}
+  const { people = 2, meat = 2, veg = 2, soup = 1, dessert = 0, staple = 0, mealType = 'lunch', selectedRecipe = null, userSelectedDishes = null, criteria = {}, useSavedPreferences = true } = params || {}
   const exclude = new Set(getRecentWindow())
 
   console.log('🎯 开始推荐算法，参数:', {meat, veg, soup, dessert, staple, mealType, userSelectedDishes})
@@ -282,11 +236,18 @@ async function recommendPlans(params, externalAllDishes = null) {
   }
 
   // 按类型分组菜品池
-  const meatsPool = applyPreferenceWeights(allDishes.filter(d => d.type === 'meat'), getUserPreferences())
-  const vegsPool = applyPreferenceWeights(allDishes.filter(d => d.type === 'veg'), getUserPreferences())
-  const soupsPool = applyPreferenceWeights(allDishes.filter(d => d.type === 'soup'), getUserPreferences())
-  const dessertsPool = applyPreferenceWeights(allDishes.filter(d => d.type === 'dessert'), getUserPreferences())
-  const staplesPool = applyPreferenceWeights(allDishes.filter(d => d.type === 'staple'), getUserPreferences())
+  const preferences = getUserPreferences()
+  const eligibleDishes = filterAndRankDishes(allDishes, {
+    criteria,
+    preferences,
+    useSavedPreferences,
+    recentNames: [...exclude],
+  })
+  const meatsPool = eligibleDishes.filter(d => d.type === 'meat')
+  const vegsPool = eligibleDishes.filter(d => d.type === 'veg')
+  const soupsPool = eligibleDishes.filter(d => d.type === 'soup')
+  const dessertsPool = eligibleDishes.filter(d => d.type === 'dessert')
+  const staplesPool = eligibleDishes.filter(d => d.type === 'staple')
 
   console.log('\uD83C\uDF56 菜品池统计:', {
     meats: meatsPool.length, vegs: vegsPool.length, soups: soupsPool.length,
@@ -299,6 +260,14 @@ async function recommendPlans(params, externalAllDishes = null) {
     // 如果有菜谱，也合并进来
     userDishes = [...userDishes, ...selectedRecipe.selectedDishes]
   }
+  const dishesById = new Map(allDishes.filter(dish => dish && dish.id).map(dish => [String(dish.id), dish]))
+  userDishes = userDishes.map(dish => dishesById.get(String(dish.id)) || dish)
+  userDishes = filterAndRankDishes(userDishes, {
+    criteria: {},
+    preferences,
+    useSavedPreferences: false,
+    recentNames: [],
+  })
 
     const plans = []
     for (let i = 0; i < 3; i++) {
@@ -374,7 +343,6 @@ async function recommendPlans(params, externalAllDishes = null) {
         }
       }
 
-      ensureBalance(meats, vegs)
       const dishes = [...meats, ...vegs, ...soups, ...(dessert > 0 ? desserts : []), ...(staple > 0 ? staples : [])]
       if (dishes.length === 0) continue
       // 将本次方案中的菜品加入排除集合，避免后续方案重复

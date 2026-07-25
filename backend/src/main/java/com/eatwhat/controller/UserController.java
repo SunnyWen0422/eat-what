@@ -1,16 +1,16 @@
 package com.eatwhat.controller;
 
 import com.eatwhat.entity.User;
+import com.eatwhat.service.AdminAuthorizationService;
 import com.eatwhat.service.UserService;
-import com.eatwhat.util.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * 用户控制器
@@ -21,8 +21,13 @@ public class UserController {
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
     
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+    private final AdminAuthorizationService adminAuthorizationService;
+
+    public UserController(UserService userService, AdminAuthorizationService adminAuthorizationService) {
+        this.userService = userService;
+        this.adminAuthorizationService = adminAuthorizationService;
+    }
     
     /**
      * 用户登录接口
@@ -43,6 +48,8 @@ public class UserController {
         
         try {
             Map<String, Object> result = userService.loginByCode(code);
+            User user = (User) result.get("user");
+            result.put("isAdmin", user != null && adminAuthorizationService.isAdmin(user.getId()));
             result.put("success", true);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -69,34 +76,16 @@ public class UserController {
     /**
      * 获取当前用户信息
      * GET /api/users/info
-     * @param token token（从请求头或参数中获取）
+     * @param request 认证拦截器已写入当前用户ID的请求
      * @return 用户信息
      */
     @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getUserInfo(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "token", required = false) String tokenParam) {
-        
-        // 从请求头或参数中获取token
-        String token = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-        } else if (tokenParam != null) {
-            token = tokenParam;
-        }
-        
-        if (token == null || token.isEmpty()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "未提供token");
-            return ResponseEntity.status(401).body(error);
-        }
-        
-        Long userId = TokenUtil.getUserIdFromToken(token);
+    public ResponseEntity<Map<String, Object>> getUserInfo(HttpServletRequest request) {
+        Long userId = currentUserId(request);
         if (userId == null) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "token无效或已过期");
+            error.put("message", "未提供token");
             return ResponseEntity.status(401).body(error);
         }
         
@@ -111,6 +100,7 @@ public class UserController {
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("user", user);
+        result.put("isAdmin", adminAuthorizationService.isAdmin(userId));
         return ResponseEntity.ok(result);
     }
     
@@ -118,36 +108,18 @@ public class UserController {
      * 更新用户信息
      * PUT /api/users/info
      * @param user 用户信息（昵称、头像等）
-     * @param authHeader 请求头中的token
-     * @param tokenParam 参数中的token
+     * @param request 认证拦截器已写入当前用户ID的请求
      * @return 更新后的用户信息
      */
     @PutMapping("/info")
     public ResponseEntity<Map<String, Object>> updateUserInfo(
             @RequestBody User user,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "token", required = false) String tokenParam) {
-        
-        // 从请求头或参数中获取token
-        String token = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-        } else if (tokenParam != null) {
-            token = tokenParam;
-        }
-        
-        if (token == null || token.isEmpty()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "未提供token");
-            return ResponseEntity.status(401).body(error);
-        }
-        
-        Long userId = TokenUtil.getUserIdFromToken(token);
+            HttpServletRequest request) {
+        Long userId = currentUserId(request);
         if (userId == null) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "token无效或已过期");
+            error.put("message", "未提供token");
             return ResponseEntity.status(401).body(error);
         }
         
@@ -167,5 +139,10 @@ public class UserController {
             error.put("message", "更新失败: " + e.getMessage());
             return ResponseEntity.status(500).body(error);
         }
+    }
+
+    private Long currentUserId(HttpServletRequest request) {
+        Object value = request.getAttribute("currentUserId");
+        return value instanceof Long ? (Long) value : null;
     }
 }

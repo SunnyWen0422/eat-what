@@ -148,7 +148,7 @@ mysql -u "$DB_USER" -p "$DB_NAME" -e "SELECT type, COUNT(*) FROM food GROUP BY t
 ## 本地项目路径
 
 ```
-D:\吃什么\
+C:\Users\Administrator\Documents\Codex\2026-07-18\d-eatwhat\project\
 ├── app.js / app.json / app.wxss     # 微信小程序入口
 ├── pages/                           # 页面代码
 │   ├── index/                       # 首页（选菜配置）
@@ -165,6 +165,20 @@ D:\吃什么\
 ├── backend/                         # Java 后端源码
 └── recommend-service/               # Python 推荐服务源码
 ```
+
+---
+
+## 生产环境必需配置
+
+Java 外部配置或进程环境至少需要提供：
+
+```bash
+TOKEN_SECRET='<至少32位随机字符串>'
+ADMIN_USER_IDS='7,12'                    # 允许进入管理功能的用户ID，逗号分隔
+RECOMMEND_SERVICE_BASE_URL='http://127.0.0.1:8000'
+```
+
+Python 推荐服务应使用只读 MySQL 账户；菜品新增、修改和删除统一由 Java 后端执行。首次部署无状态令牌后，旧的内存令牌会触发一次自动重新登录。
 
 ---
 
@@ -190,4 +204,43 @@ cd extract && jar c0mf META-INF/MANIFEST.MF <jar> BOOT-INF META-INF org
 
 # 6. 重启（BT Panel 自动管理，杀掉进程即可）
 kill $(pgrep -f eatwhat-backend)
+```
+
+---
+
+## 推荐筛选离线迁移与回滚（尚未部署）
+
+本节只记录后续上线步骤。本次开发未连接生产 MySQL，也未上传服务器文件。
+
+### 上线前备份
+
+```bash
+mysqldump -u root -p --single-transaction food > /www/backup/eatwhat-before-recommendation-$(date +%Y%m%d-%H%M%S).sql
+cp /www/wwwroot/backend/eatwhat-backend-1.0.0.jar /www/wwwroot/backend/eatwhat-backend-1.0.0.jar.before-recommendation
+cp /www/wwwroot/backend/application-prod.yml /www/wwwroot/backend/application-prod.yml.before-recommendation
+```
+
+旧库还没有 `user_preference` 时，先只备份现有表，再执行迁移后做一次完整备份。
+
+### 建议迁移顺序
+
+1. 在本地重新运行 `scripts/test-all.ps1`，确认 6,665 条基准数据、MySQL 隔离测试和性能门槛全部通过。
+2. 备份生产数据库、JAR 与配置，并记录当前 `food` 行数及各 `type` 数量。
+3. 执行 `backend/ensure_food_import_schema.sql`；若需要替换系统菜，随后执行生成的 `replace_system_dishes.sql`。替换脚本只删除 `user_id IS NULL` 的系统菜，保留用户自定义菜。
+4. 执行 `backend/recommendation_preferences_schema.sql`，再执行 `backend/recommendation_metadata_backfill.sql`，顺序与 `scripts/apply_dish_replacement.ps1` 保持一致。
+5. 先以 `RECOMMENDATION_PREFERENCES_ENABLED=false` 启动新 JAR，验证登录、旧版数量推荐、菜品详情和自定义菜所有权。
+6. 将开关改为 `true` 后重启 Java，验证 `/api/recommend/options`、偏好读写、组合筛选和推荐结果警告。
+7. 最后上传小程序版本。旧客户端的数量请求保持兼容。
+
+### 回滚
+
+- 快速功能回滚：设置 `RECOMMENDATION_PREFERENCES_ENABLED=false` 并重启 Java。后端继续接受旧请求，前端会隐藏偏好和筛选控件。
+- 代码回滚：恢复备份 JAR 与配置。新增列和 `user_preference` 表保留，不会影响旧代码，也不丢用户偏好。
+- 数据回滚：仅在确认数据错误且已停止写入后恢复备份 SQL；不要通过删除新增列作为常规回滚手段。
+- 上线验证失败时，不执行新的系统菜替换 SQL；先保留数据库现场和日志定位原因。
+
+生产配置示例：
+
+```bash
+RECOMMENDATION_PREFERENCES_ENABLED=true
 ```

@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"后台管理","usingComponents":{}}
+{
+  "navigationBarTitleText": "用户后台",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}

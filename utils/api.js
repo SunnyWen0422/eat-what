@@ -1,13 +1,10 @@
 // utils/api.js - 后端API接口配置
 
+const config = require('./config')
+
 // ========================================
 // 配置项
 // ========================================
-
-// API基础地址
-// 开发环境：本地服务器
-// 生产环境：需要改为实际的HTTPS域名
-const API_BASE_URL = 'https://chishenme.icu/api'
 
 // 重试配置
 const RETRY_CONFIG = {
@@ -75,7 +72,7 @@ function executeHttpRequest(url, method, data) {
     }
 
     // ETag 条件请求：如果缓存中有该 URL 的 ETag，携带 If-None-Match
-    const fullUrl = `${API_BASE_URL}${url}`
+    const fullUrl = `${config.getApiBaseUrl()}${url}`
     const cached = etagCache[fullUrl]
     if (cached && cached.etag) {
       header['If-None-Match'] = cached.etag
@@ -292,13 +289,24 @@ function autoReLogin() {
  * @param {Object} params - 查询参数 {type, keyword, page, pageSize}
  */
 function getDishes(params = {}) {
-  let queryString = ''
-  if (params.type) queryString += `type=${params.type}&`
-  if (params.keyword) queryString += `keyword=${encodeURIComponent(params.keyword)}&`
-  if (params.page) queryString += `page=${params.page}&`
-  if (params.pageSize) queryString += `pageSize=${params.pageSize}&`
+  const pairs = []
+  const add = (key, value) => {
+    if (value === undefined || value === null || value === '') return
+    const text = Array.isArray(value) ? value.join(',') : String(value)
+    if (text) pairs.push(`${key}=${encodeURIComponent(text)}`)
+  }
+  add('type', params.type)
+  add('keyword', params.keyword)
+  add('cuisineCodes', params.cuisineCodes)
+  add('tagCodes', params.tagCodes)
+  add('methodCodes', params.methodCodes)
+  add('excludeTagCodes', params.excludeTagCodes)
+  add('excludedIngredients', params.excludedIngredients)
+  add('maxCookMinutes', params.maxCookMinutes)
+  add('page', params.page)
+  add('pageSize', params.pageSize)
 
-  return request(`/dishes?${queryString}`, 'GET')
+  return request(`/dishes?${pairs.join('&')}`, 'GET')
 }
 
 /**
@@ -386,35 +394,16 @@ function updateUserInfo(userInfo) {
   return request('/users/info', 'PUT', userInfo)
 }
 
-// ========================================
-// 菜谱相关接口（待实现）
-// ========================================
-
-/**
- * 保存菜谱
- * @param {Object} recipe - 菜谱对象
- */
-function saveRecipe(recipe) {
-  return request('/recipes', 'POST', recipe)
+function getUserPreferences() {
+  return requestSilent('/users/preferences', 'GET')
 }
 
-/**
- * 获取我的菜谱
- */
-function getMyRecipes() {
-  return request('/recipes', 'GET')
-}
-
-/**
- * 删除菜谱
- * @param {Number} id - 菜谱ID
- */
-function deleteRecipe(id) {
-  return request(`/recipes/${id}`, 'DELETE')
+function updateUserPreferences(preferences) {
+  return requestSilent('/users/preferences', 'PUT', preferences)
 }
 
 // ========================================
-// 推荐相关接口（待实现）
+// 推荐相关接口
 // ========================================
 
 /**
@@ -423,6 +412,10 @@ function deleteRecipe(id) {
  */
 function getRecommendations(params) {
   return requestSilent('/recommend', 'POST', params)
+}
+
+function getRecommendationOptions() {
+  return requestSilent('/recommend/options', 'GET')
 }
 
 /**
@@ -500,49 +493,7 @@ function getStatistics(startDate, endDate) {
 }
 
 // ========================================
-// 收藏相关接口
-// ========================================
-
-/**
- * 添加收藏
- * @param {Number} dishId - 菜品ID
- */
-function addFavorite(dishId) {
-  return request('/favorites', 'POST', { dishId })
-}
-
-/**
- * 取消收藏
- * @param {Number} dishId - 菜品ID
- */
-function cancelFavorite(dishId) {
-  return request(`/favorites/${dishId}`, 'DELETE')
-}
-
-/**
- * 获取收藏列表
- */
-function getFavorites() {
-  return request('/favorites', 'GET')
-}
-
-/**
- * 检查是否已收藏
- * @param {Number} dishId - 菜品ID
- */
-function checkFavorite(dishId) {
-  return request(`/favorites/check/${dishId}`, 'GET')
-}
-
-/**
- * 获取收藏数量
- */
-function getFavoriteCount() {
-  return request('/favorites/count', 'GET')
-}
-
-// ========================================
-// 收藏菜品接口（新功能）
+// 收藏菜品接口
 // ========================================
 
 /**
@@ -592,37 +543,32 @@ function sendChat(message, userId) {
   return requestSilent('/chat/sync', 'POST', { message: message, user_id: String(userId || 'guest') })
 }
 
-// ========================================
-// 购物清单相关接口（占位实现）
-// 注意：如果后端尚未提供对应 API，这些函数调用会返回失败信息，
-// 但至少保证 utils/api.js 能正常加载，避免 app 启动时报 ReferenceError。
-// ========================================
-
-/**
- * 生成购物清单
- * @param {Object} params - 生成参数
- */
-function generateShoppingList(params = {}) {
-  return request('/shopping-list/generate', 'POST', params)
-}
-
-/**
- * 获取购物清单
- */
-function getShoppingList() {
-  return request('/shopping-list', 'GET')
-}
-
-/**
- * 更新购物清单（例如勾选/数量修改）
- * @param {Object} payload
- */
-function updateShoppingList(payload) {
-  return request('/shopping-list', 'PUT', payload)
-}
-
 function getCustomDishes() {
   return request('/dishes/custom', 'GET')
+}
+
+// ========================================
+// 管理后台接口
+// ========================================
+
+function getAdminUsers(params = {}) {
+  const pairs = []
+  if (params.keyword) pairs.push(`keyword=${encodeURIComponent(params.keyword)}`)
+  if (params.page) pairs.push(`page=${encodeURIComponent(params.page)}`)
+  if (params.pageSize) pairs.push(`pageSize=${encodeURIComponent(params.pageSize)}`)
+  return request(`/admin/users${pairs.length ? `?${pairs.join('&')}` : ''}`, 'GET')
+}
+
+function getAdminUser(userId) {
+  return request(`/admin/users/${encodeURIComponent(userId)}`, 'GET')
+}
+
+function createAdminUserDish(userId, dish) {
+  return request(`/admin/users/${encodeURIComponent(userId)}/dishes`, 'POST', dish)
+}
+
+function deleteAdminUserDish(userId, dishId) {
+  return request(`/admin/users/${encodeURIComponent(userId)}/dishes/${encodeURIComponent(dishId)}`, 'DELETE')
 }
 
 // ========================================
@@ -630,9 +576,6 @@ function getCustomDishes() {
 // ========================================
 
 module.exports = {
-  // 配置
-  API_BASE_URL,
-
   // 通用方法
   request,
   requestSilent,
@@ -646,41 +589,33 @@ module.exports = {
   getCustomDishes,
   getDishById,
 
+  // 管理后台接口
+  getAdminUsers,
+  getAdminUser,
+  createAdminUserDish,
+  deleteAdminUserDish,
+
   // 用户接口
   login,
   phoneLogin,
   getUserInfo,
   updateUserInfo,
+  getUserPreferences,
+  updateUserPreferences,
 
-  // 收藏接口（旧 - 待移除）
-  addFavorite,
-  cancelFavorite,
-  getFavorites,
-  checkFavorite,
-  getFavoriteCount,
-
-  // 收藏菜品接口（新）
+  // 收藏菜品接口
   addFavoriteDish,
   removeFavoriteDish,
   checkFavoriteDish,
   batchCheckFavoriteDishes,
   getFavoriteDishes,
 
-  // 购物清单接口
-  generateShoppingList,
-  getShoppingList,
-  updateShoppingList,
-
   // AI聊天
   sendChat,
 
-  // 菜谱接口
-  saveRecipe,
-  getMyRecipes,
-  deleteRecipe,
-
   // 推荐接口
   getRecommendations,
+  getRecommendationOptions,
   getSingleRecommendation,
 
   // 菜谱记录接口

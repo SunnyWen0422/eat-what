@@ -43,6 +43,6 @@
 
   <!-- 版本信息 -->
   <view class="version-info" bindtap="onVersionTap">
-    <text class="version-text">吃什么 v3.0.0</text>
+    <text class="version-text">吃什么 v3.2.0</text>
   </view>
 </view>

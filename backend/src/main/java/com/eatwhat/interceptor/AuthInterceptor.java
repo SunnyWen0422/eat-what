@@ -1,6 +1,6 @@
 package com.eatwhat.interceptor;
 
-import com.eatwhat.util.TokenUtil;
+import com.eatwhat.service.TokenService;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -18,6 +18,12 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
+    private final TokenService tokenService;
+
+    public AuthInterceptor(TokenService tokenService) {
+        this.tokenService = tokenService;
+    }
+
     /**
      * 请求前认证
      */
@@ -26,6 +32,10 @@ public class AuthInterceptor implements HandlerInterceptor {
                              @NonNull HttpServletResponse response,
                              @NonNull Object handler) throws Exception {
         String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)) {
+            uri = uri.substring(contextPath.length());
+        }
 
         // 放行不需要登录的接口
         if (isExcluded(uri)) {
@@ -39,12 +49,15 @@ public class AuthInterceptor implements HandlerInterceptor {
             token = authHeader.substring(7);
         }
 
+        if ((token == null || token.isEmpty()) && isOptionalAuth(uri)) {
+            return true;
+        }
         if (token == null || token.isEmpty()) {
             writeUnauthorized(response, "未提供token");
             return false;
         }
 
-        Long userId = TokenUtil.getUserIdFromToken(token);
+        Long userId = tokenService.getUserIdFromToken(token);
         if (userId == null) {
             writeUnauthorized(response, "token无效或已过期");
             return false;
@@ -59,12 +72,11 @@ public class AuthInterceptor implements HandlerInterceptor {
      * 是否为无需认证的路径
      */
     private boolean isExcluded(String uri) {
-        // 登录接口、静态资源等放行
-        if (uri.startsWith("/users/login") || uri.startsWith("/api/users/login")) {
-            return true;
-        }
-        // 其他公共接口按需在此扩展
-        return false;
+        return uri.startsWith("/users/login") || uri.startsWith("/users/phone-login");
+    }
+
+    private boolean isOptionalAuth(String uri) {
+        return uri.equals("/chat") || uri.startsWith("/chat/");
     }
 
     /**

@@ -15,11 +15,11 @@ SYSTEM_PROMPT = """你是"吃什么"小程序的AI助手。你是一个专业的
 1. 根据用户需求推荐菜谱搭配（荤素汤搭配，考虑人数口味）
 2. 根据食材反向推荐能做的菜
 3. 回答菜品的做法、热量、难度
-4. 根据用户偏好（川菜/粤菜/清淡/低卡）调整推荐
-5. 帮用户把喜欢的菜"加入我的菜谱"永久保存
+4. 根据用户偏好（川菜/粤菜/清淡/辣味）调整推荐
+5. 识别用户把喜欢的菜"加入我的菜谱"的意图，交给主服务安全保存
 
 特别注意：
-- 当用户说"加入菜谱/收藏/保存/加入我的"且你刚推荐过菜品，你要回复"已帮你把【菜名】加入自定义菜谱！"并用【】标注具体菜名
+- 不要自行声称数据已经保存；保存结果由主服务确认
 - 推荐时每道菜格式：**菜名** + 🔥热量 + ⭐难度
 - 语气亲切自然，像朋友聊天一样，不要用机器人腔
 - 回复控制在200字以内，用表情符号点缀"""
@@ -73,7 +73,7 @@ def _detect_intent(msg: str) -> str:
         return "replace"
     if any(w in msg for w in ["找", "搜", "有没有", "有没有"]):
         return "search"
-    if any(w in msg for w in ["川菜", "粤菜", "清淡", "低卡", "辣", "喜欢", "偏好"]):
+    if any(w in msg for w in ["川菜", "粤菜", "清淡", "辣", "喜欢", "偏好"]):
         return "preference"
     return "chat"
 
@@ -138,44 +138,32 @@ def _match_dishes(reply: str) -> List[Dict]:
                 break
     return matched
 
-def _save_custom_if_match(user_id: str) -> str:
-    """从最近对话中提取菜品名并保存为用户自定义菜谱"""
-    if user_id == "guest" or not user_id:
-        return ""
-    try:
-        uid = int(user_id)
-    except:
-        return ""
+def _build_custom_dish_action(user_id: str) -> Dict:
+    """从最近对话中提取菜品，返回由 Java 主服务执行的写入命令。"""
     history = _conversations.get(user_id, [])
-    if len(history) < 2:
-        return ""
+    if not history:
+        return {}
     last_ai = ""
     for h in reversed(history):
         if h["role"] == "assistant":
             last_ai = h["content"]
             break
     if not last_ai:
-        return ""
-    # 在AI回复中找菜品名
+        return {}
     rag.load_index()
     for d in rag._dish_meta[:]:
         name = d.get("name", "")
         if len(name) >= 3 and name in last_ai:
-            # 保存到数据库
-            try:
-                from db import _get_connection
-                conn = _get_connection()
-                cur = conn.cursor()
-                cur.execute("INSERT INTO food (NAME, TYPE, CL, FL, STEP, user_id) VALUES (%s,%s,%s,%s,%s,%s)",
-                           (name, d.get("type","veg"), d.get("cl",""), "", d.get("step","")[:500], uid))
-                conn.commit()
-                conn.close()
-                log.info("Custom dish saved: user=%s dish=%s", uid, name)
-                return name
-            except Exception as e:
-                log.error("Save custom dish failed: %s", e)
-                return ""
-    return ""
+            return {
+                "type": "CREATE_CUSTOM_DISH",
+                "dish": {
+                    "name": name,
+                    "type": d.get("type", "veg"),
+                    "cl": d.get("cl", ""),
+                    "step": d.get("step", ""),
+                },
+            }
+    return {}
 
 def chat(message: str, user_id: str = "guest") -> dict:
     """非流式对话 — 在已有事件循环上下文中安全调用。
@@ -192,16 +180,15 @@ def chat(message: str, user_id: str = "guest") -> dict:
             context_dishes = rag.search_by_ingredients(ings, 10)
             extra_context = f"用户食材: {', '.join(ings)}\n" + _build_context(context_dishes)
     elif intent == "add_custom":
-        # 从对话历史中找到AI最近推荐的菜品名，保存为用户自定义菜谱
         context_dishes = rag.search_semantic(message, 5)
         extra_context = _build_context(context_dishes)
-        # 尝试匹配菜名并保存
-        saved = _save_custom_if_match(user_id)
-        if saved:
-            reply = f"✅ 已把【{saved}】加入你的自定义菜谱！可以在「我的→自定义菜品」中查看。"
+        action = _build_custom_dish_action(user_id)
+        if action:
+            dish_name = action["dish"]["name"]
+            reply = f"已找到【{dish_name}】，正在加入你的自定义菜谱。"
             append_history(user_id, "user", message)
             append_history(user_id, "assistant", reply)
-            return {"reply": reply, "dishes": context_dishes[:3]}
+            return {"reply": reply, "dishes": context_dishes[:3], "action": action}
     else:
         context_dishes = rag.search_semantic(message, 15)
         extra_context = _build_context(context_dishes)
@@ -285,6 +272,7 @@ async def _chat_async(message: str, user_id: str = "guest") -> AsyncGenerator[st
     messages.extend(history)
     if extra_context:
         messages.append({"role": "system", "content": extra_context})
+    messages.append({"role": "user", "content": message})
 
     full_reply = ""
 

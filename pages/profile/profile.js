@@ -11,6 +11,7 @@ Page({
       joinDays: 0
     },
     showLoginModal: false,
+    isAdmin: false,
     menuItems: [
       {
         icon: '📊',
@@ -51,7 +52,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '吃什么？3万道家常好菜，智能搭配，告别选择困难！',
+      title: '吃什么？6000+道家常好菜，智能搭配，告别选择困难！',
       path: '/pages/index/index'
     }
   },
@@ -105,6 +106,7 @@ Page({
         // 更新页面用户信息
         const hasNickname = !!(user.nickname && user.nickname.trim())
         this.setData({
+          isAdmin: userResult.isAdmin === true,
           userInfo: {
             avatar: user.avatar || 'https://img.yzcdn.cn/vant/cat.jpeg',
             nickname: user.nickname || '点击登录',
@@ -164,6 +166,7 @@ Page({
 
   // 5击版本文字进入管理后台
   onVersionTap() {
+    if (!this.data.isAdmin) return
     this._adminTapCount = (this._adminTapCount || 0) + 1
     if (this._adminTapCount >= 5) {
       this._adminTapCount = 0
@@ -239,11 +242,7 @@ Page({
           // 更换头像
           this.editAvatar()
         } else {
-          wx.showModal({
-            title: '功能提示',
-            content: '「设置偏好」功能正在开发中',
-            showCancel: false
-          })
+          wx.navigateTo({ url: '/pages/settings/settings' })
         }
       }
     })

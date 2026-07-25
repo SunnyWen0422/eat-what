@@ -1,0 +1,50 @@
+{
+  "metadataVersion": 1,
+  "minimumClientVersion": "3.2.0",
+  "homeQuickOptions": [
+    { "id": "home", "label": "家常菜", "kind": "tag", "code": "HOME_STYLE" },
+    { "id": "sichuan", "label": "川菜", "kind": "cuisine", "code": "SICHUAN" },
+    { "id": "cantonese", "label": "粤菜", "kind": "cuisine", "code": "CANTONESE" }
+  ],
+  "groups": {
+    "cuisine": [
+      { "code": "SICHUAN", "label": "川菜", "aliases": ["川菜"] },
+      { "code": "CANTONESE", "label": "粤菜", "aliases": ["粤菜", "广东菜", "潮汕菜"] },
+      { "code": "NORTHEAST", "label": "东北菜", "aliases": ["东北菜"] },
+      { "code": "HUNAN", "label": "湘菜", "aliases": ["湘菜"] },
+      { "code": "JIANGNAN", "label": "江浙沪", "aliases": ["苏菜", "淮扬菜", "浙菜", "上海菜", "本帮菜"] },
+      { "code": "SHANDONG", "label": "鲁菜", "aliases": ["鲁菜"] },
+      { "code": "FUJIAN", "label": "闽菜", "aliases": ["闽菜"] },
+      { "code": "NORTHWEST", "label": "西北风味", "aliases": ["西北菜", "新疆菜"] }
+    ],
+    "flavor": [
+      { "code": "SPICY", "label": "香辣", "aliases": ["香辣"] },
+      { "code": "NUMB_SPICY", "label": "麻辣", "aliases": ["麻辣"] },
+      { "code": "SOUR_SPICY", "label": "酸辣", "aliases": ["酸辣"] },
+      { "code": "SWEET_SOUR", "label": "酸甜", "aliases": ["酸甜"] },
+      { "code": "TOMATO", "label": "番茄味", "aliases": ["番茄味"] },
+      { "code": "LIGHT", "label": "清淡", "aliases": ["清淡"] }
+    ],
+    "scene": [
+      { "code": "HOME_STYLE", "label": "家常菜", "aliases": ["家常菜"] },
+      { "code": "QUICK", "label": "20分钟内", "aliases": [] },
+      { "code": "LOW_EFFORT", "label": "省心好做", "aliases": ["懒人食谱"] },
+      { "code": "LUNCH", "label": "午餐", "aliases": ["午餐"] },
+      { "code": "DINNER", "label": "晚餐", "aliases": ["晚餐"] },
+      { "code": "GATHERING", "label": "朋友聚餐", "aliases": ["朋友聚餐"] }
+    ],
+    "diet": [
+      { "code": "VEGETARIAN", "label": "素食", "aliases": ["素食", "素食主义"] },
+      { "code": "HEALTHY", "label": "健康食谱", "aliases": ["健康食谱"] }
+    ],
+    "method": [
+      { "code": "STEAM", "label": "蒸", "aliases": ["蒸", "清蒸"] },
+      { "code": "STIR_FRY", "label": "炒", "aliases": ["炒", "爆炒", "煸炒"] },
+      { "code": "BRAISE", "label": "烧焖", "aliases": ["烧", "红烧", "焖"] },
+      { "code": "STEW", "label": "炖煲", "aliases": ["炖", "煲", "煮"] },
+      { "code": "BAKE", "label": "烤", "aliases": ["烤", "烘焙"] },
+      { "code": "FRY", "label": "煎炸", "aliases": ["炸", "煎炸"] },
+      { "code": "COLD_MIX", "label": "凉拌", "aliases": ["拌", "凉拌"] }
+    ]
+  }
+}

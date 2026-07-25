@@ -66,19 +66,31 @@
       <text class="tip-text">今日小提示：荤素1:2搭配，营养更均衡~</text>
     </view>
 
-    <!-- 热门搭配标签组 -->
-    <view class="tags-area">
-      <text class="tags-label">热门搭配</text>
+    <!-- 推荐筛选 -->
+    <view class="tags-area" wx:if="{{recommendationPreferencesEnabled}}">
+      <view class="filter-header">
+        <text class="tags-label">快捷筛选</text>
+        <text class="filter-more" bindtap="onOpenRecommendationFilter">更多筛选{{filterCount > 0 ? ' (' + filterCount + ')' : ''}}</text>
+      </view>
       <view class="tag-group">
-        <view class="hot-tag {{activeTag === 'home' ? 'active' : ''}}" bindtap="onTagTap" data-tag="home">
-          🏠 家常菜
+        <view
+          class="hot-tag {{item.selected ? 'active' : ''}}"
+          wx:for="{{homeQuickOptions}}"
+          wx:key="id"
+          bindtap="onQuickFilterTap"
+          data-id="{{item.id}}"
+        >
+          <text>{{item.label}}</text>
+          <text class="selected-mark" wx:if="{{item.selected}}">✓</text>
         </view>
-        <view class="hot-tag {{activeTag === 'quick' ? 'active' : ''}}" bindtap="onTagTap" data-tag="quick">
-          ⚡ 快手菜
-        </view>
-        <view class="hot-tag {{activeTag === 'diet' ? 'active' : ''}}" bindtap="onTagTap" data-tag="diet">
-          🥗 减脂餐
-        </view>
+      </view>
+      <view class="preference-toggle-row">
+        <text>使用我的偏好</text>
+        <switch checked="{{useSavedPreferences}}" bindchange="onUseSavedPreferencesChange" color="#16865f" />
+      </view>
+      <view class="filter-feedback" wx:if="{{filterCount > 0}}">
+        <text class="filter-summary">当前：{{filterSummary}}</text>
+        <text class="filter-clear" bindtap="onClearFilters">清除</text>
       </view>
     </view>
 

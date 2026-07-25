@@ -1,37 +1,65 @@
 <view class="settings-page">
+  <view class="sync-row">
+    <text class="sync-dot {{synced ? 'online' : 'offline'}}"></text>
+    <text>{{statusText}}</text>
+  </view>
+
+  <view class="section" wx:if="{{!featureEnabled}}">
+    <view class="section-title">个性化推荐已暂停</view>
+    <view class="section-desc">当前版本仍可使用基础推荐，偏好数据会保留。</view>
+  </view>
+
+  <block wx:else>
   <view class="section">
-    <view class="section-title">🥗 健康偏好</view>
-    <view class="pref-item">
-      <view class="pref-info">
-        <text class="pref-name">低卡路里优先</text>
-        <text class="pref-desc">推荐更多低热量的菜品</text>
-      </view>
-      <switch
-        checked="{{preferences.lowCalorie}}"
-        data-field="lowCalorie"
-        bindchange="onToggle"
-        color="#07c160"
-      />
+    <view class="section-title">偏好菜系</view>
+    <view class="section-desc">这是推荐加分项，不会排除其他菜系。</view>
+    <view class="chip-grid">
+      <view class="choice-chip {{item.selected ? 'selected' : ''}}" wx:for="{{cuisineOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCuisineTap">{{item.label}}</view>
     </view>
   </view>
 
   <view class="section">
-    <view class="section-title">🍳 菜系偏好</view>
-    <view class="section-desc">勾选喜爱的菜系，推荐时该菜系的菜品会更多出现</view>
-    <view class="pref-item" wx:for="{{['preferChuan','preferYue','preferLu','preferHuaiyang','preferZhe','preferHu']}}" wx:key="*this">
-      <view class="pref-info">
-        <text class="pref-name">{{cuisineLabels[item]}}</text>
-      </view>
-      <switch
-        checked="{{preferences[item]}}"
-        data-field="{{item}}"
-        bindchange="onToggle"
-        color="#07c160"
-      />
+    <view class="section-title">喜欢的标签</view>
+    <view class="section-desc">选中的口味、场景和做法会优先出现。</view>
+    <view class="chip-grid">
+      <view class="choice-chip {{item.preferred ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onPreferredTagTap">{{item.label}}</view>
     </view>
   </view>
 
-  <view class="tip">
-    <text>设置自动保存，下次推荐时生效</text>
+  <view class="section">
+    <view class="section-title">不想看到的标签</view>
+    <view class="section-desc">这里是硬性排除，会覆盖上面的喜欢设置。</view>
+    <view class="chip-grid">
+      <view class="choice-chip danger {{item.excluded ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onExcludedTagTap">{{item.label}}</view>
+    </view>
   </view>
+
+  <view class="section">
+    <view class="section-title">忌口食材</view>
+    <view class="ingredient-row">
+      <input class="ingredient-input" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
+      <button class="add-btn" bindtap="onAddIngredient">添加</button>
+    </view>
+    <view class="chip-grid top-gap" wx:if="{{preferences.excludedIngredients.length}}">
+      <view class="ingredient-chip" wx:for="{{preferences.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">避免近期重复</view>
+    <view class="chip-grid">
+      <view class="choice-chip {{preferences.avoidRecentDays === item ? 'selected' : ''}}" wx:for="{{dayOptions}}" wx:key="*this" data-value="{{item}}" bindtap="onDayTap">{{item === 0 ? '关闭' : item + '天'}}</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">默认最长用时</view>
+    <view class="section-desc">作为长期限制，即使临时关闭偏好加权也会保留。</view>
+    <view class="chip-grid">
+      <view class="choice-chip {{(item === null && !preferences.maxCookMinutes) || preferences.maxCookMinutes === item ? 'selected' : ''}}" wx:for="{{durationOptions}}" wx:key="*this" data-value="{{item === null ? 'none' : item}}" bindtap="onDurationTap">{{item === null ? '不限' : item + '分钟'}}</view>
+    </view>
+  </view>
+
+  <button class="save-btn" bindtap="onSave" disabled="{{loading}}">{{dirty ? '保存偏好' : '再次保存'}}</button>
+  </block>
 </view>

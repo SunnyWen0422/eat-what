@@ -29,28 +29,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/dishes/**",
                         "/recommend/**",
                         "/recipe-records/**",
-                        "/favorites/**",
                         "/favorite-dishes/**",
-                        "/shopping-list/**",
                         "/admin/**",
-                        "/chat/**",
-                        "/api/users/**",
-                        "/api/dishes/**",
-                        "/api/recommend/**",
-                        "/api/recipe-records/**",
-                        "/api/favorites/**",
-                        "/api/favorite-dishes/**",
-                        "/api/shopping-list/**",
-                        "/api/admin/**",
-                        "/api/chat/**"
+                        "/chat/**"
                 )
                 .excludePathPatterns(
                         "/users/login",
-                        "/users/phone-login",
-                        "/api/users/login",
-                        "/api/users/phone-login",
-                        "/chat/**",
-                        "/api/chat/**"
+                        "/users/phone-login"
                 );
     }
 }

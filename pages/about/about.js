@@ -1,7 +1,7 @@
 // pages/about/about.js
 Page({
   data: {
-    version: '3.0.0'
+    version: '3.2.0'
   },
 
   onLoad() {
@@ -9,7 +9,7 @@ Page({
     try {
       const accountInfo = wx.getAccountInfoSync()
       this.setData({
-        version: accountInfo.miniProgram.version || '3.0.0'
+        version: accountInfo.miniProgram.version || '3.2.0'
       })
     } catch (e) {
       // 开发环境可能无法获取版本号

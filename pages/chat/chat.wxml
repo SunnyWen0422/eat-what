@@ -37,7 +37,7 @@
   <view class="quick-bar">
     <text class="quick-btn" bindtap="onQuick" data-kw="推荐今天的晚餐">🍳 今晚吃什么</text>
     <text class="quick-btn" bindtap="onQuick" data-kw="家里有鸡蛋番茄能做什么菜">🥬 看看冰箱</text>
-    <text class="quick-btn" bindtap="onQuick" data-kw="推荐几道低热量的菜">🥗 低卡推荐</text>
+    <text class="quick-btn" bindtap="onQuick" data-kw="推荐几道清淡的菜">🥗 清淡推荐</text>
     <text class="quick-btn" bindtap="onQuick" data-kw="帮我搭配三菜一汤">📋 搭配一桌</text>
     <text class="quick-btn" bindtap="onQuick" data-kw="红烧排骨怎么做">📖 查做法</text>
   </view>

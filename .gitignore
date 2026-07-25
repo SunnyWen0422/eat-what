@@ -16,16 +16,25 @@ node_modules/
 
 # Backend Java
 backend/target/
+.java-classpath-test-*/
 *.class
 *.jar
 
 # Python
+.test-venv/
+.mysql-test-data/
+.coverage
+coverage.xml
+htmlcov/
 recommend-service/__pycache__/
 __pycache__/
 *.pyc
 *.pyo
 .env
 recommend-service/.env
+recommend-service/chat_memory.json
+recommend-service/dish_meta.json
+recommend-service/ingredient_map.json
 
 # IDE
 .vscode/

@@ -1,6 +1,5 @@
 """FastAPI 入口 - 菜谱推荐服务"""
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Any
 from fastapi.responses import StreamingResponse
@@ -12,15 +11,6 @@ app = FastAPI(
     description="基于 LangGraph + 通义千问的健康饮食搭配推荐",
     version="1.0.0",
 )
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 class RecommendRequest(BaseModel):
     people: Optional[int] = 2
@@ -91,6 +81,9 @@ async def chat_sync(req: ChatSyncRequest):
     """非流式版本"""
     result = chat_handler.chat(req.message, req.user_id or "guest")
     if isinstance(result, dict):
-        return {"reply": result.get("reply",""), "dishes": result.get("dishes",[]), "success": True}
+        response = {"reply": result.get("reply",""), "dishes": result.get("dishes",[]), "success": True}
+        if result.get("action"):
+            response["action"] = result["action"]
+        return response
     else:
         return {"reply": str(result), "dishes": [], "success": True}

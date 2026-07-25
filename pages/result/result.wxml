@@ -1,6 +1,10 @@
 <view class="result-page">
   <!-- 骨架屏加载 -->
   <view wx:if="{{loading}}" class="skeleton-wrap">
+    <view class="generation-status">
+      <text class="generation-status-title">{{loadingStage}}</text>
+      <text class="generation-status-subtitle">正在为你准备合适的方案</text>
+    </view>
     <view class="skeleton-plan" wx:for="{{[1,2,3]}}" wx:key="*this">
       <view class="skeleton-dish" wx:for="{{[1,2,3,4]}}" wx:for-item="n" wx:key="n">
         <view class="skeleton-img shimmer"></view>
@@ -13,19 +17,27 @@
   <view wx:elif="{{empty}}" class="empty-state">
     <view class="empty-illustration">🍽️</view>
     <text class="empty-title">暂无推荐菜品</text>
-    <text class="empty-desc">请调整菜品种类数量后重试</text>
+    <text class="empty-desc" wx:if="{{warnings.length === 0}}">请调整菜品种类数量后重试</text>
+    <text class="context-warning empty-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
     <button class="empty-btn" bindtap="onRegenerate">重新生成</button>
   </view>
 
   <!-- 正常结果 -->
-  <view wx:else>
+  <view wx:else class="results-content">
+    <view wx:if="{{refreshing}}" class="generation-banner busy">{{loadingStage}}</view>
+    <view wx:elif="{{generationNotice}}" class="generation-banner notice">{{generationNotice}}</view>
+    <view class="recommend-context" wx:if="{{filterSummary || warnings.length}}">
+      <text class="context-summary" wx:if="{{filterSummary}}">已按 {{filterSummary}} 推荐</text>
+      <text class="context-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
+    </view>
     <swiper class="plan-swiper" indicator-dots="true" autoplay="false" circular="false" duration="300" current="{{current}}">
       <block wx:for="{{plans}}" wx:key="index" wx:for-index="planIndex">
         <swiper-item>
           <scroll-view class="dish-scroll" scroll-y>
             <view class="plan-label">方案 {{planIndex + 1}} / {{plans.length}}</view>
             <view class="dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
-                <image class="dish-img" src="{{item.image}}" mode="aspectFill" lazy-load binderror="onImgError" data-index="{{dishIndex}}" />
+                <image wx:if="{{item.image}}" class="dish-img" src="{{item.image}}" mode="aspectFill" lazy-load binderror="onImgError" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}" />
+                <view wx:else class="dish-img dish-img-placeholder">🍽️</view>
                 <!-- 信息区 -->
                 <view class="dish-body">
                   <view class="dish-top">
@@ -58,7 +70,7 @@
     <!-- 操作栏 -->
     <view class="bottom-actions">
       <button class="act-btn act-back" bindtap="onBack">返回</button>
-      <button class="act-btn act-regen" bindtap="onRegenerate">重新生成</button>
+      <button class="act-btn act-regen" loading="{{refreshing}}" disabled="{{refreshing}}" bindtap="onRegenerate">重新生成</button>
       <button class="act-btn act-save" bindtap="onSelectForMeal">选择此方案</button>
     </view>
   </view>

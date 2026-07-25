@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,6 +17,8 @@ import java.util.List;
  */
 @Data
 public class RecipeRecord {
+
+    private static final Logger log = LoggerFactory.getLogger(RecipeRecord.class);
 
     @JsonProperty("id")
     private Long id;
@@ -70,11 +75,26 @@ public class RecipeRecord {
 
         try {
             if (dishIdsString != null && !dishIdsString.isEmpty()) {
-                this.dishIds = mapper.readValue(dishIdsString, new TypeReference<List<Long>>(){});
+                JsonNode root = mapper.readTree(dishIdsString);
+                List<Long> parsed = new ArrayList<>();
+                if (root.isArray()) {
+                    for (JsonNode item : root) {
+                        if (item.isIntegralNumber()) {
+                            parsed.add(item.longValue());
+                        } else if (item.isTextual()) {
+                            try {
+                                parsed.add(Long.parseLong(item.asText().trim()));
+                            } catch (NumberFormatException ignored) {
+                                log.warn("Skipping malformed legacy dish ID in recipe record {}", id);
+                            }
+                        }
+                    }
+                }
+                this.dishIds = parsed;
                 return this.dishIds;
             }
-        } catch (Exception ignored) {
-            // 解析失败时返回空列表
+        } catch (Exception error) {
+            log.warn("Skipping malformed legacy dish ID list in recipe record {}", id);
         }
         this.dishIds = new ArrayList<>();
         return this.dishIds;

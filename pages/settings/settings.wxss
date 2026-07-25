@@ -1,62 +1,17 @@
-.settings-page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding: 16px;
-}
-
-.section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.section-title {
-  font-size: 17px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.section-desc {
-  font-size: 13px;
-  color: #999;
-  margin-bottom: 12px;
-}
-
-.pref-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.pref-item:last-child {
-  border-bottom: none;
-}
-
-.pref-info {
-  flex: 1;
-  margin-right: 12px;
-}
-
-.pref-name {
-  font-size: 16px;
-  color: #333;
-  display: block;
-}
-
-.pref-desc {
-  font-size: 12px;
-  color: #999;
-  display: block;
-  margin-top: 2px;
-}
-
-.tip {
-  text-align: center;
-  padding: 20px;
-  font-size: 12px;
-  color: #ccc;
-}
+.settings-page { min-height: 100vh; box-sizing: border-box; padding: 16px 16px 32px; background: #f5f7f6; color: #202824; }
+.sync-row { display: flex; align-items: center; gap: 7px; margin-bottom: 14px; color: #65716b; font-size: 12px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #c08a24; }
+.sync-dot.online { background: #16865f; }
+.section { padding: 17px 0; border-bottom: 1px solid #dde3e0; }
+.section-title { margin-bottom: 5px; font-size: 16px; font-weight: 700; }
+.section-desc { margin-bottom: 12px; color: #7a8580; font-size: 12px; line-height: 1.5; }
+.chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice-chip { min-width: 66px; box-sizing: border-box; padding: 9px 12px; border: 1px solid #d5dcd8; border-radius: 6px; background: #fff; color: #53605a; text-align: center; font-size: 13px; }
+.choice-chip.selected { border-color: #16865f; background: #e8f5ef; color: #116747; font-weight: 600; }
+.choice-chip.danger.selected { border-color: #bd5143; background: #fff0ed; color: #9b3529; }
+.ingredient-row { display: flex; gap: 8px; }
+.ingredient-input { min-width: 0; flex: 1; height: 42px; box-sizing: border-box; padding: 0 12px; border: 1px solid #d5dcd8; border-radius: 6px; background: #fff; font-size: 14px; }
+.add-btn { width: 76px; height: 42px; line-height: 42px; padding: 0; border-radius: 6px; background: #e8f5ef; color: #137a55; font-size: 14px; }
+.top-gap { margin-top: 10px; }
+.ingredient-chip { padding: 7px 10px; border-radius: 5px; background: #fff0ed; color: #a33e31; font-size: 12px; }
+.save-btn { margin-top: 24px; height: 46px; line-height: 46px; border-radius: 6px; background: #16865f; color: #fff; font-size: 15px; font-weight: 600; }

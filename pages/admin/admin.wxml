@@ -1,45 +1,175 @@
-<view class="page">
-  <!-- 用户列表 -->
-  <view wx:if="{{!selectedUser}}">
-    <view class="title">用户管理 ({{users.length}})</view>
-    <view class="loading" wx:if="{{loading}}">加载中...</view>
-    <view class="user-item" wx:for="{{users}}" wx:key="id" bindtap="onSelectUser" data-id="{{item.id}}">
-      <text class="u-name">{{item.nickname || item.phone || '未命名'}}</text>
-      <text class="u-info">ID:{{item.id}} | {{item.phone||'无手机'}} | 菜谱:{{item.customCount}}</text>
-      <text class="u-arrow">›</text>
+<view class="admin-page">
+  <view wx:if="{{mode === 'list'}}" class="list-page">
+    <view class="page-heading">
+      <view>
+        <text class="page-title">用户管理</text>
+        <text class="page-count">{{total}} 位用户</text>
+      </view>
+    </view>
+
+    <view class="search-bar">
+      <view class="search-field">
+        <input
+          class="search-input"
+          value="{{searchInput}}"
+          placeholder="搜索昵称、手机号或用户ID"
+          confirm-type="search"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchSubmit"
+        />
+        <button wx:if="{{searchInput}}" class="clear-button" bindtap="onClearSearch" aria-label="清空搜索">×</button>
+      </view>
+      <button class="search-button" loading="{{loading || refreshing}}" bindtap="onSearchSubmit">搜索</button>
+    </view>
+
+    <view wx:if="{{displayedKeyword}}" class="result-note">“{{displayedKeyword}}”的搜索结果</view>
+    <view wx:if="{{refreshing}}" class="feedback-banner busy">{{keyword ? '正在搜索“' + keyword + '”…' : '正在更新用户列表…'}}</view>
+    <view wx:elif="{{listNotice}}" class="feedback-banner warning">{{listNotice}}</view>
+
+    <view wx:if="{{loading && !listReady}}" class="state-block">
+      <view class="loading-line"></view>
+      <view class="loading-line short"></view>
+    </view>
+    <view wx:elif="{{listError && !listReady}}" class="state-block">
+      <text class="state-title">{{listError}}</text>
+      <button class="state-button" bindtap="onRetryList">重新加载</button>
+    </view>
+    <view wx:elif="{{listReady && users.length === 0}}" class="state-block">
+      <text class="state-title">{{displayedKeyword ? '没有匹配的用户' : '暂无用户'}}</text>
+    </view>
+    <view wx:else class="user-list">
+      <view class="user-card" wx:for="{{users}}" wx:key="id" bindtap="onSelectUser" data-id="{{item.id}}">
+        <view class="user-main">
+          <view class="user-title-row">
+            <text class="user-name">{{item.displayName}}</text>
+            <text class="status-badge {{item.status === 0 ? 'disabled' : 'active'}}">{{item.status === 0 ? '已停用' : '正常'}}</text>
+          </view>
+          <text class="user-meta">ID {{item.id}} · {{item.phone || '未绑定手机号'}}</text>
+          <text class="user-meta">注册 {{item.registerDate}} · 菜品 {{item.customCount}}</text>
+        </view>
+        <text class="row-arrow">›</text>
+      </view>
+      <button wx:if="{{hasMore}}" class="load-more" loading="{{loadingMore}}" disabled="{{loadingMore}}" bindtap="onLoadMore">
+        {{loadingMore ? '加载中' : '加载更多'}}
+      </button>
+      <view wx:else class="list-end">已显示全部用户</view>
     </view>
   </view>
 
-  <!-- 用户详情 -->
-  <view wx:else>
-    <view class="bar">
-      <text class="bar-btn" bindtap="onBack">← 返回</text>
-      <text class="bar-btn" bindtap="onShowAdd">+ 添加菜谱</text>
+  <view wx:elif="{{mode === 'detail'}}" class="detail-page">
+    <view class="page-nav">
+      <button class="nav-icon" bindtap="onBack" aria-label="返回用户列表">‹</button>
+      <text class="nav-title">用户详情</text>
+      <view class="nav-spacer"></view>
     </view>
-    <view class="u-detail">
-      <text class="u-title">{{selectedUser.nickname||'未命名'}} (ID:{{selectedUser.id}})</text>
-      <text class="u-sub">📱 {{selectedUser.phone||'未绑定'}} | 🕐 {{selectedUser.registerTime}}</text>
+
+    <view wx:if="{{detailRefreshing}}" class="feedback-banner busy">正在刷新用户内容…</view>
+    <view wx:elif="{{detailNotice}}" class="feedback-banner warning">{{detailNotice}}</view>
+
+    <view wx:if="{{detailLoading && !detailReady}}" class="state-block"><text class="state-title">加载中</text></view>
+    <view wx:elif="{{detailError && !detailReady}}" class="state-block">
+      <text class="state-title">{{detailError}}</text>
+      <button class="state-button" bindtap="onRetryDetail">重新加载</button>
     </view>
-    <view class="dish-list">
-      <view class="d-item" wx:for="{{userDishes}}" wx:key="id">
-        <text class="d-name">{{item.name}}</text>
-        <text class="d-remove" data-id="{{item.id}}" bindtap="onDeleteDish">删除</text>
+    <block wx:elif="{{detailReady}}">
+      <view class="user-summary">
+        <view class="summary-title-row">
+          <text class="summary-title">{{selectedUser.displayName}}</text>
+          <text class="status-badge {{selectedUser.status === 0 ? 'disabled' : 'active'}}">{{selectedUser.status === 0 ? '已停用' : '正常'}}</text>
+        </view>
+        <text class="summary-line">用户 ID：{{selectedUser.id}}</text>
+        <text class="summary-line">手机号：{{selectedUser.phone || '未绑定'}}</text>
+        <text class="summary-line">注册日期：{{selectedUser.registerDate}}</text>
+        <text class="summary-line">最近登录：{{selectedUser.lastLoginDate}}</text>
       </view>
-      <view wx:if="{{userDishes.length===0}}" class="empty">暂无自定义菜谱</view>
-    </view>
+
+      <view class="section-heading">
+        <text class="section-title">用户菜品</text>
+        <text class="section-count">{{userDishes.length}}</text>
+      </view>
+      <view wx:if="{{userDishes.length === 0}}" class="state-block compact">
+        <text class="state-title">该用户还没有自定义菜品</text>
+      </view>
+      <view wx:else class="dish-list">
+        <view class="dish-card" wx:for="{{userDishes}}" wx:key="id">
+          <view class="dish-content">
+            <text class="dish-name">{{item.name}}</text>
+            <text class="dish-meta">{{item.typeLabel}}{{item.cuisineLabel ? ' · ' + item.cuisineLabel : ''}}{{item.cookMinutes ? ' · ' + item.cookMinutes + '分钟' : ''}}</text>
+            <text wx:if="{{item.tagLabel}}" class="dish-tags">{{item.tagLabel}}</text>
+          </view>
+          <button class="delete-button" data-id="{{item.id}}" loading="{{deletingDishId === item.id}}" disabled="{{deletingDishId !== null}}" catchtap="onDeleteDish">删除</button>
+        </view>
+      </view>
+
+      <view class="action-bar">
+        <button class="primary-action" bindtap="onShowAdd">＋ 添加菜品</button>
+      </view>
+    </block>
   </view>
 
-  <!-- 添加菜谱弹层 -->
-  <view class="modal" wx:if="{{showAddForm}}">
-    <view class="modal-box">
-      <text class="modal-title">添加菜谱</text>
-      <input class="inp" placeholder="菜名" value="{{newDish.name}}" data-field="name" bindinput="onDishInput"/>
-      <textarea class="inp" placeholder="用料(每行一个)" value="{{newDish.cl}}" data-field="cl" bindinput="onDishInput"/>
-      <textarea class="inp" placeholder="做法" value="{{newDish.step}}" data-field="step" bindinput="onDishInput"/>
-      <view class="modal-btns">
-        <button class="btn-cancel" bindtap="onCancelAdd">取消</button>
-        <button class="btn-save" bindtap="onSaveDish">保存</button>
+  <view wx:elif="{{mode === 'form'}}" class="form-page">
+    <view class="page-nav">
+      <button class="nav-icon" bindtap="onCancelAdd" disabled="{{saving}}" aria-label="返回用户详情">‹</button>
+      <text class="nav-title">添加菜品</text>
+      <view class="nav-spacer"></view>
+    </view>
+
+    <view class="target-user">
+      <text class="target-label">添加给</text>
+      <text class="target-name">{{selectedUser.displayName}} · ID {{selectedUser.id}}</text>
+    </view>
+
+    <view class="form-section">
+      <text class="field-label">菜名</text>
+      <input class="field-input" maxlength="255" value="{{newDish.name}}" data-field="name" bindinput="onDishInput" placeholder="输入菜品名称" />
+    </view>
+
+    <view class="form-section">
+      <text class="field-label">分类</text>
+      <view class="type-grid">
+        <button class="type-option {{newDish.type === item.code ? 'selected' : ''}}" wx:for="{{typeOptions}}" wx:key="code" data-type="{{item.code}}" bindtap="onTypeTap">{{item.label}}</button>
       </view>
+    </view>
+
+    <view class="form-section split-fields">
+      <view class="split-field">
+        <text class="field-label">菜系</text>
+        <picker mode="selector" range="{{cuisineOptions}}" range-key="label" value="{{cuisineIndex}}" bindchange="onCuisineChange">
+          <view class="picker-field">{{newDish.cuisineLabel}}<text>⌄</text></view>
+        </picker>
+      </view>
+      <view class="split-field">
+        <text class="field-label">烹饪时间</text>
+        <view class="number-field">
+          <input class="number-input" type="number" maxlength="3" value="{{newDish.cookMinutes}}" data-field="cookMinutes" bindinput="onDishInput" placeholder="可选" />
+          <text class="number-unit">分钟</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-section" wx:if="{{tagGroups.length}}">
+      <text class="field-label">标签</text>
+      <view class="tag-group" wx:for="{{tagGroups}}" wx:key="key" wx:for-item="group">
+        <text class="tag-group-label">{{group.label}}</text>
+        <view class="tag-list">
+          <button class="tag-chip {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-code="{{item.code}}" bindtap="onTagTap">{{item.label}}</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-section">
+      <text class="field-label">食材用量</text>
+      <textarea class="field-textarea" maxlength="10000" auto-height value="{{newDish.ingredients}}" data-field="ingredients" bindinput="onDishInput" placeholder="输入食材和用量" />
+    </view>
+
+    <view class="form-section">
+      <text class="field-label">烹饪步骤</text>
+      <textarea class="field-textarea steps" maxlength="20000" auto-height value="{{newDish.steps}}" data-field="steps" bindinput="onDishInput" placeholder="输入烹饪步骤" />
+    </view>
+
+    <view class="action-bar dual-actions">
+      <button class="secondary-action" bindtap="onCancelAdd" disabled="{{saving}}">取消</button>
+      <button class="primary-action" bindtap="onSaveDish" loading="{{saving}}" disabled="{{saving}}">保存菜品</button>
     </view>
   </view>
 </view>

@@ -29,8 +29,22 @@ wechat:
     appid: ${WECHAT_APPID:change-me}
     secret: ${WECHAT_SECRET:change-me}
 
+recommend:
+  service:
+    base-url: ${RECOMMEND_SERVICE_BASE_URL:http://127.0.0.1:8000}
+recommendation:
+  preferences:
+    enabled: ${RECOMMENDATION_PREFERENCES_ENABLED:true}
+
+security:
+  token:
+    secret: ${TOKEN_SECRET:change-me-in-production}
+    ttl-millis: ${TOKEN_TTL_MILLIS:2592000000}
+
+admin:
+  user-ids: ${ADMIN_USER_IDS:}
+
 logging:
   level:
     com.eatwhat: info
     org.springframework.web: info
-

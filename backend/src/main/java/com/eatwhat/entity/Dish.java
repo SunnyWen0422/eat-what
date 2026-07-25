@@ -31,6 +31,18 @@ public class Dish {
     @JsonProperty("tags")
     private String tags;  // 标签，逗号分隔
 
+    @JsonProperty("cuisineCode")
+    private String cuisineCode;
+
+    @JsonProperty("tagCodes")
+    private String tagCodes;
+
+    @JsonProperty("cookMinutes")
+    private Integer cookMinutes;
+
+    @JsonProperty("metadataVersion")
+    private Integer metadataVersion;
+
     @JsonProperty("image")
     private String image;  // 菜品图片URL
 

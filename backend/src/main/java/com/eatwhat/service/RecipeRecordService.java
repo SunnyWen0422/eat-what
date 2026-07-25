@@ -4,7 +4,6 @@ import com.eatwhat.dto.StatisticsDTO;
 import com.eatwhat.entity.Dish;
 import com.eatwhat.entity.RecipeRecord;
 import com.eatwhat.mapper.RecipeRecordMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,11 +14,13 @@ import java.util.stream.Collectors;
 @Service
 public class RecipeRecordService {
 
-    @Autowired
-    private RecipeRecordMapper recipeRecordMapper;
+    private final RecipeRecordMapper recipeRecordMapper;
+    private final DishQueryService dishQueryService;
 
-    @Autowired
-    private DishService dishService;
+    public RecipeRecordService(RecipeRecordMapper recipeRecordMapper, DishQueryService dishQueryService) {
+        this.recipeRecordMapper = recipeRecordMapper;
+        this.dishQueryService = dishQueryService;
+    }
 
     /**
      * 保存菜谱记录
@@ -48,7 +49,7 @@ public class RecipeRecordService {
         }
 
         if (!allDishIds.isEmpty()) {
-            List<Dish> dishes = dishService.getDishesByIds(new ArrayList<>(allDishIds));
+            List<Dish> dishes = dishQueryService.getDishesByIds(new ArrayList<>(allDishIds));
             Map<Long, String> dishNameMap = dishes.stream()
                     .collect(Collectors.toMap(Dish::getId, Dish::getName));
 
@@ -79,6 +80,22 @@ public class RecipeRecordService {
      */
     public List<Date> getRecordDatesInRange(Long userId, Date startDate, Date endDate) {
         return recipeRecordMapper.selectRecordDatesByUserAndRange(userId, startDate, endDate);
+    }
+
+    public Set<Long> getRecentDishIds(Long userId, int days) {
+        if (userId == null || days <= 0) return Collections.emptySet();
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -Math.min(30, days));
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        List<RecipeRecord> records = recipeRecordMapper.selectRecordsByUserAndRange(userId, calendar.getTime(), new Date());
+        Set<Long> ids = new HashSet<>();
+        for (RecipeRecord record : records) {
+            if (record.getDishIds() != null) ids.addAll(record.getDishIds());
+        }
+        return ids;
     }
 
     /**
@@ -130,7 +147,7 @@ public class RecipeRecordService {
         }
 
         // 批量获取菜品信息
-        List<Dish> dishes = dishService.getDishesByIds(new ArrayList<>(allDishIds));
+        List<Dish> dishes = dishQueryService.getDishesByIds(new ArrayList<>(allDishIds));
         Map<Long, Dish> dishMap = dishes.stream()
                 .collect(Collectors.toMap(Dish::getId, dish -> dish));
 

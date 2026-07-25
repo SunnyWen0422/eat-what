@@ -1,18 +1,33 @@
-const { recommendPlans, getAllDishes } = require('../../utils/recommend')
 const { saveRecipeRecord, getRecipeRecordsByDate, batchCheckFavoriteDishes, addFavoriteDish, removeFavoriteDish } = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
+const { getAllDishes } = require('../../utils/recommend')
+const recommendationFlow = require('../../utils/recommendation-flow')
+const { criteriaSummary } = require('../../utils/recommendation-criteria')
+const { filterAndRankDishes } = require('../../utils/recommendation-matcher')
+const { createPreferenceStore } = require('../../utils/preference-store')
 
 Page({
   data: {
     loading: true,
+    refreshing: false,
+    loadingStage: '',
+    generationNotice: '',
     empty: false,
     plans: [],
     params: null,
-    current: 0
+    current: 0,
+    warnings: [],
+    filterSummary: ''
   },
 
   // 不在 data 中存储 allDishes，避免 setData 传输大量数据
   allDishes: [],
+  generationVersion: 0,
+  generationInFlight: false,
+  generationTimeoutMs: 8000,
+  filteringStageDelayMs: 800,
+  fallbackStageDelayMs: 2500,
+  generationStageTimers: [],
 
   onLoad(query) {
     const params = query && query.params ? JSON.parse(decodeURIComponent(query.params)) : null
@@ -35,153 +50,134 @@ Page({
     this.checkSelectedDateFromCalendar()
   },
 
+  onUnload() {
+    this.generationVersion += 1
+    this.generationInFlight = false
+    this.clearGenerationStageTimers()
+  },
+
   async generatePlans() {
+    if (this.generationInFlight) {
+      wx.showToast({ title: '正在生成新方案', icon: 'none' })
+      return false
+    }
     wx.vibrateShort({ type: 'light' })
-
-    console.log('🚀 开始生成推荐方案，参数:', this.data.params)
-
-    // 优先检查全局缓存，如果存在则立即使用缓存生成推荐（秒开效果）
-    const app = getApp()
-    const hasCache = app && app.globalData && app.globalData.allDishes && app.globalData.allDishes.length > 0
-
-    if (hasCache) {
-      console.log('📦 使用缓存数据快速生成推荐')
-      this.setData({ loading: false, empty: false })
-
-      // 立即使用缓存数据生成推荐（不等待后端）
-      const { recommendPlans } = require('../../utils/recommend')
-      const plans = await recommendPlans(this.data.params, app.globalData.allDishes)
-      console.log('✅ 本地推荐方案（缓存）:', plans)
-
-      if (plans && plans.length > 0) {
-        this.setData({ plans, loading: false })
-        this.checkFavoriteStatus()
-
-        // 后台异步调用后端推荐，成功后更新（静默刷新）
-        this._tryBackendRecommendationSilently()
-        return
-      }
-    }
-
-    // 无缓存，显示loading并执行完整流程
-    this.setData({ loading: true, empty: false })
-
+    const hasExistingPlans = Array.isArray(this.data.plans) && this.data.plans.length > 0
+    const generationVersion = ++this.generationVersion
+    this.generationInFlight = true
+    this.startGenerationStageFeedback(generationVersion)
+    this.setData({
+      loading: !hasExistingPlans,
+      refreshing: hasExistingPlans,
+      loadingStage: '正在分析你的偏好',
+      generationNotice: '',
+      empty: false,
+    })
+    let timeoutId
     try {
-      // 第一步：优先调用后端直出推荐接口（最快路径）
-      const api = require('../../utils/api')
-      const result = await api.getRecommendations(this.data.params)
-      console.log('✅ 后端推荐结果:', result)
-
-      if (result && result.success && result.plans && result.plans.length > 0) {
-        // 后端返回的是 {dishes: [...]} 结构，转换为前端兼容格式
-        // 同时应用后端返回的 favoriteIds，无需二次网络请求
-        const favoriteSet = new Set(result.favoriteIds || []);
-        const plans = result.plans.map(plan => ({
-          dishes: (plan.dishes || []).map(dish => ({
-            id: dish.id,
-            name: dish.name,
-            type: dish.type,
-            tags: typeof dish.tags === 'string' && dish.tags
-              ? dish.tags.split(',').map(t => t.trim()).filter(Boolean)
-              : (dish.tags || []),
-            image: (dish.image || '').replace(/^http:/, 'https:'),
-            kcal: dish.kcal || null,
-            difficulty: dish.difficulty || '',
-            cookTime: dish.cookTime || '',
-            ingredientsAmounts: dish.ingredientsAmounts || '',
-            step: dish.step || '',
-            isFavorite: favoriteSet.has(dish.id)
-          }))
-        }))
-
-        console.log('🎯 后端推荐方案:', plans.length, '套')
-        this.setData({ plans, loading: false })
-        return
-      }
-    } catch (e) {
-      console.log('⚠️ 后端推荐失败，降级到本地算法:', e)
-    }
-
-    // 第二步：降级到本地推荐算法
-    try {
-      // 先尝试从全局缓存或本地存储获取菜品
-      let allDishes = null
-      const app = getApp()
-      if (app && app.globalData && app.globalData.allDishes) {
-        allDishes = app.globalData.allDishes
-        console.log('📦 使用全局缓存菜品:', allDishes.length, '条')
-      } else {
-        const cached = wx.getStorageSync('cachedAllDishes')
-        if (cached && cached.length > 0) {
-          allDishes = cached
-          console.log('📦 使用本地存储菜品:', allDishes.length, '条')
-        }
-      }
-
-      const { recommendPlans } = require('../../utils/recommend')
-      const plans = await recommendPlans(this.data.params, allDishes)
-      console.log('✅ 本地推荐方案:', plans)
-
-      if (!plans || plans.length === 0) {
-        console.log('⚠️ 无可用推荐方案')
-        this.setData({ loading: false, empty: true })
-        return
-      }
-
-      // 如果之前没缓存，补充获取完整菜品池用于刷新单个菜品
-      if (!this.allDishes || this.allDishes.length === 0) {
-        if (allDishes) {
-          this.allDishes = allDishes
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          const error = new Error('recommendation generation timed out')
+          error.code = 'GENERATION_TIMEOUT'
+          reject(error)
+        }, this.generationTimeoutMs)
+      })
+      const result = await Promise.race([
+        recommendationFlow.generateRecommendation(this.data.params),
+        timeout,
+      ])
+      if (generationVersion !== this.generationVersion) return false
+      const plans = result.plans || []
+      if (plans.length === 0) {
+        if (hasExistingPlans) {
+          this.setData({
+            loading: false,
+            refreshing: false,
+            empty: false,
+            generationNotice: '没有找到新方案，仍显示上次方案',
+            warnings: result.warnings || [],
+          })
         } else {
-          this.allDishes = await getAllDishes()
+          this.setData({ loading: false, empty: true, plans: [], warnings: result.warnings || [] })
         }
+        return false
       }
-
-      this.setData({ plans, loading: false })
-      this.checkFavoriteStatus()
-    } catch (e) {
-      console.error('❌ 生成推荐方案失败:', e)
-      this.setData({ loading: false, empty: true })
+      this.allDishes = result.dishPool || this.allDishes
+      this.setData({
+        plans,
+        current: 0,
+        loading: false,
+        refreshing: false,
+        empty: false,
+        warnings: result.warnings || [],
+        generationNotice: this.sourceNotice(result.source),
+        filterSummary: criteriaSummary(result.appliedCriteria || (this.data.params || {}).criteria || {}),
+      })
+      if (result.source !== 'backend') this.checkFavoriteStatus(generationVersion)
+      return true
+    } catch (error) {
+      if (generationVersion !== this.generationVersion) return false
+      if (hasExistingPlans) {
+        this.setData({
+          loading: false,
+          refreshing: false,
+          empty: false,
+          generationNotice: '生成失败，仍显示上次方案',
+        })
+      } else {
+        this.setData({
+          loading: false,
+          refreshing: false,
+          empty: true,
+          plans: [],
+          warnings: [error && error.code === 'GENERATION_TIMEOUT'
+            ? '生成推荐超时，请重试。'
+            : '推荐服务暂时不可用，请稍后重试。'],
+        })
+      }
+      return false
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (generationVersion === this.generationVersion) {
+        this.generationInFlight = false
+        this.clearGenerationStageTimers()
+        this.setData({ loading: false, refreshing: false, loadingStage: '' })
+      }
     }
   },
 
-  // 后台静默调用后端推荐，成功后更新方案（不阻塞用户）
-  async _tryBackendRecommendationSilently() {
-    try {
-      const api = require('../../utils/api')
-      const result = await api.requestSilent('/recommend', 'POST', this.data.params)
+  startGenerationStageFeedback(generationVersion) {
+    this.clearGenerationStageTimers()
+    this.generationStageTimers = [
+      setTimeout(() => {
+        if (generationVersion === this.generationVersion && this.generationInFlight) {
+          this.setData({ loadingStage: '正在筛选合适的菜品' })
+        }
+      }, this.filteringStageDelayMs),
+      setTimeout(() => {
+        if (generationVersion === this.generationVersion && this.generationInFlight) {
+          this.setData({ loadingStage: '网络较慢，正在准备本地方案' })
+        }
+      }, this.fallbackStageDelayMs),
+    ]
+  },
 
-      if (result && result.success && result.plans && result.plans.length > 0) {
-        const favoriteSet = new Set(result.favoriteIds || []);
-        const plans = result.plans.map(plan => ({
-          dishes: (plan.dishes || []).map(dish => ({
-            id: dish.id,
-            name: dish.name,
-            type: dish.type,
-            tags: typeof dish.tags === 'string' && dish.tags
-              ? dish.tags.split(',').map(t => t.trim()).filter(Boolean)
-              : (dish.tags || []),
-            image: (dish.image || '').replace(/^http:/, 'https:'),
-            kcal: dish.kcal || null,
-            difficulty: dish.difficulty || '',
-            cookTime: dish.cookTime || '',
-            ingredientsAmounts: dish.ingredientsAmounts || '',
-            step: dish.step || '',
-            isFavorite: favoriteSet.has(dish.id)
-          }))
-        }))
+  clearGenerationStageTimers() {
+    const timers = this.generationStageTimers || []
+    timers.forEach(timerId => clearTimeout(timerId))
+    this.generationStageTimers = []
+  },
 
-        console.log('✅ 后端推荐（后台）更新:', plans.length, '套')
-        this.setData({ plans })
-      }
-    } catch (e) {
-      console.log('⚠️ 后端推荐（后台）失败，保持本地推荐:', e)
-    }
+  sourceNotice(source) {
+    if (source === 'cache') return '网络较慢，已使用缓存菜品生成'
+    if (source === 'local') return '已使用本地菜品生成'
+    return ''
   },
 
   // 检查收藏状态
-  async checkFavoriteStatus() {
+  async checkFavoriteStatus(generationVersion = this.generationVersion) {
     try {
+      if (generationVersion !== this.generationVersion) return
       const { plans } = this.data
       // 收集所有菜品ID
       const allDishIds = []
@@ -195,6 +191,7 @@ Page({
 
       // 批量检查收藏状态
       const favoriteIds = await batchCheckFavoriteDishes(allDishIds)
+      if (generationVersion !== this.generationVersion) return
       const favoriteSet = new Set(favoriteIds)
 
       // 更新plans中的收藏状态
@@ -239,7 +236,7 @@ Page({
   },
 
   onRegenerate() {
-    this.generatePlans()
+    return this.generatePlans()
   },
 
   onBack() {
@@ -269,6 +266,15 @@ Page({
     })
   },
 
+  onImgError(e) {
+    const { planIndex, dishIndex } = e.currentTarget.dataset
+    if (planIndex === undefined || dishIndex === undefined) return
+
+    this.setData({
+      [`plans[${planIndex}].dishes[${dishIndex}].image`]: ''
+    })
+  },
+
   // 刷新当前方案中的某一道菜（不刷新整套方案）
   async onRefreshDish(e) {
     const planIndex = e.currentTarget.dataset.planIndex
@@ -282,6 +288,14 @@ Page({
     const targetDish = dishes[dishIndex]
     if (!targetDish) return
 
+    const params = this.data.params || {}
+    const recommendationOptions = {
+      criteria: params.criteria || {},
+      preferences: createPreferenceStore().readCache(),
+      useSavedPreferences: params.useSavedPreferences !== false,
+      recentNames: [],
+    }
+
     // 收集所有方案中已出现的菜品ID和菜名（排除当前要替换的那道）
     const excludeIds = []
     const usedNamesExceptTarget = new Set()
@@ -294,12 +308,13 @@ Page({
 
     const api = require('../../utils/api')
 
-    // 第一步：优先调用后端接口，从整体2万+数据中随机抽取一道
+    // 第一步：优先调用后端接口，从完整系统菜池中随机抽取一道
     try {
       const result = await api.getSingleRecommendation(targetDish.type, excludeIds)
       if (result && result.success && result.dish) {
         const backendDish = result.dish
-        if (!usedNamesExceptTarget.has(backendDish.name)) {
+        const eligibleBackendDish = filterAndRankDishes([backendDish], recommendationOptions)[0]
+        if (eligibleBackendDish && !usedNamesExceptTarget.has(backendDish.name)) {
           const newDish = {
             id: backendDish.id,
             name: backendDish.name,
@@ -311,6 +326,11 @@ Page({
             kcal: backendDish.kcal || null,
             difficulty: backendDish.difficulty || '',
             cookTime: backendDish.cookTime || '',
+            cookMinutes: backendDish.cookMinutes || null,
+            cuisineCode: backendDish.cuisineCode || '',
+            tagCodes: backendDish.tagCodes || '',
+            metadataVersion: backendDish.metadataVersion || 1,
+            cl: backendDish.cl || '',
             ingredientsAmounts: backendDish.ingredientsAmounts || '',
             step: backendDish.step || '',
             isFavorite: result.isFavorite || false
@@ -336,7 +356,8 @@ Page({
         this.allDishes = pool
       }
 
-      const sameTypePool = pool.filter(d => d.type === targetDish.type)
+      const sameTypePool = filterAndRankDishes(pool, recommendationOptions)
+        .filter(d => d.type === targetDish.type)
       const excludeNames = new Set(dishes.map(d => d.name))
       excludeNames.add(targetDish.name)
       const candidates = sameTypePool.filter(d => !excludeNames.has(d.name))

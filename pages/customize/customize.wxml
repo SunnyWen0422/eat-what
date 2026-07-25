@@ -36,6 +36,17 @@
         </view>
       </view>
 
+      <picker mode="selector" range="{{cuisineOptions}}" range-key="label" bindchange="onCustomCuisineChange">
+        <view class="form-input selector-input">菜系：{{customForm.cuisineLabel}}</view>
+      </picker>
+
+      <view class="custom-tag-title">推荐标签</view>
+      <view class="custom-tag-grid">
+        <view class="custom-tag {{item.selected ? 'selected' : ''}}" wx:for="{{customTagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCustomTagTap">{{item.label}}</view>
+      </view>
+
+      <input class="form-input" type="number" maxlength="3" placeholder="烹饪时长（分钟，可选）" value="{{customForm.cookMinutes}}" data-field="cookMinutes" bindinput="onCustomInput" />
+
       <textarea class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" bindinput="onCustomInput" rows="4" />
       <textarea class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" bindinput="onCustomInput" rows="6" />
       <button class="save-custom-btn" bindtap="onSaveCustomDish">保存菜品</button>
@@ -50,6 +61,31 @@
         <text class="hot-tag" bindtap="onQuickSearch" data-kw="糖醋">🔥 糖醋</text>
         <text class="hot-tag" bindtap="onQuickSearch" data-kw="麻辣">🔥 麻辣</text>
         <text class="hot-tag" bindtap="onQuickSearch" data-kw="凉拌">🔥 凉拌</text>
+      </view>
+      <view class="browse-filter-header">
+        <view class="browse-filter-command" bindtap="onToggleBrowseFilters">
+          <text>筛选{{browseFilterCount > 0 ? ' (' + browseFilterCount + ')' : ''}}</text>
+          <text class="browse-filter-arrow">{{showBrowseFilters ? '收起' : '展开'}}</text>
+        </view>
+        <text class="browse-filter-clear" wx:if="{{browseFilterCount > 0}}" bindtap="onClearBrowseFilters">清除</text>
+      </view>
+      <text class="browse-filter-summary" wx:if="{{browseFilterSummary}}">当前：{{browseFilterSummary}}</text>
+      <view class="browse-filter-panel" wx:if="{{showBrowseFilters}}">
+        <view class="browse-filter-group" wx:for="{{browseFilterGroups}}" wx:key="key" wx:for-item="group">
+          <text class="browse-filter-label">{{group.label}}</text>
+          <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
+            <view class="browse-filter-option {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-group="{{group.key}}" data-code="{{item.code}}" bindtap="onBrowseOptionTap">
+              <text>{{item.label}}</text>
+              <text class="browse-filter-count" wx:if="{{item.count}}">{{item.count}}</text>
+            </view>
+          </scroll-view>
+        </view>
+        <view class="browse-filter-group">
+          <text class="browse-filter-label">时长</text>
+          <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
+            <view class="browse-filter-option {{browseCriteria.maxCookMinutes === item.value ? 'selected' : ''}}" wx:for="{{browseDurationOptions}}" wx:key="key" data-value="{{item.key}}" bindtap="onBrowseDurationTap">{{item.label}}</view>
+          </scroll-view>
+        </view>
       </view>
     </view>
 

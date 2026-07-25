@@ -79,6 +79,36 @@
   border: 1rpx solid #C8E6C9;
 }
 
+.browse-filter-header,
+.browse-filter-command {
+  display: flex;
+  align-items: center;
+}
+.browse-filter-header { justify-content: space-between; margin-top: 10px; }
+.browse-filter-command { gap: 8px; color: #25322c; font-size: 13px; font-weight: 600; }
+.browse-filter-arrow,
+.browse-filter-clear { color: #16865f; font-size: 12px; font-weight: 400; }
+.browse-filter-summary { display: block; margin-top: 6px; color: #5d6862; font-size: 11px; line-height: 1.5; }
+.browse-filter-panel { margin-top: 10px; padding-top: 8px; border-top: 1px solid #edf0ee; }
+.browse-filter-group { margin-bottom: 9px; }
+.browse-filter-label { display: block; margin-bottom: 5px; color: #6b756f; font-size: 11px; }
+.browse-filter-options { width: 100%; white-space: nowrap; }
+.browse-filter-option {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  margin-right: 6px;
+  padding: 0 9px;
+  border: 1px solid #d8dfdb;
+  border-radius: 5px;
+  background: #fff;
+  color: #53605a;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+.browse-filter-option.selected { border-color: #16865f; background: #e8f5ef; color: #126947; font-weight: 600; }
+.browse-filter-count { margin-left: 4px; color: #87928c; font-size: 10px; }
+
 /* 菜品列表 */
 .dish-list {
   flex: 1;
@@ -399,3 +429,9 @@
   line-height: 44px;
   margin-top: 8px;
 }
+
+.selector-input { color: #4c5852; }
+.custom-tag-title { margin: 10px 0 8px; color: #5d6862; font-size: 13px; }
+.custom-tag-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.custom-tag { padding: 7px 9px; border: 1px solid #d8dfdb; border-radius: 5px; background: #fff; color: #65716b; font-size: 12px; }
+.custom-tag.selected { border-color: #16865f; background: #e8f5ef; color: #126947; font-weight: 600; }

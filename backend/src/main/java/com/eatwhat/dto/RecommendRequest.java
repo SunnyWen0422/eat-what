@@ -33,6 +33,12 @@ public class RecommendRequest {
     @JsonProperty("mealType")
     private String mealType = "lunch";
 
+    @JsonProperty("criteria")
+    private RecommendationCriteria criteria = new RecommendationCriteria();
+
+    @JsonProperty("useSavedPreferences")
+    private Boolean useSavedPreferences = true;
+
     @JsonProperty("userSelectedDishes")
     private List<Dish> userSelectedDishes;
 }
