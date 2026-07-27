@@ -6,14 +6,14 @@
 
 ## 1. 背景与问题
 
-当前用户可以保存菜谱和查看日历记录，但从菜谱到实际采购之间仍缺少一个轻量的执行工具。用户需要手动抄录食材，重复食材也无法合并，买完后没有清晰的完成状态。
+当前用户可以保存菜谱和查看日历记录，但从菜谱到实际采购之间仍缺少一个轻量的执行工具。用户需要手动抄录食材，且多道菜使用同名食材时容易丢失菜品来源和各自用量，买完后也没有清晰的完成状态。
 
 购物清单功能用于承接“推荐菜谱/已保存菜谱 -> 采购准备”这条链路。第一版只解决清单整理和同步，不扩展到电商、价格、库存或配送。
 
 ## 2. 产品目标
 
 1. 用户可以从一份或多份已保存菜谱快速生成购物清单。
-2. 相同或可规范化的食材可以合并，减少重复采购项。
+2. 食材必须按菜品分组展示，保留每道菜的独立用量和来源；同一道菜内才允许安全合并重复行。
 3. 用户可以在采购过程中快速勾选、取消、删除和清空项目。
 4. 登录用户的清单可以跨设备同步；网络异常时仍能查看和操作本地清单。
 5. 所有加载、保存、失败和离线状态都有即时反馈，不出现长时间空白或无限加载。
@@ -49,7 +49,7 @@
 - 从一份或多份菜谱提取食材。
 - 手动新增食材。
 - 编辑食材名称、数量和单位。
-- 合并重复食材。
+- 按菜品分组展示食材和用量；同一道菜内仅安全合并重复行。
 - 勾选/取消购买状态。
 - 删除单项、清空已完成项、清空全部项。
 - 按“待购买/已完成”查看。
@@ -72,8 +72,8 @@
 
 1. 用户在结果页、日历详情页或自定义菜谱详情点击“加入购物清单”。
 2. 前端提取菜谱食材，展示即将加入的项目预览。
-3. 系统按规范化名称合并当前清单中的同名食材。
-4. 页面立即更新清单，并显示“已加入 X 项，合并 Y 项”。
+3. 系统为每道菜建立独立清单分组，按该菜的目标人数计算其食材用量。
+4. 页面立即更新清单，并显示“已加入 X 道菜、Y 项食材”；不同菜品的同名食材不得合并。
 5. 登录状态下后台异步同步；同步失败时保留本地结果并提示“已保存到本机，稍后重试”。
 
 ### 5.2 采购勾选
@@ -111,8 +111,9 @@
 ### FR-02 从菜谱添加
 
 - 支持一次添加一份菜谱或一组餐次菜谱。
-- 默认使用菜谱中的食材原文；如果存在规范化名称，则使用规范化名称参与合并，保留原始文本用于展示或审计。
-- 同名且单位一致的项目合并数量。
+- 默认使用菜谱中的食材原文；如果存在规范化名称，则使用规范化名称用于同一道菜内的安全匹配，保留原始文本用于展示或审计。
+- 每道菜单独计算、单独展示食材；不同菜品即使规范化名称和单位相同也不得合并。
+- 同一道菜内只有名称、单位族和形态/处理方式兼容的重复行才允许合并。
 - 单位不同或数量无法安全相加时不强行换算，作为两条项目保留。
 - 重复点击同一菜谱的添加操作必须幂等，不重复增加相同来源的项目。
 - 添加前必须生成可审阅的食材预览，用户确认后才写入清单。
@@ -123,7 +124,7 @@
 - 食材名称必填，长度建议为 1-80 个字符。
 - 数量和单位可选，数量允许整数、小数或原始文本（如“适量”）。
 - 名称去除首尾空白；空名称、控制字符和超长内容不得提交。
-- 编辑后重新执行同名合并检查，但不得覆盖另一条不同单位的项目。
+- 编辑后只在当前菜品分组内重新执行合并检查，不得跨菜品合并，也不得覆盖另一条不同单位的项目。
 - 用户手动改过的数量、单位或名称必须记录为 `user_override`，不再被菜谱重新计算覆盖。
 
 ### FR-04 勾选与删除
@@ -155,7 +156,7 @@
 - 解析结果必须保留原始文本、规范化名称、数量类型、数值、单位和解析状态，便于审计和回放。
 - 数量类型至少包括：精确数值、数值范围、分数/混合数、定性用量（适量/少许）、未知。
 - 只允许在明确的同类单位族内换算：质量（克/千克）、体积（毫升/升）、计数（个/只/枚）。质量、体积和计数之间禁止自动互换。
-- 同一食材只有在规范化名称、单位族和形态/处理方式均兼容时才能合并。
+- 同一食材只有在同一菜品分组内，且规范化名称、单位族和形态/处理方式均兼容时才能合并；不同菜品永远不合并。
 - 精确数值按人数比例换算；范围按上下限分别换算；定性用量保留原文并提示用户调整；未知数量不得伪造数值。
 - 计数单位的计算结果可以是小数，但采购展示默认向上取整并显示“约”，同时保留精确计算值供用户修改。
 - 克、毫升等连续单位保留最多两位小数，去除无意义的尾随零；展示层不得改变服务端保存的精确值。
@@ -230,12 +231,38 @@ CREATE TABLE shopping_list (
 );
 ```
 
-### 7.4 `shopping_item`
+### 7.4 `shopping_dish`
+
+购物清单中的菜品分组。它是展示和来源隔离的边界，同一道菜的所有食材都挂在该分组下。
+
+```sql
+CREATE TABLE shopping_dish (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  list_id BIGINT NOT NULL,
+  selection_key VARCHAR(96) NOT NULL,
+  source_dish_id INT NOT NULL,
+  source_dish_name VARCHAR(255) NOT NULL,
+  source_recipe_id BIGINT NULL,
+  target_people DECIMAL(8,2) NOT NULL,
+  dish_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_shopping_dish_list
+    FOREIGN KEY (list_id) REFERENCES shopping_list(id),
+  UNIQUE KEY uk_shopping_dish_selection (list_id, selection_key),
+  KEY idx_shopping_dish_list_order (list_id, dish_order)
+);
+```
+
+### 7.5 `shopping_item`
 
 ```sql
 CREATE TABLE shopping_item (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   list_id BIGINT NOT NULL,
+  shopping_dish_id BIGINT NOT NULL,
+  source_line_no INT NOT NULL,
   normalized_name VARCHAR(120) NOT NULL,
   display_name VARCHAR(120) NOT NULL,
   quantity_kind VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
@@ -260,13 +287,15 @@ CREATE TABLE shopping_item (
     ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_shopping_item_list
     FOREIGN KEY (list_id) REFERENCES shopping_list(id),
+  CONSTRAINT fk_shopping_item_dish
+    FOREIGN KEY (shopping_dish_id) REFERENCES shopping_dish(id),
   KEY idx_shopping_item_list_checked (list_id, checked),
-  KEY idx_shopping_item_list_name (list_id, normalized_name),
-  UNIQUE KEY uk_shopping_item_source (list_id, source_key)
+  KEY idx_shopping_item_dish_checked (shopping_dish_id, checked),
+  UNIQUE KEY uk_shopping_item_source (shopping_dish_id, source_key)
 );
 ```
 
-说明：`source_key` 用于防止同一菜谱重复添加；手动项目可为空。`quantity_text` 保留用户可读文本，数值字段用于准确计算和后续编辑。
+说明：`source_key` 用于防止同一菜品分组内重复添加；手动项目可为空。`quantity_text` 保留用户可读文本，数值字段用于准确计算和后续编辑。不同菜品即使 `normalized_name` 相同也必须保留不同的 `shopping_dish_id`。
 
 ## 8. API 需求
 
@@ -282,13 +311,13 @@ CREATE TABLE shopping_item (
 
 `POST /api/shopping-list/preview`
 
-请求包含菜品 ID、目标人数和可选的用户菜谱 ID。响应返回分组后的食材预览、每项来源、原始/计算用量、解析状态、警告和预览版本。该接口不修改购物清单。
+请求包含菜品 ID、目标人数和可选的用户菜谱 ID。响应返回按菜品分组的食材预览、每项来源、原始/计算用量、解析状态、警告和预览版本。该接口不修改购物清单。
 
 ### 8.3 确认批量添加
 
 `POST /api/shopping-list/items:batch-add`
 
-请求包含预览版本、用户确认后的项目和幂等请求 ID。服务端负责重新校验来源、幂等校验、同名同单位合并和清单版本更新，不能直接信任前端传入的最终数量。
+请求包含预览版本、按菜品分组的用户确认项目和幂等请求 ID。服务端负责重新校验来源、幂等校验、同一道菜内的安全合并和清单版本更新，不能直接信任前端传入的最终数量。
 
 ### 8.4 修改项目
 
@@ -337,7 +366,7 @@ CREATE TABLE shopping_item (
 ### 功能验收
 
 - 从结果页和日历详情添加菜谱后，清单中出现正确食材。
-- 同名同单位食材能够合并；不同单位不被错误换算。
+- 同一道菜内同名同单位食材能够安全合并；不同菜品的同名食材始终分开显示；不同单位不被错误换算。
 - 重复添加同一菜谱不会重复创建项目。
 - 手动添加、编辑、勾选、取消、删除、清空已完成和清空全部均可用。
 - 登录用户在重新登录或换设备后可以恢复已同步清单。
@@ -368,7 +397,7 @@ CREATE TABLE shopping_item (
 ### 第一期：本地可用闭环
 
 - 购物清单页面。
-- 从菜谱添加、结构化预览、按人数换算、手动添加、合并、勾选和删除。
+- 从菜谱添加、按菜品分组预览、按人数换算、手动添加、同菜内安全合并、勾选和删除。
 - 本地缓存与完整反馈状态。
 
 ### 第二期：登录同步

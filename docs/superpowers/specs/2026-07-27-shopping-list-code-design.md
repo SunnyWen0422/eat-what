@@ -37,7 +37,8 @@
 
 - 原始菜品字段 `food.ingredients_amounts` 永远保留，不直接覆盖或改写。
 - 解析后的 `dish_ingredient` 是可重建的派生数据，必须记录 `sourceHash`。
-- 食材合并必须同时满足规范化名称、单位族和形态/处理方式兼容。
+- 食材必须按菜品分组保存和展示；不同菜品即使规范化名称、单位和形态相同也不得合并。
+- 同一道菜内才允许在规范化名称、单位族和形态/处理方式兼容时合并。
 - 未知食材不能因为无法归一化而丢失，必须以原文项目展示。
 - 每个服务端写请求必须带 `requestId`，同一用户同一请求只生效一次。
 - 所有读写都按当前登录用户 ID 隔离，客户端传入的 `listId`、`itemId` 和 `sourceDishId` 都必须在服务端二次授权。
@@ -64,11 +65,13 @@ backend/src/main/java/com/eatwhat/service/ShoppingListMergeService.java
 backend/src/main/java/com/eatwhat/entity/IngredientCatalog.java
 backend/src/main/java/com/eatwhat/entity/DishIngredient.java
 backend/src/main/java/com/eatwhat/entity/ShoppingList.java
+backend/src/main/java/com/eatwhat/entity/ShoppingDish.java
 backend/src/main/java/com/eatwhat/entity/ShoppingItem.java
 backend/src/main/java/com/eatwhat/entity/ShoppingRequestLog.java
 backend/src/main/java/com/eatwhat/dto/ShoppingPreviewRequest.java
 backend/src/main/java/com/eatwhat/dto/ShoppingPreviewResponse.java
 backend/src/main/java/com/eatwhat/dto/ShoppingPreviewItemDTO.java
+backend/src/main/java/com/eatwhat/dto/ShoppingDishDTO.java
 backend/src/main/java/com/eatwhat/dto/ShoppingBatchAddRequest.java
 backend/src/main/java/com/eatwhat/dto/ShoppingListResponse.java
 backend/src/main/java/com/eatwhat/dto/ShoppingItemPatchRequest.java
@@ -77,6 +80,7 @@ backend/src/main/java/com/eatwhat/dto/ShoppingSyncResponse.java
 backend/src/main/java/com/eatwhat/mapper/IngredientCatalogMapper.java
 backend/src/main/java/com/eatwhat/mapper/DishIngredientMapper.java
 backend/src/main/java/com/eatwhat/mapper/ShoppingListMapper.java
+backend/src/main/java/com/eatwhat/mapper/ShoppingDishMapper.java
 backend/src/main/java/com/eatwhat/mapper/ShoppingRequestLogMapper.java
 backend/src/main/java/com/eatwhat/util/DecimalQuantity.java
 backend/src/main/java/com/eatwhat/util/RequestIdValidator.java
@@ -221,12 +225,38 @@ CREATE TABLE shopping_list (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-### 3.4 `shopping_item`
+### 3.4 `shopping_dish`
+
+购物清单中的菜品分组。它是来源、人数和展示的隔离边界，同名食材在不同 `shopping_dish_id` 下永远不合并。
+
+```sql
+CREATE TABLE shopping_dish (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  list_id BIGINT NOT NULL,
+  selection_key VARCHAR(96) NOT NULL,
+  source_dish_id INT NOT NULL,
+  source_dish_name VARCHAR(255) NOT NULL,
+  source_recipe_id BIGINT NULL,
+  target_people DECIMAL(8,2) NOT NULL,
+  dish_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_shopping_dish_list
+    FOREIGN KEY (list_id) REFERENCES shopping_list(id),
+  UNIQUE KEY uk_shopping_dish_selection (list_id, selection_key),
+  KEY idx_shopping_dish_list_order (list_id, dish_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+### 3.5 `shopping_item`
 
 ```sql
 CREATE TABLE shopping_item (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   list_id BIGINT NOT NULL,
+  shopping_dish_id BIGINT NOT NULL,
+  source_line_no INT NOT NULL,
   normalized_name VARCHAR(120) NOT NULL,
   display_name VARCHAR(120) NOT NULL,
   quantity_kind VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
@@ -251,15 +281,17 @@ CREATE TABLE shopping_item (
     ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_shopping_item_list
     FOREIGN KEY (list_id) REFERENCES shopping_list(id),
+  CONSTRAINT fk_shopping_item_dish
+    FOREIGN KEY (shopping_dish_id) REFERENCES shopping_dish(id),
   KEY idx_shopping_item_list_checked (list_id, checked),
-  KEY idx_shopping_item_list_name (list_id, normalized_name),
-  UNIQUE KEY uk_shopping_item_source (list_id, source_key)
+  KEY idx_shopping_item_dish_checked (shopping_dish_id, checked),
+  UNIQUE KEY uk_shopping_item_source (shopping_dish_id, source_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-`source_key` 对菜谱来源项目使用稳定键；手动项目传 `NULL`，利用 MySQL 对多个 `NULL` 不互斥的行为允许重复手动添加。
+`source_key` 对同一菜品分组内的来源项目使用稳定键；手动项目传 `NULL`，利用 MySQL 对多个 `NULL` 不互斥的行为允许重复手动添加。不同菜品即使 `normalized_name` 相同也必须保留不同的 `shopping_dish_id`。
 
-### 3.5 `shopping_request_log`
+### 3.6 `shopping_request_log`
 
 用途：实现写请求幂等，防止重复点击、网络重试造成重复项目。
 
@@ -363,15 +395,21 @@ ScaledQuantity scale(ParsedQuantity source,
 - `MASS`/`VOLUME` 保留最多两位小数，去除尾随零。
 - 目标人数变化时只重建未被用户覆盖的项目。
 
-### 4.6 食材合并
+### 4.6 食材分组与同菜合并
 
-合并键：
+第一层键是菜品分组：
 
 ```text
-canonicalName + unitFamily + normalizedVariant
+shoppingDish.selectionKey
 ```
 
-其中 `normalizedVariant` 包含切丝、切片、去皮等会影响采购形态的处理信息。只有合并键完全一致才合并数量；否则分组展示为同一食材下的多个明细，禁止强行相加。
+不同 `selectionKey` 永远不能合并。第二层才在同一道菜内使用合并键：
+
+```text
+shoppingDishId + canonicalName + unitFamily + normalizedVariant
+```
+
+其中 `normalizedVariant` 包含切丝、切片、去皮等会影响采购形态的处理信息。只有同一道菜内的合并键完全一致才合并数量；否则保留独立明细。不同菜品的相同食材必须各自显示来源菜名和用量。
 
 ## 5. 后端接口契约
 
@@ -401,10 +439,12 @@ Content-Type: application/json
 {
   "previewId": "preview-uuid",
   "targetPeople": 4,
-  "groups": [
+  "dishes": [
     {
-      "key": "main",
-      "label": "主料",
+      "selectionKey": "dish-10170-0",
+      "dishId": 10170,
+      "dishName": "青椒肉丝",
+      "targetPeople": 4,
       "items": [
         {
           "clientKey": "dish-10170-ing-2",
@@ -422,6 +462,13 @@ Content-Type: application/json
           "warnings": []
         }
       ]
+    },
+    {
+      "selectionKey": "dish-10171-1",
+      "dishId": 10171,
+      "dishName": "丝瓜炒鸡蛋",
+      "targetPeople": 4,
+      "items": []
     }
   ],
   "warnings": [],
@@ -445,13 +492,18 @@ POST /api/shopping-list/items:batch-add
   "requestId": "add-uuid",
   "previewId": "preview-uuid",
   "targetPeople": 4,
-  "items": [
+  "dishes": [
     {
-      "clientKey": "dish-10170-ing-2",
-      "quantityValue": 680,
-      "quantityText": "680克",
-      "unitCode": "g",
-      "userOverride": true
+      "selectionKey": "dish-10170-0",
+      "items": [
+        {
+          "clientKey": "dish-10170-ing-2",
+          "quantityValue": 680,
+          "quantityText": "680克",
+          "unitCode": "g",
+          "userOverride": true
+        }
+      ]
     }
   ],
   "expectedListVersion": 12
@@ -464,9 +516,10 @@ POST /api/shopping-list/items:batch-add
 2. 校验用户、菜品、预览来源和清单版本。
 3. 重新读取 `dish_ingredient`，检查客户端项目是否属于本次预览。
 4. 对未覆盖项目重新计算；对覆盖项目校验数值范围和单位族。
-5. 按合并键更新或插入 `shopping_item`。
-6. 清单 `version + 1`。
-7. 写入 `shopping_request_log` 和响应快照。
+5. 按 `selectionKey` 创建或复用 `shopping_dish` 分组。
+6. 只在同一个 `shopping_dish_id` 内按合并键更新或插入 `shopping_item`，不同菜品绝不合并。
+7. 清单 `version + 1`。
+8. 写入 `shopping_request_log` 和响应快照。
 
 ### 5.3 查询清单
 
@@ -530,7 +583,7 @@ POST /api/shopping-list:clear
 
 - 批量加载菜品和用户菜谱。
 - 获取或重建 `dish_ingredient`。
-- 调用解析、规范化、换算和合并服务。
+- 调用解析、规范化、换算和同菜分组服务。
 - 生成不可变的预览 DTO 和 warning 列表。
 
 ### 6.3 `IngredientParserService`
@@ -547,7 +600,8 @@ POST /api/shopping-list:clear
 
 ### 6.5 `ShoppingListMergeService`
 
-- 负责合并键、同单位数量相加和非兼容项目拆分。
+- 负责菜品分组内的合并键、同单位数量相加和非兼容项目拆分。
+- 明确拒绝跨 `shoppingDishId` 合并请求。
 - 不改变用户覆盖值。
 - 对范围和定性数量只做同类合并，不把它们强行转换成精确值。
 
@@ -632,7 +686,7 @@ previewReady -> confirming -> confirmed
 - 调整人数只重算未被手动覆盖的项目。
 - 确认按钮显示待提交项目数，重复点击由 `confirmInFlight` 拦截。
 - 预览失败时展示已选菜品和本地解析结果，不让页面空白。
-- 确认成功后跳转购物清单页，并显示新增/合并/需调整数量。
+- 确认成功后跳转购物清单页，并显示新增菜品数、食材行数和需调整数量；不显示跨菜品合并数量。
 
 ### 7.4 购物清单页面
 
@@ -640,7 +694,7 @@ previewReady -> confirming -> confirmed
 
 ```javascript
 {
-  items: [],
+  dishes: [],
   statusFilter: 'pending',
   loading: true,
   refreshing: false,
@@ -657,11 +711,12 @@ previewReady -> confirming -> confirmed
 
 1. 顶部同步状态和待购买数量。
 2. “全部/待购买/已完成”分段控制。
-3. 按食材类别分组的稳定列表。
-4. 每项显示复选框、名称、数量、单位和“需调整/约”提示。
-5. 左滑或更多菜单提供编辑、删除；不使用难以发现的纯文字长按钮。
-6. 空状态提供“从菜谱添加”和“手动添加”。
-7. 清空已完成可直接操作，清空全部必须确认。
+3. 按菜品显示稳定的菜品卡片/分组，菜品名称和目标人数固定在分组头部。
+4. 每个菜品分组内再按食材类别展示明细；每项显示复选框、名称、数量、单位和“需调整/约”提示。
+5. 相同食材出现在不同菜品分组时必须保留两行，并显示各自菜品来源。
+6. 左滑或更多菜单提供编辑、删除；不使用难以发现的纯文字长按钮。
+7. 空状态提供“从菜谱添加”和“手动添加”。
+8. 清空已完成可直接操作，清空全部必须确认。
 
 ### 7.5 入口接入
 
@@ -745,7 +800,7 @@ backend/src/test/java/com/eatwhat/controller/ShoppingListControllerTest.java
 - 源数据已含 15% 冗余时不重复加成。
 - 克/千克、毫升/升的安全换算。
 - 计数向上取整但保留精确值。
-- 同名同单位合并、不同单位拆分、不同处理方式拆分。
+- 同一道菜内同名同单位合并、不同菜品不合并、不同单位拆分、不同处理方式拆分。
 - 用户覆盖值不被重算覆盖。
 - 旧 `cl` 回退和解析失败警告。
 - 用户越权、版本冲突、重复 `requestId` 和清空确认。
@@ -826,6 +881,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-all.ps1
 
 - 用户能从自定义选菜中选择多道菜，预览并加入清单。
 - 推荐结果、菜品详情和日历餐次至少有一个批量加入入口，其余入口按阶段 3 完成。
+- 购物清单按菜品分组展示；炸猪排和葱烧大排都使用猪排时，必须保留两道菜各自的猪排用量。
 - 食材名称、数量、单位、来源和计算状态可查询、可编辑、可删除。
 - 2/4/6 人换算结果通过固定样例测试，不重复计算源冗余。
 - 解析失败不丢数据、不伪造数量，并给用户清晰提示。
