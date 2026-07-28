@@ -1,0 +1,16 @@
+{
+  "database": "food",
+  "policy": {
+    "productionMigrationsMustBeNonDestructive": true,
+    "databaseIsSelectedByInvoker": true
+  },
+  "migrations": [
+    {
+      "version": "V1__production_hardening",
+      "file": "V1__production_hardening.sql",
+      "description": "security boundaries and ownership indexes",
+      "checksumSha256": "4ef2eae9f089ff4b4418fbdfa9b8fe1bf6eaddb64b6b56d5f0523e648f673117",
+      "rollback": "Restore the pre-release database backup; do not drop columns or indexes in production."
+    }
+  ]
+}

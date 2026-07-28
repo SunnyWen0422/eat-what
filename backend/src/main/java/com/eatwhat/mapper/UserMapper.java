@@ -21,6 +21,9 @@ public interface UserMapper {
             "FROM users WHERE id = #{id}")
     User selectById(@Param("id") Long id);
 
+    @Select("SELECT status FROM users WHERE id = #{userId}")
+    Integer selectStatusById(@Param("userId") Long userId);
+
     @Select("SELECT id, open_id as openId, session_key as sessionKey, union_id as unionId, " +
             "nickname, avatar, phone, register_time as registerTime, last_login_time as lastLoginTime, status " +
             "FROM users ORDER BY id DESC LIMIT 200")
@@ -74,7 +77,10 @@ public interface UserMapper {
     @Update("UPDATE users SET last_login_time = NOW() WHERE id = #{id}")
     int updateLastLoginTime(@Param("id") Long id);
     
-    @Update("UPDATE users SET nickname = #{nickname}, avatar = #{avatar}, union_id = #{unionId} WHERE id = #{id}")
+    @Update("UPDATE users SET nickname = #{nickname}, avatar = #{avatar} WHERE id = #{id}")
     int updateUserInfo(User user);
+
+    @Update("UPDATE users SET union_id = #{unionId} WHERE id = #{userId} AND (union_id IS NULL OR union_id = '')")
+    int updateUnionId(@Param("userId") Long userId, @Param("unionId") String unionId);
 }
 

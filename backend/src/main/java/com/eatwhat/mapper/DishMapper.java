@@ -89,6 +89,12 @@ public interface DishMapper {
     @Delete("DELETE FROM food WHERE ID = #{dishId} AND user_id = #{userId} AND is_custom = 1")
     int deleteCustomDish(@Param("userId") Long userId, @Param("dishId") Long dishId);
 
+    @Update("UPDATE food SET NAME = #{name}, TYPE = #{type}, CL = #{cl}, FL = #{fl}, STEP = #{step}, " +
+            "TAGS = #{tags}, CUISINE_CODE = #{cuisineCode}, TAG_CODES = #{tagCodes}, " +
+            "COOK_MINUTES = #{cookMinutes}, METADATA_VERSION = #{metadataVersion} " +
+            "WHERE ID = #{id} AND user_id = #{userId} AND is_custom = 1")
+    int updateCustomDish(Dish dish);
+
     /**
      * 搜索菜品（按关键词 + 可选类型）
      */

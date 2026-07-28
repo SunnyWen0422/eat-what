@@ -21,16 +21,21 @@ public class TokenService {
     private final Clock clock;
 
     @Autowired
-    public TokenService(@Value("${security.token.secret:${TOKEN_SECRET:change-me-in-production}}") String secret,
+    public TokenService(@Value("${security.token.secret}") String secret,
                         @Value("${security.token.ttl-millis:2592000000}") long ttlMillis) {
         this(secret, ttlMillis, Clock.systemUTC());
     }
 
     TokenService(String secret, long ttlMillis, Clock clock) {
-        if (secret == null || secret.trim().isEmpty()) {
-            throw new IllegalArgumentException("token secret is required");
+        if (secret == null || secret.trim().length() < 32) {
+            throw new IllegalArgumentException("token secret must be at least 32 characters");
         }
-        this.secret = secret.getBytes(StandardCharsets.UTF_8);
+        String normalized = secret.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("change-me") || normalized.contains("password") || normalized.contains("example")) {
+            throw new IllegalArgumentException("token secret must not use a placeholder");
+        }
+        if (ttlMillis <= 0) throw new IllegalArgumentException("token ttl must be positive");
+        this.secret = secret.trim().getBytes(StandardCharsets.UTF_8);
         this.ttlMillis = ttlMillis;
         this.clock = clock;
     }

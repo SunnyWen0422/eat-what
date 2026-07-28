@@ -1,11 +1,14 @@
 package com.eatwhat.interceptor;
 
 import com.eatwhat.service.TokenService;
+import com.eatwhat.service.UserAccessService;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AuthInterceptorTest {
 
@@ -51,5 +54,18 @@ class AuthInterceptorTest {
         authenticated.addHeader("Authorization", "Bearer " + token);
         assertTrue(interceptor.preHandle(authenticated, new MockHttpServletResponse(), new Object()));
         assertEquals(USER_ID, authenticated.getAttribute("currentUserId"));
+    }
+
+    @Test
+    void disabledUserTokenIsRejected() throws Exception {
+        UserAccessService accessService = mock(UserAccessService.class);
+        when(accessService.isActive(USER_ID)).thenReturn(false);
+        AuthInterceptor guarded = new AuthInterceptor(tokenService, accessService);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/dishes");
+        request.addHeader("Authorization", "Bearer " + tokenService.generateToken(USER_ID));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertFalse(guarded.preHandle(request, response, new Object()));
+        assertEquals(403, response.getStatus());
     }
 }

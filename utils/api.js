@@ -351,6 +351,14 @@ function createCustomDish(dish) {
   return request('/dishes/custom', 'POST', dish)
 }
 
+function updateCustomDish(id, dish) {
+  return request(`/dishes/custom/${encodeURIComponent(id)}`, 'PUT', dish)
+}
+
+function deleteCustomDish(id) {
+  return request(`/dishes/custom/${encodeURIComponent(id)}`, 'DELETE')
+}
+
 /**
  * 根据ID获取菜品
  * @param {Number} id - 菜品ID
@@ -614,6 +622,8 @@ module.exports = {
   getDishesLiteByType,
   searchDishes,
   createCustomDish,
+  updateCustomDish,
+  deleteCustomDish,
   getCustomDishes,
   getDishById,
   createShoppingPreview,

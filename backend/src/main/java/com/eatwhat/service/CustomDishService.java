@@ -34,42 +34,16 @@ public class CustomDishService {
     }
 
     public Dish createDish(Long userId, Dish dish) {
-        if (userId == null) {
-            throw new IllegalArgumentException("userId is required");
-        }
-        if (dish == null || dish.getName() == null || dish.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("dish name is required");
-        }
-        if (dish.getType() == null || dish.getType().trim().isEmpty()) {
-            throw new IllegalArgumentException("dish type is required");
-        }
-        dish.setName(normalizeRequiredText(dish.getName(), "dish name", 255));
-        dish.setType(dish.getType().trim().toLowerCase(Locale.ROOT));
-        if (!ALLOWED_TYPES.contains(dish.getType())) {
-            throw new IllegalArgumentException("unsupported dish type");
-        }
-        dish.setCl(normalizeRequiredText(dish.getCl(), "ingredients", 10000));
-        dish.setStep(normalizeRequiredText(dish.getStep(), "steps", 20000));
-        dish.setFl(normalizeOptionalText(dish.getFl(), 1000, "serving description"));
-        dish.setTags(normalizeOptionalText(dish.getTags(), 500, "tags"));
-        if (dish.getCuisineCode() != null && !dish.getCuisineCode().trim().isEmpty()) {
-            String cuisineCode = dish.getCuisineCode().trim().toUpperCase();
-            if (metadataService != null && !metadataService.isKnownCuisine(cuisineCode)) {
-                throw new IllegalArgumentException("unknown cuisine code");
-            }
-            dish.setCuisineCode(cuisineCode);
-        } else {
-            dish.setCuisineCode(null);
-        }
-        dish.setTagCodes(normalizeTagCodes(dish.getTagCodes()));
-        if (dish.getCookMinutes() != null && (dish.getCookMinutes() <= 0 || dish.getCookMinutes() > 240)) {
-            throw new IllegalArgumentException("cook minutes must be between 1 and 240");
-        }
-        dish.setMetadataVersion(metadataService == null ? 1 : metadataService.getMetadataVersion());
-        dish.setUserId(userId);
-        dish.setIsCustom(1);
+        prepareDish(userId, dish);
         dishMapper.insert(dish);
         return dish;
+    }
+
+    public Dish updateDish(Long userId, Long dishId, Dish dish) {
+        if (dishId == null) throw new IllegalArgumentException("dishId is required");
+        prepareDish(userId, dish);
+        dish.setId(dishId);
+        return dishMapper.updateCustomDish(dish) > 0 ? dish : null;
     }
 
     public List<Dish> getCustomDishes(Long userId) {
@@ -84,6 +58,39 @@ public class CustomDishService {
             return false;
         }
         return dishMapper.deleteCustomDish(userId, dishId) > 0;
+    }
+
+    private void prepareDish(Long userId, Dish dish) {
+        if (userId == null) throw new IllegalArgumentException("userId is required");
+        if (dish == null || dish.getName() == null || dish.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("dish name is required");
+        }
+        if (dish.getType() == null || dish.getType().trim().isEmpty()) {
+            throw new IllegalArgumentException("dish type is required");
+        }
+        dish.setName(normalizeRequiredText(dish.getName(), "dish name", 255));
+        dish.setType(dish.getType().trim().toLowerCase(Locale.ROOT));
+        if (!ALLOWED_TYPES.contains(dish.getType())) throw new IllegalArgumentException("unsupported dish type");
+        dish.setCl(normalizeRequiredText(dish.getCl(), "ingredients", 10000));
+        dish.setStep(normalizeRequiredText(dish.getStep(), "steps", 20000));
+        dish.setFl(normalizeOptionalText(dish.getFl(), 1000, "serving description"));
+        dish.setTags(normalizeOptionalText(dish.getTags(), 500, "tags"));
+        if (dish.getCuisineCode() != null && !dish.getCuisineCode().trim().isEmpty()) {
+            String cuisineCode = dish.getCuisineCode().trim().toUpperCase(Locale.ROOT);
+            if (metadataService != null && !metadataService.isKnownCuisine(cuisineCode)) {
+                throw new IllegalArgumentException("unknown cuisine code");
+            }
+            dish.setCuisineCode(cuisineCode);
+        } else {
+            dish.setCuisineCode(null);
+        }
+        dish.setTagCodes(normalizeTagCodes(dish.getTagCodes()));
+        if (dish.getCookMinutes() != null && (dish.getCookMinutes() <= 0 || dish.getCookMinutes() > 240)) {
+            throw new IllegalArgumentException("cook minutes must be between 1 and 240");
+        }
+        dish.setMetadataVersion(metadataService == null ? 1 : metadataService.getMetadataVersion());
+        dish.setUserId(userId);
+        dish.setIsCustom(1);
     }
 
     private String normalizeTagCodes(String rawCodes) {

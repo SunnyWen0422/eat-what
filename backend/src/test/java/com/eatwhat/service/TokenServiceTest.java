@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TokenServiceTest {
 
@@ -39,5 +40,10 @@ class TokenServiceTest {
         assertNull(expiredValidator.getUserIdFromToken(token));
         assertFalse(issuer.validateToken(token + "x"));
         assertNull(issuer.getUserIdFromToken("invalid"));
+    }
+
+    @Test
+    void weakSecretsAreRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new TokenService("short", 1000L));
     }
 }

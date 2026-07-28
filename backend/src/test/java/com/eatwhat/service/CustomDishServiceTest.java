@@ -73,6 +73,20 @@ class CustomDishServiceTest {
         verify(mapper).deleteCustomDish(5L, 10L);
     }
 
+    @Test
+    void updateKeepsOwnershipBoundaryAndReturnsNotFoundWhenRowIsMissing() {
+        Dish updated = dish(10L, "new name", "veg");
+        when(mapper.updateCustomDish(updated)).thenReturn(1);
+
+        assertSame(updated, service.updateDish(5L, 10L, updated));
+        assertEquals(5L, updated.getUserId());
+        verify(mapper).updateCustomDish(updated);
+
+        Dish missing = dish(11L, "missing", "veg");
+        when(mapper.updateCustomDish(missing)).thenReturn(0);
+        assertEquals(null, service.updateDish(5L, 11L, missing));
+    }
+
     private Dish dish(Long id, String name, String type) {
         Dish dish = new Dish();
         dish.setId(id);
