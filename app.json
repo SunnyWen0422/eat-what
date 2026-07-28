@@ -17,6 +17,11 @@
     "pages/profile-edit/profile-edit",
     "pages/custom-dishes/custom-dishes",
     "pages/admin/admin",
+    "pages/admin-dashboard/admin-dashboard",
+    "pages/admin-users/admin-users",
+    "pages/admin-user-detail/admin-user-detail",
+    "pages/admin-dishes/admin-dishes",
+    "pages/admin-audit/admin-audit",
     "pages/chat/chat",
     "pages/shopping-preview/shopping-preview",
     "pages/shopping-list/shopping-list"

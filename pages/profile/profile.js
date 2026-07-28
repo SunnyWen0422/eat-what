@@ -176,6 +176,7 @@ Page({
     this._adminTapCount = (this._adminTapCount || 0) + 1
     if (this._adminTapCount >= 5) {
       this._adminTapCount = 0
+      // Keep the legacy entry route as a compatibility shim; the page can forward to the new workbench.
       wx.navigateTo({ url: '/pages/admin/admin' })
     } else if (this._adminTapCount === 3) {
       wx.showToast({ title: `再点${5-this._adminTapCount}次进入后台`, icon: 'none', duration: 1000 })

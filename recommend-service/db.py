@@ -94,7 +94,7 @@ def _sample_dishes_by_cn_type(db_type_cn: str, limit: int) -> List[Dict[str, Any
         with conn.cursor() as cur:
             # 先获取该类型的总数（走索引，很快）
             cur.execute(
-                "SELECT COUNT(*) as cnt FROM food WHERE TYPE = %s",
+                "SELECT COUNT(*) as cnt FROM food WHERE TYPE = %s AND user_id IS NULL AND COALESCE(is_published, 1) = 1",
                 (db_type_cn,)
             )
             total = cur.fetchone()["cnt"]
@@ -110,7 +110,7 @@ def _sample_dishes_by_cn_type(db_type_cn: str, limit: int) -> List[Dict[str, Any
             # LIMIT + OFFSET 走主键索引，性能很好
             cur.execute(
                 "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step "
-                "FROM food WHERE TYPE = %s ORDER BY ID LIMIT %s OFFSET %s",
+                "FROM food WHERE TYPE = %s AND user_id IS NULL AND COALESCE(is_published, 1) = 1 ORDER BY ID LIMIT %s OFFSET %s",
                 (db_type_cn, limit, offset)
             )
             rows = cur.fetchall()
@@ -150,7 +150,7 @@ def fetch_all_dishes() -> List[Dict[str, Any]]:
     conn = _get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT DISTINCT TYPE FROM food WHERE TYPE IS NOT NULL AND TYPE != ''")
+            cur.execute("SELECT DISTINCT TYPE FROM food WHERE TYPE IS NOT NULL AND TYPE != '' AND user_id IS NULL AND COALESCE(is_published, 1) = 1")
             db_types = [r["TYPE"] for r in cur.fetchall()]
     finally:
         conn.close()
@@ -175,7 +175,7 @@ def _fetch_all_dishes_fallback() -> List[Dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step "
-                "FROM food ORDER BY ID"
+                "FROM food WHERE user_id IS NULL AND COALESCE(is_published, 1) = 1 ORDER BY ID"
             )
             rows = cur.fetchall()
         result = []
@@ -207,7 +207,7 @@ def fetch_dishes_by_ids(ids: List[int]) -> List[Dict[str, Any]]:
         placeholders = ",".join(["%s"] * len(ids))
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step FROM food WHERE ID IN ({placeholders})",
+                f"SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step FROM food WHERE user_id IS NULL AND COALESCE(is_published, 1) = 1 AND ID IN ({placeholders})",
                 ids,
             )
             rows = cur.fetchall()

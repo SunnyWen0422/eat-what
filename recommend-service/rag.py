@@ -38,7 +38,8 @@ def build_index(fast: bool = False):
         with conn.cursor() as cur:
             cur.execute(f"SELECT ID, NAME, TYPE, CL, TAGS, METHODS, KCAL, DIFFICULTY, IMAGE, "
                         f"STEPS as steps, INGREDIENTS_AMOUNTS "
-                        f"FROM food WHERE STEPS IS NOT NULL AND STEPS != '' {limit}")
+                        f"FROM food WHERE user_id IS NULL AND COALESCE(is_published, 1) = 1 "
+                        f"AND STEPS IS NOT NULL AND STEPS != '' {limit}")
             rows = cur.fetchall()
     finally:
         conn.close()

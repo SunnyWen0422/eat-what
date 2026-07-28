@@ -62,6 +62,12 @@ public class CustomDishService {
 
     private void prepareDish(Long userId, Dish dish) {
         if (userId == null) throw new IllegalArgumentException("userId is required");
+        normalizeDish(dish);
+        dish.setUserId(userId);
+        dish.setIsCustom(1);
+    }
+
+    public Dish normalizeDish(Dish dish) {
         if (dish == null || dish.getName() == null || dish.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("dish name is required");
         }
@@ -89,8 +95,7 @@ public class CustomDishService {
             throw new IllegalArgumentException("cook minutes must be between 1 and 240");
         }
         dish.setMetadataVersion(metadataService == null ? 1 : metadataService.getMetadataVersion());
-        dish.setUserId(userId);
-        dish.setIsCustom(1);
+        return dish;
     }
 
     private String normalizeTagCodes(String rawCodes) {

@@ -11,6 +11,13 @@
       "description": "security boundaries and ownership indexes",
       "checksumSha256": "4ef2eae9f089ff4b4418fbdfa9b8fe1bf6eaddb64b6b56d5f0523e648f673117",
       "rollback": "Restore the pre-release database backup; do not drop columns or indexes in production."
+    },
+    {
+      "version": "V2__admin_console",
+      "file": "V2__admin_console.sql",
+      "description": "administrator workbench and audit storage",
+      "checksumSha256": "2dbc3a97b513ca63d9115bdc5a0374afc07f0862bf962c306a2b65702633cf3a",
+      "rollback": "Restore the pre-release database backup; keep is_published and audit rows during application rollback."
     }
   ]
 }

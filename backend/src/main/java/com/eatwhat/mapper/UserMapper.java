@@ -24,6 +24,9 @@ public interface UserMapper {
     @Select("SELECT status FROM users WHERE id = #{userId}")
     Integer selectStatusById(@Param("userId") Long userId);
 
+    @Update("UPDATE users SET status = #{status} WHERE id = #{userId} AND status <> #{status}")
+    int updateStatusIfChanged(@Param("userId") Long userId, @Param("status") Integer status);
+
     @Select("SELECT id, open_id as openId, session_key as sessionKey, union_id as unionId, " +
             "nickname, avatar, phone, register_time as registerTime, last_login_time as lastLoginTime, status " +
             "FROM users ORDER BY id DESC LIMIT 200")

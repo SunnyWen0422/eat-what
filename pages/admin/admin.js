@@ -85,7 +85,10 @@ Page({
   detailUserId: null,
   recommendationGroups: {},
 
-  async onLoad() {
+  async onLoad(options = {}) {
+    if (!options.legacy) {
+      wx.redirectTo({ url: '/pages/admin-dashboard/admin-dashboard' })
+    }
     await Promise.all([this.loadMetadata(), this.loadUsers(true)])
   },
 

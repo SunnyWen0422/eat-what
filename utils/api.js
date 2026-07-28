@@ -607,6 +607,50 @@ function deleteAdminUserDish(userId, dishId) {
   return request(`/admin/users/${encodeURIComponent(userId)}/dishes/${encodeURIComponent(dishId)}`, 'DELETE')
 }
 
+function getAdminOverview() {
+  return request('/admin/overview', 'GET')
+}
+
+function updateAdminUserStatus(userId, status) {
+  return request(`/admin/users/${encodeURIComponent(userId)}/status`, 'PATCH', { status })
+}
+
+function getAdminDishes(params = {}) {
+  const pairs = []
+  ;['scope', 'keyword', 'type', 'published', 'ownerId', 'page', 'pageSize'].forEach(key => {
+    if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+      pairs.push(`${key}=${encodeURIComponent(params[key])}`)
+    }
+  })
+  return request(`/admin/dishes${pairs.length ? `?${pairs.join('&')}` : ''}`, 'GET')
+}
+
+function getAdminDish(dishId) {
+  return request(`/admin/dishes/${encodeURIComponent(dishId)}`, 'GET')
+}
+
+function updateAdminDish(dishId, dish) {
+  return request(`/admin/dishes/${encodeURIComponent(dishId)}`, 'PUT', dish)
+}
+
+function updateAdminDishStatus(dishId, published) {
+  return request(`/admin/dishes/${encodeURIComponent(dishId)}/status`, 'PATCH', { published })
+}
+
+function updateAdminUserDish(userId, dishId, dish) {
+  return request(`/admin/users/${encodeURIComponent(userId)}/dishes/${encodeURIComponent(dishId)}`, 'PUT', dish)
+}
+
+function getAdminAuditLogs(params = {}) {
+  const pairs = []
+  ;['adminId', 'targetUserId', 'action', 'from', 'to', 'page', 'pageSize'].forEach(key => {
+    if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+      pairs.push(`${key}=${encodeURIComponent(params[key])}`)
+    }
+  })
+  return request(`/admin/audit-logs${pairs.length ? `?${pairs.join('&')}` : ''}`, 'GET')
+}
+
 // ========================================
 // 导出接口
 // ========================================
@@ -638,6 +682,14 @@ module.exports = {
   getAdminUser,
   createAdminUserDish,
   deleteAdminUserDish,
+  getAdminOverview,
+  updateAdminUserStatus,
+  getAdminDishes,
+  getAdminDish,
+  updateAdminDish,
+  updateAdminDishStatus,
+  updateAdminUserDish,
+  getAdminAuditLogs,
 
   // 用户接口
   login,
