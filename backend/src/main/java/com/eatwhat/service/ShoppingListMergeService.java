@@ -19,7 +19,11 @@ public class ShoppingListMergeService {
             String key = shoppingDishId + "|" + safe(item.getCanonicalName()) + "|" + safe(item.getUnitFamily())
                     + "|" + safe(item.getUnitCode()) + "|" + safe(item.getNormalizedVariant());
             ShoppingPreviewItemDTO current = merged.get(key);
-            if (current == null || !compatible(current, item)) {
+            if (current == null) {
+                merged.put(key, item);
+                continue;
+            }
+            if (!compatible(current, item)) {
                 merged.put(key + "|" + merged.size(), item);
                 continue;
             }
