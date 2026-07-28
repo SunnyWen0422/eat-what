@@ -14,6 +14,12 @@ Page({
     isAdmin: false,
     menuItems: [
       {
+        icon: '🛒',
+        title: '购物清单',
+        desc: '按菜品整理待购买食材',
+        url: '/pages/shopping-list/shopping-list'
+      },
+      {
         icon: '📊',
         title: '饮食统计',
         desc: '查看饮食数据分析',

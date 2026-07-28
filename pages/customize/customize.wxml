@@ -134,6 +134,7 @@
         <text class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}">›</text>
       </view>
       <button class="save-btn" bindtap="onSaveToCalendar">保存到日历</button>
+      <button class="save-btn shopping-btn" bindtap="onAddSelectedToShoppingList">加入清单</button>
     </view>
 
   </view>

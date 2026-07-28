@@ -127,7 +127,7 @@ public interface DishMapper {
         "SELECT ID as id, NAME as name, TYPE as type, ",
         "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, ",
         "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, ",
-        "CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
+        "CL as cl, FL as fl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
         "FROM food WHERE ID IN ",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>",
         "#{id}",
@@ -140,7 +140,7 @@ public interface DishMapper {
         "<script>",
         "SELECT ID as id, NAME as name, TYPE as type, TAGS as tags, ",
         "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, ",
-        "METADATA_VERSION as metadataVersion, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
+        "METADATA_VERSION as metadataVersion, CL as cl, FL as fl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
         "FROM food WHERE (user_id IS NULL OR user_id = #{userId}) AND ID IN ",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
         "</script>"

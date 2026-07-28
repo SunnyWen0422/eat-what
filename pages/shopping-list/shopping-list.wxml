@@ -1,0 +1,29 @@
+<view class="list-page">
+  <view class="list-head">
+    <view><text class="title">购物清单</text><text class="sync">{{syncState}}</text></view>
+    <view class="head-actions"><text bindtap="onAddManual">手动添加</text><text bindtap="onClearCompleted">清空已购</text><text bindtap="onClearAll">清空全部</text></view>
+  </view>
+  <view wx:if="{{errorMessage}}" class="notice">{{errorMessage}}</view>
+  <view class="filters">
+    <text class="filter {{statusFilter === 'pending' ? 'active' : ''}}" data-status="pending" bindtap="onFilterChange">待购买 {{pendingCount}}</text>
+    <text class="filter {{statusFilter === 'all' ? 'active' : ''}}" data-status="all" bindtap="onFilterChange">全部</text>
+    <text class="filter {{statusFilter === 'checked' ? 'active' : ''}}" data-status="checked" bindtap="onFilterChange">已完成 {{checkedCount}}</text>
+  </view>
+  <view class="summary-toggle" bindtap="onToggleSummary"><text>采购总量汇总</text><text>{{summaryExpanded ? '收起' : '展开'}}</text></view>
+  <view wx:if="{{summaryExpanded}}" class="summary-panel">
+    <view wx:for="{{purchaseSummary.mergeableItems}}" wx:key="canonicalName" class="summary-row"><text>{{item.displayName}}</text><text>{{item.quantityText}}</text><text>{{item.sourceDishLabel}}</text></view>
+    <view wx:for="{{purchaseSummary.separateItems}}" wx:key="clientKey" class="summary-row separate"><text>{{item.displayName}}</text><text>{{item.quantityText || '需调整'}}</text><text>{{item.sourceDishLabel}}</text></view>
+    <view wx:if="{{purchaseSummary.mergeableItems.length === 0 && purchaseSummary.separateItems.length === 0}}" class="empty-small">暂无可汇总食材</view>
+  </view>
+  <view wx:if="{{loading && dishes.length === 0}}" class="loading">正在读取清单...</view>
+  <view wx:for="{{dishes}}" wx:for-index="dishIndex" wx:key="selectionKey" class="dish-group">
+    <view class="dish-header"><text>{{item.dishName}}</text><text wx:if="{{item.targetPeople}}">{{item.targetPeople}}人</text></view>
+    <view wx:for="{{item.items}}" wx:for-index="itemIndex" wx:key="clientKey" class="item-row">
+      <view class="check {{item.checked ? 'checked' : ''}}" data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onToggleItem">{{item.checked ? '✓' : ''}}</view>
+      <view class="item-body" data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onEditItem"><text class="item-name {{item.checked ? 'done' : ''}}">{{item.displayName}}</text><text class="item-source">{{item.quantityText || '需调整'}}{{item.userOverride ? ' · 已手动调整' : ''}}</text></view>
+      <text class="delete" data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onDeleteItem">删除</text>
+    </view>
+    <view wx:if="{{item.items.length === 0}}" class="empty-small">该菜暂无待购买项目</view>
+  </view>
+  <view wx:if="{{!loading && dishes.length === 0}}" class="empty-state"><text>还没有购物清单</text><button bindtap="onAddFromRecipe">从菜谱添加</button><button bindtap="onAddManual">手动添加</button></view>
+</view>

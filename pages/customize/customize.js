@@ -377,6 +377,18 @@ Page({
     this.setData({ selectedList: selectedList, showSelectedPanel: true })
   },
 
+  onAddSelectedToShoppingList() {
+    const { selectedIds } = this.data
+    if (!selectedIds.length) {
+      wx.showToast({ title: '请先勾选菜品', icon: 'none' })
+      return
+    }
+    const { beginShoppingSelection } = require('../../utils/shopping-list')
+    const dishes = selectedIds.map(id => this.allDishesMap[id]).filter(Boolean)
+    beginShoppingSelection({ dishIds: selectedIds, targetPeople: 2, source: 'customize', dishes })
+    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+  },
+
   // 隐藏已选面板
   onHideSelected() {
     this.setData({ showSelectedPanel: false })

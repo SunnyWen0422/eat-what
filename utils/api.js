@@ -548,6 +548,34 @@ function getCustomDishes() {
 }
 
 // ========================================
+// 购物清单接口
+// ========================================
+
+function createShoppingPreview(payload) {
+  return request('/shopping-list/preview', 'POST', payload)
+}
+
+function getShoppingList(status = 'all') {
+  return request(`/shopping-list?status=${encodeURIComponent(status)}`, 'GET')
+}
+
+function batchAddShoppingItems(payload) {
+  return request('/shopping-list/items:batch-add', 'POST', payload)
+}
+
+function patchShoppingItem(itemId, payload) {
+  return request(`/shopping-list/items/${encodeURIComponent(itemId)}`, 'PATCH', payload)
+}
+
+function deleteShoppingItem(itemId, payload = {}) {
+  return request(`/shopping-list/items/${encodeURIComponent(itemId)}`, 'DELETE', payload)
+}
+
+function clearShoppingList(payload) {
+  return request('/shopping-list:clear', 'POST', payload)
+}
+
+// ========================================
 // 管理后台接口
 // ========================================
 
@@ -588,6 +616,12 @@ module.exports = {
   createCustomDish,
   getCustomDishes,
   getDishById,
+  createShoppingPreview,
+  getShoppingList,
+  batchAddShoppingItems,
+  patchShoppingItem,
+  deleteShoppingItem,
+  clearShoppingList,
 
   // 管理后台接口
   getAdminUsers,

@@ -31,7 +31,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/recipe-records/**",
                         "/favorite-dishes/**",
                         "/admin/**",
-                        "/chat/**"
+                        "/chat/**",
+                        "/shopping-list",
+                        "/shopping-list/**",
+                        "/shopping-list*"
                 )
                 .excludePathPatterns(
                         "/users/login",

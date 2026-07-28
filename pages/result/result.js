@@ -395,6 +395,23 @@ Page({
     this.selectDateAndMeal(currentPlan)
   },
 
+  onAddPlanToShoppingList() {
+    const currentPlan = this.data.plans[this.data.current || 0]
+    if (!currentPlan || !currentPlan.dishes || currentPlan.dishes.length === 0) {
+      wx.showToast({ title: '当前没有可加入的菜品', icon: 'none' })
+      return
+    }
+    const { beginShoppingSelection } = require('../../utils/shopping-list')
+    const params = this.data.params || {}
+    beginShoppingSelection({
+      dishIds: currentPlan.dishes.map(dish => dish.id).filter(Boolean),
+      targetPeople: Number(params.people || params.targetPeople || 2),
+      source: 'result',
+      dishes: currentPlan.dishes,
+    })
+    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+  },
+
   // 选择日期和餐次
   selectDateAndMeal(plan) {
     wx.showActionSheet({

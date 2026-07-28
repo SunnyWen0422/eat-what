@@ -17,7 +17,9 @@
     "pages/profile-edit/profile-edit",
     "pages/custom-dishes/custom-dishes",
     "pages/admin/admin",
-    "pages/chat/chat"
+    "pages/chat/chat",
+    "pages/shopping-preview/shopping-preview",
+    "pages/shopping-list/shopping-list"
   ],
   "window": {
     "navigationBarTextStyle": "black",

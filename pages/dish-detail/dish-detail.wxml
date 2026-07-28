@@ -25,6 +25,7 @@
 
   <!-- 菜品信息 -->
   <view class="dish-info">
+    <button class="shopping-entry" bindtap="onAddToShoppingList">加入购物清单</button>
     <view class="dish-header">
       <text class="dish-name">{{dish.name}}</text>
       <view class="dish-tags" wx:if="{{dish.tags}}">

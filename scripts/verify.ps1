@@ -7,8 +7,8 @@ if (-not $python) {
 }
 
 Write-Host 'Checking JSON files...'
-Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.json |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\' } |
+Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.json -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
     ForEach-Object {
         Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
     }
@@ -21,10 +21,10 @@ $forbidden = @(
     ('password:' + ' 770609')
 )
 $textExtensions = @('.bat', '.java', '.js', '.json', '.md', '.properties', '.py', '.sh', '.sql', '.txt', '.wxml', '.wxss', '.yml', '.yaml')
-Get-ChildItem -LiteralPath $root -Recurse -File |
+Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object {
         $textExtensions -contains $_.Extension -and
-        $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\'
+        $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\'
     } |
     ForEach-Object {
         $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName
@@ -37,8 +37,8 @@ Get-ChildItem -LiteralPath $root -Recurse -File |
 
 Write-Host 'Checking JavaScript syntax...'
 $node = (Get-Command node -ErrorAction Stop).Source
-Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.js |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\node_modules\\' } |
+Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\.pytest_cache\\|\\node_modules\\' } |
     ForEach-Object {
         & $node --check $_.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -51,8 +51,8 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 }
 
 Write-Host 'Checking Python syntax...'
-$pythonFiles = Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.py |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\' } |
+$pythonFiles = Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.py -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
     Select-Object -ExpandProperty FullName
 if ($pythonFiles.Count -gt 0) {
     & $python -m py_compile @pythonFiles

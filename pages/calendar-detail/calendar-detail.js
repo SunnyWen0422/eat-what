@@ -254,6 +254,20 @@ Page({
     })
   },
 
+  onAddMealToShoppingList(e) {
+    const mealType = e.currentTarget.dataset.meal
+    const meal = this.data.meals[mealType]
+    const dishes = meal && Array.isArray(meal.dishDetails) ? meal.dishDetails : []
+    const dishIds = dishes.map(dish => dish.id).filter(Boolean)
+    if (!dishIds.length) {
+      wx.showToast({ title: '该餐次没有可用菜品', icon: 'none' })
+      return
+    }
+    const { beginShoppingSelection } = require('../../utils/shopping-list')
+    beginShoppingSelection({ dishIds, targetPeople: 2, source: 'calendar-detail', dishes })
+    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+  },
+
   // 删除餐次记录
   async deleteMealRecord(mealType) {
     try {

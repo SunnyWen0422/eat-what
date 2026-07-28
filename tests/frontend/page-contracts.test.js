@@ -134,10 +134,12 @@ test('app JSON, sitemap, and all page JSON files parse', () => {
   for (const file of jsonFiles) assert.doesNotThrow(() => JSON.parse(fs.readFileSync(file, 'utf8')), file)
 })
 
-test('unsupported shopping-list feature is absent from the Mini Program bundle', () => {
+test('shopping preview and list pages are registered in the Mini Program bundle', () => {
   const appConfig = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'))
-  assert.ok(!appConfig.pages.includes('pages/shopping-list/shopping-list'))
-  assert.ok(!fs.existsSync(path.join(root, 'pages/shopping-list')))
+  assert.ok(appConfig.pages.includes('pages/shopping-list/shopping-list'))
+  assert.ok(appConfig.pages.includes('pages/shopping-preview/shopping-preview'))
+  assert.ok(fs.existsSync(path.join(root, 'pages/shopping-list')))
+  assert.ok(fs.existsSync(path.join(root, 'pages/shopping-preview')))
 })
 
 test('profile keeps the admin page unreachable for non-admin users', () => {

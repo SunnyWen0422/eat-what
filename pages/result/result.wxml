@@ -72,6 +72,7 @@
       <button class="act-btn act-back" bindtap="onBack">返回</button>
       <button class="act-btn act-regen" loading="{{refreshing}}" disabled="{{refreshing}}" bindtap="onRegenerate">重新生成</button>
       <button class="act-btn act-save" bindtap="onSelectForMeal">选择此方案</button>
+      <button class="act-btn act-shopping" bindtap="onAddPlanToShoppingList">加入清单</button>
     </view>
   </view>
 

@@ -21,6 +21,7 @@
           <text class="meal-name">{{meals.breakfast.name}}</text>
           <text class="meal-time" wx:if="{{meals.breakfast.createTimeFormatted}}">{{meals.breakfast.createTimeFormatted}} 保存</text>
         </view>
+        <button class="meal-shopping" catchtap="onAddMealToShoppingList" data-meal="breakfast">加入清单</button>
         <view class="meal-dishes" wx:if="{{meals.breakfast.dishDetails.length > 0}}">
           <view class="dish-tag" wx:for="{{meals.breakfast.dishDetails}}" wx:key="id">{{item.name}}</view>
         </view>
@@ -51,6 +52,7 @@
           <text class="meal-name">{{meals.lunch.name}}</text>
           <text class="meal-time" wx:if="{{meals.lunch.createTimeFormatted}}">{{meals.lunch.createTimeFormatted}} 保存</text>
         </view>
+        <button class="meal-shopping" catchtap="onAddMealToShoppingList" data-meal="lunch">加入清单</button>
         <view class="meal-dishes" wx:if="{{meals.lunch.dishDetails.length > 0}}">
           <view class="dish-tag" wx:for="{{meals.lunch.dishDetails}}" wx:key="id">{{item.name}}</view>
         </view>
@@ -81,6 +83,7 @@
           <text class="meal-name">{{meals.dinner.name}}</text>
           <text class="meal-time" wx:if="{{meals.dinner.createTimeFormatted}}">{{meals.dinner.createTimeFormatted}} 保存</text>
         </view>
+        <button class="meal-shopping" catchtap="onAddMealToShoppingList" data-meal="dinner">加入清单</button>
         <view class="meal-dishes" wx:if="{{meals.dinner.dishDetails.length > 0}}">
           <view class="dish-tag" wx:for="{{meals.dinner.dishDetails}}" wx:key="id">{{item.name}}</view>
         </view>
