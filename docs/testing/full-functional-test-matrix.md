@@ -1,5 +1,7 @@
 # Full Functional Test Matrix
 
+Detailed executable cases for this matrix: [2026-07-28-full-test-cases.md](./2026-07-28-full-test-cases.md)
+
 Test date: 2026-07-23
 
 | Area | Scope | Verification | Result |
