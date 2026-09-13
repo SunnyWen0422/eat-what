@@ -1,6 +1,7 @@
 package com.eatwhat.controller;
 
 import com.eatwhat.entity.User;
+import com.eatwhat.dto.PublicUserDTO;
 import com.eatwhat.service.AdminAuthorizationService;
 import com.eatwhat.service.UserService;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ public class UserController {
             Map<String, Object> result = userService.loginByCode(code);
             User user = (User) result.get("user");
             result.put("isAdmin", user != null && adminAuthorizationService.isAdmin(user.getId()));
+            result.put("user", PublicUserDTO.from(user));
             result.put("success", true);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -99,7 +101,7 @@ public class UserController {
         
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
-        result.put("user", user);
+        result.put("user", PublicUserDTO.from(user));
         result.put("isAdmin", adminAuthorizationService.isAdmin(userId));
         return ResponseEntity.ok(result);
     }
@@ -130,7 +132,7 @@ public class UserController {
             User updatedUser = userService.updateUserInfo(user);
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("user", updatedUser);
+            result.put("user", PublicUserDTO.from(updatedUser));
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Update user info failed, userId={}", userId, e);

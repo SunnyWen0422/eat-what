@@ -42,6 +42,8 @@
 
 ## 📁 项目结构
 
+详细的运行目录、配置目录和文档目录说明见 [`docs/project-structure.md`](docs/project-structure.md)。
+
 ```
 吃什么/
 ├── pages/                    # 页面目录
@@ -157,7 +159,7 @@ mvn spring-boot:run
 - **框架**：Spring Boot 2.x
 - **数据访问**：MyBatis 注解 SQL
 - **数据库**：MySQL 8.0
-- **接口约定**：`DEVELOPER.md` + 自动化端点清单测试
+- **接口约定**：`DEVELOPER.md` 与后端 Controller 实现
 - **部署**：Nginx + 宝塔 Java 项目 + systemd Python 服务
 
 ### 数据流程
@@ -235,7 +237,7 @@ API、数据表和开发约定请查看：[DEVELOPER.md](./DEVELOPER.md)。
 
 ### 添加新菜品
 
-普通用户菜品通过小程序“定制菜谱”添加。系统菜后续增删改以 `outputs/dish-replacement-20260718/` 的 6,665 条离线基准为准：修改源工作簿后运行 `scripts/replace_dish_data.py` 和 `scripts/backfill_recommendation_metadata.py`，检查审计报告，再执行完整测试。不要只修改 `utils/dishes.js` 的小型离线兜底数据。
+普通用户菜品通过小程序“定制菜谱”添加。系统菜后续增删改以 `outputs/dish-replacement-20260718/` 的 6,665 条离线基准为准：修改源工作簿后运行 `scripts/replace_dish_data.py` 和 `scripts/backfill_recommendation_metadata.py`，检查审计报告，再运行 `scripts/verify.ps1`。不要只修改 `utils/dishes.js` 的小型离线兜底数据。
 
 ### 自定义推荐算法
 主推荐逻辑位于 Java `RecommendationService`；`utils/recommend.js` 只维护网络失败时的同条件降级逻辑，两侧硬筛选语义必须保持一致。
@@ -243,7 +245,7 @@ API、数据表和开发约定请查看：[DEVELOPER.md](./DEVELOPER.md)。
 ### 扩展API接口
 1. 在后端添加新的Controller方法
 2. 在 `utils/api.js` 中添加前端调用方法
-3. 更新 `DEVELOPER.md` 和对应测试
+3. 更新 `DEVELOPER.md` 并运行 `scripts/verify.ps1`
 
 ## 🤝 贡献指南
 

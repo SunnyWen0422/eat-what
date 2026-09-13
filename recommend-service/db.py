@@ -94,7 +94,7 @@ def _sample_dishes_by_cn_type(db_type_cn: str, limit: int) -> List[Dict[str, Any
         with conn.cursor() as cur:
             # 先获取该类型的总数（走索引，很快）
             cur.execute(
-                "SELECT COUNT(*) as cnt FROM food WHERE TYPE = %s",
+                "SELECT COUNT(*) as cnt FROM food WHERE TYPE = %s AND user_id IS NULL AND COALESCE(is_published, 1) = 1",
                 (db_type_cn,)
             )
             total = cur.fetchone()["cnt"]
@@ -110,7 +110,7 @@ def _sample_dishes_by_cn_type(db_type_cn: str, limit: int) -> List[Dict[str, Any
             # LIMIT + OFFSET 走主键索引，性能很好
             cur.execute(
                 "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step "
-                "FROM food WHERE TYPE = %s ORDER BY ID LIMIT %s OFFSET %s",
+                "FROM food WHERE TYPE = %s AND user_id IS NULL AND COALESCE(is_published, 1) = 1 ORDER BY ID LIMIT %s OFFSET %s",
                 (db_type_cn, limit, offset)
             )
             rows = cur.fetchall()
@@ -150,7 +150,7 @@ def fetch_all_dishes() -> List[Dict[str, Any]]:
     conn = _get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT DISTINCT TYPE FROM food WHERE TYPE IS NOT NULL AND TYPE != ''")
+            cur.execute("SELECT DISTINCT TYPE FROM food WHERE TYPE IS NOT NULL AND TYPE != '' AND user_id IS NULL AND COALESCE(is_published, 1) = 1")
             db_types = [r["TYPE"] for r in cur.fetchall()]
     finally:
         conn.close()
@@ -175,7 +175,7 @@ def _fetch_all_dishes_fallback() -> List[Dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step "
-                "FROM food ORDER BY ID"
+                "FROM food WHERE user_id IS NULL AND COALESCE(is_published, 1) = 1 ORDER BY ID"
             )
             rows = cur.fetchall()
         result = []
@@ -207,7 +207,7 @@ def fetch_dishes_by_ids(ids: List[int]) -> List[Dict[str, Any]]:
         placeholders = ",".join(["%s"] * len(ids))
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step FROM food WHERE ID IN ({placeholders})",
+                f"SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step FROM food WHERE user_id IS NULL AND COALESCE(is_published, 1) = 1 AND ID IN ({placeholders})",
                 ids,
             )
             rows = cur.fetchall()
@@ -259,5 +259,154 @@ def fetch_recent_dish_names(user_id: Optional[int], limit: int = 12) -> List[str
         dishes = fetch_dishes_by_ids(list(dish_ids_set))
         names = [d["name"] for d in dishes[:limit]]
         return names
+    finally:
+        conn.close()
+
+
+def _json_list(value: Any) -> List[str]:
+    """Decode a preference JSON column without trusting malformed legacy data."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw = value
+    else:
+        try:
+            raw = json.loads(str(value))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            raw = [item for item in str(value).replace("，", ",").split(",") if item.strip()]
+    if not isinstance(raw, (list, tuple, set)):
+        return []
+    return list(dict.fromkeys(str(item).strip() for item in raw if str(item).strip()))
+
+
+def fetch_user_assistant_context(user_id: Optional[int]) -> Dict[str, Any]:
+    """Read the small, non-sensitive context used to rank assistant results.
+
+    This is deliberately read-only and best-effort. Missing legacy tables,
+    malformed JSON or a transient database failure return an empty context so
+    the assistant can still use the dish index and explicit request filters.
+    """
+    empty = {
+        "preferred_cuisine_codes": [],
+        "preferred_tag_codes": [],
+        "excluded_tag_codes": [],
+        "excluded_ingredients": [],
+        "favorite_dish_ids": [],
+        "max_cook_minutes": None,
+        "avoid_recent_days": None,
+    }
+    if not user_id:
+        return empty
+    conn = _get_connection()
+    try:
+        with conn.cursor() as cur:
+            try:
+                cur.execute(
+                    "SELECT PREFERRED_CUISINES, PREFERRED_TAGS, EXCLUDED_TAGS, "
+                    "EXCLUDED_INGREDIENTS, MAX_COOK_MINUTES, AVOID_RECENT_DAYS "
+                    "FROM user_preference WHERE USER_ID = %s",
+                    (user_id,),
+                )
+                row = cur.fetchone() or {}
+            except Exception:
+                # Older deployments may not have duration/recency columns;
+                # retain the preference and exclusion context in that case.
+                try:
+                    cur.execute(
+                        "SELECT PREFERRED_CUISINES, PREFERRED_TAGS, EXCLUDED_TAGS, "
+                        "EXCLUDED_INGREDIENTS FROM user_preference WHERE USER_ID = %s",
+                        (user_id,),
+                    )
+                    row = cur.fetchone() or {}
+                except Exception:
+                    row = {}
+            try:
+                cur.execute(
+                    "SELECT DISH_ID FROM favorite_dishes WHERE USER_ID = %s "
+                    "ORDER BY CREATE_TIME DESC LIMIT 100",
+                    (user_id,),
+                )
+                favorites = cur.fetchall() or []
+            except Exception:
+                favorites = []
+        result = {
+            "preferred_cuisine_codes": _json_list(row.get("PREFERRED_CUISINES", row.get("preferred_cuisines"))),
+            "preferred_tag_codes": _json_list(row.get("PREFERRED_TAGS", row.get("preferred_tags"))),
+            "excluded_tag_codes": _json_list(row.get("EXCLUDED_TAGS", row.get("excluded_tags"))),
+            "excluded_ingredients": _json_list(row.get("EXCLUDED_INGREDIENTS", row.get("excluded_ingredients"))),
+            "favorite_dish_ids": [
+                int(item.get("DISH_ID", item.get("dish_id")))
+                for item in favorites
+                if item.get("DISH_ID", item.get("dish_id")) is not None
+            ],
+            "max_cook_minutes": row.get("MAX_COOK_MINUTES", row.get("max_cook_minutes")),
+            "avoid_recent_days": row.get("AVOID_RECENT_DAYS", row.get("avoid_recent_days")),
+        }
+        return result
+    except Exception:
+        return empty
+    finally:
+        conn.close()
+
+
+def fetch_user_calendar_context(user_id: Optional[int], dates: Optional[List[str]] = None,
+                                meal_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Read only the authenticated user's calendar rows for assistant tools."""
+    if not user_id:
+        return []
+    conn = _get_connection()
+    try:
+        clauses = ["USER_ID = %s"]
+        params: List[Any] = [user_id]
+        valid_dates = [str(item) for item in dates or [] if str(item).strip()]
+        if valid_dates:
+            placeholders = ",".join(["%s"] * len(valid_dates))
+            clauses.append(f"DATE_FORMAT(RECORD_DATE, '%%Y-%%m-%%d') IN ({placeholders})")
+            params.extend(valid_dates)
+        valid_meals = [str(item) for item in meal_types or [] if str(item).strip()]
+        if valid_meals:
+            placeholders = ",".join(["%s"] * len(valid_meals))
+            clauses.append(f"MEAL_TYPE IN ({placeholders})")
+            params.extend(valid_meals)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT ID AS id, DATE_FORMAT(RECORD_DATE, '%%Y-%%m-%%d') AS record_date, "
+                "MEAL_TYPE AS meal_type, RECIPE_NAME AS recipe_name, DISH_IDS AS dish_ids "
+                "FROM recipe_records WHERE " + " AND ".join(clauses) + " ORDER BY RECORD_DATE, MEAL_TYPE LIMIT 100",
+                params,
+            )
+            rows = cur.fetchall() or []
+        return rows
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+
+def fetch_user_shopping_context(user_id: Optional[int]) -> Dict[str, Any]:
+    """Return a bounded, read-only snapshot of the user's shopping list."""
+    if not user_id:
+        return {"available": False, "list": None, "dishes": []}
+    conn = _get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, version, metadata_version FROM shopping_list WHERE user_id = %s", (user_id,))
+            shopping = cur.fetchone()
+            if not shopping:
+                return {"available": True, "list": None, "dishes": []}
+            cur.execute(
+                "SELECT id, selection_key, dish_id, dish_name, target_people FROM shopping_dish WHERE shopping_list_id = %s ORDER BY id LIMIT 100",
+                (shopping["id"],),
+            )
+            dishes = cur.fetchall() or []
+            for dish in dishes:
+                cur.execute(
+                    "SELECT id, source_line_no, canonical_name, display_name, quantity_value, quantity_text, unit_code, checked, calculation_status FROM shopping_item WHERE shopping_dish_id = %s ORDER BY source_line_no LIMIT 100",
+                    (dish["id"],),
+                )
+                dish["items"] = cur.fetchall() or []
+            return {"available": True, "list": shopping, "dishes": dishes}
+    except Exception:
+        return {"available": False, "list": None, "dishes": []}
     finally:
         conn.close()

@@ -36,7 +36,7 @@
 
   <!-- 空状态 -->
   <view class="empty-state" wx:else>
-    <text class="empty-icon">✅</text>
+    <view class="empty-icon"><view class="line-icon line-icon-check"></view></view>
     <text class="empty-text">暂无待同步的数据</text>
     <text class="empty-hint">所有数据都已同步到云端</text>
   </view>
@@ -69,7 +69,7 @@
 
   <!-- 使用说明 -->
   <view class="usage-tips">
-    <view class="tip-title">💡 使用说明</view>
+    <view class="tip-title"><view class="line-icon line-icon-spark"></view><text>使用说明</text></view>
     <view class="tip-content">
       <text>1. 离线时保存的数据会存储在本地</text>
       <text>2. 网络恢复后可手动同步到云端</text>

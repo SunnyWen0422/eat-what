@@ -73,6 +73,9 @@ public class Dish {
     @JsonProperty("isCustom")
     private Integer isCustom;  // 0-系统，1-用户自定义
 
+    @JsonProperty("isPublished")
+    private Integer isPublished;
+
     @JsonProperty("userId")
     private Long userId;
 

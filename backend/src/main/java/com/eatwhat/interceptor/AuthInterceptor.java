@@ -1,6 +1,8 @@
 package com.eatwhat.interceptor;
 
 import com.eatwhat.service.TokenService;
+import com.eatwhat.service.UserAccessService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -11,22 +13,24 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
-/**
- * 认证拦截器
- * 拦截需要登录的接口，从请求头中解析并校验 token。
- */
+/** Authentication boundary for protected API routes. */
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
     private final TokenService tokenService;
+    private final UserAccessService userAccessService;
 
+    /** Test-only compatibility constructor; Spring uses the two-argument constructor. */
     public AuthInterceptor(TokenService tokenService) {
-        this.tokenService = tokenService;
+        this(tokenService, null);
     }
 
-    /**
-     * 请求前认证
-     */
+    @Autowired
+    public AuthInterceptor(TokenService tokenService, UserAccessService userAccessService) {
+        this.tokenService = tokenService;
+        this.userAccessService = userAccessService;
+    }
+
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request,
                              @NonNull HttpServletResponse response,
@@ -37,61 +41,51 @@ public class AuthInterceptor implements HandlerInterceptor {
             uri = uri.substring(contextPath.length());
         }
 
-        // 放行不需要登录的接口
-        if (isExcluded(uri)) {
-            return true;
-        }
+        if (isExcluded(uri)) return true;
 
-        // 从请求头获取 Authorization: Bearer xxx
         String authHeader = request.getHeader("Authorization");
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
         }
 
-        if ((token == null || token.isEmpty()) && isOptionalAuth(uri)) {
-            return true;
-        }
+        if ((token == null || token.isEmpty()) && isOptionalAuth(uri)) return true;
         if (token == null || token.isEmpty()) {
-            writeUnauthorized(response, "未提供token");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "未提供token");
             return false;
         }
 
         Long userId = tokenService.getUserIdFromToken(token);
         if (userId == null) {
-            writeUnauthorized(response, "token无效或已过期");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "token无效或已过期");
             return false;
         }
 
-        // 将 userId 保存到请求属性，方便后续使用
+        if (userAccessService != null && !userAccessService.isActive(userId)) {
+            writeJson(response, HttpServletResponse.SC_FORBIDDEN, "用户已被禁用");
+            return false;
+        }
+
         request.setAttribute("currentUserId", userId);
         return true;
     }
 
-    /**
-     * 是否为无需认证的路径
-     */
     private boolean isExcluded(String uri) {
         return uri.startsWith("/users/login") || uri.startsWith("/users/phone-login");
     }
 
     private boolean isOptionalAuth(String uri) {
-        return uri.equals("/chat") || uri.startsWith("/chat/");
+        return uri.equals("/chat") || uri.startsWith("/chat/")
+                || uri.equals("/assistant") || uri.startsWith("/assistant/");
     }
 
-    /**
-     * 返回 401 未认证响应
-     */
-    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    private void writeJson(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("application/json;charset=UTF-8");
-
-        String body = "{\"success\":false,\"message\":\"" + message + "\"}";
         try (PrintWriter writer = response.getWriter()) {
-            writer.write(body);
+            writer.write("{\"success\":false,\"message\":\"" + message + "\"}");
             writer.flush();
         }
     }
 }
-

@@ -69,7 +69,7 @@ Page({
     this.setData({
       loading: !hasExistingPlans,
       refreshing: hasExistingPlans,
-      loadingStage: '正在分析你的偏好',
+      loadingStage: '先看看你今天想吃什么',
       generationNotice: '',
       empty: false,
     })
@@ -94,7 +94,7 @@ Page({
             loading: false,
             refreshing: false,
             empty: false,
-            generationNotice: '没有找到新方案，仍显示上次方案',
+            generationNotice: '没有更合适的新组合，先保留刚才这套',
             warnings: result.warnings || [],
           })
         } else {
@@ -122,7 +122,7 @@ Page({
           loading: false,
           refreshing: false,
           empty: false,
-          generationNotice: '生成失败，仍显示上次方案',
+          generationNotice: '这次没连上推荐服务，先保留刚才这套',
         })
       } else {
         this.setData({
@@ -131,8 +131,8 @@ Page({
           empty: true,
           plans: [],
           warnings: [error && error.code === 'GENERATION_TIMEOUT'
-            ? '生成推荐超时，请重试。'
-            : '推荐服务暂时不可用，请稍后重试。'],
+            ? '这次等得有点久，换个条件再试试。'
+            : '推荐服务暂时没回应，稍后再试试。'],
         })
       }
       return false
@@ -151,12 +151,12 @@ Page({
     this.generationStageTimers = [
       setTimeout(() => {
         if (generationVersion === this.generationVersion && this.generationInFlight) {
-          this.setData({ loadingStage: '正在筛选合适的菜品' })
+          this.setData({ loadingStage: '正在挑合适的菜' })
         }
       }, this.filteringStageDelayMs),
       setTimeout(() => {
         if (generationVersion === this.generationVersion && this.generationInFlight) {
-          this.setData({ loadingStage: '网络较慢，正在准备本地方案' })
+          this.setData({ loadingStage: '网络慢一点，我先用本地菜谱帮你搭一桌' })
         }
       }, this.fallbackStageDelayMs),
     ]
@@ -169,8 +169,8 @@ Page({
   },
 
   sourceNotice(source) {
-    if (source === 'cache') return '网络较慢，已使用缓存菜品生成'
-    if (source === 'local') return '已使用本地菜品生成'
+    if (source === 'cache') return '网络慢了一点，先用已加载的菜谱'
+    if (source === 'local') return '先用本地菜谱给你搭了一套'
     return ''
   },
 
@@ -249,7 +249,7 @@ Page({
       ? currentPlan.dishes.map(d => d.name).slice(0, 3).join('、')
       : ''
     return {
-      title: dishNames ? `今天吃：${dishNames}` : '吃什么？智能推荐，告别选择困难！',
+      title: dishNames ? `今天这桌：${dishNames}` : '来看看今天适合吃什么',
       path: '/pages/index/index',
       imageUrl: currentPlan && currentPlan.dishes && currentPlan.dishes[0]
         ? currentPlan.dishes[0].image || '' : ''
@@ -388,11 +388,35 @@ Page({
   },
 
   // 选择此方案
+  onPlanChange(e) {
+    const current = Number(e.detail.current)
+    if (Number.isInteger(current) && current >= 0 && current < this.data.plans.length) {
+      this.setData({ current })
+    }
+  },
+
   onSelectForMeal() {
     const currentPlan = this.data.plans[this.data.current || 0]
     if (!currentPlan) return
 
     this.selectDateAndMeal(currentPlan)
+  },
+
+  onAddPlanToShoppingList() {
+    const currentPlan = this.data.plans[this.data.current || 0]
+    if (!currentPlan || !currentPlan.dishes || currentPlan.dishes.length === 0) {
+      wx.showToast({ title: '当前没有可加入的菜品', icon: 'none' })
+      return
+    }
+    const { beginShoppingSelection } = require('../../utils/shopping-list')
+    const params = this.data.params || {}
+    beginShoppingSelection({
+      dishIds: currentPlan.dishes.map(dish => dish.id).filter(Boolean),
+      targetPeople: Number(params.people || params.targetPeople || 2),
+      source: 'result',
+      dishes: currentPlan.dishes,
+    })
+    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
   },
 
   // 选择日期和餐次

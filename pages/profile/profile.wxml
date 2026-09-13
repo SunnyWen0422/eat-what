@@ -3,8 +3,8 @@
   <view class="user-card" bindtap="onUserInfoTap">
     <view class="user-avatar">
       <image class="avatar" src="{{userInfo.avatar}}" mode="aspectFill" />
-      <view class="edit-btn" bindtap="onEditProfile">
-        <text class="edit-icon">✏️</text>
+      <view class="edit-btn" catchtap="onEditProfile">
+        <view class="line-icon line-icon-pencil edit-icon" aria-label="编辑资料"></view>
       </view>
     </view>
     <view class="user-info">
@@ -25,12 +25,23 @@
     <view class="login-skip" bindtap="onCloseLoginModal">暂不登录，游客体验</view>
   </view>
 
+  <!-- 首个快捷入口：保持按菜品统计待购买食材 -->
+  <view class="shopping-shortcut" bindtap="onShoppingListTap">
+    <view class="shopping-shortcut-icon"><view class="line-icon line-icon-cart" aria-label="购物清单"></view></view>
+    <view class="shopping-shortcut-body">
+      <text class="shopping-shortcut-title">购物清单</text>
+      <text class="shopping-shortcut-count">{{shoppingSummary.pendingCount}} 项食材待购买</text>
+      <text class="shopping-shortcut-sync">{{shoppingSummary.refreshing ? '更新中 · 已显示本地清单' : shoppingSummary.syncLabel}}</text>
+    </view>
+    <button class="shopping-shortcut-open" catchtap="onShoppingListTap">查看清单 ›</button>
+  </view>
+
   <!-- 功能菜单 -->
   <view class="menu-section">
     <view class="menu-list">
       <block wx:for="{{menuItems}}" wx:key="title">
         <view class="menu-item" bindtap="onMenuTap" data-index="{{index}}">
-          <view class="menu-icon">{{item.icon}}</view>
+          <view class="menu-icon"><view class="line-icon line-icon-{{item.icon}}" aria-label="{{item.title}}"></view></view>
           <view class="menu-content">
             <text class="menu-title">{{item.title}}</text>
             <text class="menu-desc">{{item.desc}}</text>

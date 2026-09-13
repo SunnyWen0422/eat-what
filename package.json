@@ -1,7 +1,0 @@
-{
-  "name": "eatwhat-local-tests",
-  "private": true,
-  "scripts": {
-    "test:frontend": "node --test --test-concurrency=1 tests/frontend/*.test.js"
-  }
-}

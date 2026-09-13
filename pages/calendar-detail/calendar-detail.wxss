@@ -1,6 +1,8 @@
 .detail-page {
-  padding: 20px;
-  background-color: #f5f5f5;
+  padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-x: hidden;
+  background: linear-gradient(180deg,#e9faf6 0,#fff 300px);
   min-height: 100vh;
 }
 
@@ -9,7 +11,7 @@
   padding: 20px;
   border-radius: 12px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e3eeea;
   text-align: center;
 }
 
@@ -29,7 +31,7 @@
   background-color: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e3eeea;
 }
 
 .meal-header {
@@ -39,9 +41,12 @@
 }
 
 .meal-icon {
-  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 12px;
 }
+.meal-icon .line-icon { width: 42rpx; height: 42rpx; }
 
 .breakfast-icon {
   color: #ff9500;
@@ -60,6 +65,8 @@
   font-weight: bold;
   color: #333;
   flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .meal-actions {
@@ -106,6 +113,7 @@
   font-weight: bold;
   color: #333;
   display: block;
+  word-break: break-word;
   margin-bottom: 8px;
 }
 
@@ -150,7 +158,7 @@
   background-color: white;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e3eeea;
 }
 
 .tip-title {
@@ -198,6 +206,7 @@
   background-color: #e9ecef;
   padding: 4px 10px;
   border-radius: 12px;
+  word-break: break-word;
 }
 
 .dish-names-text {
@@ -206,9 +215,12 @@
 }
 
 .empty-icon {
-  font-size: 32px;
+  color: #299f91;
   margin-bottom: 8px;
 }
+.empty-icon .line-icon { width: 50rpx; height: 50rpx; }
+.tip-title { display: flex; align-items: center; gap: 6rpx; }
+.tip-title .line-icon { width: 28rpx; height: 28rpx; color: #299f91; }
 
 /* 弹窗样式 */
 .modal-mask {

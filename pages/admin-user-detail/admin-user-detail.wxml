@@ -1,0 +1,27 @@
+<view class="page">
+  <view wx:if="{{notice}}" class="notice">{{notice}}</view>
+  <view wx:if="{{loading && !ready}}" class="state">正在加载用户详情...</view>
+  <view wx:elif="{{error && !ready}}" class="state"><text>{{error}}</text><button class="primary" bindtap="retry">重新加载</button></view>
+  <block wx:elif="{{ready && mode === 'detail'}}">
+    <view class="summary">
+      <view class="summary-top"><view><text class="name">{{user.nickname || user.phone || '用户 ' + user.id}}</text><text class="meta">ID {{user.id}} · {{user.phone || '未绑定手机'}}</text></view><text class="badge {{user.status === 0 ? 'off' : 'on'}}">{{user.status === 0 ? '已停用' : '正常'}}</text></view>
+      <text class="meta">注册时间 {{user.registerTime || '暂无'}}</text><text class="meta">最近登录 {{user.lastLoginTime || '暂无'}}</text>
+      <button class="status" bindtap="toggleStatus" loading="{{updatingStatus}}">{{user.status === 0 ? '启用该用户' : '停用该用户'}}</button>
+    </view>
+    <view class="section-head"><text class="section-title">自定义菜品</text><button class="add" bindtap="startAdd">添加</button></view>
+    <view wx:if="{{!dishes.length}}" class="state compact">该用户暂无自定义菜品</view>
+    <view wx:else class="list">
+      <view class="dish" wx:for="{{dishes}}" wx:key="id"><view class="dish-main"><text class="dish-name">{{item.name}}</text><text class="meta">{{item.type}} · {{item.cookMinutes ? item.cookMinutes + ' 分钟' : '未设置时长'}}</text><text class="ingredients">{{item.cl}}</text></view><view class="actions"><button data-id="{{item.id}}" bindtap="startEdit">编辑</button><button class="danger" data-id="{{item.id}}" bindtap="deleteDish" loading="{{deletingId === item.id}}">删除</button></view></view>
+    </view>
+  </block>
+  <view wx:elif="{{mode === 'form'}}" class="form">
+    <text class="form-title">{{editingId ? '编辑自定义菜品' : '添加自定义菜品'}}</text>
+    <text class="label">菜名</text><input value="{{form.name}}" data-field="name" bindinput="onInput" maxlength="255" placeholder="请输入菜品名称"/>
+    <text class="label">分类</text><view class="types"><button class="{{form.type === item ? 'selected' : ''}}" wx:for="{{types}}" wx:key="*this" data-type="{{item}}" bindtap="onType">{{item}}</button></view>
+    <text class="label">食材与用量</text><textarea value="{{form.cl}}" data-field="cl" bindinput="onInput" maxlength="10000" auto-height placeholder="每种食材一行，写明用量"/>
+    <text class="label">烹饪步骤</text><textarea value="{{form.step}}" data-field="step" bindinput="onInput" maxlength="20000" auto-height placeholder="写明完整步骤"/>
+    <text class="label">标签</text><input value="{{form.tags}}" data-field="tags" bindinput="onInput" maxlength="500" placeholder="可选"/>
+    <text class="label">烹饪分钟数</text><input value="{{form.cookMinutes}}" data-field="cookMinutes" bindinput="onInput" type="number" maxlength="3" placeholder="可选"/>
+    <view class="form-actions"><button bindtap="cancelForm" disabled="{{saving}}">取消</button><button class="primary" bindtap="save" loading="{{saving}}">保存</button></view>
+  </view>
+</view>

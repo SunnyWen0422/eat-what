@@ -1,0 +1,38 @@
+{
+  "policy_version": "2.0.0",
+  "scope": "global",
+  "invariants": [
+    "database_read_only",
+    "database_facts_only",
+    "current_task_mutations_allowed",
+    "hard_constraints_first",
+    "user_write_requires_confirmation",
+    "user_scope_isolation",
+    "no_arbitrary_code_or_sql",
+    "dynamic_skill_selection",
+    "explicit_model_degradation"
+  ],
+  "data_boundaries": {
+    "database": "read_only",
+    "current_task": "read_write",
+    "user_calendar": "read_write_after_confirmation",
+    "user_shopping_list": "read_write_after_confirmation",
+    "user_preferences": "read_only_unless_explicitly_confirmed"
+  },
+  "model_must_not": [
+    "invent_dish_ids",
+    "invent_ingredient_quantities",
+    "execute_arbitrary_sql",
+    "execute_scripts_or_system_commands",
+    "read_other_users_data",
+    "write_without_preview_and_confirmation",
+    "modify_database_source_records"
+  ],
+  "model_may": [
+    "select_tools_dynamically",
+    "combine_tools_and_skills",
+    "reshape_current_task_plan",
+    "scale_quantities_using_tool",
+    "propose_user_calendar_and_shopping_mutations"
+  ]
+}

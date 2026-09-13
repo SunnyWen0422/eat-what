@@ -41,6 +41,22 @@ public class AdminUserService {
         return id == null ? null : userMapper.selectById(id);
     }
 
+    public User updateStatus(Long id, Integer status) {
+        if (id == null) throw new IllegalArgumentException("userId is required");
+        if (status == null || (status != 0 && status != 1)) {
+            throw new IllegalArgumentException("status must be 0 or 1");
+        }
+        User existing = findUser(id);
+        if (existing == null) return null;
+        if (existing.getStatus() != null && existing.getStatus().equals(status)) {
+            throw new IllegalStateException("user status is unchanged");
+        }
+        if (userMapper.updateStatusIfChanged(id, status) == 0) {
+            throw new IllegalStateException("user status update conflicted");
+        }
+        return findUser(id);
+    }
+
     private String normalizeKeyword(String keyword) {
         if (keyword == null) return null;
         String value = keyword.trim();

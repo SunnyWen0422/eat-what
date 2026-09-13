@@ -17,7 +17,14 @@
     "pages/profile-edit/profile-edit",
     "pages/custom-dishes/custom-dishes",
     "pages/admin/admin",
-    "pages/chat/chat"
+    "pages/admin-dashboard/admin-dashboard",
+    "pages/admin-users/admin-users",
+    "pages/admin-user-detail/admin-user-detail",
+    "pages/admin-dishes/admin-dishes",
+    "pages/admin-audit/admin-audit",
+    "pages/chat/chat",
+    "pages/shopping-preview/shopping-preview",
+    "pages/shopping-list/shopping-list"
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -26,13 +33,21 @@
   },
   "tabBar": {
     "color": "#7A7E83",
-    "selectedColor": "#2BA471",
-    "borderStyle": "black",
+    "selectedColor": "#299f91",
+    "borderStyle": "white",
     "backgroundColor": "#ffffff",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "选菜"
+      },
+      {
+        "pagePath": "pages/customize/customize",
+        "text": "定制"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "text": "助手"
       },
       {
         "pagePath": "pages/calendar/calendar",

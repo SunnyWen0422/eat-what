@@ -8,7 +8,7 @@
 
 /* 顶部标题区 */
 .header {
-  background: linear-gradient(135deg, #3cc51f 0%, #2e8b57 100%);
+  background: #299f91;
   padding: 40px 20px 30px;
   display: flex;
   flex-direction: column;
@@ -42,7 +42,11 @@
   font-weight: bold;
   color: #333;
   padding: 20px 20px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
 }
+.section-title .line-icon { width: 32rpx; height: 32rpx; color: #299f91; }
 
 /* 步骤卡片 */
 .step-card {
@@ -50,7 +54,7 @@
   margin: 0 20px 16px;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e3eeea;
 }
 
 .step-header {
@@ -62,7 +66,7 @@
 .step-number {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #3cc51f 0%, #2e8b57 100%);
+  background: #299f91;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -111,12 +115,15 @@
   font-size: 15px;
   color: #3cc51f;
   line-height: 1.8;
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 6rpx;
   margin-top: 12px;
   padding: 12px;
   background-color: #f0f9eb;
   border-radius: 8px;
 }
+.step-tip .line-icon { width: 28rpx; height: 28rpx; flex: 0 0 auto; color: #299f91; margin-top: 2rpx; }
 
 /* 小提示区域 */
 .tips-section {
@@ -128,7 +135,7 @@
   margin: 0 20px;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e3eeea;
 }
 
 .tip-item {

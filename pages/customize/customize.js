@@ -1,5 +1,6 @@
 // pages/customize/customize.js
 const api = require('../../utils/api')
+const { getUserStorageKey } = require('../../utils/util')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 
 const BROWSE_GROUPS = [
@@ -377,6 +378,18 @@ Page({
     this.setData({ selectedList: selectedList, showSelectedPanel: true })
   },
 
+  onAddSelectedToShoppingList() {
+    const { selectedIds } = this.data
+    if (!selectedIds.length) {
+      wx.showToast({ title: '请先勾选菜品', icon: 'none' })
+      return
+    }
+    const { beginShoppingSelection } = require('../../utils/shopping-list')
+    const dishes = selectedIds.map(id => this.allDishesMap[id]).filter(Boolean)
+    beginShoppingSelection({ dishIds: selectedIds, targetPeople: 2, source: 'customize', dishes })
+    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+  },
+
   // 隐藏已选面板
   onHideSelected() {
     this.setData({ showSelectedPanel: false })
@@ -393,6 +406,7 @@ Page({
     this.setData({
       selectedIds: selectedIds,
       selectedTotal: selectedIds.length,
+      selectedList: this.buildSelectedList(selectedIds),
       currentDishes: currentDishes
     })
   },
@@ -411,6 +425,7 @@ Page({
           this.setData({
             selectedIds: [],
             selectedTotal: 0,
+            selectedList: [],
             currentDishes: currentDishes
           })
         }
@@ -460,12 +475,13 @@ Page({
         isManual: 1
       })
       wx.showToast({ title: '已保存到日历', icon: 'success' })
+      wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), true)
       // 清空选中状态
       const currentDishes = this.data.currentDishes.map(d => ({ ...d, isSelected: false }))
-      this.allDishesMap = {}
       this.setData({
         selectedIds: [],
         selectedTotal: 0,
+        selectedList: [],
         currentDishes: currentDishes,
         showSelectedPanel: false
       })

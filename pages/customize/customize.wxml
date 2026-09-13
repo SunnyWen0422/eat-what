@@ -1,11 +1,13 @@
 <!--pages/customize/customize.wxml-->
-<view class="page">
+<view class="page mobile-screen">
 
-  <!-- 左侧竖边栏 -->
+  <!-- 分类独立横向滚动，末项始终可以滑到 -->
+  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
   <view class="sidebar">
     <view
       wx:for="{{tabs}}"
       wx:key="*this"
+      id="category-{{item}}"
       class="sidebar-item {{activeTab === item ? 'sidebar-active' : ''}}"
       data-tab="{{item}}"
       bindtap="onTabChange"
@@ -13,19 +15,22 @@
       <text>{{tabNames[item]}}</text>
     </view>
     <view
+      id="category-custom"
       class="sidebar-item custom-btn {{activeTab === 'custom' ? 'sidebar-active' : ''}}"
       data-tab="custom"
       bindtap="onTabChange"
     >
-      <text>+ 定制</text>
+      <text>+ 自定义菜品</text>
     </view>
   </view>
+  </scroll-view>
 
   <!-- 右侧内容区 -->
   <view class="content">
 
     <!-- 定制菜品表单 -->
-    <view class="custom-form" wx:if="{{showCustomForm}}">
+    <scroll-view class="custom-form mobile-scroll" scroll-y enhanced wx:if="{{showCustomForm}}">
+      <view class="custom-form-content">
       <view class="form-title">添加我的私房菜</view>
       <input class="form-input" placeholder="菜品名称" value="{{customForm.name}}" data-field="name" bindinput="onCustomInput" />
 
@@ -50,17 +55,18 @@
       <textarea class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" bindinput="onCustomInput" rows="4" />
       <textarea class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" bindinput="onCustomInput" rows="6" />
       <button class="save-custom-btn" bindtap="onSaveCustomDish">保存菜品</button>
-    </view>
+      </view>
+    </scroll-view>
 
     <!-- 搜索框 -->
     <view class="search-wrap" wx:if="{{!showCustomForm}}">
       <input class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
       <view class="hot-tags" wx:if="{{!searchKeyword}}">
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="红烧">🔥 红烧</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="清蒸">🔥 清蒸</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="糖醋">🔥 糖醋</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="麻辣">🔥 麻辣</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="凉拌">🔥 凉拌</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="红烧">红烧</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="清蒸">清蒸</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="糖醋">糖醋</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="麻辣">麻辣</text>
+        <text class="hot-tag" bindtap="onQuickSearch" data-kw="凉拌">凉拌</text>
       </view>
       <view class="browse-filter-header">
         <view class="browse-filter-command" bindtap="onToggleBrowseFilters">
@@ -69,6 +75,17 @@
         </view>
         <text class="browse-filter-clear" wx:if="{{browseFilterCount > 0}}" bindtap="onClearBrowseFilters">清除</text>
       </view>
+    </view>
+
+    <!-- 展开的筛选与菜品共用纵向滚动区，避免短屏被筛选挤满 -->
+    <scroll-view
+      class="dish-list mobile-scroll"
+      scroll-y
+      enhanced
+      bindscrolltolower="onScrollToLower"
+      wx:if="{{!showCustomForm}}"
+    >
+      <view class="dish-list-content">
       <text class="browse-filter-summary" wx:if="{{browseFilterSummary}}">当前：{{browseFilterSummary}}</text>
       <view class="browse-filter-panel" wx:if="{{showBrowseFilters}}">
         <view class="browse-filter-group" wx:for="{{browseFilterGroups}}" wx:key="key" wx:for-item="group">
@@ -87,15 +104,6 @@
           </scroll-view>
         </view>
       </view>
-    </view>
-
-    <!-- 菜品列表 -->
-    <scroll-view
-      class="dish-list"
-      scroll-y
-      bindscrolltolower="onScrollToLower"
-      wx:if="{{!showCustomForm}}"
-    >
       <view wx:if="{{loading}}" class="tip-text">加载中...</view>
 
       <view
@@ -125,6 +133,7 @@
       <view wx:if="{{!loading && !loadingMore && currentDishes.length === 0}}" class="tip-text">
         暂无菜品
       </view>
+      </view>
     </scroll-view>
 
     <!-- 底部操作栏 -->
@@ -134,6 +143,7 @@
         <text class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}">›</text>
       </view>
       <button class="save-btn" bindtap="onSaveToCalendar">保存到日历</button>
+      <button class="save-btn shopping-btn" bindtap="onAddSelectedToShoppingList">加入清单</button>
     </view>
 
   </view>
@@ -145,7 +155,8 @@
       <text class="panel-title">已选菜品（{{selectedTotal}} 道）</text>
       <text class="panel-close" bindtap="onHideSelected">✕</text>
     </view>
-    <scroll-view class="panel-list" scroll-y>
+    <scroll-view class="panel-list mobile-scroll" scroll-y enhanced>
+      <view class="panel-list-content">
       <view
         wx:for="{{selectedList}}"
         wx:key="id"
@@ -160,6 +171,7 @@
       </view>
       <view wx:if="{{selectedList.length === 0}}" class="panel-empty">
         还没有勾选菜品
+      </view>
       </view>
     </scroll-view>
     <view class="panel-footer">

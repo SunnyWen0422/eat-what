@@ -32,6 +32,14 @@ public class RecipeRecordService {
         return record;
     }
 
+    /** Save without replacing an existing date/meal entry. */
+    public RecipeRecord saveRecipeRecordIfAbsent(RecipeRecord record) {
+        record.setCreateTime(new Date());
+        record.setUpdateTime(new Date());
+        int affected = recipeRecordMapper.insertIfAbsent(record);
+        return affected == 1 ? record : null;
+    }
+
     /**
      * 获取指定日期的菜谱记录，并填充菜品名称
      * @param dateString 日期字符串，格式 "yyyy-MM-dd"

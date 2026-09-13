@@ -1,45 +1,33 @@
 /* pages/customize/customize.wxss */
 
-.page {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  background: #f5f5f5;
-}
+.page { height: 100%; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg,#e9faf6 0,#fff 280px); }
 
 /* ===== 左侧竖边栏 ===== */
-.sidebar {
-  width: 80px;
-  background: #fff;
-  border-right: 1px solid #e5e5e5;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
+.category-scroll { width: 100%; height: 54px; flex-shrink: 0; overflow-x: auto; white-space: nowrap; background: #fff; border-bottom: 1px solid #deebe6; }
+.sidebar { display: inline-flex; min-width: 100%; height: 100%; padding: 0 12px; box-sizing: border-box; }
 
 .sidebar-item {
-  padding: 20px 0;
+  flex: 0 0 auto;
+  min-width: 68px;
+  box-sizing: border-box;
+  padding: 14px 12px;
   text-align: center;
   font-size: 16px;
   color: #666;
-  border-left: 3px solid transparent;
+  border-bottom: 3px solid transparent;
   transition: all 0.2s;
 }
 
 .sidebar-active {
-  background: #E8F5E9;
-  color: #2BA471;
+  background: #e7f8f4;
+  color: #176f66;
   font-weight: bold;
-  border-left-color: #2BA471;
+  border-bottom-color: #299f91;
 }
 
-.custom-btn {
-  margin-top: auto;
-  color: #2BA471;
-  border-top: 1px solid #e5e5e5;
-}
+.custom-btn { color: #176f66; }
 
-.custom-btn sidebar-active {
+.custom-btn.sidebar-active {
   color: #fff;
   background: #1A7A4C;
 }
@@ -50,11 +38,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* 搜索框 */
 .search-wrap {
+  flex-shrink: 0;
   padding: 10px 12px;
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
@@ -88,7 +78,7 @@
 .browse-filter-command { gap: 8px; color: #25322c; font-size: 13px; font-weight: 600; }
 .browse-filter-arrow,
 .browse-filter-clear { color: #16865f; font-size: 12px; font-weight: 400; }
-.browse-filter-summary { display: block; margin-top: 6px; color: #5d6862; font-size: 11px; line-height: 1.5; }
+.browse-filter-summary { display: block; margin: 6px 0 10px; color: #5d6862; font-size: 12px; line-height: 1.5; word-break: break-word; }
 .browse-filter-panel { margin-top: 10px; padding-top: 8px; border-top: 1px solid #edf0ee; }
 .browse-filter-group { margin-bottom: 9px; }
 .browse-filter-label { display: block; margin-bottom: 5px; color: #6b756f; font-size: 11px; }
@@ -107,22 +97,22 @@
   box-sizing: border-box;
 }
 .browse-filter-option.selected { border-color: #16865f; background: #e8f5ef; color: #126947; font-weight: 600; }
+.browse-filter-option:first-child { margin-left: 2px; }
+.browse-filter-option:last-child { margin-right: 16px; }
 .browse-filter-count { margin-left: 4px; color: #87928c; font-size: 10px; }
 
 /* 菜品列表 */
 .dish-list {
-  flex: 1;
-  padding: 10px 12px;
-  box-sizing: border-box;
-  /* scroll-view 必须设置高度才能滚动 */
-  height: calc(100vh - 56px - 56px);
+  min-height: 0;
 }
+.dish-list-content { padding: 10px 12px 24px; }
 
 .tip-text {
   text-align: center;
   color: #999;
   font-size: 15px;
-  margin-top: 40px;
+  margin: 20px 0;
+  line-height: 1.6;
 }
 
 /* 每行菜品 */
@@ -181,24 +171,27 @@
   font-size: 17px;
   color: #333;
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+  white-space: normal;
   display: block;
 }
 
 /* ===== 底部操作栏 ===== */
 .bottom-bar {
+  flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 10px 12px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   background: #fff;
   border-top: 1px solid #e5e5e5;
 }
 
 .selected-wrap {
+  flex: 1 1 100%;
   display: flex;
   align-items: center;
   padding: 6px 10px;
@@ -226,13 +219,15 @@
 }
 
 .save-btn {
-  background: #1A7A4C;
+  flex: 1 1 0;
+  margin: 0;
+  background: #299f91;
   color: #fff;
   font-size: 15px;
   border-radius: 8px;
   padding: 0 16px;
-  height: 36px;
-  line-height: 36px;
+  height: 44px;
+  line-height: 44px;
   min-width: 0;
   width: auto;
 }
@@ -262,7 +257,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 60vh;
+  height: 70%;
+  max-height: 100%;
+  box-sizing: border-box;
   background: #fff;
   border-radius: 16px 16px 0 0;
   z-index: 100;
@@ -298,10 +295,9 @@
 }
 
 .panel-list {
-  flex: 1;
-  padding: 0 16px;
-  box-sizing: border-box;
+  min-height: 0;
 }
+.panel-list-content { padding: 0 16px 16px; }
 
 .panel-item {
   display: flex;
@@ -316,9 +312,8 @@
   color: #333;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .panel-item-remove {
@@ -352,11 +347,9 @@
 
 /* ===== 定制菜品表单 ===== */
 .custom-form {
-  flex: 1;
-  padding: 16px;
   background: #fff;
-  overflow-y: auto;
 }
+.custom-form-content { padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
 
 .form-title {
   font-size: 18px;
@@ -429,9 +422,19 @@
   line-height: 44px;
   margin-top: 8px;
 }
+.shopping-btn { background: #e7f8f4; color: #176f66; }
 
 .selector-input { color: #4c5852; }
 .custom-tag-title { margin: 10px 0 8px; color: #5d6862; font-size: 13px; }
 .custom-tag-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
 .custom-tag { padding: 7px 9px; border: 1px solid #d8dfdb; border-radius: 5px; background: #fff; color: #65716b; font-size: 12px; }
 .custom-tag.selected { border-color: #16865f; background: #e8f5ef; color: #126947; font-weight: 600; }
+
+@media (min-width: 601px) {
+  .page { flex-direction: row; }
+  .category-scroll { width: 80px; height: auto; overflow-x: hidden; overflow-y: auto; border-right: 1px solid #deebe6; border-bottom: 0; }
+  .sidebar { display: flex; flex-direction: column; min-width: 80px; height: auto; padding: 0; }
+  .sidebar-item { width: 80px; min-width: 80px; padding: 20px 0; border-bottom: 0; border-left: 3px solid transparent; }
+  .sidebar-active { border-left-color: #299f91; border-bottom-color: transparent; }
+  .custom-btn { margin-top: auto; border-top: 1px solid #e5e5e5; }
+}

@@ -125,6 +125,14 @@ Page({
     }
   },
 
+  onAddToShoppingList() {
+    const dish = this.data.dish
+    if (!dish || !dish.id) return
+    const { beginShoppingSelection } = require('../../utils/shopping-list')
+    beginShoppingSelection({ dishIds: [dish.id], targetPeople: 2, source: 'dish-detail', dishes: [dish] })
+    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+  },
+
   previewImage(e) {
     const url = e.currentTarget.dataset.url
     if (url) {

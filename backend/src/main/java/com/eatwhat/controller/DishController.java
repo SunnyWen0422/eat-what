@@ -133,6 +133,28 @@ public class DishController {
         }
         return ResponseEntity.ok(customDishService.getCustomDishes((Long) currentUserId));
     }
+
+    @PutMapping("/custom/{id}")
+    public ResponseEntity<?> updateCustomDish(@PathVariable Long id, @RequestBody Dish dish,
+                                              HttpServletRequest request) {
+        Object currentUserId = request.getAttribute("currentUserId");
+        if (!(currentUserId instanceof Long)) return ResponseEntity.status(401).build();
+        try {
+            Dish updated = customDishService.updateDish((Long) currentUserId, id, dish);
+            return updated == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/custom/{id}")
+    public ResponseEntity<?> deleteCustomDish(@PathVariable Long id, HttpServletRequest request) {
+        Object currentUserId = request.getAttribute("currentUserId");
+        if (!(currentUserId instanceof Long)) return ResponseEntity.status(401).build();
+        return customDishService.removeCustomDish((Long) currentUserId, id)
+                ? ResponseEntity.ok(java.util.Collections.singletonMap("success", true))
+                : ResponseEntity.notFound().build();
+    }
     
     /**
      * 根据ID获取菜品

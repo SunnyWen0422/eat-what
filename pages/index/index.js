@@ -87,12 +87,12 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '吃什么？6000+道好菜智能推荐，一秒解决今天吃什么！',
+      title: '今天吃什么？给你几道顺口的家常菜',
       path: '/pages/index/index'
     }
   },
   onShareTimeline() {
-    return { title: '吃什么？6000+道好菜智能推荐！' }
+    return { title: '今天吃什么？给你几道顺口的家常菜' }
   },
 
   // 加载已保存的菜谱（按用户隔离）
@@ -267,12 +267,12 @@ Page({
   // 跳转到定制菜谱页面
   onCustomize() {
     wx.vibrateShort({ type: 'light' })
-    wx.navigateTo({ url: '/pages/customize/customize' })
+    wx.switchTab({ url: '/pages/customize/customize' })
   },
 
   onOpenChat() {
     wx.vibrateShort({ type: 'light' })
-    wx.navigateTo({ url: '/pages/chat/chat' })
+    wx.switchTab({ url: '/pages/chat/chat' })
   },
   
   onQuickFilterTap(e) {

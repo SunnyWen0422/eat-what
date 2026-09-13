@@ -1,4 +1,6 @@
-<view class="filter-page">
+<view class="filter-page mobile-screen">
+  <scroll-view class="mobile-scroll" scroll-y enhanced>
+  <view class="mobile-scroll-content">
   <view class="offline-tip" wx:if="{{offline}}">当前使用本地筛选目录</view>
 
   <view class="filter-section" wx:if="{{!featureEnabled}}">
@@ -54,9 +56,11 @@
     </view>
   </view>
 
-  <view class="action-bar">
+  </block>
+  </view>
+  </scroll-view>
+  <view class="action-bar" wx:if="{{featureEnabled}}">
     <button class="clear-btn" bindtap="onClear">清空</button>
     <button class="apply-btn" bindtap="onApply">应用筛选</button>
   </view>
-  </block>
 </view>

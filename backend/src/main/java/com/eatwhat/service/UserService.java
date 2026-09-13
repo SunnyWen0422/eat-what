@@ -75,7 +75,7 @@ public class UserService {
                 // 如果unionId不为空且数据库中没有，则更新
                 if (unionId != null && (user.getUnionId() == null || user.getUnionId().isEmpty())) {
                     user.setUnionId(unionId);
-                    userMapper.updateUserInfo(user);
+                    userMapper.updateUnionId(user.getId(), unionId);
                 }
                 
                 // 重新查询用户信息（确保获取最新数据）

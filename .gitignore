@@ -26,6 +26,11 @@ backend/target/
 .coverage
 coverage.xml
 htmlcov/
+.pytest_cache/
+.pytest-tmp-*/
+tmp-test-temp*/
+tmppytest-*/
+.superpowers/
 recommend-service/__pycache__/
 __pycache__/
 *.pyc
@@ -33,6 +38,8 @@ __pycache__/
 .env
 recommend-service/.env
 recommend-service/chat_memory.json
+recommend-service/assistant_sessions.sqlite3
+recommend-service/assistant_sessions.sqlite3-*
 recommend-service/dish_meta.json
 recommend-service/ingredient_map.json
 

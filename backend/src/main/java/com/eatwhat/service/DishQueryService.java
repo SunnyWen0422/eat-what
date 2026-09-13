@@ -78,6 +78,13 @@ public class DishQueryService {
         return dishMapper.selectByIds(ids);
     }
 
+    public List<Dish> getDishesByIdsForUser(List<Long> ids, Long userId) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return dishMapper.selectByIdsForUser(ids, userId);
+    }
+
     public int getDishCount() {
         return dishMapper.countAll();
     }

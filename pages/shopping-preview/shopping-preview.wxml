@@ -1,0 +1,30 @@
+<view class="preview-page mobile-screen">
+  <scroll-view class="mobile-scroll" scroll-y enhanced>
+  <view class="mobile-scroll-content">
+  <view class="toolbar">
+    <text class="toolbar-title">确认食材</text>
+    <view class="people-control">
+      <text>用餐人数</text>
+      <input type="number" value="{{targetPeople}}" bindblur="onPeopleChange" />
+    </view>
+  </view>
+  <view wx:if="{{errorMessage}}" class="notice">{{errorMessage}}</view>
+  <view wx:if="{{previewLoading && dishes.length === 0}}" class="loading">正在生成食材预览...</view>
+  <view wx:for="{{dishes}}" wx:for-index="dishIndex" wx:key="selectionKey" class="dish-group">
+    <view class="dish-header"><text class="dish-name">{{item.dishName}}</text><text>{{item.targetPeople}}人</text></view>
+    <view wx:for="{{item.items}}" wx:for-index="itemIndex" wx:key="clientKey" class="ingredient-row">
+      <view class="ingredient-main"><text>{{item.displayName}}</text><text class="quantity">{{item.quantityText}}</text></view>
+      <text wx:if="{{item.calculationStatus !== 'CALCULATED'}}" class="warning">需调整</text>
+      <view class="row-actions"><text data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onEditItem">编辑</text><text data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onRemoveItem">删除</text></view>
+    </view>
+    <view wx:if="{{item.items.length === 0}}" class="empty-group">该菜暂未解析出食材</view>
+  </view>
+  <view wx:for="{{warnings}}" wx:key="*this" class="notice warning-block">{{item}}</view>
+  <view wx:if="{{!previewLoading && dishes.length === 0}}" class="empty">没有可预览的菜品</view>
+  </view>
+  </scroll-view>
+  <view class="bottom-actions">
+    <button bindtap="onBack">返回</button>
+    <button class="primary" loading="{{confirmInFlight}}" disabled="{{confirmInFlight}}" bindtap="onConfirm">确认加入</button>
+  </view>
+</view>
