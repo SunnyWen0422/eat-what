@@ -6,6 +6,7 @@ import com.eatwhat.mapper.DishMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -32,6 +33,7 @@ public class RecommendationMetadataService {
     private final Set<String> tagCodes = new HashSet<>();
     private final Map<String, Map<String, String>> aliases = new HashMap<>();
 
+    @Autowired
     public RecommendationMetadataService(DishMapper dishMapper) {
         this(dishMapper, loadCatalog());
     }

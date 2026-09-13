@@ -1,6 +1,7 @@
 package com.eatwhat.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.http.ResponseEntity;
@@ -10,11 +11,14 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 /** Bounded dependency probe for the recommendation service. */
-@Component("recommendationService")
+// Keep the health probe bean name distinct from the business service bean.
+// Spring's default naming would otherwise collide with RecommendationService.
+@Component("recommendationHealthIndicator")
 public class RecommendationHealthIndicator implements HealthIndicator {
     private final String healthUrl;
     private final RestOperations restOperations;
 
+    @Autowired
     public RecommendationHealthIndicator(
             @Value("${recommend.service.base-url:http://127.0.0.1:8000}") String baseUrl) {
         this(baseUrl, createRestTemplate());

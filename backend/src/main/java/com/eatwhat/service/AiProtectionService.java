@@ -1,6 +1,7 @@
 package com.eatwhat.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,6 +11,7 @@ public class AiProtectionService {
     private final RequestRateLimiter rateLimiter;
     private final AtomicInteger inFlight = new AtomicInteger();
 
+    @Autowired
     public AiProtectionService(AiProtectionProperties properties) {
         this(properties, new RequestRateLimiter(properties.getAnonymousRequestsPerMinute(), properties.getWindowMillis()));
     }

@@ -7,6 +7,7 @@ import com.eatwhat.dto.UserPreferenceDTO;
 import com.eatwhat.entity.Dish;
 import com.eatwhat.mapper.DishMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +30,7 @@ public class RecommendationService {
     private final RecommendationScorer scorer = new RecommendationScorer();
     private final Random random;
 
+    @Autowired
     public RecommendationService(DishMapper dishMapper) {
         this(dishMapper, new Random());
     }
