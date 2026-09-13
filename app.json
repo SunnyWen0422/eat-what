@@ -33,13 +33,21 @@
   },
   "tabBar": {
     "color": "#7A7E83",
-    "selectedColor": "#2BA471",
-    "borderStyle": "black",
+    "selectedColor": "#299f91",
+    "borderStyle": "white",
     "backgroundColor": "#ffffff",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "选菜"
+      },
+      {
+        "pagePath": "pages/customize/customize",
+        "text": "定制"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "text": "助手"
       },
       {
         "pagePath": "pages/calendar/calendar",

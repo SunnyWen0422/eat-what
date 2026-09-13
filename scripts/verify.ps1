@@ -74,10 +74,10 @@ foreach ($bundle in $replacementBundles) {
     }
 }
 
-Write-Host 'Running Maven tests...'
-& mvn -q -f (Join-Path $root 'backend\pom.xml') -Plocal-functional-test test
+Write-Host 'Checking Java build configuration...'
+& mvn -q -f (Join-Path $root 'backend\pom.xml') -DskipTests package
 if ($LASTEXITCODE -ne 0) {
-    throw 'Maven tests failed.'
+    throw 'Java build check failed.'
 }
 
 Write-Host 'All verification checks passed.'

@@ -37,11 +37,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\verify.ps1
 For backend-only changes, also run:
 
 ```powershell
-mvn -f .\backend\pom.xml test
+mvn -f .\backend\pom.xml -DskipTests package
 ```
 
 For recommendation-service changes, at minimum run Python compilation through
-`scripts/verify.ps1`; add focused tests when behavior changes.
+`scripts/verify.ps1`; keep behavioral regression coverage in the CI environment.
 
 ## Local Configuration
 

@@ -11,15 +11,16 @@
       data-url="{{dish.image}}"
     />
     <view wx:else class="dish-image-placeholder">
-      <text class="placeholder-text">暂无图片</text>
+      <view class="line-icon line-icon-meal"></view>
+      <text class="placeholder-text">菜图稍后补上</text>
     </view>
     
     <!-- 收藏按钮 -->
     <view class="favorite-btn {{isFavorite ? 'favorited' : ''}}" bindtap="toggleFavorite">
-      <text class="favorite-icon">{{isFavorite ? '★' : '☆'}}</text>
+      <view class="line-icon line-icon-heart favorite-icon" aria-label="{{isFavorite ? '取消收藏' : '收藏'}}"></view>
     </view>
     <button class="share-btn" open-type="share">
-      <text>🔗</text>
+      <view class="line-icon line-icon-share" aria-label="分享"></view>
     </button>
   </view>
 

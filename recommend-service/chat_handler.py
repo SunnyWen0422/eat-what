@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(na
 log = logging.getLogger('chat_handler')
 from typing import Dict, List, AsyncGenerator
 
-from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL
+from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
 import rag
 
 SYSTEM_PROMPT = """你是"吃什么"小程序的AI助手。你是一个专业的美食推荐师，熟悉中国各地菜系。
@@ -205,7 +205,7 @@ def chat(message: str, user_id: str = "guest") -> dict:
         resp = httpx.post(
             f"{DEEPSEEK_BASE_URL}/v1/chat/completions",
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
-            json={"model":"deepseek-chat","messages":msgs,"stream":False,"temperature":0.7,"max_tokens":800},
+            json={"model":DEEPSEEK_MODEL,"messages":msgs,"stream":False,"temperature":0.7,"max_tokens":800},
             timeout=30
         )
         data = resp.json()
@@ -282,7 +282,7 @@ async def _chat_async(message: str, user_id: str = "guest") -> AsyncGenerator[st
                 "POST",
                 f"{DEEPSEEK_BASE_URL}/v1/chat/completions",
                 headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
-                json={"model": "deepseek-chat", "messages": messages, "stream": True, "temperature": 0.7, "max_tokens": 800}
+                json={"model": DEEPSEEK_MODEL, "messages": messages, "stream": True, "temperature": 0.7, "max_tokens": 800}
             ) as resp:
                 async for line in resp.aiter_lines():
                     if line.startswith("data: "):

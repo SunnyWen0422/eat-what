@@ -32,6 +32,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/favorite-dishes/**",
                         "/admin/**",
                         "/chat/**",
+                        "/assistant/**",
                         "/shopping-list",
                         "/shopping-list/**",
                         "/shopping-list*"

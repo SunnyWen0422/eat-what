@@ -9,7 +9,7 @@
     <!-- 早餐 -->
     <view class="meal-item">
       <view class="meal-header">
-        <view class="meal-icon breakfast-icon">🌅</view>
+        <view class="meal-icon breakfast-icon"><view class="line-icon line-icon-sun"></view></view>
         <text class="meal-title">早餐</text>
         <view class="meal-actions">
           <button class="action-btn add-btn" wx:if="{{!meals.breakfast}}" bindtap="onSelectMeal" data-meal="breakfast">+</button>
@@ -31,7 +31,7 @@
         <view class="manual-tag" wx:if="{{meals.breakfast.manual}}">手动添加</view>
       </view>
       <view class="empty-meal" wx:if="{{!meals.breakfast}}">
-        <text class="empty-icon">🍽️</text>
+        <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
         <text>暂无早餐记录</text>
         <text class="empty-hint">点击上方"+"添加</text>
       </view>
@@ -40,7 +40,7 @@
     <!-- 午餐 -->
     <view class="meal-item">
       <view class="meal-header">
-        <view class="meal-icon lunch-icon">☀️</view>
+        <view class="meal-icon lunch-icon"><view class="line-icon line-icon-sun"></view></view>
         <text class="meal-title">午餐</text>
         <view class="meal-actions">
           <button class="action-btn add-btn" wx:if="{{!meals.lunch}}" bindtap="onSelectMeal" data-meal="lunch">+</button>
@@ -62,7 +62,7 @@
         <view class="manual-tag" wx:if="{{meals.lunch.manual}}">手动添加</view>
       </view>
       <view class="empty-meal" wx:if="{{!meals.lunch}}">
-        <text class="empty-icon">🍽️</text>
+        <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
         <text>暂无午餐记录</text>
         <text class="empty-hint">点击上方"+"添加</text>
       </view>
@@ -71,7 +71,7 @@
     <!-- 晚餐 -->
     <view class="meal-item">
       <view class="meal-header">
-        <view class="meal-icon dinner-icon">🌙</view>
+        <view class="meal-icon dinner-icon"><view class="line-icon line-icon-moon"></view></view>
         <text class="meal-title">晚餐</text>
         <view class="meal-actions">
           <button class="action-btn add-btn" wx:if="{{!meals.dinner}}" bindtap="onSelectMeal" data-meal="dinner">+</button>
@@ -93,7 +93,7 @@
         <view class="manual-tag" wx:if="{{meals.dinner.manual}}">手动添加</view>
       </view>
       <view class="empty-meal" wx:if="{{!meals.dinner}}">
-        <text class="empty-icon">🍽️</text>
+        <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
         <text>暂无晚餐记录</text>
         <text class="empty-hint">点击上方"+"添加</text>
       </view>
@@ -102,7 +102,7 @@
 
   <!-- 使用说明 -->
   <view class="usage-tips">
-    <view class="tip-title">💡 使用提示</view>
+    <view class="tip-title"><view class="line-icon line-icon-spark"></view><text>使用提示</text></view>
     <view class="tip-content">
       <text>1. 点击"+"添加餐次记录</text>
       <text>2. 从首页推荐菜谱中选择会自动保存到此处</text>

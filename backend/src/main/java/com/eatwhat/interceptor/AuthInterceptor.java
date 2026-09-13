@@ -75,7 +75,8 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean isOptionalAuth(String uri) {
-        return uri.equals("/chat") || uri.startsWith("/chat/");
+        return uri.equals("/chat") || uri.startsWith("/chat/")
+                || uri.equals("/assistant") || uri.startsWith("/assistant/");
     }
 
     private void writeJson(HttpServletResponse response, int status, String message) throws IOException {

@@ -1,11 +1,11 @@
-.list-page { min-height: 100vh; padding: 24rpx; background: #f6f8f7; box-sizing: border-box; }
+.list-page { min-height: 100vh; padding: 16rpx 24rpx calc(32rpx + env(safe-area-inset-bottom)); background: linear-gradient(180deg,#e9faf6 0,#fff 280px); box-sizing: border-box; overflow-x: hidden; }
 .list-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20rpx; }
 .title { display: block; font-size: 40rpx; font-weight: 700; color: #20362c; }
 .sync { display: block; margin-top: 6rpx; color: #7b8a82; font-size: 24rpx; }
 .head-actions { display: flex; gap: 18rpx; color: #398762; font-size: 24rpx; }
 .notice, .loading, .empty-state, .summary-panel { padding: 20rpx; margin-bottom: 16rpx; background: #fff; border-radius: 8rpx; }
-.filters { display: flex; gap: 18rpx; margin-bottom: 18rpx; }
-.filter { padding: 12rpx 20rpx; border-radius: 999rpx; color: #6f7d75; background: #e8eeeb; font-size: 26rpx; }
+.filters { display: flex; gap: 18rpx; margin-bottom: 18rpx; overflow-x: auto; padding: 2rpx 2rpx 8rpx; white-space: nowrap; }
+.filter { flex: 0 0 auto; padding: 12rpx 20rpx; border-radius: 999rpx; color: #6f7d75; background: #e8eeeb; font-size: 26rpx; }
 .filter.active { color: #fff; background: #2ba471; }
 .summary-toggle { display: flex; justify-content: space-between; padding: 20rpx 22rpx; margin-bottom: 12rpx; background: #e8f5ee; border-radius: 8rpx; color: #246748; font-weight: 600; }
 .summary-row { display: grid; grid-template-columns: 1fr auto; gap: 10rpx; padding: 16rpx 0; border-bottom: 1rpx solid #edf1ef; color: #33483e; }
@@ -13,11 +13,11 @@
 .summary-row.separate { color: #a56720; }
 .dish-group { margin-bottom: 18rpx; background: #fff; border-radius: 8rpx; overflow: hidden; }
 .dish-header { display: flex; justify-content: space-between; padding: 22rpx; background: #eaf5ef; color: #275b43; font-weight: 700; }
-.item-row { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 22rpx; border-top: 1rpx solid #edf1ef; }
+.item-row { display: flex; align-items: flex-start; gap: 16rpx; padding: 20rpx 22rpx; border-top: 1rpx solid #edf1ef; }
 .check { width: 38rpx; height: 38rpx; border: 2rpx solid #b6c5bd; border-radius: 50%; color: #fff; background: #fff; text-align: center; line-height: 38rpx; }
 .check.checked { border-color: #2ba471; background: #2ba471; }
 .item-body { flex: 1; min-width: 0; }
-.item-name { display: block; font-size: 30rpx; color: #263a30; }
+.item-name { display: block; font-size: 30rpx; color: #263a30; word-break: break-word; white-space: normal; line-height: 1.5; }
 .item-name.done { color: #9aa69f; text-decoration: line-through; }
 .item-source { display: block; margin-top: 6rpx; color: #738179; font-size: 24rpx; }
 .delete { color: #b65f54; font-size: 24rpx; }

@@ -1,5 +1,6 @@
 // pages/customize/customize.js
 const api = require('../../utils/api')
+const { getUserStorageKey } = require('../../utils/util')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 
 const BROWSE_GROUPS = [
@@ -405,6 +406,7 @@ Page({
     this.setData({
       selectedIds: selectedIds,
       selectedTotal: selectedIds.length,
+      selectedList: this.buildSelectedList(selectedIds),
       currentDishes: currentDishes
     })
   },
@@ -423,6 +425,7 @@ Page({
           this.setData({
             selectedIds: [],
             selectedTotal: 0,
+            selectedList: [],
             currentDishes: currentDishes
           })
         }
@@ -472,12 +475,13 @@ Page({
         isManual: 1
       })
       wx.showToast({ title: '已保存到日历', icon: 'success' })
+      wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), true)
       // 清空选中状态
       const currentDishes = this.data.currentDishes.map(d => ({ ...d, isSelected: false }))
-      this.allDishesMap = {}
       this.setData({
         selectedIds: [],
         selectedTotal: 0,
+        selectedList: [],
         currentDishes: currentDishes,
         showSelectedPanel: false
       })

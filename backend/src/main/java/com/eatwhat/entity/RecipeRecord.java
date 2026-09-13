@@ -58,6 +58,10 @@ public class RecipeRecord {
     @JsonProperty("isManual")
     private Integer isManual;  // 0-推荐菜谱，1-手动输入
 
+    /** Transport-only guard used by assistant confirmations. */
+    @JsonProperty("preserveExisting")
+    private Boolean preserveExisting;
+
     @JsonProperty("createTime")
     private Date createTime;
 

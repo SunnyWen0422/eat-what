@@ -89,7 +89,15 @@ public class RecipeRecordController {
         }
 
         try {
-            RecipeRecord saved = recipeRecordService.saveRecipeRecord(record);
+            RecipeRecord saved = Boolean.TRUE.equals(record.getPreserveExisting())
+                    ? recipeRecordService.saveRecipeRecordIfAbsent(record)
+                    : recipeRecordService.saveRecipeRecord(record);
+            if (saved == null) {
+                java.util.Map<String, String> conflict = new java.util.LinkedHashMap<>();
+                conflict.put("error", "RECIPE_RECORD_EXISTS");
+                conflict.put("message", "该日期餐次已有记录，原记录已保留");
+                return ResponseEntity.status(409).body(conflict);
+            }
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(java.util.Collections.singletonMap("error", "保存失败"));

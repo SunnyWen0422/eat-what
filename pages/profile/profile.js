@@ -1,6 +1,25 @@
 // pages/profile/profile.js
 const api = require('../../utils/api')
+const { getUserStorageKey } = require('../../utils/util')
+const { loadLocalShoppingList, loadPendingOperations } = require('../../utils/shopping-list')
 const app = getApp()
+
+function pendingItemCount(list) {
+  return (Array.isArray(list.dishes) ? list.dishes : []).reduce((total, dish) =>
+    total + (Array.isArray(dish.items) ? dish.items : []).filter(item => !item.checked).length, 0)
+}
+
+function localShoppingSummary() {
+  const list = loadLocalShoppingList()
+  const pending = loadPendingOperations().length
+  const hasLocalItems = (list.dishes || []).some(dish => (dish.items || []).some(item => !item.id))
+  return {
+    pendingCount: pendingItemCount(list),
+    syncLabel: pending ? `本地已保存 · ${pending} 项待同步` : '已显示本地清单',
+    refreshing: false,
+    localOnly: pending > 0 || hasLocalItems,
+  }
+}
 
 Page({
   data: {
@@ -12,39 +31,34 @@ Page({
     },
     showLoginModal: false,
     isAdmin: false,
+    shoppingSummary: { pendingCount: 0, syncLabel: '已显示本地清单', refreshing: false },
     menuItems: [
       {
-        icon: '🛒',
-        title: '购物清单',
-        desc: '按菜品整理待购买食材',
-        url: '/pages/shopping-list/shopping-list'
-      },
-      {
-        icon: '📊',
+        icon: 'chart',
         title: '饮食统计',
         desc: '查看饮食数据分析',
         url: '/pages/statistics/statistics'
       },
       {
-        icon: '⭐',
+        icon: 'heart',
         title: '收藏菜品',
         desc: '我收藏的美味好菜',
         url: '/pages/favorite-dishes/favorite-dishes'
       },
       {
-        icon: '🍳',
+        icon: 'chef',
         title: '自定义菜品',
         desc: '我的私房菜',
         url: '/pages/custom-dishes/custom-dishes'
       },
       {
-        icon: '⚙️',
-        title: '设置',
+        icon: 'settings',
+        title: '偏好设置',
         desc: '个性化推荐偏好',
         url: '/pages/settings/settings'
       },
       {
-        icon: 'ℹ️',
+        icon: 'info',
         title: '关于',
         desc: '版本信息和更新日志',
         url: '/pages/about/about'
@@ -58,7 +72,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '吃什么？6000+道家常好菜，智能搭配，告别选择困难！',
+      title: '我最近常做的家常菜，给你也挑几道？',
       path: '/pages/index/index'
     }
   },
@@ -71,11 +85,56 @@ Page({
   
   onShow() {
     this.loadUserInfo()
+    this.loadShoppingSummary()
     // 游客模式：底部弹出登录提示
     const app = getApp()
     if (!app.globalData.isLoggedIn && !wx.getStorageSync('token')) {
-      setTimeout(() => this.setData({ showLoginModal: true }), 500)
+      clearTimeout(this.loginModalTimer)
+      this.loginModalTimer = setTimeout(() => this.setData({ showLoginModal: true }), 500)
     }
+  },
+
+  onHide() {
+    this.shoppingSummaryRequest = (this.shoppingSummaryRequest || 0) + 1
+    clearTimeout(this.loginModalTimer)
+    this.setData({ showLoginModal: false })
+  },
+
+  onUnload() { this.onHide() },
+
+  shoppingSummaryTimeoutMs: 5000,
+
+  async loadShoppingSummary() {
+    const requestId = this.shoppingSummaryRequest = (this.shoppingSummaryRequest || 0) + 1
+    const identity = getUserStorageKey('shoppingList')
+    const local = localShoppingSummary()
+    this.setData({ shoppingSummary: local })
+    if (local.localOnly || !wx.getStorageSync('token')) return
+    this.setData({ 'shoppingSummary.refreshing': true })
+    const isCurrent = () => requestId === this.shoppingSummaryRequest && identity === getUserStorageKey('shoppingList')
+    let timeout
+    try {
+      const remote = await Promise.race([
+        api.getShoppingList('all', { silent: true, maxRetries: 0 }),
+        new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('summary timeout')), this.shoppingSummaryTimeoutMs) }),
+      ])
+      if (!isCurrent()) return
+      const latest = localShoppingSummary()
+      if (latest.localOnly) {
+        this.setData({ shoppingSummary: latest })
+        return
+      }
+      if (!remote || !Array.isArray(remote.dishes)) throw new Error('invalid shopping summary')
+      this.setData({ shoppingSummary: { pendingCount: pendingItemCount(remote), syncLabel: '刚刚已同步', refreshing: false } })
+    } catch (_) {
+      if (isCurrent()) this.setData({ shoppingSummary: { ...localShoppingSummary(), syncLabel: '暂未连接 · 显示本地清单', refreshing: false } })
+    } finally {
+      clearTimeout(timeout)
+    }
+  },
+
+  onShoppingListTap() {
+    wx.navigateTo({ url: '/pages/shopping-list/shopping-list' })
   },
 
   // 加载用户信息
@@ -225,6 +284,7 @@ Page({
       await app.doLogin()
       wx.hideLoading()
       this.loadUserInfo()
+      this.loadShoppingSummary()
       this.setData({ showLoginModal: false })
     } catch (e) {
       wx.hideLoading()

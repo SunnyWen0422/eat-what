@@ -50,10 +50,11 @@ function calcBackoff(attempt) {
 const inFlightRequests = {}
 
 function getRequestKey(url, method, data) {
+  const identity = requestIdentity()
   try {
-    return `${method}:${url}:${JSON.stringify(data || {})}`
+    return `${identity}:${method}:${url}:${JSON.stringify(data || {})}`
   } catch (_) {
-    return `${method}:${url}`
+    return `${identity}:${method}:${url}`
   }
 }
 
@@ -73,7 +74,8 @@ function executeHttpRequest(url, method, data) {
 
     // ETag 条件请求：如果缓存中有该 URL 的 ETag，携带 If-None-Match
     const fullUrl = `${config.getApiBaseUrl()}${url}`
-    const cached = etagCache[fullUrl]
+    const cacheKey = `${token}:${fullUrl}`
+    const cached = etagCache[cacheKey]
     if (cached && cached.etag) {
       header['If-None-Match'] = cached.etag
     }
@@ -99,7 +101,7 @@ function executeHttpRequest(url, method, data) {
         const etag = res.header &&
           (res.header['ETag'] || res.header['etag'] || res.header['Etag'])
         if (etag && res.statusCode === 200) {
-          etagCache[fullUrl] = { etag, data: res.data }
+          etagCache[cacheKey] = { etag, data: res.data }
         }
 
         resolve({ statusCode: res.statusCode, data: res.data })
@@ -227,6 +229,13 @@ function requestSilent(url, method = 'GET', data = null) {
   return doRequest(url, method, data, { silent: true, maxRetries: RETRY_CONFIG.maxRetries })
 }
 
+// Assistant operations are user-visible tasks. Retrying a timed-out message
+// can append the same turn twice, so these calls fail fast and let the page
+// keep the current plan while offering an explicit retry button.
+function assistantRequest(url, method = 'GET', data = null) {
+  return doRequest(url, method, data, { silent: true, maxRetries: 0 })
+}
+
 /**
  * 自动重新登录：调用 wx.login 和后端登录接口，刷新 token 和用户信息
  */
@@ -307,6 +316,17 @@ function getDishes(params = {}) {
   add('pageSize', params.pageSize)
 
   return request(`/dishes?${pairs.join('&')}`, 'GET')
+}
+
+// 请求去重键必须按账号隔离，但不能把 token 写入日志或键名输出。
+function requestIdentity() {
+  const user = wx.getStorageSync('userInfo') || {}
+  if (user.id) return `id:${user.id}`
+  if (user.openId) return `open:${user.openId}`
+  const token = String(wx.getStorageSync('token') || '')
+  let hash = 2166136261
+  for (let index = 0; index < token.length; index += 1) hash = Math.imul(hash ^ token.charCodeAt(index), 16777619)
+  return token ? `token:${hash >>> 0}` : 'anonymous'
 }
 
 /**
@@ -551,6 +571,76 @@ function sendChat(message, userId) {
   return requestSilent('/chat/sync', 'POST', { message: message, user_id: String(userId || 'guest') })
 }
 
+// ========================================
+// 餐食安排助手接口
+// ========================================
+
+function createAssistantSession(options = {}) {
+  const payload = {}
+  if (options.sessionId) payload.session_id = String(options.sessionId)
+  // user_id is only a compatibility hint for the internal service. The Java
+  // gateway derives the authenticated identity from the request token.
+  if (options.userId) payload.user_id = String(options.userId)
+  return assistantRequest('/assistant/sessions', 'POST', payload)
+}
+
+function getAssistantSession(sessionId) {
+  return assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}`, 'GET')
+}
+
+function sendAssistantMessage(sessionId, message, options = {}) {
+  const payload = { message: String(message || '') }
+  if (options.idempotencyKey) payload.idempotency_key = String(options.idempotencyKey)
+  if (options.parentTaskId) payload.parent_task_id = String(options.parentTaskId)
+  return assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}/messages`, 'POST', payload)
+}
+
+function deleteAssistantSession(sessionId) {
+  return assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}`, 'DELETE')
+}
+
+function previewAssistantAction(sessionId, actionType, planVersion = 1, payload = null) {
+  const body = { action_type: actionType, plan_version: Number(planVersion) || 1 }
+  if (payload && typeof payload === 'object') body.payload = payload
+  return assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}/actions/preview`, 'POST', {
+    ...body,
+  })
+}
+
+function confirmAssistantAction(sessionId, payload = {}) {
+  return assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}/actions/confirm`, 'POST', {
+    action_type: payload.actionType || payload.action_type,
+    plan_version: Number(payload.planVersion || payload.plan_version) || 1,
+    preview_token: String(payload.previewToken || payload.preview_token || ''),
+    idempotency_key: String(payload.idempotencyKey || payload.idempotency_key || ''),
+    ...(payload.payload && typeof payload.payload === 'object' ? { payload: payload.payload } : {}),
+  })
+}
+
+function undoAssistantPlan(sessionId, planVersion) {
+  const payload = {}
+  if (planVersion !== undefined && planVersion !== null) payload.plan_version = Number(planVersion)
+  return assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}/undo`, 'POST', payload)
+}
+
+function getAssistantTask(taskId, sessionId) {
+  const suffix = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ''
+  return assistantRequest(`/assistant/tasks/${encodeURIComponent(taskId)}${suffix}`, 'GET')
+}
+
+function getAssistantTaskEvents(taskId, sessionId) {
+  const suffix = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ''
+  return assistantRequest(`/assistant/tasks/${encodeURIComponent(taskId)}/events${suffix}`, 'GET')
+}
+
+function cancelAssistantTask(taskId, sessionId) {
+  return assistantRequest(`/assistant/tasks/${encodeURIComponent(taskId)}/cancel`, 'POST', sessionId ? { session_id: sessionId } : {})
+}
+
+function getAssistantTools() {
+  return assistantRequest('/assistant/tools', 'GET')
+}
+
 function getCustomDishes() {
   return request('/dishes/custom', 'GET')
 }
@@ -563,8 +653,8 @@ function createShoppingPreview(payload) {
   return request('/shopping-list/preview', 'POST', payload)
 }
 
-function getShoppingList(status = 'all') {
-  return request(`/shopping-list?status=${encodeURIComponent(status)}`, 'GET')
+function getShoppingList(status = 'all', options = {}) {
+  return doRequest(`/shopping-list?status=${encodeURIComponent(status)}`, 'GET', null, { silent: false, maxRetries: 1, ...options })
 }
 
 function batchAddShoppingItems(payload) {
@@ -708,6 +798,17 @@ module.exports = {
 
   // AI聊天
   sendChat,
+  createAssistantSession,
+  getAssistantSession,
+  sendAssistantMessage,
+  getAssistantTask,
+  getAssistantTaskEvents,
+  cancelAssistantTask,
+  deleteAssistantSession,
+  previewAssistantAction,
+  confirmAssistantAction,
+  undoAssistantPlan,
+  getAssistantTools,
 
   // 推荐接口
   getRecommendations,

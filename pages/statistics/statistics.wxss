@@ -16,7 +16,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e3eeea;
 }
 
 .nav-btn {
@@ -62,10 +62,11 @@ page {
   padding: 60px 20px;
 }
 .empty-icon {
-  font-size: 64px;
   display: block;
   margin-bottom: 16px;
+  color: #299f91;
 }
+.empty-icon .line-icon { width: 64rpx; height: 64rpx; }
 .empty-text {
   display: block;
   font-size: 18px;
@@ -85,11 +86,11 @@ page {
 
 /* 概览卡片 */
 .overview-card {
-  background: linear-gradient(135deg, #07c160 0%, #10b83d 100%);
+  background: #299f91;
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(7, 193, 96, 0.3);
+  border: 1px solid #248979;
 }
 .overview-title {
   font-size: 22px;
@@ -113,9 +114,9 @@ page {
   flex: 1;
 }
 .dish-emoji {
-  font-size: 28px;
   margin-bottom: 4px;
 }
+.dish-emoji .line-icon { width: 42rpx; height: 42rpx; color: #299f91; }
 .dish-count {
   font-size: 22px;
   font-weight: bold;
@@ -130,17 +131,21 @@ page {
 /* 通用卡片 */
 .calories-card, .ratio-card, .suggestion-card {
   background-color: white;
+  border: 1px solid #e3eeea;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .card-title {
   font-size: 17px;
   font-weight: bold;
   color: #333;
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
 }
+.card-title .line-icon { width: 30rpx; height: 30rpx; color: #299f91; }
 
 /* 热量分析 */
 .calories-bar-section {

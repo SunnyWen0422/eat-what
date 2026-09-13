@@ -1,4 +1,6 @@
-<view class="preview-page">
+<view class="preview-page mobile-screen">
+  <scroll-view class="mobile-scroll" scroll-y enhanced>
+  <view class="mobile-scroll-content">
   <view class="toolbar">
     <text class="toolbar-title">确认食材</text>
     <view class="people-control">
@@ -19,6 +21,8 @@
   </view>
   <view wx:for="{{warnings}}" wx:key="*this" class="notice warning-block">{{item}}</view>
   <view wx:if="{{!previewLoading && dishes.length === 0}}" class="empty">没有可预览的菜品</view>
+  </view>
+  </scroll-view>
   <view class="bottom-actions">
     <button bindtap="onBack">返回</button>
     <button class="primary" loading="{{confirmInFlight}}" disabled="{{confirmInFlight}}" bindtap="onConfirm">确认加入</button>

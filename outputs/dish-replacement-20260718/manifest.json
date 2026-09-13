@@ -1,0 +1,16 @@
+{
+  "source": "食谱数据清洗版.xlsx",
+  "source_sha256": "131400c8d9a3efa28c5fef3dfccb0818b85377ad2f930e37f056ac78b77acd4c",
+  "sheet": "food_enterprise_recommendation_",
+  "source_rows": 6665,
+  "import_rows": 6665,
+  "issue_rows": 0,
+  "generated_at": "2026-07-18T19:24:04+08:00",
+  "files": [
+    "食谱数据清洗版.xlsx",
+    "food_import.csv",
+    "food_import_issues.csv",
+    "replace_system_dishes.sql",
+    "dish_replacement_audit.md"
+  ]
+}

@@ -135,9 +135,12 @@
 
 .empty-icon {
   display: block;
-  font-size: 80rpx;
   margin-bottom: 20rpx;
+  color: #299f91;
 }
+.empty-icon .line-icon { width: 72rpx; height: 72rpx; }
+.tip-title { display: flex; align-items: center; gap: 6rpx; }
+.tip-title .line-icon { width: 28rpx; height: 28rpx; color: #299f91; }
 
 .empty-text {
   display: block;

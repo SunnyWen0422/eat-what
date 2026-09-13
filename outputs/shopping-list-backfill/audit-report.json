@@ -1,0 +1,13 @@
+{
+  "input": "outputs/dish-replacement-20260718/food_import.csv",
+  "rows": 47161,
+  "statuses": {
+    "PARSED": 47161,
+    "PARTIAL": 0,
+    "NEEDS_ADJUSTMENT": 0,
+    "FAILED": 0
+  },
+  "unknown_units": [
+    "count"
+  ]
+}

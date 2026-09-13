@@ -118,7 +118,7 @@ Page({
     }
   },
 
-  onAddFromRecipe() { wx.navigateTo({ url: '/pages/customize/customize' }) },
+  onAddFromRecipe() { wx.switchTab({ url: '/pages/customize/customize' }) },
   onAddManual() {
     wx.showModal({ title: '手动添加食材', editable: true, placeholderText: '例如：鸡蛋 6个', success: (result) => {
       if (!result.confirm || !String(result.content || '').trim()) return

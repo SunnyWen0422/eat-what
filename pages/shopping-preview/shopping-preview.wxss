@@ -1,4 +1,5 @@
-.preview-page { min-height: 100vh; padding: 24rpx 24rpx 150rpx; background: #f6f8f7; box-sizing: border-box; }
+.preview-page { height: 100%; min-height: 100vh; background: linear-gradient(180deg,#e9faf6 0,#fff 300px); box-sizing: border-box; }
+.preview-page .mobile-scroll-content { padding-bottom: calc(170rpx + env(safe-area-inset-bottom)); }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
 .toolbar-title { font-size: 38rpx; font-weight: 700; color: #1f2d27; }
 .people-control { display: flex; align-items: center; gap: 12rpx; color: #61716a; font-size: 26rpx; }
@@ -13,6 +14,6 @@
 .quantity { font-weight: 700; color: #243d31; }
 .row-actions { display: flex; justify-content: flex-end; gap: 28rpx; margin-top: 10rpx; color: #4b8c6d; font-size: 25rpx; }
 .empty-group { padding: 22rpx; color: #84948c; }
-.bottom-actions { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 20rpx; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -4rpx 18rpx rgba(29, 63, 47, .08); }
-.bottom-actions button { flex: 1; border-radius: 8rpx; }
+.bottom-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; gap: 20rpx; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); box-sizing:border-box; background: #fff; border-top: 1rpx solid #e3eeea; }
+.bottom-actions button { flex: 1; min-width: 0; margin: 0; border-radius: 8rpx; }
 .bottom-actions .primary { color: #fff; background: #2ba471; }

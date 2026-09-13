@@ -237,15 +237,30 @@ ssh root@server "tail -50 /www/wwwlogs/eatwhat-backend-1.error.log"  # Nginx
 9. **管理权限**: 管理接口和隐藏入口仅对 `ADMIN_USER_IDS` 中的用户开放
 10. **CSS**: 不使用CSS自定义属性（微信不支持），全站主色 #2BA471，圆角14rpx
 
+## 餐食安排助手（v4）
+
+- 小程序一级导航为 `选菜｜定制｜助手｜日历｜我的`；原有业务页面仍注册为流程页面，购物清单入口保留在“我的”首卡和各业务页面。
+- 新助手接口位于 `/api/assistant/**`，由 Java 代理到本机 Python 推荐服务；Java 从认证上下文注入 `user_id`，不会信任客户端传入的身份。
+- Python 助手使用 `assistant_sessions.sqlite3` 保存会话、消息、方案版本、任务状态和事件。会话与任务按 `user:<id>` 或独立 guest scope 隔离；模型驱动 Runtime 动态选择白名单工具，最终结果仍经过硬约束和来源校验。
+- 已登录用户的已保存菜系/标签偏好、收藏和近期日历记录只用于排序与硬性排除；当前任务条件优先，食材不会跨任务记忆，数据库上下文读取失败时自动退回索引推荐。
+- 助手只从已发布菜品索引或数据库查询返回真实 ID。模型可在当前任务中组合、换算和修改方案；日历、购物清单新增/修改/删除必须经过操作预览和用户确认后交给 Java 业务流程执行。
+- 助手保存日历使用 `preserveExisting=true`：服务端按用户/日期/餐次唯一键执行 `INSERT IGNORE`，冲突返回 409，前端展示差异并保留已有记录，不会静默覆盖。
+- `POST /api/assistant/sessions/{id}/messages` 支持单餐、现有食材、周期安排、局部换菜和做法查询；`POST /api/assistant/sessions/{id}/undo` 恢复上一版方案，历史版本不会被静默覆盖。
+- `recommend-service/agent_runtime.py` 是模型主导入口：最多 8 轮/16 次白名单工具调用，模型输出严格 JSON，模型不可用时明确降级到 `assistant_engine.py` 本地规则。
+- `recommend-service/agent_tools.py` 提供查询、当前任务转换和需确认的用户写入工具；`agent_policy.py`、`agent_schemas.py` 负责全局规则、版本和结构化校验。`assistant_skills.py` 作为兼容技能目录保留。
+- DeepSeek 通过 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL` 和 `DEEPSEEK_MODEL` 配置；没有 Key 时不调用模型，页面明确显示本地规则降级。
+- `POST /api/assistant/sessions/{id}/messages` 返回任务元数据；`GET /api/assistant/tasks/{taskId}`、`/events` 和 `POST /cancel` 支持任务查询、阶段反馈和停止。
+- 索引重建：`python scripts/build_assistant_index.py`；只读审计：`python scripts/audit_assistant_index.py --meta-path ... --ingredient-path ...`。重建只读取 MySQL，不修改业务表。
+
 ## 推荐筛选与偏好开发约定（v3.2）
 
-- 菜系和标签唯一来源是 `backend/src/main/resources/recommendation-metadata.json`；前后端、导入脚本和测试都使用稳定大写代码，不用中文文案作为业务键。
+- 菜系和标签唯一来源是 `backend/src/main/resources/recommendation-metadata.json`；前后端和导入脚本都使用稳定大写代码，不用中文文案作为业务键。
 - 首页快捷筛选固定为 `HOME_STYLE`、`SICHUAN`、`CANTONESE` 三项；完整筛选放在 `pages/recommend-filter/`。
 - 临时筛选存入用户隔离的临时 storage，长期偏好存入 `user_preference`；关闭“使用我的偏好”只关闭正向加权，永久排除仍生效。
 - 正向标签采用任一命中，排除标签/食材采用任一命中即淘汰；时长使用更严格的上限。
 - `GET /api/dishes` 是筛选、搜索和分页的统一入口，并强制只返回系统菜与当前用户自定义菜。
 - 数据重建入口是 `scripts/replace_dish_data.py`，元数据回填入口是 `scripts/backfill_recommendation_metadata.py`，审计文件不得手工维护。
-- 完整本地验证运行 `scripts/test-all.ps1` 和 `scripts/verify.ps1`；推荐过滤性能报告输出到 `outputs/test-report/recommendation-performance.json`。
+- 完整仓库完整性验证运行 `scripts/verify.ps1`；性能和回归验证应在独立 CI 环境执行，不把测试产物提交到仓库。
 
 ## 日常注意事项
 

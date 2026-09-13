@@ -9,7 +9,7 @@
 
   <!-- 使用指南 -->
   <view class="guide-section">
-    <view class="section-title">📖 使用指南</view>
+    <view class="section-title"><view class="line-icon line-icon-book"></view><text>使用指南</text></view>
 
     <!-- 第一步 -->
     <view class="step-card">
@@ -48,7 +48,7 @@
           <text class="detail-item">• 点击"换一换"刷新某道菜</text>
           <text class="detail-item">• 点击"重新推荐"生成新方案</text>
           <text class="detail-item">• 点击菜品查看详情</text>
-          <text class="detail-item">• 点击❤️收藏喜欢的菜品</text>
+          <text class="detail-item">• 点击收藏按钮保存喜欢的菜品</text>
         </view>
       </view>
     </view>
@@ -66,7 +66,7 @@
           <text class="detail-item">② 选择餐次（早餐/午餐/晚餐）</text>
         </view>
         <text class="step-text mt">系统会自动保存到日历，方便你回顾每天的饮食记录。</text>
-        <text class="step-tip">💡 如果当天该餐次已有记录，会提示你是否覆盖。</text>
+        <view class="step-tip"><view class="line-icon line-icon-spark"></view><text>如果当天该餐次已有记录，会提示你是否覆盖。</text></view>
       </view>
     </view>
 
@@ -95,7 +95,7 @@
       <view class="step-content">
         <text class="step-text">遇到喜欢的菜品，可以收藏：</text>
         <view class="step-detail">
-          <text class="detail-item">• 在推荐结果中点击 ❤️ 收藏</text>
+          <text class="detail-item">• 在推荐结果中点击收藏按钮</text>
           <text class="detail-item">• 在"我的"页面查看"收藏菜品"</text>
           <text class="detail-item">• 快速找到常做的菜</text>
         </view>
@@ -142,7 +142,7 @@
 
   <!-- 小提示 -->
   <view class="tips-section">
-    <view class="section-title">💡 小提示</view>
+    <view class="section-title"><view class="line-icon line-icon-spark"></view><text>小提示</text></view>
     <view class="tip-card">
       <text class="tip-item">• 首次使用建议先收藏一些常吃的菜品，推荐会更精准</text>
       <text class="tip-item">• 定制菜谱支持跨分类勾选，荤素汤自由搭配</text>
@@ -154,6 +154,6 @@
   <!-- 底部 -->
   <view class="footer">
     <text class="footer-text">吃什么小程序</text>
-    <text class="footer-text">让每天吃饭不再纠结 🍽️</text>
+    <text class="footer-text">让每天吃饭不再纠结</text>
   </view>
 </view>

@@ -138,19 +138,19 @@ Page({
     
     if (dailyCalories > 2500) {
       caloriesLevel = 'high'
-      caloriesVerdict = '⚠️ 热量摄入偏高，建议减少高油高盐食物'
+      caloriesVerdict = '热量摄入偏高，建议减少高油高盐食物'
     } else if (dailyCalories < 1200) {
       caloriesLevel = 'low'
-      caloriesVerdict = '⚠️ 热量摄入偏低，注意加强营养'
+      caloriesVerdict = '热量摄入偏低，注意加强营养'
     } else if (dailyCalories >= caloriesMin && dailyCalories <= caloriesMax) {
       caloriesLevel = 'good'
-      caloriesVerdict = '✅ 热量摄入合理，继续保持'
+      caloriesVerdict = '热量摄入合理，继续保持'
     } else if (dailyCalories > caloriesMax && dailyCalories <= 2500) {
       caloriesLevel = 'normal'
-      caloriesVerdict = '📌 热量略高，可适当增加运动'
+      caloriesVerdict = '热量略高，可适当增加运动'
     } else {
       caloriesLevel = 'low'
-      caloriesVerdict = '📌 热量偏低，建议适当增加食量'
+      caloriesVerdict = '热量偏低，建议适当增加食量'
     }
     
     return { caloriesPercent, caloriesLevel, caloriesVerdict, caloriesMin, caloriesMax }
@@ -171,13 +171,13 @@ Page({
     
     let ratioVerdict = ''
     if (meatPercent > 60) {
-      ratioVerdict = '📌 荤菜偏多，建议多摄入蔬菜，保持营养均衡'
+      ratioVerdict = '荤菜偏多，建议多摄入蔬菜，保持营养均衡'
     } else if (vegPercent > 70) {
-      ratioVerdict = '📌 素菜为主，建议适量补充蛋白质'
+      ratioVerdict = '素菜为主，建议适量补充蛋白质'
     } else if (meatPercent >= 30 && meatPercent <= 50 && vegPercent >= 30 && vegPercent <= 50) {
-      ratioVerdict = '✅ 荤素搭配均衡，营养结构良好'
+      ratioVerdict = '荤素搭配均衡，营养结构良好'
     } else {
-      ratioVerdict = '📌 建议保持荤素搭配'
+      ratioVerdict = '建议保持荤素搭配'
     }
     
     return { meatPercent, vegPercent, soupPercent, ratioVerdict }

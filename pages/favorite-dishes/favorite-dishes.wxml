@@ -11,16 +11,16 @@
 
   <!-- 空状态 -->
   <view class="empty-box" wx:elif="{{!loading && favorites.length === 0}}">
-    <view class="empty-icon">⭐</view>
+    <view class="empty-icon"><view class="line-icon line-icon-heart"></view></view>
     <view class="empty-title">还没有收藏任何菜品</view>
-    <view class="empty-desc">在生成菜谱时点击菜品右侧的星标即可收藏</view>
+    <view class="empty-desc">先去选一道喜欢的菜，再回来收藏吧</view>
   </view>
 
   <!-- 搜索结果为空 -->
   <view class="empty-box" wx:elif="{{!loading && filtered.length === 0}}">
-    <view class="empty-icon">🔍</view>
+    <view class="empty-icon"><view class="line-icon line-icon-search"></view></view>
     <view class="empty-title">没有找到 "{{searchKeyword}}"</view>
-    <view class="empty-desc">换个关键词试试</view>
+    <view class="empty-desc">试试菜名里的一个关键词</view>
   </view>
 
   <!-- 收藏列表 -->
@@ -28,7 +28,7 @@
     <view class="favorite-item" wx:for="{{filtered}}" wx:key="id" bindtap="onViewDish" data-dish="{{item}}">
       <image class="fav-img" src="{{item.image}}" mode="aspectFill" lazy-load wx:if="{{item.image}}" />
       <view class="fav-img-fb" wx:else>
-        <text>{{item.type === 'meat' ? '🥩' : item.type === 'veg' ? '🥬' : item.type === 'soup' ? '🍲' : item.type === 'dessert' ? '🍰' : item.type === 'staple' ? '🍚' : '🍽️'}}</text>
+        <view class="line-icon line-icon-meal"></view>
       </view>
       <view class="fav-info">
         <text class="fav-name">{{item.name}}</text>

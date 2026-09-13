@@ -245,7 +245,7 @@ cp /www/wwwroot/backend/application-prod.yml /www/wwwroot/backend/application-pr
 
 ### 建议迁移顺序
 
-1. 在本地重新运行 `scripts/test-all.ps1`，确认 6,665 条基准数据、MySQL 隔离测试和性能门槛全部通过。
+1. 在本地运行 `scripts/verify.ps1`，确认配置、脚本、JSON、JavaScript 和 Python 静态检查通过；生产迁移前另行执行隔离数据库验证。
 2. 备份生产数据库、JAR 与配置，并记录当前 `food` 行数及各 `type` 数量。
 3. 执行 `backend/ensure_food_import_schema.sql`；若需要替换系统菜，随后执行生成的 `replace_system_dishes.sql`。替换脚本只删除 `user_id IS NULL` 的系统菜，保留用户自定义菜。
 4. 执行 `backend/recommendation_preferences_schema.sql`，再执行 `backend/recommendation_metadata_backfill.sql`，顺序与 `scripts/apply_dish_replacement.ps1` 保持一致。

@@ -5,7 +5,7 @@
 .search-input {
   width: 100%; height: 44px; background: #fff; border-radius: 22px;
   padding: 0 20px; font-size: 28rpx; box-sizing: border-box;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  border: 1rpx solid #e3eeea;
 }
 
 /* 加载 */
@@ -13,7 +13,8 @@
 
 /* 空状态 */
 .empty-box { text-align: center; padding: 120rpx 40rpx 0; }
-.empty-icon { font-size: 80rpx; margin-bottom: 20px; opacity: 0.5; }
+.empty-icon { margin-bottom: 20px; color: #299f91; opacity: 0.72; }
+.empty-icon .line-icon { width: 72rpx; height: 72rpx; }
 .empty-title { font-size: 32rpx; font-weight: bold; color: #333; display: block; }
 .empty-desc { font-size: 26rpx; color: #999; margin-top: 10px; display: block; }
 
@@ -22,16 +23,17 @@
 .favorite-item {
   display: flex; align-items: center;
   background: #fff; border-radius: 14rpx; padding: 14px;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  border: 1rpx solid #e3eeea;
 }
 .favorite-item:active { background: #f9f9f9; }
 
-.fav-img { width: 90rpx; height: 90rpx; border-radius: 12rpx; background: #f0f0f0; flex-shrink: 0; margin-right: 14px; }
+.fav-img { width: 128rpx; height: 96rpx; border-radius: 12rpx; background: #f0f0f0; flex-shrink: 0; margin-right: 14px; display: block; }
 .fav-img-fb {
-  width: 90rpx; height: 90rpx; border-radius: 12rpx; flex-shrink: 0;
+  width: 128rpx; height: 96rpx; border-radius: 12rpx; flex-shrink: 0;
   margin-right: 14px; display: flex; align-items: center; justify-content: center;
-  font-size: 44rpx; background: #f0f0f0;
+  background: #f0f0f0; color: #299f91;
 }
+.fav-img-fb .line-icon { width: 44rpx; height: 44rpx; }
 
 .fav-info { flex: 1; min-width: 0; }
 .fav-name { font-size: 30rpx; font-weight: 600; color: #222; display: block; }

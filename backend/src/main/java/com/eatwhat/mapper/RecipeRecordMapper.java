@@ -26,6 +26,17 @@ public interface RecipeRecordMapper {
     int insert(RecipeRecord record);
 
     /**
+     * Insert only when the user/date/meal unique key is still free.  The
+     * assistant uses this variant so a stale confirmation can never overwrite
+     * a calendar entry created on another device.
+     */
+    @Insert("INSERT INTO recipe_records (USER_ID, RECORD_DATE, MEAL_TYPE, RECIPE_NAME, DISH_IDS, DISH_DETAILS, IS_MANUAL, CREATE_TIME, UPDATE_TIME) " +
+            "VALUES (#{userId}, #{recordDate,jdbcType=DATE}, #{mealType}, #{recipeName}, #{dishIdsString}, #{dishDetailsString}, #{isManual}, NOW(), NOW()) " +
+            "ON DUPLICATE KEY UPDATE ID = ID")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertIfAbsent(RecipeRecord record);
+
+    /**
      * 根据用户ID和日期查询记录
      * 将日期参数转为字符串 "yyyy-MM-dd" 用于字符串比较，避免 Date + 时区转换导致查询不到当天记录
      */

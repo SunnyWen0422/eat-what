@@ -13,7 +13,7 @@
 
   <!-- 空数据提示 -->
   <view class="empty-state" wx:elif="{{isEmpty}}">
-    <text class="empty-icon">🍽️</text>
+    <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
     <text class="empty-text">本月暂无饮食记录</text>
     <text class="empty-hint">快去记录你的第一餐吧！</text>
   </view>
@@ -26,22 +26,22 @@
       <view class="overview-subtitle">共记录 {{statistics.daysWithRecords}} 天</view>
       <view class="overview-dishes">
         <view class="dish-stat">
-          <text class="dish-emoji">🍖</text>
+          <view class="dish-emoji"><view class="line-icon line-icon-meat"></view></view>
           <text class="dish-count">{{statistics.meatCount}}</text>
           <text class="dish-label">荤菜</text>
         </view>
         <view class="dish-stat">
-          <text class="dish-emoji">🥬</text>
+          <view class="dish-emoji"><view class="line-icon line-icon-veg"></view></view>
           <text class="dish-count">{{statistics.vegCount}}</text>
           <text class="dish-label">素菜</text>
         </view>
         <view class="dish-stat">
-          <text class="dish-emoji">🍲</text>
+          <view class="dish-emoji"><view class="line-icon line-icon-soup"></view></view>
           <text class="dish-count">{{statistics.soupCount}}</text>
           <text class="dish-label">汤品</text>
         </view>
         <view class="dish-stat">
-          <text class="dish-emoji">🔥</text>
+          <view class="dish-emoji"><view class="line-icon line-icon-spark"></view></view>
           <text class="dish-count">{{statistics.dailyCalories}}</text>
           <text class="dish-label">日均热量</text>
         </view>
@@ -50,7 +50,7 @@
 
     <!-- 热量趋势卡片 -->
     <view class="calories-card">
-      <view class="card-title">💡 热量摄入分析</view>
+      <view class="card-title"><view class="line-icon line-icon-spark"></view><text>热量摄入分析</text></view>
       <view class="calories-bar-section">
         <view class="calories-bar-row">
           <text class="bar-label">日均热量</text>
@@ -70,7 +70,7 @@
 
     <!-- 荤素比例卡片 -->
     <view class="ratio-card">
-      <view class="card-title">🥗 荤素搭配</view>
+      <view class="card-title"><view class="line-icon line-icon-veg"></view><text>荤素搭配</text></view>
       <view class="ratio-chart">
         <view class="ratio-item meat">
           <view class="ratio-bar" style="width: {{meatPercent}}%;"></view>
@@ -92,7 +92,7 @@
 
     <!-- 饮食建议卡片 -->
     <view class="suggestion-card">
-      <view class="card-title">💡 健康建议</view>
+      <view class="card-title"><view class="line-icon line-icon-spark"></view><text>健康建议</text></view>
       <view class="suggestion-list">
         <text class="suggestion-item" wx:for="{{suggestionList}}" wx:key="index">{{index + 1}}. {{item}}</text>
       </view>
