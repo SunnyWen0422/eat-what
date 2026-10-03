@@ -57,6 +57,13 @@ function withAdminIdentity(definition) {
   wrapped.isAdminOperationCurrent = function (operation) {
     return sync(this) && !!operation && operation.identity === this._adminIdentity && operation.epoch === (this._adminEpoch || 0)
   }
+  // Restore auth feedback with confirmed protected data, never merely because
+  // a retry started. Callers also check their own latest request version first.
+  wrapped.commitAdminSuccess = function (operation, values) {
+    if (!this.isAdminOperationCurrent(operation)) return false
+    this.setData({ ...values, authStatus: '', authMessage: '' })
+    return true
+  }
   wrapped.handleAdminError = function (error, operation) {
     if (!this.isAdminOperationCurrent(operation)) return true
     const status = Number(error && error.statusCode)

@@ -156,7 +156,7 @@ Page(withAdminIdentity({
       const total = Number(result.total) || 0
       const pageSize = Number(result.pageSize) || this.pageSize
       this.currentPage = Number(result.page) || page
-      this.setData({
+      this.commitAdminSuccess(operation, {
         users,
         total,
         hasMore: this.currentPage * pageSize < total,
@@ -256,7 +256,7 @@ Page(withAdminIdentity({
       const result = await api.getAdminUser(userId)
       if (!this.isAdminOperationCurrent(operation) || requestVersion !== this.detailRequestVersion) return false
       const user = result.user || {}
-      this.setData({
+      this.commitAdminSuccess(operation, {
         selectedUser: {
           ...user,
           displayName: user.nickname || user.phone || `用户 ${user.id}`,
@@ -420,7 +420,7 @@ Page(withAdminIdentity({
       loadingVisible = false
       wx.showToast({ title: '菜品已添加', icon: 'success' })
       const userId = this.data.selectedUser.id
-      this.setData({ mode: 'detail', newDish: emptyDish(), cuisineIndex: 0 })
+      this.commitAdminSuccess(operation, { mode: 'detail', newDish: emptyDish(), cuisineIndex: 0 })
       this.renderTagGroups()
       await this.loadUserDetail(userId)
       return true
@@ -453,6 +453,7 @@ Page(withAdminIdentity({
         try {
           await api.deleteAdminUserDish(userId, dishId)
           if (!this.isAdminOperationCurrent(operation)) return
+          this.commitAdminSuccess(operation, {})
           wx.showToast({ title: '已删除', icon: 'success' })
           await this.loadUserDetail(userId)
         } catch (error) {

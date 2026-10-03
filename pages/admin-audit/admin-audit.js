@@ -22,7 +22,7 @@ Page(withAdminIdentity({
       const incoming = (result.list || []).map(log => ({ ...log, target: log.targetDishId ? `菜品 ${log.targetDishId}` : (log.targetUserId ? `用户 ${log.targetUserId}` : '系统'), detail: this.describe(log.detailJson) }))
       this.page = Number(result.page) || page
       const total = Number(result.total) || 0
-      this.setData({ logs: reset ? incoming : this.data.logs.concat(incoming), total, ready: true, hasMore: this.page * (Number(result.pageSize) || this.pageSize) < total, error: '', notice: '' })
+      this.commitAdminSuccess(operation, { logs: reset ? incoming : this.data.logs.concat(incoming), total, ready: true, hasMore: this.page * (Number(result.pageSize) || this.pageSize) < total, error: '', notice: '' })
     } catch (error) {
       if (requestVersion !== this.version || this.handleAdminError(error, operation)) return
       this.setData(this.data.ready ? { notice: '加载失败，仍显示上次结果' } : { error: '审计日志加载失败' })

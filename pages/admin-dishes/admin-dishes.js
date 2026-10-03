@@ -28,7 +28,7 @@ Page(withAdminIdentity({
       const dishes = reset ? incoming : this.data.dishes.concat(incoming)
       this.page = Number(result.page) || page
       const total = Number(result.total) || 0
-      this.setData({ dishes, total, ready: true, hasMore: this.page * (Number(result.pageSize) || this.pageSize) < total, error: '', notice: '' })
+      this.commitAdminSuccess(operation, { dishes, total, ready: true, hasMore: this.page * (Number(result.pageSize) || this.pageSize) < total, error: '', notice: '' })
     } catch (error) {
       if (requestVersion !== this.version || this.handleAdminError(error, operation)) return
       this.setData(this.data.ready ? { notice: '刷新失败，仍显示上次结果' } : { error: '菜品列表加载失败' })
@@ -58,7 +58,7 @@ Page(withAdminIdentity({
     try {
       const updated = await api.updateAdminDish(form.id, { ...form, cookMinutes: form.cookMinutes ? Number(form.cookMinutes) : null })
       if (!this.isAdminOperationCurrent(operation)) return
-      this.setData({ dishes: this.data.dishes.map(item => item.id === updated.id ? updated : item), mode: 'list', form: null, notice: '系统菜品已保存' })
+      this.commitAdminSuccess(operation, { dishes: this.data.dishes.map(item => item.id === updated.id ? updated : item), mode: 'list', form: null, notice: '系统菜品已保存' })
     } catch (error) { if (!this.handleAdminError(error, operation)) this.setData({ notice: '保存失败，请检查内容后重试' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ saving: false }) }
   },
@@ -74,7 +74,7 @@ Page(withAdminIdentity({
     const operation = this.beginAdminOperation()
     if (!operation || this.data.updatingId) return
     this.setData({ updatingId: id, notice: '' })
-    try { const updated = await api.updateAdminDishStatus(id, published); if (!this.isAdminOperationCurrent(operation)) return; this.setData({ dishes: this.data.dishes.map(item => String(item.id) === String(id) ? updated : item), notice: published ? '菜品已发布' : '菜品已下架' }) }
+    try { const updated = await api.updateAdminDishStatus(id, published); if (!this.isAdminOperationCurrent(operation)) return; this.commitAdminSuccess(operation, { dishes: this.data.dishes.map(item => String(item.id) === String(id) ? updated : item), notice: published ? '菜品已发布' : '菜品已下架' }) }
     catch (error) { if (!this.handleAdminError(error, operation)) this.setData({ notice: '发布状态更新失败，请重试' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ updatingId: null }) }
   },

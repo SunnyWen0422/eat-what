@@ -365,6 +365,7 @@ Page({
 
   // 点击菜名 → 详情页
   onTapDish(e) {
+    if (!this.ensureBrowseOwner()) return
     const dish = e.currentTarget.dataset.dish
     if (!dish || !dish.id) return
     wx.navigateTo({
@@ -400,6 +401,7 @@ Page({
 
   // 显示已选面板
   onShowSelected() {
+    if (!this.ensureBrowseOwner()) return
     const { selectedIds } = this.data
     const selectedList = this.buildSelectedList(selectedIds)
     this.setData({ selectedList: selectedList, showSelectedPanel: true })
@@ -420,11 +422,13 @@ Page({
 
   // 隐藏已选面板
   onHideSelected() {
+    if (!this.ensureBrowseOwner()) return
     this.setData({ showSelectedPanel: false })
   },
 
   // 从面板中删除一道菜
   onRemoveSelected(e) {
+    if (!this.ensureBrowseOwner()) return
     const id = e.currentTarget.dataset.id
     const selectedIds = this.data.selectedIds.filter(x => x !== id)
     const currentDishes = this.data.currentDishes.map(d => ({

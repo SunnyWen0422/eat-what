@@ -15,7 +15,7 @@ Page(withAdminIdentity({
     try {
       const result = await api.getAdminUser(this.data.userId)
       if (!this.isAdminOperationCurrent(operation)) return
-      this.setData({ user: result.user, dishes: result.customDishes || [], ready: true, error: '', notice: '' })
+      this.commitAdminSuccess(operation, { user: result.user, dishes: result.customDishes || [], ready: true, error: '', notice: '' })
     } catch (error) { if (!this.handleAdminError(error, operation)) this.setData(this.data.ready ? { notice: '刷新失败，仍显示上次内容' } : { error: '用户详情加载失败' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ loading: false }) }
   },
@@ -33,7 +33,7 @@ Page(withAdminIdentity({
     try {
       const result = await api.updateAdminUserStatus(this.data.userId, status)
       if (!this.isAdminOperationCurrent(operation)) return
-      this.setData({ user: result.user || this.data.user, notice: '用户状态已更新' })
+      this.commitAdminSuccess(operation, { user: result.user || this.data.user, notice: '用户状态已更新' })
     } catch (error) { if (!this.handleAdminError(error, operation)) this.setData({ notice: '状态更新失败，请重试' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ updatingStatus: false }) }
   },
@@ -58,7 +58,7 @@ Page(withAdminIdentity({
       if (this.data.editingId) await api.updateAdminUserDish(this.data.userId, this.data.editingId, payload)
       else await api.createAdminUserDish(this.data.userId, payload)
       if (!this.isAdminOperationCurrent(operation)) return
-      this.setData({ mode: 'detail', editingId: null, form: emptyDish(), notice: '菜品已保存' })
+      this.commitAdminSuccess(operation, { mode: 'detail', editingId: null, form: emptyDish(), notice: '菜品已保存' })
       await this.load()
     } catch (error) { if (!this.handleAdminError(error, operation)) this.setData({ notice: '保存失败，请检查内容后重试' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ saving: false }) }
@@ -72,7 +72,7 @@ Page(withAdminIdentity({
     const operation = this.beginAdminOperation()
     if (!operation || this.data.deletingId) return
     this.setData({ deletingId: id, notice: '' })
-    try { await api.deleteAdminUserDish(this.data.userId, id); if (!this.isAdminOperationCurrent(operation)) return; this.setData({ dishes: this.data.dishes.filter(item => String(item.id) !== String(id)), notice: '菜品已删除' }) }
+    try { await api.deleteAdminUserDish(this.data.userId, id); if (!this.isAdminOperationCurrent(operation)) return; this.commitAdminSuccess(operation, { dishes: this.data.dishes.filter(item => String(item.id) !== String(id)), notice: '菜品已删除' }) }
     catch (error) { if (!this.handleAdminError(error, operation)) this.setData({ notice: '删除失败，请重试' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ deletingId: null }) }
   },

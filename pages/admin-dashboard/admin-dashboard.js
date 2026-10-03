@@ -27,7 +27,7 @@ Page(withAdminIdentity({
     try {
       const overview = await api.getAdminOverview()
       if (!this.isAdminOperationCurrent(operation)) return
-      this.setData({ overview, ready: true, error: '', notice: '' })
+      this.commitAdminSuccess(operation, { overview, ready: true, error: '', notice: '' })
     } catch (error) {
       if (this.handleAdminError(error, operation)) return
       this.setData(keepContent

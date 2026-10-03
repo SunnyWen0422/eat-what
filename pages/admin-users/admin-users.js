@@ -26,7 +26,7 @@ Page(withAdminIdentity({
       const currentPage = Number(result.page) || page
       const size = Number(result.pageSize) || this.pageSize
       this.page = currentPage
-      this.setData({ users, total: Number(result.total) || 0, hasMore: currentPage * size < (Number(result.total) || 0), ready: true, error: '', notice: '' })
+      this.commitAdminSuccess(operation, { users, total: Number(result.total) || 0, hasMore: currentPage * size < (Number(result.total) || 0), ready: true, error: '', notice: '' })
     } catch (error) {
       if (requestVersion !== this.version || this.handleAdminError(error, operation)) return
       this.setData(this.data.ready ? { notice: reset ? '刷新失败，仍显示上次结果' : '加载更多失败，请重试' } : { error: '用户列表加载失败' })
@@ -56,7 +56,7 @@ Page(withAdminIdentity({
       const result = await api.updateAdminUserStatus(id, status)
       if (!this.isAdminOperationCurrent(operation)) return
       const updated = result.user || {}
-      this.setData({ users: this.data.users.map(item => String(item.id) === String(id) ? { ...item, ...updated, displayName: item.displayName } : item), notice: '用户状态已更新' })
+      this.commitAdminSuccess(operation, { users: this.data.users.map(item => String(item.id) === String(id) ? { ...item, ...updated, displayName: item.displayName } : item), notice: '用户状态已更新' })
     } catch (error) { if (!this.handleAdminError(error, operation)) this.setData({ notice: '状态更新失败，请重试' }) }
     finally { if (this.isAdminOperationCurrent(operation)) this.setData({ updatingId: null }) }
   },

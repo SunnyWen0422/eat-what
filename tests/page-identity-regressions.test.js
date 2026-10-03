@@ -228,6 +228,69 @@ test('F01 an old selection event cannot create B shopping work before onShow', (
   assert.equal(writes, 0); assert.equal(navigation.length, 0)
 })
 
+for (const action of ['onShowSelected', 'onRemoveSelected', 'onHideSelected', 'onTapDish']) {
+  for (const missingId of [false, true]) test(`round1 F01 ${action} rejects account changes before onShow ${missingId ? 'without user ID' : 'with user ID'}`, () => {
+    const { page, account, navigation } = load('pages/customize/customize')
+    if (missingId) account.id = null
+    page.onShow(); page.data.selectedIds = [1, 2]; page.data.selectedTotal = 2
+    page.allDishesMap = { 1: { id: 1, name: 'A first private dish' }, 2: { id: 2, name: 'A second private dish' } }
+    page.data.selectedList = [{ id: 1, name: 'A first private dish' }]
+    if (missingId) account.token = 'token-B'
+    else account.id = 'B'
+    page[action]({ currentTarget: { dataset: { id: 1, dish: page.allDishesMap[1] } } })
+    assert.equal(page.data.selectedIds.length, 0); assert.equal(page.data.selectedList.length, 0)
+    assert.equal(page.data.showSelectedPanel, false); assert.equal(navigation.length, 0)
+  })
+  test(`round1 F01 ${action} ignores events after unload`, () => {
+    const { page, navigation } = load('pages/customize/customize')
+    page.onShow(); page.data.selectedIds = [1, 2]
+    page.allDishesMap = { 1: { id: 1, name: 'A first private dish' }, 2: { id: 2, name: 'A second private dish' } }
+    page.onUnload(); let updates = 0; const setData = page.setData
+    page.setData = function (values) { updates++; setData.call(this, values) }
+    page[action]({ currentTarget: { dataset: { id: 1, dish: page.allDishesMap[1] } } })
+    assert.equal(updates, 0); assert.equal(navigation.length, 0)
+  })
+}
+
+test('round1 F01 same-account panel display and removal retain the remaining selection', () => {
+  const { page } = load('pages/customize/customize')
+  page.onShow(); page.data.selectedIds = [1, 2]; page.data.selectedTotal = 2
+  page.allDishesMap = { 1: { id: 1, name: 'first' }, 2: { id: 2, name: 'second' } }
+  page.onShowSelected(); assert.equal(page.data.showSelectedPanel, true); assert.equal(page.data.selectedList.length, 2)
+  page.onRemoveSelected({ currentTarget: { dataset: { id: 1 } } })
+  assert.equal(page.data.selectedIds[0], 2); assert.equal(page.data.selectedTotal, 1); assert.equal(page.data.selectedList[0].name, 'second')
+  page.onHideSelected(); assert.equal(page.data.showSelectedPanel, false); assert.equal(page.data.selectedIds[0], 2)
+})
+
+for (const fixture of admins) for (const statusCode of [401, 403]) {
+  test(`round1 F02 ${fixture.route} clears HTTP ${statusCode} status only after a current successful retry`, async () => {
+    const pending = deferred(); let calls = 0
+    const { page, account } = load(`pages/${fixture.route}/${fixture.route}`, { [fixture.api]: () => ++calls === 1 ? Promise.reject({ statusCode }) : pending.promise })
+    await page[fixture.method](true)
+    const status = statusCode === 401 ? 'auth' : 'permission'
+    assert.equal(page.data.authStatus, status); assert.ok(page.data.authMessage)
+    const retry = page[fixture.method](true)
+    assert.equal(page.data.authStatus, status); assert.ok(page.data.authMessage)
+    account.token = 'refreshed-same-A'
+    pending.resolve(fixture.response); await retry
+    assert.equal(page.data.authStatus, ''); assert.equal(page.data.authMessage, '')
+    assert.equal(fixture.field === 'overview' ? page.data.overview.totalUsers : fixture.field === 'user' ? page.data.user.id : page.data[fixture.field].length, 1)
+  })
+}
+
+for (const fixture of admins.filter(item => ['admin', 'admin-users', 'admin-dishes', 'admin-audit'].includes(item.route))) {
+  test(`round1 F02 ${fixture.route} retains the latest permission denial when an older success arrives`, async () => {
+    const old = deferred(), latest = deferred(); let calls = 0
+    const { page } = load(`pages/${fixture.route}/${fixture.route}`, { [fixture.api]: () => ++calls === 1 ? old.promise : latest.promise })
+    const first = page[fixture.method](true)
+    page.data.keyword = 'latest search'; page.data.targetUserId = '2'
+    const second = page[fixture.method](true)
+    latest.reject({ statusCode: 403 }); await second
+    old.resolve(fixture.response); await first
+    assert.equal(page.data.authStatus, 'permission'); assert.ok(page.data.authMessage); assert.equal(page.data[fixture.field].length, 0)
+  })
+}
+
 for (const fixture of admins) test(`F02 ${fixture.route} account change clears filters/forms before a new action`, () => {
   const { page, account } = load(`pages/${fixture.route}/${fixture.route}`)
   const event = fixture.route === 'admin' ? 'onSearchInput' : fixture.route === 'admin-users' ? 'onInput' : fixture.route === 'admin-dishes' ? 'onKeyword' : fixture.route === 'admin-audit' ? 'onUser' : null
