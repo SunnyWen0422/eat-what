@@ -62,7 +62,7 @@ function getRequestKey(url, method, data) {
  * 执行单次 HTTP 请求（不包含重试逻辑）
  * @returns {Promise<{ statusCode, data }>}
  */
-function executeHttpRequest(url, method, data) {
+function executeHttpRequest(url, method, data, originalIdentity) {
   return new Promise((resolve, reject) => {
     const token = wx.getStorageSync('token') || ''
     const header = {
@@ -87,6 +87,7 @@ function executeHttpRequest(url, method, data) {
       header,
       timeout: 15000,  // 15 秒超时
       success: (res) => {
+        if (originalIdentity !== requestIdentity()) return reject({ statusCode: 401, isAccountChanged: true })
         // 304 Not Modified：后端数据未变，返回缓存数据
         if (res.statusCode === 304) {
           if (cached && cached.data) {
@@ -107,6 +108,7 @@ function executeHttpRequest(url, method, data) {
         resolve({ statusCode: res.statusCode, data: res.data })
       },
       fail: (err) => {
+        if (originalIdentity !== requestIdentity()) return reject({ statusCode: 401, isAccountChanged: true })
         reject({ isNetworkError: true, err })
       }
     })
@@ -133,7 +135,7 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
   let lastError = null
 
   // 请求去重：如果同一个请求已经在进行中，复用其结果
-  const reqKey = getRequestKey(url, method, data)
+  const reqKey = getRequestKey(url, method, data) + (isAuthRetry ? ':auth-retry' : '')
   const originalIdentity = requestIdentity()
   if (inFlightRequests[reqKey]) {
     console.log('复用进行中的请求')
@@ -143,7 +145,8 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
   async function attempt(attemptIndex) {
     if (originalIdentity !== requestIdentity()) throw { statusCode: 401, isAccountChanged: true }
     try {
-      const { statusCode, data: resData } = await executeHttpRequest(url, method, data)
+      const { statusCode, data: resData } = await executeHttpRequest(url, method, data, originalIdentity)
+      if (originalIdentity !== requestIdentity()) throw { statusCode: 401, isAccountChanged: true }
 
       // 成功
       if (statusCode === 200) {
@@ -155,8 +158,8 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
         console.log('🔄 Token 失效，尝试自动重新登录...')
         try {
           await autoReLogin()
-          if (method !== 'GET' && originalIdentity !== requestIdentity()) {
-            throw { statusCode: 401, isAuthError: true }
+          if (originalIdentity !== requestIdentity()) {
+            throw { statusCode: 401, isAccountChanged: true }
           }
           // 重新登录后用新 token 重试（仅一次，防止死循环）
           return await doRequest(url, method, data, {
@@ -165,6 +168,7 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
             isAuthRetry: true
           })
         } catch (authErr) {
+          if (authErr && authErr.isAccountChanged) throw authErr
           console.error('❌ 自动重新登录失败:', authErr)
           if (!silent) {
             wx.showToast({ title: '登录已过期，请重新打开', icon: 'none', duration: 2000 })
@@ -244,9 +248,11 @@ function assistantRequest(url, method = 'GET', data = null) {
  * 自动重新登录：调用 wx.login 和后端登录接口，刷新 token 和用户信息
  */
 function autoReLogin() {
+  const originalIdentity = requestIdentity()
   return new Promise((resolve, reject) => {
     wx.login({
       success: async (res) => {
+        if (originalIdentity !== requestIdentity()) return reject({ statusCode: 401, isAccountChanged: true })
         if (!res.code) {
           console.error('wx.login 获取 code 失败:', res.errMsg)
           return reject(new Error(res.errMsg || '获取登录凭证失败'))
@@ -254,7 +260,13 @@ function autoReLogin() {
 
         try {
           const result = await login({ code: res.code })
+          if (originalIdentity !== requestIdentity()) throw { statusCode: 401, isAccountChanged: true }
           if (result && result.success) {
+            const user = wx.getStorageSync('userInfo') || {}
+            if ((user.id && String(user.id) !== String(result.user && result.user.id)) ||
+              (user.openId && !user.id && user.openId !== (result.user && result.user.openId))) {
+              throw { statusCode: 401, isAccountChanged: true }
+            }
             try {
               wx.setStorageSync('token', result.token)
               wx.setStorageSync('userInfo', result.user)
@@ -277,6 +289,7 @@ function autoReLogin() {
             reject(new Error((result && result.message) || '自动登录失败'))
           }
         } catch (err) {
+          if (err && err.isAccountChanged) return reject(err)
           console.error('自动登录请求失败:', err)
           wx.showToast({
             title: '自动登录失败，请重试',

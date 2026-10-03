@@ -1,4 +1,5 @@
 <view class="ew-page page" style="font-size:{{14 * fontScale}}px">
+  <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view wx:if="{{notice}}" class="notice">{{notice}}</view>
   <block wx:if="{{mode === 'list'}}">
     <view class="heading"><text class="title">菜品管理</text><text class="count">{{total}} 道</text></view>

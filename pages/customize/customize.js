@@ -2,6 +2,7 @@
 const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
+const { currentIdentity } = require('../../utils/account-identity')
 
 const BROWSE_GROUPS = [
   { key: 'cuisine', label: '菜系', field: 'cuisineCodes' },
@@ -21,6 +22,10 @@ const BROWSE_DURATIONS = [
 
 function emptyBrowseCriteria() {
   return { cuisineCodes: [], tagCodes: [], methodCodes: [], maxCookMinutes: null }
+}
+
+function emptyCustomForm() {
+  return { name: '', type: 'meat', ingredients: '', steps: '', cuisineCode: '', cuisineLabel: '未设置', tagCodes: [], cookMinutes: '' }
 }
 
 Page({
@@ -54,16 +59,7 @@ Page({
     showCustomForm: false,
     cuisineOptions: [],
     customTagOptions: [],
-    customForm: {
-      name: '',
-      type: 'meat',
-      ingredients: '',
-      steps: '',
-      cuisineCode: '',
-      cuisineLabel: '未设置',
-      tagCodes: [],
-      cookMinutes: ''
-    }
+    customForm: emptyCustomForm()
   },
 
   pageSize: 20,
@@ -72,28 +68,52 @@ Page({
   allDishesMap: {},
 
   onLoad() {
+    this.ensureBrowseOwner()
     this.loadPage('meat', 1)
     this.loadCustomMetadata()
   },
 
   onShow() {
     const scope = getUserStorageKey('customBrowse')
-    if (this._browseScope && this._browseScope !== scope) { this.allDishesMap = {}; this.setData({ selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false }); this.loadPage('meat',1) }
+    if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
     this._browseScope = scope
     this._planOwnerScope = getUserStorageKey('mealView')
     if (wx.getStorageSync(getUserStorageKey('openCustomDishForm'))) { wx.removeStorageSync(getUserStorageKey('openCustomDishForm')); this.setData({ showCustomForm: true, activeTab: 'custom' }) }
   },
-  onUnload() { clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1 },
+  onUnload() { this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
+  ensureBrowseOwner() {
+    if (this._unloaded) return false
+    const identity = currentIdentity()
+    if (this._browseIdentity === undefined) { this._browseIdentity = identity; this._browseScope = getUserStorageKey('customBrowse'); return true }
+    if (this._browseIdentity === identity) return true
+    this._browseIdentity = identity; this._browseScope = getUserStorageKey('customBrowse')
+    this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1
+    clearTimeout(this.searchTimer)
+    this.allDishesMap = {}; this.currentPage = 1; this._pendingPlanWrite = null
+    this._planOwnerScope = getUserStorageKey('mealView')
+    this.setData({ activeTab: 'meat', selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
+      customForm: emptyCustomForm(), customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: false })),
+      customError: '', saveError: '', browseError: '', savingCustom: false, savingPlan: false, loading: false, loadingMore: false,
+      searchKeyword: '', hasMore: true, browseCriteria: emptyBrowseCriteria(), showBrowseFilters: false })
+    this.renderBrowseFilters()
+    return false
+  },
+  isBrowseCurrent(identity, epoch = this._privateEpoch || 0) {
+    return this.ensureBrowseOwner() && identity === this._browseIdentity && epoch === (this._privateEpoch || 0)
+  },
   onRetryPage() { this.loadPage(this.data.activeTab, 1) },
-  onCancelCustom() { if (!this.data.savingCustom) this.setData({ showCustomForm: false, activeTab: 'meat', customError: '' }) },
+  onCancelCustom() { if (this.ensureBrowseOwner() && !this.data.savingCustom) this.setData({ showCustomForm: false, activeTab: 'meat', customError: '' }) },
 
   async loadCustomMetadata() {
+    if (!this.ensureBrowseOwner()) return
+    const identity = this._browseIdentity
     const result = await loadRecommendationOptions()
+    if (!this.isBrowseCurrent(identity)) return
     const groups = result.options.groups || {}
     this.recommendationGroups = groups
     const customTagOptions = ['flavor', 'scene', 'diet', 'method']
       .flatMap(group => groups[group] || [])
-      .map(item => ({ ...item, selected: false }))
+      .map(item => ({ ...item, selected: this.data.customForm.tagCodes.includes(item.code) }))
     this.setData({ cuisineOptions: groups.cuisine || [], customTagOptions })
     this.renderBrowseFilters()
   },
@@ -181,6 +201,8 @@ Page({
 
   // 加载某一页数据
   async loadPage(type, page) {
+    if (!this.ensureBrowseOwner()) return
+    const identity = this._browseIdentity
     const epoch = this._pageEpoch = (this._pageEpoch || 0) + 1, scope = getUserStorageKey('customBrowse')
     this.setData({ browseError: '' })
     const { selectedIds, searchKeyword } = this.data
@@ -200,7 +222,7 @@ Page({
         pageSize: this.pageSize,
         ...this.data.browseCriteria,
       })
-      if (epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
+      if (!this.isBrowseCurrent(identity) || epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
       const list = result.list || []
       const total = result.total || 0
 
@@ -231,7 +253,7 @@ Page({
       }
       this.currentPage = page
     } catch (err) {
-      if (epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
+      if (!this.isBrowseCurrent(identity) || epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
       this.setData({ browseError: require('../../utils/meal-workflow').errorMessage(err, '读取失败，请重试，已选菜品仍保留。') })
       this.setData({ loading: false, loadingMore: false })
     }
@@ -239,6 +261,7 @@ Page({
 
   // 切换分类
   onTabChange(e) {
+    if (!this.ensureBrowseOwner()) return
     const tab = e.currentTarget.dataset.tab
     if (tab === 'custom') {
       this.setData({ activeTab: 'custom', showCustomForm: true, searchKeyword: '' })
@@ -250,16 +273,19 @@ Page({
   },
 
   onCustomTypeChange(e) {
+    if (!this.ensureBrowseOwner()) return
     this.setData({ 'customForm.type': e.currentTarget.dataset.type })
   },
 
   onCustomCuisineChange(e) {
+    if (!this.ensureBrowseOwner()) return
     const selected = this.data.cuisineOptions[Number(e.detail.value)]
     if (!selected) return
     this.setData({ 'customForm.cuisineCode': selected.code, 'customForm.cuisineLabel': selected.label })
   },
 
   onCustomTagTap(e) {
+    if (!this.ensureBrowseOwner()) return
     const code = e.currentTarget.dataset.code
     const values = new Set(this.data.customForm.tagCodes)
     if (values.has(code)) values.delete(code)
@@ -272,11 +298,13 @@ Page({
   },
 
   onCustomInput(e) {
+    if (!this.ensureBrowseOwner()) return
     const field = e.currentTarget.dataset.field
     this.setData({ [`customForm.${field}`]: e.detail.value })
   },
 
   async onSaveCustomDish() {
+    if (!this.ensureBrowseOwner()) return
     const { name, type, ingredients, steps, cuisineCode, tagCodes, cookMinutes } = this.data.customForm
     if (!name.trim()) {
       wx.showToast({ title: '请输入菜品名称', icon: 'none' })
@@ -295,23 +323,27 @@ Page({
       return
     }
     if (this.data.savingCustom) return
-    const scope = getUserStorageKey('customBrowse')
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
     this.setData({ savingCustom: true, customError: '' })
     try {
       await api.createCustomDish({ name: name.trim(), type, cl: ingredients.trim().replace(/\n/g, '#'), step: steps.trim().replace(/\n/g, '#'), cuisineCode: cuisineCode || null, tagCodes: tagCodes.join(','), cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null })
-      if (scope !== getUserStorageKey('customBrowse')) return
+      if (!this.isBrowseCurrent(identity, epoch)) return
       wx.showToast({ title: '菜品已保存', icon: 'success' }); this.setData({ 'customForm.name': '', 'customForm.ingredients': '', 'customForm.steps': '' })
-    } catch (error) { if (scope === getUserStorageKey('customBrowse')) this.setData({ customError: require('../../utils/meal-workflow').errorMessage(error, '保存失败，输入仍保留，请重试。') }) }
-    finally { if (scope === getUserStorageKey('customBrowse')) this.setData({ savingCustom: false }) }
+    } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ customError: require('../../utils/meal-workflow').errorMessage(error, '保存失败，输入仍保留，请重试。') }) }
+    finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ savingCustom: false }) }
   },
 
   // 搜索输入（防抖）
   onSearchInput(e) {
+    if (!this.ensureBrowseOwner()) return
     const keyword = e.detail.value.trim()
-    this.setData({ searchKeyword: keyword })
+    this._pageEpoch = (this._pageEpoch || 0) + 1
+    this.setData({ searchKeyword: keyword, loading: false, loadingMore: false, hasMore: false })
+    const identity = this._browseIdentity
 
     clearTimeout(this.searchTimer)
     this.searchTimer = setTimeout(() => {
+      if (!this.isBrowseCurrent(identity)) return
       this.currentPage = 1
       if (!keyword) {
         this.loadPage(this.data.activeTab, 1)
@@ -323,11 +355,12 @@ Page({
 
   // scroll-view 滚动到底部加载更多
   onScrollToLower() {
-    const { activeTab, hasMore, loadingMore, searchKeyword } = this.data
-    if (!hasMore || loadingMore || searchKeyword) return
+    if (!this.ensureBrowseOwner()) return
+    const { activeTab, hasMore, loading, loadingMore } = this.data
+    if (!hasMore || loading || loadingMore) return
 
     const nextPage = this.currentPage + 1
-    this.loadPage(activeTab, nextPage)
+    return this.loadPage(activeTab, nextPage)
   },
 
   // 点击菜名 → 详情页
@@ -341,6 +374,7 @@ Page({
 
   // 勾选/取消
   onToggleSelect(e) {
+    if (!this.ensureBrowseOwner()) return
     const dish = e.currentTarget.dataset.dish
     if (!dish || !dish.id) return
     const selectedIds = [...this.data.selectedIds]
@@ -372,6 +406,7 @@ Page({
   },
 
   onAddSelectedToShoppingList() {
+    if (!this.ensureBrowseOwner()) return
     const { selectedIds } = this.data
     if (!selectedIds.length) {
       wx.showToast({ title: '请先勾选菜品', icon: 'none' })
@@ -406,11 +441,13 @@ Page({
 
   // 清空全部
   onClearSelected() {
+    if (!this.ensureBrowseOwner()) return
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
     wx.showModal({
       title: '清空已选',
       content: '确定清空所有已选菜品？',
       success: (res) => {
-        if (res.confirm) {
+        if (res.confirm && this.isBrowseCurrent(identity, epoch)) {
           const currentDishes = this.data.currentDishes.map(d => ({
             ...d,
             isSelected: false
@@ -428,6 +465,7 @@ Page({
 
   // 保存到日历
   async onSaveToCalendar() {
+    if (!this.ensureBrowseOwner()) return
     if (this.data.savingPlan || !this.data.selectedIds.length) return
     if (require('../../utils/config').ENABLE_MEAL_WORKSPACE) {
       if (this._browseScope !== getUserStorageKey('customBrowse')) { this.onShow(); return }
@@ -440,9 +478,13 @@ Page({
     }
     const pending = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
     if (pending) return this.doSave(pending.mealType, this.data.selectedIds, pending)
-    wx.showActionSheet({ itemList: ['今天早餐', '今天午餐', '今天晚餐'], success: r => this.doSave(['breakfast','lunch','dinner'][r.tapIndex], this.data.selectedIds) })
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0, selectedIds = [...this.data.selectedIds]
+    wx.showActionSheet({ itemList: ['今天早餐', '今天午餐', '今天晚餐'], success: r => { if (this.isBrowseCurrent(identity, epoch)) return this.doSave(['breakfast','lunch','dinner'][r.tapIndex], selectedIds) } })
   },
   async doSave(mealType, selectedIds, pending) {
+    if (!this.ensureBrowseOwner()) return
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
+    this.isPlanWriteCurrent = () => this.isBrowseCurrent(identity, epoch)
     if (this.data.savingPlan) return
     if (this._browseScope !== getUserStorageKey('customBrowse')) { this.onShow(); return }
     const flow = require('../../utils/meal-workflow'), scope = getUserStorageKey('mealView'), date = pending ? pending.date : flow.today()
@@ -450,12 +492,12 @@ Page({
     try {
       const names = selectedIds.map(id => this.allDishesMap[id]).filter(Boolean).map(dish => dish.name)
       const saved = await require('../../utils/plan-save').savePlan(this, date, mealType, { recipeName: names.join('、'), dishIds: selectedIds, isManual: 1, targetPeople: pending && pending.targetPeople || 2 }, pending && pending.expectedRevision)
-      if (!saved || scope !== getUserStorageKey('mealView')) return
+      if (!this.isBrowseCurrent(identity, epoch) || !saved || scope !== getUserStorageKey('mealView')) return
       wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord'))
       this.setData({ selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: this.data.currentDishes.map(dish => ({ ...dish, isSelected: false })), showSelectedPanel: false })
       wx.showToast({ title: '已保存安排', icon: 'success' }); wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + date })
-    } catch (error) { if (scope === getUserStorageKey('mealView')) this.setData({ saveError: flow.errorMessage(error, '保存失败，已选菜品仍保留，可重试。') }) }
-    finally { if (scope === getUserStorageKey('mealView')) this.setData({ savingPlan: false }) }
+    } catch (error) { if (this.isBrowseCurrent(identity, epoch) && scope === getUserStorageKey('mealView')) this.setData({ saveError: flow.errorMessage(error, '保存失败，已选菜品仍保留，可重试。') }) }
+    finally { if (this.isBrowseCurrent(identity, epoch) && scope === getUserStorageKey('mealView')) this.setData({ savingPlan: false }) }
   },
 
   getCurrentUserId() {

@@ -103,7 +103,16 @@ Page({
     beginShoppingSelection({sources:[source],dishIds:plan.dishIds,targetPeople:source.targetPeople,source:'calendar-detail',dishes:source.dishes})
     wx.navigateTo({url:'/pages/shopping-preview/shopping-preview'})
   },
-  onViewDish(e) { wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${encodeURIComponent(e.currentTarget.dataset.id)}`}) },
+  onViewDish(e) {
+    const { id, meal, source, people } = e.currentTarget.dataset
+    if (!id || this._unloaded || (this._viewScope && this._viewScope !== getUserStorageKey('mealView'))) return
+    const value = this.meal(meal)
+    const actual = source === 'actual' && value && value.actual
+    const actualPeople = actual && (actual.targetPeople || actual.plannedSnapshot && actual.plannedSnapshot.targetPeople)
+    const requested = Number(people || actualPeople || value && value.plan && value.plan.targetPeople || 2)
+    const targetPeople = Number.isInteger(requested) && requested >= 1 && requested <= 50 ? requested : 2
+    wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${encodeURIComponent(id)}&people=${targetPeople}` })
+  },
   onLogin() { wx.switchTab({url:'/pages/profile/profile'}) },
   refreshFlags() { for(const key of ['needRefreshStats','needRefreshCalendar'])wx.setStorageSync(getUserStorageKey(key),true) }
 })

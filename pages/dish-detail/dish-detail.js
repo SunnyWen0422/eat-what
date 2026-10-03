@@ -4,7 +4,7 @@ const { getDishById } = require('../../utils/api')
 
 Page({
   data: { fontScale: require('../../utils/font-scale')(),
-    dish: null, targetPeople: 2, ingredientNotice: '',
+    dish: null, targetPeople: 2, ingredientNotice: '', canEditCustom: false,
     loading: true,
     error: false,
     isFavorite: false
@@ -35,7 +35,7 @@ Page({
 
   async loadDishDetail(id) {
     const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
-    this.setData({ dish: null, isFavorite: false, favoriteBusy: false })
+    this.setData({ dish: null, isFavorite: false, favoriteBusy: false, canEditCustom: false })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
@@ -95,7 +95,9 @@ Page({
           return typeof u === 'string' ? u.replace(/^http:/, 'https:') : u
         })
 
-        this.setData({ dish, loading: false })
+        const user = wx.getStorageSync('userInfo') || {}
+        const canEditCustom = !!user.id && dish.userId != null && String(dish.userId) === String(user.id)
+        this.setData({ dish, loading: false, canEditCustom })
         this.checkFavoriteStatus(id)
         this.loadMealQuantities(id, scope, epoch)
       } else {
@@ -154,7 +156,11 @@ Page({
     } finally { if(this.current(scope))this.setData({ favoriteBusy: false }) }
   },
 
-  onEditCustom() { wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + this.data.dish.id }) },
+  onEditCustom() {
+    const dish = this.data.dish, user = wx.getStorageSync('userInfo') || {}
+    if (!this.current(this._scope) || !this.data.canEditCustom || !dish || !user.id || String(dish.userId) !== String(user.id)) return
+    wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(dish.id) })
+  },
   onRetry() { if (this._dishId) this.loadDishDetail(this._dishId) },
   onDishImageError() { this.setData({ 'dish.image': '' }) },
   onAddToShoppingList() {

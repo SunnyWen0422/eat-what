@@ -1,4 +1,5 @@
 <view class="ew-page admin-page" style="font-size:{{14 * fontScale}}px">
+  <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view wx:if="{{mode === 'list'}}" class="list-page">
     <view class="page-heading">
       <view>

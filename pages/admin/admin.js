@@ -1,4 +1,5 @@
 const api = require('../../utils/api')
+const { withAdminIdentity } = require('../../utils/admin-page-identity')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 
 const TYPE_OPTIONS = [
@@ -45,7 +46,7 @@ function formatDate(value) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-Page({
+Page(withAdminIdentity({
   data: { fontScale: require('../../utils/font-scale')(),
     mode: 'list',
     users: [],
@@ -93,7 +94,9 @@ Page({
   },
 
   async loadMetadata() {
+    const operation = this.beginAdminOperation()
     const result = await loadRecommendationOptions()
+    if (!this.isAdminOperationCurrent(operation)) return
     this.recommendationGroups = result.options.groups || {}
     this.setData({
       cuisineOptions: [
@@ -117,6 +120,8 @@ Page({
   },
 
   async loadUsers(reset = false) {
+    const operation = this.beginAdminOperation()
+    if (!operation) return false
     if (!reset && (this.data.loading || this.data.refreshing || this.data.loadingMore)) return false
     if (!reset && !this.data.hasMore) return
 
@@ -139,7 +144,7 @@ Page({
         page,
         pageSize: this.pageSize,
       })
-      if (requestVersion !== this.listRequestVersion) return false
+      if (!this.isAdminOperationCurrent(operation) || requestVersion !== this.listRequestVersion) return false
       const incoming = (result.list || result.data || []).map(user => ({
         ...user,
         displayName: user.nickname || user.phone || `用户 ${user.id}`,
@@ -162,7 +167,7 @@ Page({
       })
       return true
     } catch (error) {
-      if (requestVersion !== this.listRequestVersion) return false
+      if (requestVersion !== this.listRequestVersion || this.handleAdminError(error, operation)) return false
       if (!reset) {
         this.setData({ listNotice: '加载更多失败，请重试' })
       } else if (this.data.listReady) {
@@ -172,7 +177,7 @@ Page({
       }
       return false
     } finally {
-      if (requestVersion === this.listRequestVersion) {
+      if (this.isAdminOperationCurrent(operation) && requestVersion === this.listRequestVersion) {
         this.setData({ loading: false, refreshing: false, loadingMore: false })
       }
     }
@@ -231,6 +236,8 @@ Page({
   },
 
   async loadUserDetail(userId) {
+    const operation = this.beginAdminOperation()
+    if (!operation) return false
     const sameVisibleUser = this.data.detailReady
       && this.data.selectedUser
       && String(this.data.selectedUser.id) === String(userId)
@@ -247,7 +254,7 @@ Page({
     })
     try {
       const result = await api.getAdminUser(userId)
-      if (requestVersion !== this.detailRequestVersion) return false
+      if (!this.isAdminOperationCurrent(operation) || requestVersion !== this.detailRequestVersion) return false
       const user = result.user || {}
       this.setData({
         selectedUser: {
@@ -263,7 +270,7 @@ Page({
       })
       return true
     } catch (error) {
-      if (requestVersion !== this.detailRequestVersion) return false
+      if (requestVersion !== this.detailRequestVersion || this.handleAdminError(error, operation)) return false
       if (sameVisibleUser) {
         this.setData({ detailNotice: '刷新失败，仍显示上次内容' })
       } else {
@@ -271,7 +278,7 @@ Page({
       }
       return false
     } finally {
-      if (requestVersion === this.detailRequestVersion) {
+      if (this.isAdminOperationCurrent(operation) && requestVersion === this.detailRequestVersion) {
         this.setData({ detailLoading: false, detailRefreshing: false })
       }
     }
@@ -382,6 +389,8 @@ Page({
   },
 
   async onSaveDish() {
+    const operation = this.beginAdminOperation()
+    if (!operation) return false
     if (this.data.saving) return false
     const validationMessage = this.validateDish()
     if (validationMessage) {
@@ -406,6 +415,7 @@ Page({
     let loadingVisible = true
     try {
       await api.createAdminUserDish(this.data.selectedUser.id, payload)
+      if (!this.isAdminOperationCurrent(operation)) return false
       wx.hideLoading()
       loadingVisible = false
       wx.showToast({ title: '菜品已添加', icon: 'success' })
@@ -415,17 +425,21 @@ Page({
       await this.loadUserDetail(userId)
       return true
     } catch (error) {
+      if (this.handleAdminError(error, operation)) return false
       wx.hideLoading()
       loadingVisible = false
       wx.showToast({ title: '保存失败，请重试', icon: 'none' })
       return false
     } finally {
-      if (loadingVisible) wx.hideLoading()
-      this.setData({ saving: false })
+      if (this.isAdminOperationCurrent(operation)) {
+        if (loadingVisible) wx.hideLoading()
+        this.setData({ saving: false })
+      }
     }
   },
 
   onDeleteDish(event) {
+    const operation = this.beginAdminOperation()
     const dishId = event.currentTarget.dataset.id
     const userId = this.data.selectedUser && this.data.selectedUser.id
     if (!dishId || !userId || this.data.deletingDishId) return
@@ -434,18 +448,20 @@ Page({
       content: '确认删除这道用户菜品？',
       confirmColor: '#C83F49',
       success: async result => {
-        if (!result.confirm) return
+        if (!result.confirm || !this.isAdminOperationCurrent(operation)) return
         this.setData({ deletingDishId: dishId })
         try {
           await api.deleteAdminUserDish(userId, dishId)
+          if (!this.isAdminOperationCurrent(operation)) return
           wx.showToast({ title: '已删除', icon: 'success' })
           await this.loadUserDetail(userId)
         } catch (error) {
+          if (this.handleAdminError(error, operation)) return
           wx.showToast({ title: '删除失败，请重试', icon: 'none' })
         } finally {
-          this.setData({ deletingDishId: null })
+          if (this.isAdminOperationCurrent(operation)) this.setData({ deletingDishId: null })
         }
       },
     })
   },
-})
+}))

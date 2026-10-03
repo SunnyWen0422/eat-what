@@ -60,6 +60,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
   },
 
   onUnload() {
+    this._unloaded = true
     this.generationVersion += 1
     this.generationInFlight = false
     this.clearGenerationStageTimers()
@@ -298,6 +299,24 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     const dishes = plan.dishes
     const targetDish = dishes[dishIndex]
     if (!targetDish) return
+    const scope = getUserStorageKey('resultView'), generationVersion = this.generationVersion
+    if (this._unloaded || (this._viewScope && this._viewScope !== scope)) return
+    const user = wx.getStorageSync('userInfo') || {}
+    // Without a stable user identifier, invalidate local fallback when the token
+    // changes even though the user-scoped storage key still says guest.
+    const fallbackToken = user.id || user.openId ? null : String(wx.getStorageSync('token') || '')
+    const current = () => !this._unloaded && scope === getUserStorageKey('resultView') && generationVersion === this.generationVersion
+      && (fallbackToken === null || fallbackToken === String(wx.getStorageSync('token') || ''))
+      && this.data.plans[planIndex] === plan && this.data.plans[planIndex].dishes[dishIndex] === targetDish
+    const applyReplacement = newDish => {
+      if (!current()) return false
+      const newDishes = [...plan.dishes]
+      newDishes[dishIndex] = { ...newDish }
+      const newPlans = [...this.data.plans]
+      newPlans[planIndex] = { ...plan, dishes: newDishes }
+      this.setData({ plans: newPlans })
+      return true
+    }
 
     const params = this.data.params || {}
     const recommendationOptions = {
@@ -322,6 +341,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     // 第一步：优先调用后端接口，从完整系统菜池中随机抽取一道
     try {
       const result = await api.getSingleRecommendation(targetDish.type, excludeIds)
+      if (!current()) return
       if (result && result.success && result.dish) {
         const backendDish = result.dish
         const eligibleBackendDish = filterAndRankDishes([backendDish], recommendationOptions)[0]
@@ -347,15 +367,12 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
             isFavorite: result.isFavorite || false
           }
 
-          const newPlans = [...plans]
-          const newDishes = [...dishes]
-          newDishes[dishIndex] = newDish
-          newPlans[planIndex] = { ...plan, dishes: newDishes }
-          this.setData({ plans: newPlans })
+          applyReplacement(newDish)
           return
         }
       }
     } catch (e) {
+      if (!current()) return
       console.log('⚠️ 后端单道推荐失败，降级到本地:', e)
     }
 
@@ -364,6 +381,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
       let pool = this.allDishes
       if (!pool || !pool.length) {
         pool = await getAllDishes()
+        if (!current()) return
         this.allDishes = pool
       }
 
@@ -383,13 +401,9 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
       const newDish = candidates[Math.floor(Math.random() * candidates.length)]
 
-      const newPlans = [...plans]
-      const newDishes = [...dishes]
-      newDishes[dishIndex] = newDish
-      newPlans[planIndex] = { ...plan, dishes: newDishes }
-
-      this.setData({ plans: newPlans })
+      applyReplacement(newDish)
     } catch (error) {
+      if (!current()) return
       console.error('刷新单个菜品失败:', error)
       wx.showToast({
         title: '刷新失败，请稍后重试',
