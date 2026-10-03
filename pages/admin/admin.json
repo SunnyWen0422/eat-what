@@ -2,5 +2,7 @@
   "navigationBarTitleText": "用户后台",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
-  "usingComponents": {}
+  "usingComponents": {},
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

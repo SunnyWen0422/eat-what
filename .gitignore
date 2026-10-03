@@ -60,3 +60,6 @@ backend/src/main/resources/application-prod.yml
 *.log
 
 # Unnecessary files
+
+# Isolated workflow test databases
+tests/.tmp/

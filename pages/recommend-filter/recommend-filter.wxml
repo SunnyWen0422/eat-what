@@ -1,4 +1,4 @@
-<view class="filter-page mobile-screen">
+<view class="ew-page filter-page mobile-screen" style="font-size:{{14 * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
   <view class="mobile-scroll-content">
   <view class="offline-tip" wx:if="{{offline}}">当前使用本地筛选目录</view>

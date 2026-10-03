@@ -10,6 +10,7 @@ public class AiProtectionService {
     private final RequestRateLimiter rateLimiter;
     private final AtomicInteger inFlight = new AtomicInteger();
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AiProtectionService(AiProtectionProperties properties) {
         this(properties, new RequestRateLimiter(properties.getAnonymousRequestsPerMinute(), properties.getWindowMillis()));
     }

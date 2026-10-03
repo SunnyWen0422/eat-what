@@ -1,7 +1,7 @@
 const api = require('../../utils/api')
 
 Page({
-  data: {
+  data: { fontScale: require('../../utils/font-scale')(),
     overview: null,
     loading: false,
     ready: false,

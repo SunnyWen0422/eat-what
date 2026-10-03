@@ -1,4 +1,4 @@
-<view class="page">
+<view class="ew-page page" style="font-size:{{14 * fontScale}}px">
   <view wx:if="{{notice}}" class="notice">{{notice}}</view>
   <view wx:if="{{loading && !ready}}" class="state">正在加载用户详情...</view>
   <view wx:elif="{{error && !ready}}" class="state"><text>{{error}}</text><button class="primary" bindtap="retry">重新加载</button></view>

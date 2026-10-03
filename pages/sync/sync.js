@@ -1,194 +1,65 @@
-// pages/sync/sync.js
-const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
-
+const store = require('../../utils/shopping-list')
+const flow = require('../../utils/meal-workflow')
 Page({
-  data: {
-    pendingSync: [],
-    syncing: false,
-    syncResult: {
-      success: 0,
-      failed: 0
-    }
-  },
-
-  onLoad() {
-    this.loadPendingSync()
-  },
-
-  onShow() {
-    // 页面显示时刷新待同步列表
-    this.loadPendingSync()
-  },
-
-  // 加载待同步的数据
+  data: { fontScale: require('../../utils/font-scale')(), workspaceDrafts: [], pendingSync: [], shoppingDraftCount: 0, syncing: false, errorMessage: '', syncResult: { success: 0, failed: 0 } },
+  onShow() { this.loadPendingSync() },
+  onUnload() { this._unloaded = true },
   loadPendingSync() {
-    const recordsKey = getUserStorageKey('recipeRecords')
-    const records = wx.getStorageSync(recordsKey) || {}
-
-    const pending = []
-    Object.keys(records).forEach(date => {
-      Object.keys(records[date]).forEach(mealType => {
-        const record = records[date][mealType]
-        if (record && !record.synced) { // 未同步过的记录
-          pending.push({
-            date,
-            mealType,
-            record,
-            mealName: this.getMealName(mealType)
-          })
-        }
-      })
-    })
-
-    this.setData({ pendingSync: pending })
-  },
-
-  // 获取餐次名称
-  getMealName(mealType) {
-    const names = {
-      breakfast: '早餐',
-      lunch: '午餐',
-      dinner: '晚餐'
+    const scope = getUserStorageKey('recipeRecords')
+    if (this._viewScope !== scope) this.setData({ syncing: false, errorMessage: '', syncResult: { success: 0, failed: 0 } })
+    this._viewScope = scope; this._planOwnerScope = getUserStorageKey('mealView')
+    const records = wx.getStorageSync(getUserStorageKey('recipeRecords')) || {}, pending = []
+    for (const date of Object.keys(records)) for (const mealType of Object.keys(records[date])) {
+      const record = records[date][mealType]
+      if (record && !record.synced) pending.push({ date, mealType, record, mealName: flow.mealNames[mealType] || mealType })
     }
-    return names[mealType] || mealType
+    const identity=require('../../utils/util').getCurrentUserIdentity()
+    const prefix=`user:${identity}:meal-workspace:`
+    const workspaceDrafts=[]
+    if(wx.getStorageInfoSync) for(const key of wx.getStorageInfoSync().keys || []) {
+      if(!key.startsWith(prefix))continue
+      const draft=wx.getStorageSync(key)
+      if(!draft || !(draft.dirty || draft.pending || ['offline','unknown','conflict'].includes(draft.syncStatus)))continue
+      const parts=key.slice(prefix.length).split(':');if(parts.length!==2)continue
+      workspaceDrafts.push({date:parts[0],mealType:parts[1],mealName:flow.mealNames[parts[1]] || parts[1],label:draft.pending?'保存结果待确认':draft.syncStatus==='conflict'?'版本冲突':'本机输入未同步'})
+    }
+    this.setData({ workspaceDrafts, pendingSync: pending, shoppingDraftCount: store.loadPendingOperations().length })
   },
-
-  // 同步数据
   async syncData() {
-    if (this.data.pendingSync.length === 0) {
-      wx.showToast({
-        title: '没有待同步的数据',
-        icon: 'none'
-      })
-      return
-    }
-
-    // 检查网络
-    const network = wx.getNetworkTypeSync()
-    if (network.networkType === 'none') {
-      wx.showToast({
-        title: '无网络连接，请检查网络',
-        icon: 'none'
-      })
-      return
-    }
-
-    this.setData({
-      syncing: true,
-      syncResult: { success: 0, failed: 0 }
-    })
-
+    if (this.data.syncing || !this.data.pendingSync.length) return
+    if (this._viewScope !== getUserStorageKey('recipeRecords')) { this.loadPendingSync(); return }
+    if (!(wx.getStorageSync('userInfo') || {}).id) return this.setData({ errorMessage: '请先登录，再确认本机草稿要保存到哪个账号。' })
+    const scope = getUserStorageKey('recipeRecords'), records = wx.getStorageSync(scope) || {}
+    this.setData({ syncing: true, errorMessage: '', syncResult: { success: 0, failed: 0 } })
     try {
-      const userId = this.getCurrentUserId()
-      const recordsKey = getUserStorageKey('recipeRecords')
-      const records = wx.getStorageSync(recordsKey) || {}
-
       for (const item of this.data.pendingSync) {
-        try {
-          const recipeRecord = {
-            userId: userId,
-            recordDate: item.date,
-            recordDateString: item.date,
-            mealType: item.mealType,
-            recipeName: item.record.name,
-            dishIds: item.record.dishes ? item.record.dishes.map(d => d.id) : [],
-            isManual: item.record.manual ? 1 : 0
-          }
-
-          await api.saveRecipeRecord(recipeRecord)
-
-          // 标记为已同步
-          if (records[item.date] && records[item.date][item.mealType]) {
-            records[item.date][item.mealType].synced = true
-          }
-
-          this.setData({
-            'syncResult.success': this.data.syncResult.success + 1
-          })
-        } catch (error) {
-          console.error(`同步失败: ${item.date} ${item.mealType}`, error)
-          this.setData({
-            'syncResult.failed': this.data.syncResult.failed + 1
-          })
-        }
+        if (scope !== getUserStorageKey('recipeRecords') || this._unloaded) return
+        const approved = await new Promise(resolve => wx.showModal({ title: '确认历史安排草稿', content: `${item.date} ${item.mealName}\n${item.record.name || '本机安排'}\n仅保存为计划，不代表吃过。`, success: result => resolve(result.confirm), fail: () => resolve(false) }))
+        if (scope !== getUserStorageKey('recipeRecords') || this._unloaded) return
+        if (!approved) continue
+        const saved = await require('../../utils/plan-save').savePlan(this,item.date,item.mealType,{ recipeName: item.record.name || '历史安排', dishIds: (item.record.dishes || []).map(dish => Number(dish.id)).filter(Boolean), isManual: item.record.manual ? 1 : 0, targetPeople: Number(item.record.people) || 2 })
+        if (!saved || scope !== getUserStorageKey('recipeRecords') || this._unloaded) continue
+        records[item.date][item.mealType].synced = true; wx.setStorageSync(scope,records)
+        this.setData({ 'syncResult.success': this.data.syncResult.success + 1 })
       }
-
-      // 保存更新后的记录
-      wx.setStorageSync(recordsKey, records)
-
-      // 显示结果
-      const { success, failed } = this.data.syncResult
-      if (failed === 0) {
-        wx.showToast({
-          title: `同步成功：${success}条`,
-          icon: 'success'
-        })
-      } else {
-        wx.showModal({
-          title: '同步完成',
-          content: `成功：${success}条\n失败：${failed}条`,
-          showCancel: false
-        })
-      }
-
-      // 刷新列表
-      this.loadPendingSync()
-    } catch (error) {
-      console.error('同步过程异常:', error)
-      wx.showToast({
-        title: '同步失败，请重试',
-        icon: 'error'
-      })
-    } finally {
-      this.setData({ syncing: false })
-    }
+    } catch (error) { if (scope === getUserStorageKey('recipeRecords') && !this._unloaded) this.setData({ 'syncResult.failed': this.data.syncResult.failed + 1, errorMessage: flow.errorMessage(error, '同步未完成，尚未确认的草稿仍然保留。') }) }
+    finally { if (scope === getUserStorageKey('recipeRecords') && !this._unloaded) { this.setData({ syncing: false }); this.loadPendingSync() } }
   },
-
-  // 获取当前用户ID
-  getCurrentUserId() {
-    try {
-      const userInfo = wx.getStorageSync('userInfo') || {}
-      return userInfo.id || 1
-    } catch (e) {
-      console.error('获取用户ID失败:', e)
-      return 1
-    }
+  onWorkspaceDraft(e) {
+    if(this._viewScope !== getUserStorageKey('recipeRecords'))return this.loadPendingSync()
+    const row=this.data.workspaceDrafts[Number(e.currentTarget.dataset.index)];if(!row)return
+    wx.setStorageSync(getUserStorageKey('activeMealTarget'),{date:row.date,mealType:row.mealType})
+    wx.navigateTo({url:`/pages/result/result?date=${row.date}&mealType=${row.mealType}`})
   },
-
-  // 清除已同步的数据
+  onShoppingDrafts() { wx.navigateTo({ url: '/pages/shopping-list/shopping-list' }) },
   clearSyncedData() {
-    wx.showModal({
-      title: '确认清除',
-      content: '确定要清除所有已同步的本地数据吗？这不会影响云端数据。',
-      success: (res) => {
-        if (res.confirm) {
-          const recordsKey = getUserStorageKey('recipeRecords')
-          const records = wx.getStorageSync(recordsKey) || {}
-
-          // 只保留未同步的数据
-          const unsyncedRecords = {}
-          Object.keys(records).forEach(date => {
-            Object.keys(records[date]).forEach(mealType => {
-              const record = records[date][mealType]
-              if (record && !record.synced) {
-                if (!unsyncedRecords[date]) {
-                  unsyncedRecords[date] = {}
-                }
-                unsyncedRecords[date][mealType] = record
-              }
-            })
-          })
-
-          wx.setStorageSync(recordsKey, unsyncedRecords)
-          wx.showToast({
-            title: '清除完成',
-            icon: 'success'
-          })
-
-          this.loadPendingSync()
-        }
-      }
-    })
-  }
+    const owner=getUserStorageKey('recipeRecords')
+    wx.showModal({ title: '清理已确认的本机副本？', content: '云端记录和未确认草稿会保留。', success: result => {
+      if (!result.confirm || this.data.syncing || owner!==getUserStorageKey('recipeRecords') || this._unloaded) return
+      const scope = getUserStorageKey('recipeRecords'), records = wx.getStorageSync(scope) || {}, remaining = {}
+      for (const date of Object.keys(records)) for (const meal of Object.keys(records[date])) if (!records[date][meal].synced) { if (!remaining[date]) remaining[date] = {}; remaining[date][meal] = records[date][meal] }
+      wx.setStorageSync(scope,remaining); this.loadPendingSync()
+    } })
+  },
 })

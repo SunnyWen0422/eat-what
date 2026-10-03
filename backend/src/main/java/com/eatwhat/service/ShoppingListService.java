@@ -36,6 +36,10 @@ import java.util.Set;
 
 @Service
 public class ShoppingListService {
+    private MealBehaviorService behavior;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setMealBehaviorService(MealBehaviorService behavior) { this.behavior=behavior; }
+
     private final ShoppingListMapper listMapper;
     private final ShoppingDishMapper dishMapper;
     private final ShoppingItemMapper itemMapper;
@@ -74,6 +78,8 @@ public class ShoppingListService {
             dto.setDishId(group.getDishId());
             dto.setDishName(group.getDishName());
             dto.setTargetPeople(group.getTargetPeople());
+            dto.setSourceDate(group.getSourceDate());
+            dto.setSourceMealType(group.getSourceMealType());
             for (ShoppingItem item : allItems) {
                 if (group.getId().equals(item.getShoppingDishId())) dto.getItems().add(toPreviewItem(item, group));
             }
@@ -87,13 +93,15 @@ public class ShoppingListService {
     @Transactional
     public ShoppingSyncResponse batchAdd(Long userId, ShoppingBatchAddRequest request) {
         RequestIdValidator.requireValid(request.getRequestId());
+        logMapper.lockUser(userId);
+        String requestHash = requestHash(request);
         ShoppingRequestLog existing = logMapper.findSuccess(userId, request.getRequestId());
         if (existing != null) {
+            if (existing.getRequestHash() != null && !requestHash.equals(existing.getRequestHash()))
+                throw new MealConsumptionService.VersionConflict("请求标识已用于不同购物操作");
             try {
                 return new ShoppingSyncResponse(objectMapper.readValue(existing.getResponseJson(), ShoppingListResponse.class), true);
-            } catch (Exception ignored) {
-                // 历史快照损坏时继续按正常写入路径处理，避免阻塞用户。
-            }
+            } catch (Exception error) { throw new IllegalStateException("采购请求记录无法读取，请联系管理员", error); }
         }
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, request.getExpectedListVersion());
@@ -107,16 +115,34 @@ public class ShoppingListService {
                     ShoppingPreviewItemDTO first = first(groupRequest.getItems());
                     group.setDishId(first == null ? null : first.getSourceDishId());
                     group.setDishName(first == null ? "未命名菜品" : first.getSourceDishName());
-                    group.setTargetPeople(request.getTargetPeople());
+                    group.setTargetPeople(groupRequest.getTargetPeople());
+                    group.setSourceDate(groupRequest.getSourceDate());
+                    group.setSourceMealType(groupRequest.getSourceMealType());
                     dishMapper.insert(group);
                 }
-                List<ShoppingPreviewItemDTO> merged = mergeService.mergeWithinDish(group.getId(), groupRequest.getItems());
-                for (ShoppingPreviewItemDTO item : merged) {
+                group.setSourceDate(groupRequest.getSourceDate()); group.setSourceMealType(groupRequest.getSourceMealType());
+                group.setTargetPeople(groupRequest.getTargetPeople()); dishMapper.updateSource(group);
+                ShoppingPreviewItemDTO source = first(groupRequest.getItems());
+                if (!java.util.Objects.equals(group.getDishId(), source.getSourceDishId()))
+                    throw new MealConsumptionService.VersionConflict("分组来源已变化，请重新预览");
+                // Persist raw source lines. Only the display summary may aggregate quantities.
+                Set<Integer> selectedLines = new HashSet<>();
+                for (ShoppingPreviewItemDTO item : groupRequest.getItems()) selectedLines.add(item.getSourceLineNo());
+                for (ShoppingItem old : itemMapper.findByListId(list.getId(), "all")) {
+                    if (!group.getId().equals(old.getShoppingDishId()) || selectedLines.contains(old.getSourceLineNo())) continue;
+                    if (Boolean.TRUE.equals(old.getChecked()) || Boolean.TRUE.equals(old.getUserOverride()))
+                        throw new MealConsumptionService.VersionConflict("原清单含已购或手动调整的食材，请先在清单中确认移除后重新采购");
+                    itemMapper.delete(old.getId(), list.getId());
+                }
+                for (ShoppingPreviewItemDTO item : groupRequest.getItems()) {
                     ShoppingItem entity = toEntity(group, item);
                     ShoppingItem existingItem = itemMapper.findBySource(group.getId(), entity.getSourceLineNo());
                     if (existingItem == null) itemMapper.insert(entity);
                     else {
+                        // A repeated selection must retain the shopper's purchased and manual decisions.
+                        if (Boolean.TRUE.equals(existingItem.getUserOverride())) continue;
                         entity.setId(existingItem.getId());
+                        entity.setChecked(existingItem.getChecked());
                         itemMapper.update(entity, list.getId());
                     }
                 }
@@ -125,8 +151,9 @@ public class ShoppingListService {
         long nextVersion = (list.getVersion() == null ? 0 : list.getVersion()) + 1;
         listMapper.updateVersion(list.getId(), userId, nextVersion, list.getMetadataVersion() == null ? 1 : list.getMetadataVersion());
         ShoppingListResponse response = getList(userId, "all");
+        if (behavior!=null) for (ShoppingDishRequest source : request.getDishes()) behavior.domain(userId,source.getSourceDate(),source.getSourceMealType(),request.getRequestId(),"shopping_confirmed");
         try {
-            logMapper.insertSuccess(userId, request.getRequestId(), objectMapper.writeValueAsString(response));
+            logMapper.insertBoundSuccess(userId, request.getRequestId(), requestHash, objectMapper.writeValueAsString(response));
         } catch (Exception e) {
             throw new IllegalStateException("保存请求日志失败", e);
         }
@@ -156,8 +183,13 @@ public class ShoppingListService {
         if (patch.getQuantityValue() != null) item.setQuantityValue(patch.getQuantityValue());
         if (patch.getQuantityText() != null) item.setQuantityText(patch.getQuantityText());
         if (patch.getUnitCode() != null) item.setUnitCode(patch.getUnitCode());
-        item.setChecked(patch.getChecked());
-        item.setUserOverride(patch.getUserOverride() == null ? Boolean.TRUE : patch.getUserOverride());
+        if (patch.getChecked() != null) item.setChecked(patch.getChecked());
+        boolean edited = patch.getDisplayName() != null || patch.getQuantityValue() != null
+                || patch.getQuantityText() != null || patch.getUnitCode() != null;
+        if (edited) { item.setUserOverride(true); item.setCalculationStatus("USER_OVERRIDE"); }
+        if (patch.getQuantityText() != null && patch.getQuantityValue() == null) {
+            item.setQuantityValue(null); item.setQuantityMin(null); item.setQuantityMax(null);
+        }
         itemMapper.update(item, list.getId());
         increment(list, userId);
         return getList(userId, "all");
@@ -168,6 +200,7 @@ public class ShoppingListService {
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, expectedListVersion);
         if (itemMapper.delete(itemId, list.getId()) == 0) throw new NotFoundException("购物项目不存在");
+        dishMapper.removeEmpty(list.getId());
         increment(list, userId);
         return getList(userId, "all");
     }
@@ -175,64 +208,86 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListResponse clear(Long userId, ShoppingClearRequest request) {
         RequestIdValidator.requireValid(request.getRequestId());
+        logMapper.lockUser(userId);
+        String requestHash = requestHash(request);
         ShoppingRequestLog existing = logMapper.findSuccess(userId, request.getRequestId());
         if (existing != null) {
+            if (existing.getRequestHash() != null && !requestHash.equals(existing.getRequestHash()))
+                throw new MealConsumptionService.VersionConflict("请求标识已用于不同购物操作");
             try {
                 return objectMapper.readValue(existing.getResponseJson(), ShoppingListResponse.class);
-            } catch (Exception ignored) {
-                // 损坏的历史快照不阻断当前清空请求，继续执行正常事务。
-            }
+            } catch (Exception error) { throw new IllegalStateException("清空请求记录无法读取，请联系管理员", error); }
         }
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, request.getExpectedListVersion());
+        if (!"all".equals(request.getScope()) && !"checked".equals(request.getScope()))
+            throw new IllegalArgumentException("清空范围应为 all 或 checked");
         if ("all".equalsIgnoreCase(request.getScope())) itemMapper.deleteAll(list.getId());
         else itemMapper.deleteChecked(list.getId());
+        dishMapper.removeEmpty(list.getId());
         increment(list, userId);
         ShoppingListResponse response = getList(userId, "all");
         try {
-            logMapper.insertSuccess(userId, request.getRequestId(), objectMapper.writeValueAsString(response));
+            logMapper.insertBoundSuccess(userId, request.getRequestId(), requestHash, objectMapper.writeValueAsString(response));
         } catch (Exception e) {
             throw new IllegalStateException("保存请求日志失败", e);
         }
         return response;
     }
 
+    private String requestHash(Object request) {
+        try { return com.eatwhat.util.WorkflowRequestHash.sha256(request.getClass().getSimpleName() + "|" + objectMapper.writeValueAsString(request)); }
+        catch (Exception error) { throw new IllegalStateException("购物请求无法序列化", error); }
+    }
+
     private List<ShoppingDishRequest> trustedDishes(Long userId, ShoppingBatchAddRequest request) {
-        Set<Long> sourceDishIds = new HashSet<>();
-        for (ShoppingDishRequest group : request.getDishes()) {
-            if (group == null || group.getSelectionKey() == null || group.getSelectionKey().trim().isEmpty()) {
-                throw new IllegalArgumentException("菜品分组缺少稳定标识");
-            }
-            if (group.getItems() == null || group.getItems().isEmpty()) continue;
-            for (ShoppingPreviewItemDTO item : group.getItems()) {
-                if (item == null || item.getSourceDishId() == null || item.getSourceLineNo() == null) {
-                    throw new IllegalArgumentException("购物项目缺少来源菜品或来源行号");
-                }
-                sourceDishIds.add(item.getSourceDishId());
-            }
-        }
-        if (sourceDishIds.isEmpty()) throw new IllegalArgumentException("至少需要一个有效食材项目");
-        ShoppingPreviewRequest previewRequest = new ShoppingPreviewRequest();
-        previewRequest.setDishIds(new ArrayList<>(sourceDishIds));
-        previewRequest.setTargetPeople(request.getTargetPeople() == null ? new BigDecimal("2") : request.getTargetPeople());
-        ShoppingPreviewResponse trusted = previewService.createPreview(userId, previewRequest);
-        Map<String, ShoppingPreviewItemDTO> trustedItems = new HashMap<>();
-        for (ShoppingDishDTO dish : trusted.getDishes()) {
-            for (ShoppingPreviewItemDTO item : dish.getItems()) {
-                trustedItems.put(sourceKey(item.getSourceDishId(), item.getSourceLineNo()), item);
-            }
-        }
+        if (request.getDishes() == null || request.getDishes().isEmpty() || request.getDishes().size() > 500)
+            throw new IllegalArgumentException("采购分组应为 1 至 500 个");
         List<ShoppingDishRequest> normalized = new ArrayList<>();
+        Set<String> keys = new HashSet<>();
+        int totalItems = 0;
+        Map<String, ShoppingPreviewResponse> previewCache = new HashMap<>();
         for (ShoppingDishRequest group : request.getDishes()) {
+            if (group == null || group.getSelectionKey() == null || group.getSelectionKey().trim().isEmpty()
+                    || group.getSelectionKey().length() > 120 || !keys.add(group.getSelectionKey().trim()))
+                throw new IllegalArgumentException("菜品分组缺少唯一稳定标识");
+            if (group.getItems() == null || group.getItems().isEmpty()) continue;
+            if (group.getItems().size() > 100) throw new IllegalArgumentException("单个分组食材过多");
+            if (group.getSourceDate() != null) MealConsumptionService.date(group.getSourceDate());
+            if (group.getSourceMealType() != null && !java.util.Arrays.asList("breakfast","lunch","dinner").contains(group.getSourceMealType()))
+                throw new IllegalArgumentException("采购餐次无效");
+            totalItems += group.getItems().size();
+            if (totalItems > 5000) throw new IllegalArgumentException("一次采购最多 5000 个来源项目，请按周准备");
+            Set<String> lines = new HashSet<>();
+            Set<Long> ids = new HashSet<>();
+            for (ShoppingPreviewItemDTO item : group.getItems()) {
+                if (item == null || item.getSourceDishId() == null || item.getSourceLineNo() == null)
+                    throw new IllegalArgumentException("购物项目缺少来源");
+                if (!lines.add(sourceKey(item.getSourceDishId(),item.getSourceLineNo()))) throw new IllegalArgumentException("食材来源行重复");
+                ids.add(item.getSourceDishId());
+            }
+            if (ids.size() != 1) throw new IllegalArgumentException("每个采购分组只能来自一道菜");
+            ShoppingPreviewRequest preview = new ShoppingPreviewRequest();
+            preview.setDishIds(new ArrayList<>(ids));
+            preview.setTargetPeople(group.getTargetPeople() != null ? group.getTargetPeople()
+                : request.getTargetPeople() != null ? request.getTargetPeople() : new BigDecimal("2"));
+            String previewKey = ids.iterator().next()+"@"+preview.getTargetPeople().stripTrailingZeros().toPlainString();
+            ShoppingPreviewResponse trusted = previewCache.get(previewKey);
+            if (trusted == null) { trusted = previewService.createPreview(userId, preview); previewCache.put(previewKey,trusted); }
+            Map<String,ShoppingPreviewItemDTO> allowed = new HashMap<>();
+            for (ShoppingDishDTO dish : trusted.getDishes()) for (ShoppingPreviewItemDTO item : dish.getItems())
+                allowed.put(sourceKey(item.getSourceDishId(),item.getSourceLineNo()),item);
             ShoppingDishRequest copy = new ShoppingDishRequest();
-            copy.setSelectionKey(group.getSelectionKey().trim());
+            copy.setSelectionKey(group.getSelectionKey().trim()); copy.setSourceDate(group.getSourceDate());
+            copy.setSourceMealType(group.getSourceMealType()); copy.setTargetPeople(preview.getTargetPeople());
             for (ShoppingPreviewItemDTO incoming : group.getItems()) {
-                ShoppingPreviewItemDTO source = trustedItems.get(sourceKey(incoming.getSourceDishId(), incoming.getSourceLineNo()));
+                ShoppingPreviewItemDTO source = allowed.get(sourceKey(incoming.getSourceDishId(),incoming.getSourceLineNo()));
                 if (source == null) throw new IllegalArgumentException("购物项目来源已失效，请重新预览");
-                copy.getItems().add(mergeClientOverride(source, incoming));
+                copy.getItems().add(mergeClientOverride(source,incoming));
             }
             normalized.add(copy);
         }
+        if (normalized.isEmpty()) throw new IllegalArgumentException("请至少保留一项食材");
         return normalized;
     }
 
@@ -248,6 +303,7 @@ public class ShoppingListService {
         }
         if (incoming.getQuantityText() != null && incoming.getQuantityText().trim().length() <= 255) {
             result.setQuantityText(incoming.getQuantityText().trim());
+            if (incoming.getQuantityValue() == null) { result.setQuantityValue(null); result.setQuantityMin(null); result.setQuantityMax(null); }
         }
         if (incoming.getUnitCode() != null && sameUnitFamily(source.getUnitFamily(), incoming.getUnitCode())) {
             result.setUnitCode(incoming.getUnitCode().trim());
@@ -344,6 +400,8 @@ public class ShoppingListService {
 
     private ShoppingPreviewItemDTO toPreviewItem(ShoppingItem item, ShoppingDish group) {
         ShoppingPreviewItemDTO dto = new ShoppingPreviewItemDTO();
+        dto.setId(item.getId());
+        dto.setSourceQuantityText(item.getSourceQuantityText());
         dto.setClientKey("saved-" + item.getId());
         dto.setCanonicalName(item.getCanonicalName());
         dto.setDisplayName(item.getDisplayName());
@@ -374,7 +432,7 @@ public class ShoppingListService {
                     separate.add(summaryItem(item, dish.getDishName()));
                     continue;
                 }
-                String key = item.getCanonicalName() + "|" + item.getUnitFamily() + "|" + item.getUnitCode();
+                String key = item.getCanonicalName() + "|" + item.getUnitFamily() + "|" + item.getUnitCode() + "|" + item.getNormalizedVariant();
                 PurchaseSummaryItemDTO summary = mergeable.get(key);
                 if (summary == null) {
                     summary = summaryItem(item, dish.getDishName());

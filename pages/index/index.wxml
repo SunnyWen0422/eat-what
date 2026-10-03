@@ -1,9 +1,11 @@
+<block wx:if="{{workspaceEnabled}}"><include src="../../templates/meal-workspace.wxml" /></block>
+<block wx:else>
 <!--index.wxml-->
-<scroll-view class="scrollarea" scroll-y enhanced>
+<scroll-view class="ew-page scrollarea" style="font-size:{{14 * fontScale}}px" scroll-y enhanced>
   <view class="container">
     <!-- 标题区 -->
     <view class="header-area">
-      <view class="header-title"><view class="line-icon line-icon-meal"></view><text>今天我们吃什么？</text></view>
+      <view class="header-title"><ui-icon class="line-icon line-icon-meal" name="meal" /><text>今天我们吃什么？</text></view>
       <text class="header-subtitle">家常菜随手搭，今天吃什么不用想太久</text>
     </view>
 
@@ -13,11 +15,12 @@
       <view class="meal-option {{mealType === 'dinner' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="dinner">晚餐</view>
     </view>
 
+    <view class="ew-card"><view class="ew-title">这餐几个人吃？</view><input class="ew-input" type="number" value="{{people}}" bindblur="onPeopleChange" /><button class="ew-link" bindtap="onAdvancedToggle">{{advancedExpanded ? '收起菜品数量' : '调整荤素、汤与主食数量'}}</button></view>
     <!-- 参数配置卡片（独立模块） -->
-    <view class="params-grid">
+    <view class="params-grid" wx:if="{{advancedExpanded}}">
       <!-- 荤菜数量 -->
       <view class="param-card">
-        <view class="card-label"><view class="line-icon line-icon-meat"></view><text>荤菜数量</text></view>
+        <view class="card-label"><ui-icon class="line-icon line-icon-meat" name="meat" /><text>荤菜数量</text></view>
         <view class="card-count">
           <view class="count-btn minus" bindtap="onMeatMinus">−</view>
           <text class="card-num">{{meat}}</text>
@@ -27,7 +30,7 @@
 
       <!-- 素菜数量 -->
       <view class="param-card">
-        <view class="card-label"><view class="line-icon line-icon-veg"></view><text>素菜数量</text></view>
+        <view class="card-label"><ui-icon class="line-icon line-icon-veg" name="veg" /><text>素菜数量</text></view>
         <view class="card-count">
           <view class="count-btn minus" bindtap="onVegMinus">−</view>
           <text class="card-num">{{veg}}</text>
@@ -37,7 +40,7 @@
 
       <!-- 汤品数量 -->
       <view class="param-card">
-        <view class="card-label"><view class="line-icon line-icon-soup"></view><text>汤品数量</text></view>
+        <view class="card-label"><ui-icon class="line-icon line-icon-soup" name="soup" /><text>汤品数量</text></view>
         <view class="card-count">
           <view class="count-btn minus" bindtap="onSoupMinus">−</view>
           <text class="card-num">{{soup}}</text>
@@ -47,7 +50,7 @@
 
       <!-- 甜品数量 -->
       <view class="param-card">
-        <view class="card-label"><view class="line-icon line-icon-dessert"></view><text>甜品数量</text></view>
+        <view class="card-label"><ui-icon class="line-icon line-icon-dessert" name="dessert" /><text>甜品数量</text></view>
         <view class="card-count">
           <view class="count-btn minus" bindtap="onDessertMinus">−</view>
           <text class="card-num">{{dessert}}</text>
@@ -57,7 +60,7 @@
 
       <!-- 主食数量 -->
       <view class="param-card">
-        <view class="card-label"><view class="line-icon line-icon-staple"></view><text>主食数量</text></view>
+        <view class="card-label"><ui-icon class="line-icon line-icon-staple" name="staple" /><text>主食数量</text></view>
         <view class="card-count">
           <view class="count-btn minus" bindtap="onStapleMinus">−</view>
           <text class="card-num">{{staple}}</text>
@@ -66,9 +69,10 @@
       </view>
     </view>
 
+    <view class="ew-section-title">今天的用餐</view><view wx:if="{{todayError}}" class="ew-notice" bindtap="onTodayMeal">{{todayError}}</view><meal-card wx:for="{{todayMeals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际：' + item.actualNames : '安排和实际用餐分别保存'}}" bind:open="onTodayMeal" />
     <!-- 今日小提示 -->
     <view class="tip-card">
-      <view class="line-icon line-icon-spark tip-icon"></view>
+      <ui-icon class="line-icon line-icon-spark tip-icon" name="spark" />
       <text class="tip-text">今天想吃得清爽一点？荤素搭配，刚刚好。</text>
     </view>
 
@@ -92,7 +96,7 @@
       </scroll-view>
       <view class="preference-toggle-row">
         <text>使用我的偏好</text>
-        <switch checked="{{useSavedPreferences}}" bindchange="onUseSavedPreferencesChange" color="#16865f" />
+        <switch checked="{{useSavedPreferences}}" bindchange="onUseSavedPreferencesChange" color="{{theme.brand}}" />
       </view>
       <view class="filter-feedback" wx:if="{{filterCount > 0}}">
         <text class="filter-summary">当前：{{filterSummary}}</text>
@@ -103,7 +107,7 @@
     <!-- 我的菜谱区域 -->
     <view class="my-recipes" wx:if="{{savedRecipes.length > 0}}">
       <view class="section-header-row">
-        <view class="section-header-title"><view class="line-icon line-icon-book"></view><text>我的菜谱</text></view>
+        <view class="section-header-title"><ui-icon class="line-icon line-icon-book" name="book" /><text>我的菜谱</text></view>
         <text class="section-header-hint">点击应用配置</text>
       </view>
       <view class="recipe-list">
@@ -142,9 +146,11 @@
 
     <!-- 按钮区 -->
     <view class="cta-area">
-      <button class="chat-btn" bindtap="onOpenChat"><view class="line-icon line-icon-bot"></view><text>问问助手</text></button>
-      <button class="primary-btn" bindtap="onStart" disabled="{{isDataLoading}}">帮我选一桌</button>
-      <button class="secondary-btn" bindtap="onCustomize"><view class="line-icon line-icon-spark"></view><text>自己搭一桌</text></button>
+      <button class="chat-btn" bindtap="onOpenChat"><ui-icon class="line-icon line-icon-bot" name="bot" /><text>问问助手</text></button>
+      <button class="primary-btn" bindtap="onStart" disabled="{{isDataLoading}}">生成这餐方案</button>
+      <button class="secondary-btn" bindtap="onCustomize"><ui-icon class="line-icon line-icon-spark" name="spark" /><text>自己选择菜品</text></button>
     </view>
   </view>
 </scroll-view>
+
+</block>

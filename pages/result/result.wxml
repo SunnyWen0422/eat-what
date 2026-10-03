@@ -1,4 +1,7 @@
-<view class="result-page mobile-screen">
+<block wx:if="{{workspaceEnabled}}"><include src="../../templates/meal-workspace.wxml" /></block>
+<block wx:else>
+<view class="ew-page result-page mobile-screen" style="font-size:{{14 * fontScale}}px">
+<view wx:if="{{saveError}}" class="ew-error">{{saveError}}</view>
   <!-- 骨架屏加载 -->
   <scroll-view wx:if="{{loading}}" class="skeleton-wrap" scroll-y>
     <view class="generation-status">
@@ -15,7 +18,7 @@
 
   <!-- 空状态 -->
   <scroll-view wx:elif="{{empty}}" class="empty-state" scroll-y>
-    <view class="empty-illustration"><view class="line-icon line-icon-meal"></view></view>
+    <view class="empty-illustration"><ui-icon class="line-icon line-icon-meal" name="meal" /></view>
     <text class="empty-title">还没搭出合适的一桌</text>
     <text class="empty-desc" wx:if="{{warnings.length === 0}}">换个数量或口味，我再帮你排一套</text>
     <text class="context-warning empty-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
@@ -39,7 +42,7 @@
             <view class="dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
                 <view class="dish-media">
                   <image wx:if="{{item.image}}" class="dish-img" src="{{item.image}}" mode="aspectFill" lazy-load binderror="onImgError" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}" />
-                  <view wx:else class="dish-img dish-img-placeholder"><view class="line-icon line-icon-meal"></view></view>
+                  <view wx:else class="dish-img dish-img-placeholder"><ui-icon class="line-icon line-icon-meal" name="meal" /></view>
                   <view class="dish-photo-caption" wx:if="{{item.image}}">菜品图片</view>
                 </view>
                 <!-- 信息区 -->
@@ -47,7 +50,7 @@
                   <view class="dish-top">
                     <text class="dish-name">{{item.name}}</text>
                     <view class="star-btn {{item.isFavorite ? 'on' : ''}}" catchtap="onToggleFavorite" data-dish="{{item}}" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
-                      <view class="line-icon line-icon-heart" aria-label="{{item.isFavorite ? '取消收藏' : '收藏'}}"></view>
+                      <ui-icon class="line-icon line-icon-heart" name="heart" aria-label="{{item.isFavorite ? '取消收藏' : '收藏'}}" />
                     </view>
                   </view>
                   <!-- 标签 -->
@@ -56,14 +59,14 @@
                   </view>
                   <!-- 属性 -->
                   <view class="dish-meta">
-                    <view class="meta-item" wx:if="{{item.kcal}}"><view class="line-icon line-icon-spark"></view><text>{{item.kcal}}千卡</text></view>
-                    <view class="meta-item" wx:if="{{item.difficulty}}"><view class="line-icon line-icon-book"></view><text>{{item.difficulty}}</text></view>
-                    <view class="meta-item" wx:if="{{item.cookTime}}"><view class="line-icon line-icon-clock"></view><text>{{item.cookTime}}</text></view>
+                    <view class="meta-item" wx:if="{{item.kcal}}"><ui-icon class="line-icon line-icon-spark" name="spark" /><text>{{item.kcal}}千卡</text></view>
+                    <view class="meta-item" wx:if="{{item.difficulty}}"><ui-icon class="line-icon line-icon-book" name="book" /><text>{{item.difficulty}}</text></view>
+                    <view class="meta-item" wx:if="{{item.cookTime}}"><ui-icon class="line-icon line-icon-clock" name="clock" /><text>{{item.cookTime}}</text></view>
                   </view>
                 </view>
                 <!-- 换一个 -->
                 <view class="refresh-btn" catchtap="onRefreshDish" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
-                  <view class="line-icon line-icon-refresh" aria-label="换一道"></view>
+                  <ui-icon class="line-icon line-icon-refresh" name="refresh" aria-label="换一道" />
                 </view>
               </view>
             </view>
@@ -92,3 +95,5 @@
     </view>
   </view>
 </view>
+
+</block>

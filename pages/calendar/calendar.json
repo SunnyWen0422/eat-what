@@ -1,4 +1,6 @@
 {
-  "navigationBarTitleText": "菜谱日历",
-  "usingComponents": {}
+  "navigationBarTitleText": "用餐计划",
+  "usingComponents": {},
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

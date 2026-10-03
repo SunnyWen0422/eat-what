@@ -24,7 +24,7 @@ function emptyBrowseCriteria() {
 }
 
 Page({
-  data: {
+  data: { fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',
     tabs: ['meat', 'veg', 'soup', 'staple', 'dessert'],
     tabNames: {
@@ -75,6 +75,17 @@ Page({
     this.loadPage('meat', 1)
     this.loadCustomMetadata()
   },
+
+  onShow() {
+    const scope = getUserStorageKey('customBrowse')
+    if (this._browseScope && this._browseScope !== scope) { this.allDishesMap = {}; this.setData({ selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false }); this.loadPage('meat',1) }
+    this._browseScope = scope
+    this._planOwnerScope = getUserStorageKey('mealView')
+    if (wx.getStorageSync(getUserStorageKey('openCustomDishForm'))) { wx.removeStorageSync(getUserStorageKey('openCustomDishForm')); this.setData({ showCustomForm: true, activeTab: 'custom' }) }
+  },
+  onUnload() { clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1 },
+  onRetryPage() { this.loadPage(this.data.activeTab, 1) },
+  onCancelCustom() { if (!this.data.savingCustom) this.setData({ showCustomForm: false, activeTab: 'meat', customError: '' }) },
 
   async loadCustomMetadata() {
     const result = await loadRecommendationOptions()
@@ -170,6 +181,8 @@ Page({
 
   // 加载某一页数据
   async loadPage(type, page) {
+    const epoch = this._pageEpoch = (this._pageEpoch || 0) + 1, scope = getUserStorageKey('customBrowse')
+    this.setData({ browseError: '' })
     const { selectedIds, searchKeyword } = this.data
 
     // 正常分页模式
@@ -187,6 +200,7 @@ Page({
         pageSize: this.pageSize,
         ...this.data.browseCriteria,
       })
+      if (epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
       const list = result.list || []
       const total = result.total || 0
 
@@ -217,7 +231,8 @@ Page({
       }
       this.currentPage = page
     } catch (err) {
-      console.error('加载失败:', err)
+      if (epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
+      this.setData({ browseError: require('../../utils/meal-workflow').errorMessage(err, '读取失败，请重试，已选菜品仍保留。') })
       this.setData({ loading: false, loadingMore: false })
     }
   },
@@ -279,37 +294,15 @@ Page({
       wx.showToast({ title: '烹饪时间应为1-240分钟', icon: 'none' })
       return
     }
-    wx.showLoading({ title: '保存中...', mask: true })
+    if (this.data.savingCustom) return
+    const scope = getUserStorageKey('customBrowse')
+    this.setData({ savingCustom: true, customError: '' })
     try {
-      const payload = {
-        name: name.trim(), type: type,
-        cl: ingredients.trim().replace(/\n/g, '#'),
-        step: steps.trim().replace(/\n/g, '#'),
-        cuisineCode: cuisineCode || null,
-        tagCodes: tagCodes.join(','),
-        cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null,
-      }
-      await api.createCustomDish(payload)
-      wx.hideLoading()
-      wx.showToast({ title: '添加成功', icon: 'success' })
-      this.setData({ 'customForm.name': '', 'customForm.ingredients': '', 'customForm.steps': '' })
-    } catch (err) {
-      wx.hideLoading()
-      const { getUserStorageKey } = require('../../utils/util')
-      const key = getUserStorageKey('customDishes')
-      const dishes = wx.getStorageSync(key) || []
-      dishes.push({
-        id: Date.now(), name: name.trim(), type: type,
-        cl: ingredients.trim().replace(/\n/g, '#'),
-        step: steps.trim().replace(/\n/g, '#'),
-        cuisineCode: cuisineCode || '', tagCodes: tagCodes.join(','),
-        cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null,
-        isCustom: true
-      })
-      wx.setStorageSync(key, dishes)
-      wx.showToast({ title: '已保存到本地', icon: 'success' })
-      this.setData({ 'customForm.name': '', 'customForm.ingredients': '', 'customForm.steps': '' })
-    }
+      await api.createCustomDish({ name: name.trim(), type, cl: ingredients.trim().replace(/\n/g, '#'), step: steps.trim().replace(/\n/g, '#'), cuisineCode: cuisineCode || null, tagCodes: tagCodes.join(','), cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null })
+      if (scope !== getUserStorageKey('customBrowse')) return
+      wx.showToast({ title: '菜品已保存', icon: 'success' }); this.setData({ 'customForm.name': '', 'customForm.ingredients': '', 'customForm.steps': '' })
+    } catch (error) { if (scope === getUserStorageKey('customBrowse')) this.setData({ customError: require('../../utils/meal-workflow').errorMessage(error, '保存失败，输入仍保留，请重试。') }) }
+    finally { if (scope === getUserStorageKey('customBrowse')) this.setData({ savingCustom: false }) }
   },
 
   // 搜索输入（防抖）
@@ -435,60 +428,34 @@ Page({
 
   // 保存到日历
   async onSaveToCalendar() {
-    const { selectedIds } = this.data
-    if (!selectedIds.length) {
-      wx.showToast({ title: '请先勾选菜品', icon: 'none' })
-      return
+    if (this.data.savingPlan || !this.data.selectedIds.length) return
+    if (require('../../utils/config').ENABLE_MEAL_WORKSPACE) {
+      if (this._browseScope !== getUserStorageKey('customBrowse')) { this.onShow(); return }
+      const rules=require('../../utils/meal-workspace'), pending=wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      const target=pending?{date:pending.date,mealType:pending.mealType}:wx.getStorageSync(getUserStorageKey('activeMealTarget'))||rules.defaultTarget()
+      if(this.data.selectedIds.length>10)return this.setData({saveError:'一餐最多选择 10 道菜'})
+      wx.setStorageSync(getUserStorageKey('activeMealTarget'),target)
+      wx.setStorageSync(getUserStorageKey('workspaceSelectedDishes'),{...target,dishIds:this.data.selectedIds.map(Number)})
+      wx.navigateTo({url:`/pages/result/result?date=${target.date}&mealType=${target.mealType}`});return
     }
-    wx.showActionSheet({
-      itemList: ['早餐', '午餐', '晚餐'],
-      success: (res) => {
-        const mealTypes = ['breakfast', 'lunch', 'dinner']
-        const mealType = mealTypes[res.tapIndex]
-        this.doSave(mealType, selectedIds)
-      }
-    })
+    const pending = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+    if (pending) return this.doSave(pending.mealType, this.data.selectedIds, pending)
+    wx.showActionSheet({ itemList: ['今天早餐', '今天午餐', '今天晚餐'], success: r => this.doSave(['breakfast','lunch','dinner'][r.tapIndex], this.data.selectedIds) })
   },
-
-  async doSave(mealType, selectedIds) {
-    // 从全局缓存构建已选菜品详情
-    const selectedDishes = []
-    for (const id of selectedIds) {
-      const d = this.allDishesMap[id]
-      if (d) {
-        selectedDishes.push({ id: d.id, name: d.name, type: d.type })
-      }
-    }
-
-    const now = new Date()
-    const todayStr = this.getBeijingDateString(now)
-    const timeStr = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')].join(':')
-
+  async doSave(mealType, selectedIds, pending) {
+    if (this.data.savingPlan) return
+    if (this._browseScope !== getUserStorageKey('customBrowse')) { this.onShow(); return }
+    const flow = require('../../utils/meal-workflow'), scope = getUserStorageKey('mealView'), date = pending ? pending.date : flow.today()
+    this.setData({ savingPlan: true, saveError: '' })
     try {
-      await api.saveRecipeRecord({
-        userId: this.getCurrentUserId(),
-        recordDateString: todayStr,
-        mealType: mealType,
-        recipeName: `定制菜谱 ${timeStr}`,
-        dishIds: selectedIds,
-        dishDetails: selectedDishes,
-        isManual: 1
-      })
-      wx.showToast({ title: '已保存到日历', icon: 'success' })
-      wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), true)
-      // 清空选中状态
-      const currentDishes = this.data.currentDishes.map(d => ({ ...d, isSelected: false }))
-      this.setData({
-        selectedIds: [],
-        selectedTotal: 0,
-        selectedList: [],
-        currentDishes: currentDishes,
-        showSelectedPanel: false
-      })
-    } catch (err) {
-      console.error('保存失败:', err)
-      wx.showToast({ title: '保存失败', icon: 'none' })
-    }
+      const names = selectedIds.map(id => this.allDishesMap[id]).filter(Boolean).map(dish => dish.name)
+      const saved = await require('../../utils/plan-save').savePlan(this, date, mealType, { recipeName: names.join('、'), dishIds: selectedIds, isManual: 1, targetPeople: pending && pending.targetPeople || 2 }, pending && pending.expectedRevision)
+      if (!saved || scope !== getUserStorageKey('mealView')) return
+      wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      this.setData({ selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: this.data.currentDishes.map(dish => ({ ...dish, isSelected: false })), showSelectedPanel: false })
+      wx.showToast({ title: '已保存安排', icon: 'success' }); wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + date })
+    } catch (error) { if (scope === getUserStorageKey('mealView')) this.setData({ saveError: flow.errorMessage(error, '保存失败，已选菜品仍保留，可重试。') }) }
+    finally { if (scope === getUserStorageKey('mealView')) this.setData({ savingPlan: false }) }
   },
 
   getCurrentUserId() {

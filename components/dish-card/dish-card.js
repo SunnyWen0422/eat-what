@@ -1,0 +1,1 @@
+Component({ properties: { dish: Object }, data: { imageFailed: false }, observers: { 'dish.image': function() { this.setData({ imageFailed: false }) } }, methods: { fail() { this.setData({ imageFailed: true }) }, open() { this.triggerEvent('open', { dish: this.data.dish }) } } })

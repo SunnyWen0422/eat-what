@@ -29,6 +29,7 @@ public class RecommendationService {
     private final RecommendationScorer scorer = new RecommendationScorer();
     private final Random random;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public RecommendationService(DishMapper dishMapper) {
         this(dishMapper, new Random());
     }

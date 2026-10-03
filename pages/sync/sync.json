@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "数据同步",
-  "usingComponents": {}
+  "usingComponents": {},
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

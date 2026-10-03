@@ -1,5 +1,5 @@
 """FastAPI 入口 - 菜谱推荐服务"""
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from typing import Optional, List, Any, Dict
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -241,6 +241,28 @@ def preview_assistant_action(session_id: str, req: AssistantActionPreviewRequest
     return result
 
 
+class AssistantPlanCommandRequest(BaseModel):
+    action: str
+    plan_version: int
+    request_id: str
+    user_id: Optional[str] = None
+    date: Optional[str] = None
+    meal_type: Optional[str] = None
+    dish_id: Optional[Any] = None
+
+@app.post("/assistant/sessions/{session_id}/plan-commands")
+def command_assistant_plan(session_id: str, req: AssistantPlanCommandRequest):
+    try:
+        scope = _assistant_scope(req.user_id, session_id)
+        session = assistant_engine.SESSION_STORE.get(session_id,scope)
+        if not session: return JSONResponse(status_code=404,content={"message":"助手会话不存在或已过期"})
+        state = session.get("state") or {}
+        candidates = assistant_engine._local_candidates(state.get("request") or {},scope) if req.action == "replace" else []
+        body = req.dict(exclude={"user_id"},exclude_none=True)
+        return assistant_engine.SESSION_STORE.command_plan(session_id,scope,body,candidates)
+    except ValueError as error:
+        return JSONResponse(status_code=409,content={"success":False,"message":str(error)})
+
 @app.post("/assistant/sessions/{session_id}/undo")
 def undo_assistant_plan(session_id: str, req: AssistantUndoRequest):
     try:
@@ -314,3 +336,23 @@ def cancel_assistant_task(task_id: str, req: Optional[AssistantTaskRequest] = No
     if not task:
         return _assistant_error(404, "ASSISTANT_TASK_NOT_FOUND", "助手任务不存在或已过期")
     return {"success": True, **task}
+
+
+class WorkspaceTaskRequest(BaseModel):
+    workspace: Dict[str, Any]
+    userId: int
+
+
+@app.post("/internal/v4/meal-task")
+def workspace_task(req: WorkspaceTaskRequest, x_service_token: Optional[str] = Header(default=None)):
+    import os
+    import workspace_agent
+    if not workspace_agent.authorized(x_service_token or "", os.getenv("MEAL_WORKSPACE_SERVICE_TOKEN", "")):
+        raise HTTPException(status_code=403, detail="internal service authorization required")
+    if req.userId < 1 or len(str((req.workspace.get("context") or {}).get("requirements", ""))) > 2000:
+        raise HTTPException(status_code=400, detail="invalid task context")
+    try:
+        return workspace_agent.run_task(req.workspace, req.userId)
+    except Exception:
+        # Raw text and provider errors never enter application logs or the public response.
+        return {"needsInput": True, "message": "智能理解暂不可用，请明确本餐限制后重试", "dishIds": []}

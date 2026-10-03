@@ -3,16 +3,82 @@
   "libVersion": "trial",
   "packOptions": {
     "ignore": [
-      {"type": "folder", "value": "backend"},
-      {"type": "folder", "value": "recommend-service"},
-      {"type": "folder", "value": "docs"},
-      {"type": "suffix", "value": ".tar.gz"},
-      {"type": "suffix", "value": ".bat"},
-      {"type": "suffix", "value": ".sql"},
-      {"type": "suffix", "value": ".md"},
-      {"type": "suffix", "value": ".jpg"},
-      {"type": "suffix", "value": ".png"},
-      {"type": "suffix", "value": ".mp3"}
+      {
+        "type": "folder",
+        "value": "backend"
+      },
+      {
+        "type": "folder",
+        "value": "recommend-service"
+      },
+      {
+        "type": "folder",
+        "value": "docs"
+      },
+      {
+        "type": "suffix",
+        "value": ".tar.gz"
+      },
+      {
+        "type": "suffix",
+        "value": ".bat"
+      },
+      {
+        "type": "suffix",
+        "value": ".sql"
+      },
+      {
+        "type": "suffix",
+        "value": ".md"
+      },
+      {
+        "type": "suffix",
+        "value": ".jpg"
+      },
+      {
+        "type": "suffix",
+        "value": ".mp3"
+      },
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
+        "value": ".test-venv"
+      },
+      {
+        "type": "folder",
+        "value": ".mysql-test-data"
+      },
+      {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "folder",
+        "value": "outputs"
+      },
+      {
+        "type": "folder",
+        "value": ".superpowers"
+      },
+      {
+        "type": "folder",
+        "value": "design/wxss"
+      },
+      {
+        "type": "suffix",
+        "value": ".tpl"
+      },
+      {
+        "type": "suffix",
+        "value": ".svg"
+      }
     ],
     "include": []
   },

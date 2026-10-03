@@ -1,6 +1,8 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
 page {
   min-height: 100%;
-  background: #f4f6f5;
+  background: #F8F7F2;
   color: #202523;
 }
 
@@ -31,7 +33,7 @@ button::after {
 
 .page-title {
   display: block;
-  font-size: 38rpx;
+  font-size:1.3571em;
   font-weight: 700;
   color: #17201c;
 }
@@ -41,7 +43,7 @@ button::after {
   display: block;
   margin-top: 4rpx;
   color: #6f7873;
-  font-size: 24rpx;
+  font-size:0.8571em;
 }
 
 .search-bar {
@@ -57,7 +59,7 @@ button::after {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  background: #fff;
+  background: #FFFFFF;
   border: 2rpx solid #dce2df;
   border-radius: 12rpx;
   padding: 0 18rpx;
@@ -67,7 +69,7 @@ button::after {
   min-width: 0;
   flex: 1;
   height: 84rpx;
-  font-size: 28rpx;
+  font-size:1.0em;
 }
 
 .clear-button,
@@ -82,7 +84,7 @@ button::after {
   justify-content: center;
   background: transparent;
   color: #68716d;
-  font-size: 38rpx;
+  font-size:1.3571em;
   line-height: 1;
 }
 
@@ -100,14 +102,14 @@ button::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
+  font-size:1.0em;
   line-height: 1.25;
 }
 
 .search-button,
 .primary-action {
-  background: #237a55;
-  color: #fff;
+  background: #28634E;
+  color: #FFFFFF;
   border-radius: 12rpx;
   font-weight: 600;
 }
@@ -115,7 +117,7 @@ button::after {
 .result-note {
   margin: 4rpx 0 14rpx;
   color: #626c67;
-  font-size: 24rpx;
+  font-size:0.8571em;
   word-break: break-word;
 }
 
@@ -127,19 +129,19 @@ button::after {
   margin: 0 0 14rpx;
   padding: 12rpx 18rpx;
   border-radius: 8rpx;
-  font-size: 24rpx;
+  font-size:0.8571em;
   line-height: 1.4;
   word-break: break-word;
 }
 
 .feedback-banner.busy {
-  color: #176a47;
-  background: #e3f3eb;
+  color: #28634E;
+  background: #EDF3ED;
 }
 
 .feedback-banner.warning {
   color: #835117;
-  background: #fff0d8;
+  background: #FFF1DB;
 }
 
 .user-list,
@@ -158,7 +160,7 @@ button::after {
   align-items: center;
   gap: 16rpx;
   padding: 20rpx;
-  background: #fff;
+  background: #FFFFFF;
   border: 2rpx solid #e3e7e5;
   border-radius: 16rpx;
 }
@@ -177,7 +179,7 @@ button::after {
 .summary-title {
   min-width: 0;
   color: #1d2521;
-  font-size: 30rpx;
+  font-size:1.0714em;
   font-weight: 650;
   word-break: break-word;
 }
@@ -189,7 +191,7 @@ button::after {
   display: block;
   margin-top: 8rpx;
   color: #68716d;
-  font-size: 23rpx;
+  font-size:0.8571em;
   line-height: 1.45;
   word-break: break-word;
 }
@@ -199,22 +201,22 @@ button::after {
   margin-left: 12rpx;
   padding: 6rpx 12rpx;
   border-radius: 8rpx;
-  font-size: 21rpx;
+  font-size:0.8571em;
 }
 
 .status-badge.active {
-  color: #176a47;
-  background: #e3f3eb;
+  color: #28634E;
+  background: #EDF3ED;
 }
 
 .status-badge.disabled {
-  color: #8b5517;
-  background: #fff0d8;
+  color: #75501A;
+  background: #FFF1DB;
 }
 
 .row-arrow {
   color: #8c9590;
-  font-size: 42rpx;
+  font-size:1.5em;
 }
 
 .state-block {
@@ -234,15 +236,15 @@ button::after {
 }
 
 .state-title {
-  font-size: 27rpx;
+  font-size:0.9643em;
 }
 
 .state-button {
   margin-top: 20rpx;
   padding: 0 32rpx;
-  color: #237a55;
-  background: #fff;
-  border: 2rpx solid #237a55;
+  color: #28634E;
+  background: #FFFFFF;
+  border: 2rpx solid #28634E;
   border-radius: 12rpx;
 }
 
@@ -260,14 +262,14 @@ button::after {
 
 .load-more {
   margin-top: 8rpx;
-  color: #237a55;
+  color: #28634E;
   background: transparent;
 }
 
 .list-end {
   padding: 28rpx 0 calc(28rpx + env(safe-area-inset-bottom));
   color: #929a96;
-  font-size: 23rpx;
+  font-size:0.8571em;
   text-align: center;
 }
 
@@ -281,11 +283,11 @@ button::after {
   min-height: 88rpx;
   margin-left: -16rpx;
   color: #1f6e4e;
-  font-size: 52rpx;
+  font-size:1.8571em;
 }
 
 .nav-title {
-  font-size: 32rpx;
+  font-size:1.1429em;
   font-weight: 650;
 }
 
@@ -296,8 +298,8 @@ button::after {
 .user-summary,
 .target-user {
   padding: 24rpx;
-  background: #fff;
-  border-left: 6rpx solid #237a55;
+  background: #FFFFFF;
+  border-left: 6rpx solid #28634E;
   border-radius: 8rpx;
 }
 
@@ -311,14 +313,14 @@ button::after {
 }
 
 .section-title {
-  font-size: 28rpx;
+  font-size:1.0em;
   font-weight: 650;
 }
 
 .section-count {
   margin: 0;
   padding: 4rpx 12rpx;
-  background: #e8ecea;
+  background: #D9E1D5;
   border-radius: 8rpx;
 }
 
@@ -329,7 +331,7 @@ button::after {
   color: #b8323c;
   background: #fff2f3;
   border-radius: 10rpx;
-  font-size: 24rpx;
+  font-size:0.8571em;
 }
 
 .action-bar {
@@ -365,13 +367,13 @@ button::after {
 .target-label {
   flex: none;
   color: #69736e;
-  font-size: 24rpx;
+  font-size:0.8571em;
 }
 
 .target-name {
   min-width: 0;
   color: #1d2521;
-  font-size: 28rpx;
+  font-size:1.0em;
   font-weight: 600;
   word-break: break-word;
 }
@@ -379,7 +381,7 @@ button::after {
 .form-section {
   margin: 0 -24rpx;
   padding: 24rpx;
-  background: #fff;
+  background: #FFFFFF;
   border-bottom: 2rpx solid #edf0ee;
 }
 
@@ -388,7 +390,7 @@ button::after {
   display: block;
   margin-bottom: 14rpx;
   color: #343d38;
-  font-size: 25rpx;
+  font-size:0.8929em;
   font-weight: 600;
 }
 
@@ -403,7 +405,7 @@ button::after {
   border: 2rpx solid #dfe5e2;
   border-radius: 12rpx;
   color: #202723;
-  font-size: 28rpx;
+  font-size:1.0em;
 }
 
 .field-input {
@@ -470,7 +472,7 @@ button::after {
 .number-unit {
   flex: none;
   color: #69726e;
-  font-size: 24rpx;
+  font-size:0.8571em;
 }
 
 .tag-group + .tag-group {
@@ -491,7 +493,7 @@ button::after {
 .tag-chip {
   min-width: 0;
   min-height: 72rpx;
-  font-size: 24rpx;
+  font-size:0.8571em;
   white-space: normal;
   word-break: break-word;
 }
@@ -513,3 +515,14 @@ button::after {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* 页面共享主题，适用于本页详情、表单和弹层。 */
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

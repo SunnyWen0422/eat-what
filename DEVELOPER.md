@@ -1,5 +1,7 @@
 # 吃什么小程序 — 开发者手册
 
+> V4 接手入口：[开发者改造说明](docs/eat-what-developer-change-guide.md) / [前后端详细设计](docs/eat-what-agent-fullstack-detailed-design.md) / [实施与验收记录](docs/full-ui-implementation-progress.md)。当前餐工作区源码已实施，默认开关关闭，未发布；以下旧接口说明保留兼容背景，V4 以新详细设计为准。
+
 ## 项目概述
 
 "吃什么"是一款微信小程序，通过 AI 推荐算法（前端规则 + 后端检索 + DeepSeek 大模型）帮助用户决定每天吃什么。支持自定义菜品、日历记录、饮食统计、智能对话推荐。
@@ -19,18 +21,18 @@
 ```
 吃什么/
 ├── app.js / app.json / app.wxss    # 小程序入口、全局配置、全局样式
-├── pages/                          # 18个已注册页面
+├── pages/                          # 25个已注册页面
 │   ├── index/          # 选菜首页（选参数 → 点击"今天吃什么"）
-│   ├── result/         # 推荐结果（3套方案卡片，图片+热量+难度）
+│   ├── result/         # 当前餐结果（V4共用工作区，旧推荐保留兼容）
 │   ├── recommend-filter/# 推荐筛选（菜系/标签/排除项/时长）
 │   ├── chat/           # AI助手对话页（DeepSeek智能推荐）
 │   ├── customize/      # 定制菜谱（分类浏览+搜索+自定义菜品）
-│   ├── calendar/       # 日历视图（查看每日记录）
+│   ├── calendar/       # 周/月计划与实际状态
 │   ├── calendar-detail/# 某一天的早中晚餐详情
 │   ├── dish-detail/    # 菜品详情（食材+步骤+图片）
 │   ├── profile/        # 我的页面（用户卡片+功能菜单+登录弹窗）
 │   ├── profile-edit/   # 个人信息编辑（微信头像+昵称）
-│   ├── statistics/     # 饮食统计
+│   ├── statistics/     # 饮食回顾（明确实际记录）
 │   ├── favorite-dishes/# 收藏菜品列表
 │   ├── custom-dishes/  # 自定义菜品列表
 │   └── admin/          # 后台管理（5击版本号进入）
@@ -41,7 +43,7 @@
 │   └── util.js         # 通用工具（用户隔离存储）
 ├── backend/            # Java Spring Boot 后端源码
 │   └── src/main/java/com/eatwhat/
-│       ├── controller/     # 7个Controller
+│       ├── controller/     # 业务 Controller
 │       ├── service/        # 业务逻辑层
 │       ├── mapper/         # MyBatis数据访问（@Select注解SQL）
 │       ├── entity/         # 数据实体（User, Dish, RecipeRecord等）

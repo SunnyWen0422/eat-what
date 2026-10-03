@@ -1,0 +1,2 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+.button { min-height:48px; background:#28634E; color:white; border-radius:24rpx; font-size:1.0714em; font-weight:600; padding:20rpx 28rpx; line-height:1.5; } .button::after { border:0; } .secondary { background:#EDF3ED; color:#28634E; } .danger { background:#FFF0ED; color:#A93B30; } .button[disabled] { background:#e8ebe5; color:#617066; }

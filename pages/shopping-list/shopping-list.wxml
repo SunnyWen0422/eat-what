@@ -1,29 +1,13 @@
-<view class="list-page">
-  <view class="list-head">
-    <view><text class="title">购物清单</text><text class="sync">{{syncState}}</text></view>
-    <view class="head-actions"><text bindtap="onAddManual">手动添加</text><text bindtap="onClearCompleted">清空已购</text><text bindtap="onClearAll">清空全部</text></view>
-  </view>
-  <view wx:if="{{errorMessage}}" class="notice">{{errorMessage}}</view>
-  <view class="filters">
-    <text class="filter {{statusFilter === 'pending' ? 'active' : ''}}" data-status="pending" bindtap="onFilterChange">待购买 {{pendingCount}}</text>
-    <text class="filter {{statusFilter === 'all' ? 'active' : ''}}" data-status="all" bindtap="onFilterChange">全部</text>
-    <text class="filter {{statusFilter === 'checked' ? 'active' : ''}}" data-status="checked" bindtap="onFilterChange">已完成 {{checkedCount}}</text>
-  </view>
-  <view class="summary-toggle" bindtap="onToggleSummary"><text>采购总量汇总</text><text>{{summaryExpanded ? '收起' : '展开'}}</text></view>
-  <view wx:if="{{summaryExpanded}}" class="summary-panel">
-    <view wx:for="{{purchaseSummary.mergeableItems}}" wx:key="canonicalName" class="summary-row"><text>{{item.displayName}}</text><text>{{item.quantityText}}</text><text>{{item.sourceDishLabel}}</text></view>
-    <view wx:for="{{purchaseSummary.separateItems}}" wx:key="clientKey" class="summary-row separate"><text>{{item.displayName}}</text><text>{{item.quantityText || '需调整'}}</text><text>{{item.sourceDishLabel}}</text></view>
-    <view wx:if="{{purchaseSummary.mergeableItems.length === 0 && purchaseSummary.separateItems.length === 0}}" class="empty-small">暂无可汇总食材</view>
-  </view>
-  <view wx:if="{{loading && dishes.length === 0}}" class="loading">正在读取清单...</view>
-  <view wx:for="{{dishes}}" wx:for-index="dishIndex" wx:key="selectionKey" class="dish-group">
-    <view class="dish-header"><text>{{item.dishName}}</text><text wx:if="{{item.targetPeople}}">{{item.targetPeople}}人</text></view>
-    <view wx:for="{{item.items}}" wx:for-index="itemIndex" wx:key="clientKey" class="item-row">
-      <view class="check {{item.checked ? 'checked' : ''}}" data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onToggleItem">{{item.checked ? '✓' : ''}}</view>
-      <view class="item-body" data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onEditItem"><text class="item-name {{item.checked ? 'done' : ''}}">{{item.displayName}}</text><text class="item-source">{{item.quantityText || '需调整'}}{{item.userOverride ? ' · 已手动调整' : ''}}</text></view>
-      <text class="delete" data-dish-index="{{dishIndex}}" data-item-index="{{itemIndex}}" bindtap="onDeleteItem">删除</text>
-    </view>
-    <view wx:if="{{item.items.length === 0}}" class="empty-small">该菜暂无待购买项目</view>
-  </view>
-  <view wx:if="{{!loading && dishes.length === 0}}" class="empty-state"><text>还没有购物清单</text><button bindtap="onAddFromRecipe">从菜谱添加</button><button bindtap="onAddManual">手动添加</button></view>
+<view class="ew-page ew-screen" style="font-size:{{14 * fontScale}}px">
+  <view class="ew-between"><view><view class="ew-heading">购物清单</view><view class="ew-subtitle">{{offline ? '上次清单 · 云端结果待确认' : '食材与餐次一起准备'}}</view></view><button class="ew-button secondary compact" loading="{{refreshing}}" disabled="{{busy}}" bindtap="loadList">刷新</button></view>
+  <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view>
+  <view wx:if="{{drafts.length}}" class="ew-card"><view class="ew-title">待确认草稿 {{drafts.length}}</view><view class="ew-muted">草稿尚未确认保存到云端，重试不会自动覆盖冲突。</view><view wx:for="{{drafts}}" wx:key="operationId" class="ew-between"><button class="ew-link" data-id="{{item.operationId}}" bindtap="onReviewDraft">{{item.conflict ? '查看冲突并确认' : '查看草稿'}} · {{item.label || '清单修改'}}</button><button class="ew-link danger" data-id="{{item.operationId}}" bindtap="onDiscardDraft">丢弃</button></view><ui-button label="重试草稿" loading="{{busy}}" bind:action="onRetryDrafts" /></view>
+  <view class="ew-tabs"><button class="{{statusFilter === 'pending' ? 'active' : ''}}" data-status="pending" bindtap="onFilterChange">待买 {{pendingCount}}</button><button class="{{statusFilter === 'all' ? 'active' : ''}}" data-status="all" bindtap="onFilterChange">全部</button><button class="{{statusFilter === 'checked' ? 'active' : ''}}" data-status="checked" bindtap="onFilterChange">已买 {{checkedCount}}</button></view>
+  <view class="ew-tabs"><button class="{{viewMode === 'summary' ? 'active' : ''}}" data-mode="summary" bindtap="onViewMode">按食材汇总</button><button class="{{viewMode === 'dishes' ? 'active' : ''}}" data-mode="dishes" bindtap="onViewMode">按餐次查看</button></view>
+  <ui-state wx:if="{{loading}}" kind="loading" title="正在读取清单" />
+  <view wx:elif="{{viewMode === 'summary'}}"><view wx:for="{{summaryRows}}" wx:key="rowKey" class="ew-card"><view class="ew-row"><button class="check {{item.checkedState === 'all' ? 'checked' : ''}}" disabled="{{busy}}" data-index="{{index}}" bindtap="onToggleSummary">{{item.checkedState === 'all' ? '✓' : item.checkedState === 'partial' ? '−' : '○'}}</button><view class="ew-grow"><view class="ew-title">{{item.displayName}}</view><view>{{item.quantityText || '用量需调整'}}</view></view></view><view class="ew-muted source">{{item.sourceLabel}}</view><view wx:if="{{item.note}}" class="ew-muted">备注：{{item.note}}</view><view wx:if="{{item.checkedState === 'partial'}}" class="ew-muted">部分来源已买，点击可全部标记已买</view><button wx:if="{{item.itemIds.length === 1}}" class="ew-link" data-id="{{item.itemIds[0]}}" bindtap="onEditItem">调整数量</button><view wx:else class="ew-muted">各来源数量可在“按餐次查看”中调整</view></view></view>
+  <view wx:else><view wx:for="{{dishes}}" wx:for-item="dish" wx:key="selectionKey" class="ew-card"><view class="ew-title">{{dish.dishName}}</view><view class="ew-muted">{{dish.sourceLabel}}{{dish.targetPeople ? ' · ' + dish.targetPeople + '人' : ''}}</view><view wx:for="{{dish.items}}" wx:key="id" class="item-row"><button class="check {{item.checked ? 'checked' : ''}}" disabled="{{busy}}" data-id="{{item.id}}" bindtap="onToggleItem">{{item.checked ? '✓' : '○'}}</button><view class="ew-grow"><view>{{item.displayName}}</view><view class="ew-muted">{{item.quantityText || '用量需调整'}}{{item.userOverride ? ' · 手动调整' : ''}}</view></view><button class="ew-link" data-id="{{item.id}}" bindtap="onEditItem">编辑</button><button class="ew-link danger" data-id="{{item.id}}" bindtap="onDeleteItem">删除</button></view></view></view>
+  <ui-state wx:if="{{!loading && !dishes.length}}" kind="empty" illustration="empty-shopping" title="{{statusFilter === 'pending' ? '当前没有待买食材' : '当前筛选没有食材'}}" description="从菜谱或计划准备食材，也可以手动添加。" action-label="选择菜谱" bind:action="onAddFromRecipe" />
+  <view class="ew-actions"><ui-button label="手动添加" bind:action="onAddManual" /><ui-button label="从菜谱添加" variant="secondary" bind:action="onAddFromRecipe" /></view><view class="ew-actions"><button class="ew-link danger" disabled="{{busy}}" bindtap="onClearCompleted">清空已买</button><button class="ew-link danger" disabled="{{busy}}" bindtap="onClearAll">清空全部</button></view>
+  <ui-confirm visible="{{formVisible}}" title="{{formMode === 'manual' ? '手动添加食材' : '调整食材'}}" busy="{{busy}}" confirm-label="保存到云端" bind:cancel="closeForm" bind:confirm="saveForm"><ui-field disabled="{{busy}}" label="食材名称" required value="{{formName}}" bind:change="onName" /><ui-field disabled="{{busy}}" label="数量与单位" required value="{{formQuantity}}" placeholder="例如：2个、500克或适量" bind:change="onQuantity" /><ui-field disabled="{{busy}}" wx:if="{{formMode === 'manual'}}" label="备注" value="{{formNote}}" maxlength="500" bind:change="onNote" /><view wx:if="{{formError}}" class="ew-error">{{formError}}</view></ui-confirm>
 </view>

@@ -1,4 +1,6 @@
 {
   "usingComponents": {},
-  "navigationBarTitleText": "关于吃什么"
+  "navigationBarTitleText": "关于吃什么",
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

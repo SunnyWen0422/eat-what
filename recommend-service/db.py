@@ -229,7 +229,7 @@ def fetch_dishes_by_ids(ids: List[int]) -> List[Dict[str, Any]]:
 
 
 def fetch_recent_dish_names(user_id: Optional[int], limit: int = 12) -> List[str]:
-    """从 recipe_records 获取用户近期食用过的菜品名称"""
+    """Read recent planned dish names for recommendation variety, not consumption counts."""
     if not user_id:
         return []
     conn = _get_connection()
@@ -238,7 +238,7 @@ def fetch_recent_dish_names(user_id: Optional[int], limit: int = 12) -> List[str
             cur.execute(
                 """
                 SELECT DISH_IDS FROM recipe_records
-                WHERE USER_ID = %s
+                WHERE USER_ID = %s AND is_deleted = 0
                 ORDER BY RECORD_DATE DESC, MEAL_TYPE DESC
                 LIMIT 50
                 """,
@@ -356,7 +356,7 @@ def fetch_user_calendar_context(user_id: Optional[int], dates: Optional[List[str
         return []
     conn = _get_connection()
     try:
-        clauses = ["USER_ID = %s"]
+        clauses = ["USER_ID = %s", "is_deleted = 0"]
         params: List[Any] = [user_id]
         valid_dates = [str(item) for item in dates or [] if str(item).strip()]
         if valid_dates:

@@ -1,5 +1,7 @@
 {
   "disableScroll": true,
-  "usingComponents": {
-  }
+  "usingComponents": {},
+  "navigationBarTitleText": "今天吃什么",
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

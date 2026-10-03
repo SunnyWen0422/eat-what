@@ -1,0 +1,1 @@
+<view class="field"><text class="label">{{label}}{{required ? ' *' : ''}}</text><input disabled="{{disabled}}" type="{{type}}" adjust-position="{{false}}" class="input {{error ? 'invalid' : ''}}" value="{{value}}" placeholder="{{placeholder}}" maxlength="{{maxlength}}" bindinput="input" /><text wx:if="{{error}}" class="error">{{error}}</text></view>

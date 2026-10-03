@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "自定义菜品",
-  "usingComponents": {}
+  "usingComponents": {},
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

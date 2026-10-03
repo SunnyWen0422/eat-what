@@ -6,8 +6,8 @@ const { criteriaSummary } = require('../../utils/recommendation-criteria')
 const { filterAndRankDishes } = require('../../utils/recommendation-matcher')
 const { createPreferenceStore } = require('../../utils/preference-store')
 
-Page({
-  data: {
+Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'result'}) : {
+  data: { fontScale: require('../../utils/font-scale')(),
     loading: true,
     refreshing: false,
     loadingStage: '',
@@ -30,8 +30,12 @@ Page({
   generationStageTimers: [],
 
   onLoad(query) {
+    if(query && query.calendarReturn){
+      const selected = wx.getStorageSync(getUserStorageKey('selectedDateForRecipe'))
+      if(selected && selected.plan){ this._viewScope = getUserStorageKey('resultView'); this._planOwnerScope = getUserStorageKey('mealView'); this.setData({ plans: [selected.plan], loading: false, current: 0, people: 2 }); this.checkSelectedDateFromCalendar(); return }
+    }
     const params = query && query.params ? JSON.parse(decodeURIComponent(query.params)) : null
-    this.setData({ params })
+    this.setData({ params, people: Number(params && params.people) || 2 })
     // 等待登录完成再生成推荐
     const app = getApp()
     const doGenerate = () => {
@@ -46,6 +50,11 @@ Page({
   },
 
   onShow() {
+    if(this._viewScope && this._viewScope !== getUserStorageKey('resultView')) {
+      this.generationVersion += 1; this.generationInFlight = false; this.allDishes = []; this._pendingPlanWrite = null
+      this._selectingPlan = null; this._selectingScope = null
+      this.setData({ plans: [], params: null, people: 2, savingPlan: false, saveError: '', showDatePicker: false }); this.generatePlans()
+    }
     // 检查是否有从日历页面选择返回的日期
     this.checkSelectedDateFromCalendar()
   },
@@ -63,6 +72,8 @@ Page({
     }
     wx.vibrateShort({ type: 'light' })
     const hasExistingPlans = Array.isArray(this.data.plans) && this.data.plans.length > 0
+    const scope = this._viewScope = getUserStorageKey('resultView')
+    this._planOwnerScope = getUserStorageKey('mealView')
     const generationVersion = ++this.generationVersion
     this.generationInFlight = true
     this.startGenerationStageFeedback(generationVersion)
@@ -86,7 +97,7 @@ Page({
         recommendationFlow.generateRecommendation(this.data.params),
         timeout,
       ])
-      if (generationVersion !== this.generationVersion) return false
+      if (generationVersion !== this.generationVersion || scope !== getUserStorageKey('resultView')) return false
       const plans = result.plans || []
       if (plans.length === 0) {
         if (hasExistingPlans) {
@@ -116,7 +127,7 @@ Page({
       if (result.source !== 'backend') this.checkFavoriteStatus(generationVersion)
       return true
     } catch (error) {
-      if (generationVersion !== this.generationVersion) return false
+      if (generationVersion !== this.generationVersion || scope !== getUserStorageKey('resultView')) return false
       if (hasExistingPlans) {
         this.setData({
           loading: false,
@@ -138,7 +149,7 @@ Page({
       return false
     } finally {
       if (timeoutId) clearTimeout(timeoutId)
-      if (generationVersion === this.generationVersion) {
+      if (generationVersion === this.generationVersion && scope === getUserStorageKey('resultView')) {
         this.generationInFlight = false
         this.clearGenerationStageTimers()
         this.setData({ loading: false, refreshing: false, loadingStage: '' })
@@ -403,6 +414,7 @@ Page({
   },
 
   onAddPlanToShoppingList() {
+    if (this._viewScope !== getUserStorageKey('resultView')) { this.onShow(); return }
     const currentPlan = this.data.plans[this.data.current || 0]
     if (!currentPlan || !currentPlan.dishes || currentPlan.dishes.length === 0) {
       wx.showToast({ title: '当前没有可加入的菜品', icon: 'none' })
@@ -412,7 +424,7 @@ Page({
     const params = this.data.params || {}
     beginShoppingSelection({
       dishIds: currentPlan.dishes.map(dish => dish.id).filter(Boolean),
-      targetPeople: Number(params.people || params.targetPeople || 2),
+      targetPeople: Number(this.data.people || params.people || params.targetPeople || 2),
       source: 'result',
       dishes: currentPlan.dishes,
     })
@@ -421,9 +433,11 @@ Page({
 
   // 选择日期和餐次
   selectDateAndMeal(plan) {
+    const scope = getUserStorageKey('resultView')
     wx.showActionSheet({
       itemList: ['选择今天', '选择其他日期'],
       success: (res) => {
+        if (scope !== getUserStorageKey('resultView')) return
         if (res.tapIndex === 0) {
           const today = this.getBeijingDateString()
           this.selectMealType(plan, today)
@@ -437,6 +451,7 @@ Page({
   // 选择自定义日期 - 显示日期选择弹窗
   selectCustomDate(plan) {
     this._selectingPlan = plan
+    this._selectingScope = getUserStorageKey('resultView')
     this.setData({
       showDatePicker: true,
       customDate: this.getBeijingDateString()
@@ -445,6 +460,7 @@ Page({
 
   // 日期选择完成回调
   onCustomDateChange(e) {
+    if (this._selectingScope !== getUserStorageKey('resultView')) { this.onCancelDatePicker(); return }
     const selectedDate = e.detail.value
     this.setData({ showDatePicker: false, customDate: selectedDate })
     if (this._selectingPlan) {
@@ -462,9 +478,11 @@ Page({
 
   // 选择餐次类型
   selectMealType(plan, selectedDate) {
+    const scope = getUserStorageKey('resultView')
     wx.showActionSheet({
       itemList: ['早餐', '午餐', '晚餐'],
       success: (res) => {
+        if (scope !== getUserStorageKey('resultView')) return
         const mealTypes = ['breakfast', 'lunch', 'dinner']
         const selectedMealType = mealTypes[res.tapIndex]
         this.saveRecipeToCalendar(selectedMealType, plan, selectedDate)
@@ -510,106 +528,18 @@ Page({
 
   // 保存菜谱到日历
   async saveRecipeToCalendar(mealType, plan, targetDate = null) {
-    const now = new Date()
-    const todayStr = this.getBeijingDateString(now)
-    const dateToSave = targetDate || todayStr
-
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-
-    // 先检查该时段是否已有记录
+    if (this.data.savingPlan) return
+    if(this._viewScope !== getUserStorageKey('resultView')) { this.onShow(); return }
+    const flow = require('../../utils/meal-workflow'), scope = getUserStorageKey('mealView'), date = targetDate || flow.today()
+    const pending = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+    this.setData({ savingPlan: true, saveError: '' })
     try {
-      const existingRecords = await getRecipeRecordsByDate(dateToSave)
-      const records = Array.isArray(existingRecords) ? existingRecords : []
-      const existingRecord = records.find(r => r.mealType === mealType)
-
-      if (existingRecord) {
-        const mealName = this.getMealName(mealType)
-        const dateDisplay = dateToSave === todayStr ? '今天' : dateToSave
-        const confirmRes = await new Promise((resolve) => {
-          wx.showModal({
-            title: '该时段已有菜谱',
-            content: `${dateDisplay}的${mealName}已有记录，是否覆盖？`,
-            confirmText: '覆盖',
-            cancelText: '取消',
-            confirmColor: '#ff4d4f',
-            success: resolve,
-            fail: () => resolve({ confirm: false })
-          })
-        })
-
-        if (!confirmRes.confirm) {
-          return
-        }
-      }
-    } catch (err) {
-      console.log('检查已有记录失败:', err)
-    }
-
-    try {
-      const dishIds = plan.dishes
-        ? plan.dishes
-            .map(dish => dish && dish.id ? Number(dish.id) : null)
-            .filter(id => id !== null && !isNaN(id))
-        : []
-
-      const dishDetails = plan.dishes
-        ? plan.dishes
-            .filter(dish => dish && dish.id)
-            .map(dish => ({
-              id: dish.id,
-              name: dish.name,
-              type: dish.type,
-              ingredientsAmounts: dish.ingredientsAmounts || '',
-              step: dish.step || ''
-            }))
-        : []
-
-      // 只发送 recordDateString，不发送 recordDate
-      // 避免后端 Jackson 反序列化 recordDate 时因时区转换导致日期偏移
-      const recipeRecord = {
-        userId: this.getCurrentUserId(),
-        recordDateString: dateToSave,
-        mealType: mealType,
-        recipeName: `推荐菜谱${timeStr}`,
-        dishIds: dishIds,
-        dishDetails: dishDetails,
-        isManual: 0
-      }
-
-      await saveRecipeRecord(recipeRecord)
-
-      // 如果是待保存记录，清除待保存标记（按用户隔离）
-      if (targetDate) {
-        const pendingKey = getUserStorageKey('pendingRecipeRecord')
-        wx.removeStorageSync(pendingKey)
-      }
-
-      this.showSuccessAndNavigate(dateToSave, mealType)
-    } catch (error) {
-      console.error('保存到后端失败:', error)
-
-      // 尝试显示后端返回的具体错误信息
-      let errorMessage = '保存失败，请重试'
-      if (error.data) {
-        if (error.data.error) {
-          errorMessage = error.data.error
-          if (error.data.message) {
-            errorMessage += ': ' + error.data.message
-          }
-        } else if (error.data.message) {
-          errorMessage = error.data.message
-        }
-      }
-
-      wx.showToast({
-        title: errorMessage,
-        icon: 'none',
-        duration: 3000
-      })
-
-      // 如果API调用失败，回退到本地存储
-      this.saveToLocalStorage(mealType, plan, dateToSave, targetDate)
-    }
+      const saved = await require('../../utils/plan-save').savePlan(this, date, mealType, { recipeName: (plan.dishes || []).map(dish => dish.name).join('、'), dishIds: (plan.dishes || []).map(dish => Number(dish.id)).filter(Boolean), isManual: 0, targetPeople: Number(this.data.people) || 2 }, pending && pending.date === date && pending.mealType === mealType ? pending.expectedRevision : undefined)
+      if (!saved || scope !== getUserStorageKey('mealView')) return
+      if (targetDate) wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      this.showSuccessAndNavigate(date, mealType)
+    } catch (error) { if (scope === getUserStorageKey('mealView')) this.setData({ saveError: flow.errorMessage(error, '保存失败，方案已保留。请重新确认保存。') }) }
+    finally { if (scope === getUserStorageKey('mealView')) this.setData({ savingPlan: false }) }
   },
 
   // 检查是否有待保存的菜谱记录（按用户隔离）
@@ -617,11 +547,11 @@ Page({
     const pendingKey = getUserStorageKey('pendingRecipeRecord')
     const pendingRecord = wx.getStorageSync(pendingKey)
     if (pendingRecord) {
-      wx.removeStorageSync(pendingKey)
       wx.showModal({
         title: '发现待保存记录',
         content: `是否将刚才的推荐保存为${this.getMealName(pendingRecord.mealType)}？`,
         success: async (res) => {
+          if (pendingKey !== getUserStorageKey('pendingRecipeRecord')) return
           if (res.confirm) {
             // 直接保存当前显示的方案（第一个方案）
             const currentPlan = this.data.plans[this.data.current || 0]
@@ -645,58 +575,9 @@ Page({
     }
   },
 
-  // 本地存储回退方法
-  saveToLocalStorage(mealType, plan, dateToSave, targetDate) {
-    const now = new Date()
-    const recipeRecord = {
-      name: `推荐菜谱${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
-      dishes: plan.dishes,
-      mealType: mealType,
-      createdAt: now.toISOString(),
-      date: dateToSave
-    }
-
-    // 获取现有记录（按用户隔离）
-    const recordsKey = getUserStorageKey('recipeRecords')
-    const records = wx.getStorageSync(recordsKey) || {}
-    if (!records[dateToSave]) {
-      records[dateToSave] = {}
-    }
-
-    // 检查是否已有该餐次的记录
-    if (records[dateToSave][mealType]) {
-      const todayStr = this.getBeijingDateString(now)
-      wx.showModal({
-        title: '该时段已有菜谱',
-        content: `${dateToSave === todayStr ? '今天' : dateToSave}的${this.getMealName(mealType)}已有记录，是否覆盖？`,
-        confirmText: '覆盖',
-        cancelText: '取消',
-        confirmColor: '#ff4d4f',
-        success: (res) => {
-          if (res.confirm) {
-            records[dateToSave][mealType] = recipeRecord
-            wx.setStorageSync(recordsKey, records)
-            if (targetDate) {
-              const pendingKey = getUserStorageKey('pendingRecipeRecord')
-              wx.removeStorageSync(pendingKey)
-            }
-            this.showSuccessAndNavigate(dateToSave, mealType)
-          }
-        }
-      })
-    } else {
-      records[dateToSave][mealType] = recipeRecord
-      wx.setStorageSync(recordsKey, records)
-      if (targetDate) {
-        const pendingKey = getUserStorageKey('pendingRecipeRecord')
-        wx.removeStorageSync(pendingKey)
-      }
-      this.showSuccessAndNavigate(dateToSave, mealType)
-    }
-  },
-
   // 显示成功提示并导航
   showSuccessAndNavigate(dateToSave, mealType) {
+    const scope = getUserStorageKey('mealView')
     const todayStr = this.getBeijingDateString()
     const dateDisplay = dateToSave === todayStr ? '今天' : dateToSave
     const mealName = this.getMealName(mealType)
@@ -706,6 +587,7 @@ Page({
       content: `菜谱已保存到${dateDisplay}的${mealName}`,
       showCancel: false,
       success: () => {
+        if (scope !== getUserStorageKey('mealView')) return
         // 通知日历页和统计页需要刷新数据
         const { getUserStorageKey } = require('../../utils/util')
         wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), Date.now())

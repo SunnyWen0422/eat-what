@@ -1,6 +1,6 @@
 // pages/about/about.js
 Page({
-  data: {
+  data: { fontScale: require('../../utils/font-scale')(),
     version: '3.2.0'
   },
 

@@ -74,3 +74,7 @@ logging:
   level:
     com.eatwhat: info
     org.springframework.web: info
+
+meal-workspace:
+  enabled: ${MEAL_WORKSPACE_ENABLED:false}
+  service-token: ${MEAL_WORKSPACE_SERVICE_TOKEN:}

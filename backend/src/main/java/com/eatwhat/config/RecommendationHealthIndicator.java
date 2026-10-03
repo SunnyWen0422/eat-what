@@ -10,11 +10,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 /** Bounded dependency probe for the recommendation service. */
-@Component("recommendationService")
+@Component("recommendationServiceHealthIndicator")
 public class RecommendationHealthIndicator implements HealthIndicator {
     private final String healthUrl;
     private final RestOperations restOperations;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public RecommendationHealthIndicator(
             @Value("${recommend.service.base-url:http://127.0.0.1:8000}") String baseUrl) {
         this(baseUrl, createRestTemplate());

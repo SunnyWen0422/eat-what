@@ -1,0 +1,217 @@
+{
+  "date": "2026-10-03",
+  "baselineCommit": "47b854ed4b8d3c1683baa248cf9a3701515511b2",
+  "branch": "codex/full-ui-meal-workflow",
+  "verification": {
+    "node": 36,
+    "python": 13,
+    "javaUnit": 35,
+    "ordinaryTotal": 84,
+    "mysqlAndHttp": 5,
+    "total": 89,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "javaSuites": [
+    {
+      "suite": "com.eatwhat.service.AssistantActionServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.AvatarImageValidatorTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.DietReviewCalculatorTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealConsumptionServiceTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealPlanServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealWorkspaceFallbackTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealWorkspaceHttpIT",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealWorkspaceMysqlIT",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealWorkspacePlannerTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealWorkspaceRulesTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.MealWorkspaceServiceTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.ShoppingListReliabilityTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.ShoppingMutationServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.UserAvatarServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "com.eatwhat.service.WorkspacePlanSnapshotTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "nativeCompile": {
+    "scope": "WXML/WXSS compile only; native runtime and device acceptance pending",
+    "results": [
+      {
+        "compiler": "wcc.exe",
+        "fileCount": 41,
+        "exitCode": 0,
+        "compiledBytes": 314293
+      },
+      {
+        "compiler": "wcsc.exe",
+        "fileCount": 43,
+        "exitCode": 0,
+        "compiledBytes": 10231
+      }
+    ]
+  },
+  "generatedAssets": {
+    "filesCompared": 135,
+    "rebuildChanged": 0
+  },
+  "mysqlEvidence": ".mysql-test-data/v4-0a819a3bb9/result.json",
+  "syntheticFeedbackScenario": [
+    [
+      {
+        "exposed_plans": 3,
+        "accepted_exposed_plans": 3,
+        "first_accepted_exposed_plans": 3,
+        "acceptance_rate": "1.0000",
+        "first_acceptance_rate": "1.0000"
+      }
+    ],
+    [
+      {
+        "event_type": "actual_completed",
+        "source": "rules",
+        "event_count": 3
+      },
+      {
+        "event_type": "accepted",
+        "source": "rules",
+        "event_count": 3
+      },
+      {
+        "event_type": "plan_saved",
+        "source": "rules",
+        "event_count": 3
+      },
+      {
+        "event_type": "shopping_confirmed",
+        "source": "rules",
+        "event_count": 3
+      },
+      {
+        "event_type": "first_accepted",
+        "source": "rules",
+        "event_count": 3
+      },
+      {
+        "event_type": "exposed",
+        "source": "rules",
+        "event_count": 3
+      },
+      {
+        "event_type": "generated",
+        "source": "rules",
+        "event_count": 3
+      }
+    ],
+    [
+      {
+        "current_completed_meals": 3,
+        "recorded_user_days": 1
+      }
+    ]
+  ],
+  "remainingAcceptance": [
+    "WeChat native runtime and iOS/Android page/state acceptance",
+    "two physical devices restore and conflicts",
+    "real model quality and P95 performance",
+    "breakfast product/cooking review",
+    "stable WeChat base library selection"
+  ],
+  "published": false,
+  "restartProbe": {
+    "status": "passed",
+    "scope": "two real JVM processes; stale running lease fixture reclaimed after crash",
+    "firstPid": 38152,
+    "secondPid": 40548,
+    "revisionBefore": 1,
+    "revisionAfter": 2,
+    "draftDishCount": 2,
+    "leaseAgeAdvancedSeconds": 31
+  }
+}

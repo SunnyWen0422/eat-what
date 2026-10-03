@@ -8,6 +8,8 @@ import java.util.List;
 @Data
 public class ShoppingDishDTO {
     private String selectionKey;
+    private String sourceDate;
+    private String sourceMealType;
     private Long shoppingDishId;
     private Long dishId;
     private String dishName;

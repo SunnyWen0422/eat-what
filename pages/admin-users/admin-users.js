@@ -1,7 +1,7 @@
 const api = require('../../utils/api')
 
 Page({
-  data: { users: [], total: 0, keywordInput: '', keyword: '', ready: false, loading: false, refreshing: false, loadingMore: false, hasMore: false, error: '', notice: '', updatingId: null },
+  data: { fontScale: require('../../utils/font-scale')(), users: [], total: 0, keywordInput: '', keyword: '', ready: false, loading: false, refreshing: false, loadingMore: false, hasMore: false, error: '', notice: '', updatingId: null },
   page: 0,
   pageSize: 20,
   version: 0,

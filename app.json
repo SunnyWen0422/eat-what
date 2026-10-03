@@ -1,4 +1,4 @@
- {
+{
   "pages": [
     "pages/index/index",
     "pages/logs/logs",
@@ -29,38 +29,59 @@
   "window": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "今天我们吃什么？",
-    "navigationBarBackgroundColor": "#ffffff"
+    "navigationBarBackgroundColor": "#F8F7F2"
   },
   "tabBar": {
-    "color": "#7A7E83",
-    "selectedColor": "#299f91",
+    "color": "#617066",
+    "selectedColor": "#28634E",
     "borderStyle": "white",
-    "backgroundColor": "#ffffff",
+    "backgroundColor": "#F8F7F2",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "选菜"
+        "text": "今天",
+        "iconPath": "assets/icons/today.png",
+        "selectedIconPath": "assets/icons/today-selected.png"
       },
       {
         "pagePath": "pages/customize/customize",
-        "text": "定制"
-      },
-      {
-        "pagePath": "pages/chat/chat",
-        "text": "助手"
+        "text": "菜谱",
+        "iconPath": "assets/icons/recipes.png",
+        "selectedIconPath": "assets/icons/recipes-selected.png"
       },
       {
         "pagePath": "pages/calendar/calendar",
-        "text": "日历"
+        "text": "计划",
+        "iconPath": "assets/icons/plan.png",
+        "selectedIconPath": "assets/icons/plan-selected.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-selected.png"
       }
     ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents"
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {
+    "ui-state": "/components/ui-state/ui-state",
+    "ui-button": "/components/ui-button/ui-button",
+    "ui-status": "/components/ui-status/ui-status",
+    "ui-confirm": "/components/ui-confirm/ui-confirm",
+    "ui-field": "/components/ui-field/ui-field",
+    "meal-card": "/components/meal-card/meal-card",
+    "dish-card": "/components/dish-card/dish-card",
+    "ui-icon": "/components/ui-icon/ui-icon",
+    "ui-icon-button": "/components/ui-icon-button/ui-icon-button",
+    "ui-chip": "/components/ui-chip/ui-chip",
+    "ui-card": "/components/ui-card/ui-card",
+    "ui-list": "/components/ui-list/ui-list",
+    "ui-search": "/components/ui-search/ui-search",
+    "ui-checkbox": "/components/ui-checkbox/ui-checkbox",
+    "ui-sheet": "/components/ui-sheet/ui-sheet"
+  }
 }

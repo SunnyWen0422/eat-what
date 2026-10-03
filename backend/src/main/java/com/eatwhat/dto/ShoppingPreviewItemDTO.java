@@ -8,6 +8,7 @@ import java.util.List;
 
 @Data
 public class ShoppingPreviewItemDTO {
+    private Long id;
     private String clientKey;
     private String canonicalName;
     private String displayName;

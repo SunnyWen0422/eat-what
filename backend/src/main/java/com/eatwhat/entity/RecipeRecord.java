@@ -18,6 +18,13 @@ import java.util.List;
 @Data
 public class RecipeRecord {
 
+    private Boolean isDeleted;
+    private Long revision;
+    private String recordOrigin;
+    private Long expectedRevision;
+    private String requestId;
+    private Integer targetPeople;
+
     private static final Logger log = LoggerFactory.getLogger(RecipeRecord.class);
 
     @JsonProperty("id")
@@ -26,10 +33,20 @@ public class RecipeRecord {
     @JsonProperty("userId")
     private Long userId;
 
-    @JsonProperty("recordDate")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private Date recordDate;  // 记录日期
     
+    @com.fasterxml.jackson.annotation.JsonGetter("recordDate")
+    public String calendarDay() {
+        if (recordDateString != null) return recordDateString;
+        if (recordDate == null) return null;
+        if (recordDate instanceof java.sql.Date) return recordDate.toString();
+        java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd");
+        format.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Shanghai"));
+        return format.format(recordDate);
+    }
+
     // 用于接收前端发送的字符串格式日期（不持久化到数据库）
     @JsonProperty("recordDateString")
     private String recordDateString;

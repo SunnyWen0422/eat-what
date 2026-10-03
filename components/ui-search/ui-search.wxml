@@ -1,0 +1,1 @@
+<view class="search"><ui-icon name="search" /><input value="{{value}}" placeholder="{{placeholder}}" disabled="{{disabled}}" aria-label="{{placeholder}}" bindinput="input" bindconfirm="confirm" /><ui-icon-button wx:if="{{value}}" name="close" label="清空搜索" disabled="{{disabled}}" bind:press="clear" /></view>

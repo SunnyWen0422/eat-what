@@ -2,7 +2,8 @@
   "database": "food",
   "policy": {
     "productionMigrationsMustBeNonDestructive": true,
-    "databaseIsSelectedByInvoker": true
+    "databaseIsSelectedByInvoker": true,
+    "checksumNormalization": "UTF-8 text with LF line endings"
   },
   "migrations": [
     {
@@ -18,6 +19,20 @@
       "description": "administrator workbench and audit storage",
       "checksumSha256": "2dbc3a97b513ca63d9115bdc5a0374afc07f0862bf962c306a2b65702633cf3a",
       "rollback": "Restore the pre-release database backup; keep is_published and audit rows during application rollback."
+    },
+    {
+      "version": "V3__meal_workflow",
+      "file": "V3__meal_workflow.sql",
+      "description": "separate meal snapshots, revision tombstones, confirmed shopping mutations and avatars",
+      "checksumSha256": "7dff52b0c6e6ff966c5d06b23e72eecca7fa7ec9db44be817d137ab7b9b27438",
+      "rollback": "Keep the V3 schema and compatible soft-delete-aware backend when rolling back the UI. Older backends may expose tombstones. A database rollback requires restoring a reviewed pre-release backup; do not drop live columns or snapshot tables."
+    },
+    {
+      "version": "V4__meal_workspace",
+      "file": "V4__meal_workspace.sql",
+      "description": "authoritative meal workspace, durable tasks and receipts, breakfast candidates and behavioral events",
+      "checksumSha256": "41c4e9a9a88baff6e1903366130632a6ea3ba5d8e6cbc169ebf08e8189787e7d",
+      "rollback": "Disable the frontend/workspace feature flag; keep the V3/V4-aware backend, snapshots and receipts. Database restoration requires a reviewed backup; never drop live workspace or event tables."
     }
   ]
 }

@@ -9,6 +9,8 @@ public class ShoppingDish {
     private Long id;
     private Long shoppingListId;
     private String selectionKey;
+    private String sourceDate;
+    private String sourceMealType;
     private Long dishId;
     private String dishName;
     private BigDecimal targetPeople;

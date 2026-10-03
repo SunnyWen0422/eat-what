@@ -15,28 +15,28 @@ function localShoppingSummary() {
   const hasLocalItems = (list.dishes || []).some(dish => (dish.items || []).some(item => !item.id))
   return {
     pendingCount: pendingItemCount(list),
-    syncLabel: pending ? `本地已保存 · ${pending} 项待同步` : '已显示本地清单',
+    syncLabel: pending ? `${pending} 项草稿待确认` : '已显示本地清单',
     refreshing: false,
     localOnly: pending > 0 || hasLocalItems,
   }
 }
 
 Page({
-  data: {
+  data: { fontScale: require('../../utils/font-scale')(),
     userInfo: {
-      avatar: 'https://img.yzcdn.cn/vant/cat.jpeg',
+      avatar: '',
       nickname: '点击登录',
       level: '游客模式',
       joinDays: 0
     },
-    showLoginModal: false,
+    showLoginModal: false, loginBusy: false, loginError: '',
     isAdmin: false,
     shoppingSummary: { pendingCount: 0, syncLabel: '已显示本地清单', refreshing: false },
     menuItems: [
       {
         icon: 'chart',
-        title: '饮食统计',
-        desc: '查看饮食数据分析',
+        title: '饮食回顾',
+        desc: '查看明确记录的实际用餐',
         url: '/pages/statistics/statistics'
       },
       {
@@ -57,6 +57,7 @@ Page({
         desc: '个性化推荐偏好',
         url: '/pages/settings/settings'
       },
+      { icon: 'refresh', title: '数据同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
       {
         icon: 'info',
         title: '关于',
@@ -139,6 +140,10 @@ Page({
 
   // 加载用户信息
   async loadUserInfo() {
+    const scope = getUserStorageKey('profileUser'), epoch = this._userEpoch = (this._userEpoch || 0) + 1
+    const current = () => scope === getUserStorageKey('profileUser') && epoch === this._userEpoch
+    if (this._userScope !== scope) this.setData({ isAdmin: false, userInfo: { avatar: '', nickname: '点击登录', favoriteDishes: '—', totalRecipes: '—' } })
+    this._userScope = scope
     try {
       // 先从本地存储获取
       const localUserInfo = wx.getStorageSync('userInfo')
@@ -146,13 +151,14 @@ Page({
         this.setData({
           userInfo: {
             ...this.data.userInfo,
-            ...localUserInfo
+            ...localUserInfo, avatar: require('../../utils/avatar').resolveAvatar(localUserInfo.avatar)
           }
         })
       }
 
       // 从API获取最新用户信息
       const userResult = await api.getUserInfo()
+      if (!current()) return
       if (userResult.success && userResult.user) {
         const user = userResult.user
 
@@ -173,7 +179,7 @@ Page({
         this.setData({
           isAdmin: userResult.isAdmin === true,
           userInfo: {
-            avatar: user.avatar || 'https://img.yzcdn.cn/vant/cat.jpeg',
+            avatar: require('../../utils/avatar').resolveAvatar(user.avatar),
             nickname: user.nickname || '点击登录',
             level: hasNickname ? '已登录' : '游客模式',
             joinDays: joinDays || 0
@@ -190,9 +196,11 @@ Page({
 
   // 加载统计数据
   async loadStatistics() {
+    const identity = getUserStorageKey('profileReview')
     // 获取收藏菜品数量（独立try-catch，后端未部署时不影响其他功能）
     try {
       const favorites = await api.getFavoriteDishes()
+      if (identity !== getUserStorageKey('profileReview')) return
       const favList = Array.isArray(favorites) ? favorites : (favorites && favorites.list ? favorites.list : [])
       this.setData({
         'userInfo.favoriteDishes': favList.length || 0
@@ -201,31 +209,16 @@ Page({
       console.log('收藏功能暂不可用')
     }
 
-    // 获取当前月份的统计数据（独立try-catch）
     try {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const startDate = `${year}-${month}-01`
-      const endDate = `${year}-${month}-31`
-
-      const statsResult = await api.getStatistics(startDate, endDate)
-      let totalRecipes = 0
-      if (statsResult.success && statsResult.data) {
-        const stats = statsResult.data
-        totalRecipes = (stats.meatCount || 0) + (stats.vegCount || 0) + (stats.soupCount || 0)
-      }
-
-      this.setData({
-        'userInfo.totalRecipes': totalRecipes
-      })
-    } catch (err) {
-      console.log('统计数据加载失败')
-    }
+      const flow = require('../../utils/meal-workflow'), scope = getUserStorageKey('profileReview'), day = flow.today(), range = flow.monthRange(Number(day.slice(0,4)), Number(day.slice(5,7)))
+      const review = await api.getDietReview(range.startDate, range.endDate)
+      if (scope === getUserStorageKey('profileReview')) this.setData({ 'userInfo.totalRecipes': review.mealCount })
+    } catch (error) { if (identity === getUserStorageKey('profileReview')) this.setData({ 'userInfo.totalRecipes': '—' }) }
   },
 
   // 点击用户信息区域 → 跳转编辑页
   onUserInfoTap() {
+    if (!wx.getStorageSync('token')) return this.setData({ showLoginModal: true })
     wx.navigateTo({ url: '/pages/profile-edit/profile-edit' })
   },
 
@@ -243,13 +236,8 @@ Page({
   },
 
   // 点击统计卡片
-  onStatTap(e) {
-    const { type } = e.currentTarget.dataset
-    wx.showToast({
-      title: `${type}功能开发中`,
-      icon: 'none'
-    })
-  },
+  onStatTap(e) { wx.navigateTo({ url: e.currentTarget.dataset.type === 'favorite' ? '/pages/favorite-dishes/favorite-dishes' : '/pages/statistics/statistics' }) },
+  onAvatarError() { this.setData({ 'userInfo.avatar': '' }) },
 
   // 点击菜单项
   onMenuTap(e) {
@@ -273,11 +261,14 @@ Page({
   },
 
   onCloseLoginModal() {
+    if (this.data.loginBusy) return
     this.setData({ showLoginModal: false })
   },
 
   // 使用微信一键登录
   async onWxLogin() {
+    if (this.data.loginBusy) return
+    this.setData({ loginBusy: true, loginError: '' })
     wx.showLoading({ title: '登录中...', mask: true })
     try {
       const app = getApp()
@@ -289,90 +280,11 @@ Page({
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: '登录失败，请重试', icon: 'none' })
-    }
+      this.setData({ loginError: '登录未完成，可重试或暂不登录。' })
+    } finally { this.setData({ loginBusy: false }) }
   },
 
-  // 关闭登录弹窗
-  onCloseLoginModal() {
-    this.setData({ showLoginModal: false })
-  },
 
-  // 编辑用户信息
-  onEditProfile() {
-    wx.showActionSheet({
-      itemList: ['修改昵称', '更换头像', '设置偏好'],
-      success: (res) => {
-        if (res.tapIndex === 0) {
-          // 修改昵称
-          this.editNickname()
-        } else if (res.tapIndex === 1) {
-          // 更换头像
-          this.editAvatar()
-        } else {
-          wx.navigateTo({ url: '/pages/settings/settings' })
-        }
-      }
-    })
-  },
-  
-  // 修改昵称
-  editNickname() {
-    wx.showModal({
-      title: '修改昵称',
-      editable: true,
-      placeholderText: '请输入新昵称',
-      success: async (res) => {
-        if (res.confirm && res.content) {
-          try {
-            const result = await api.updateUserInfo({ nickname: res.content })
-            if (result.success) {
-              wx.showToast({
-                title: '修改成功',
-                icon: 'success'
-              })
-              // 刷新用户信息
-              this.loadUserInfo()
-            } else {
-              wx.showToast({
-                title: result.message || '修改失败',
-                icon: 'none'
-              })
-            }
-          } catch (err) {
-            console.error('修改昵称失败:', err)
-            wx.showToast({
-              title: '修改失败',
-              icon: 'none'
-            })
-          }
-        }
-      }
-    })
-  },
-  
-  // 更换头像
-  editAvatar() {
-    wx.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: async (res) => {
-        const tempFilePath = res.tempFilePaths[0]
-        
-        // 这里应该上传图片到服务器，然后获取图片URL
-        // 暂时直接使用本地路径（实际应该上传后获取服务器URL）
-        wx.showToast({
-          title: '头像上传功能开发中',
-          icon: 'none'
-        })
-        
-        // TODO: 实现图片上传
-        // const uploadResult = await uploadImage(tempFilePath)
-        // if (uploadResult.success) {
-        //   await api.updateUserInfo({ avatar: uploadResult.url })
-        //   this.loadUserInfo()
-        // }
-      }
-    })
-  }
+  onEditProfile() { wx.navigateTo({ url: '/pages/profile-edit/profile-edit' }) },
+  editNickname() { this.onEditProfile() }, editAvatar() { this.onEditProfile() },
 })

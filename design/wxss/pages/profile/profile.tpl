@@ -1,0 +1,59 @@
+@import "../../styles/theme.wxss";
+page { background: {{card}}; }
+.profile-page { min-height:100vh; box-sizing:border-box; padding:16rpx 0 calc(28rpx + env(safe-area-inset-bottom)); overflow-x:hidden; background:linear-gradient(180deg,{{brandSoft}} 0,{{background}} 240rpx,{{card}} 520rpx); }
+.user-card { margin:0 20rpx 16rpx; padding:30rpx 24rpx 26rpx; border-radius:22rpx; display:flex; flex-direction:column; align-items:center; background:{{brand}}; color:{{card}}; }
+.user-avatar { position:relative; margin-bottom:12rpx; }
+.avatar { width:112rpx; height:112rpx; border-radius:50%; border:4rpx solid rgba(255,255,255,.86); }
+.edit-btn { position:absolute; right:-4rpx; bottom:-4rpx; width:38rpx; height:38rpx; display:flex; align-items:center; justify-content:center; border:2rpx solid {{brandSoft}}; border-radius:50%; background:{{card}}; }
+.edit-icon { width:28rpx; height:28rpx; color:{{brand}}; }
+.user-info { text-align:center; }
+.nickname { display:block; max-width:100%; font-size:1.2143em; font-weight:700; word-break:break-word; }
+.level { display:block; margin-top:6rpx; font-size:0.8571em; opacity:.85; }
+.shopping-shortcut { margin:0 20rpx 18rpx; padding:18rpx; display:flex; align-items:center; gap:14rpx; border:1rpx solid #cce8df; border-radius:16rpx; background:{{card}}; }
+.shopping-shortcut-icon { width:68rpx; height:68rpx; flex:0 0 auto; display:flex; align-items:center; justify-content:center; border-radius:16rpx; background:{{brandSoft}}; color:{{brand}}; }
+.shopping-shortcut-body { min-width:0; flex:1; }
+.shopping-shortcut-title,.shopping-shortcut-count,.shopping-shortcut-sync { display:block; word-break:break-word; }
+.shopping-shortcut-title { color:#20312d; font-size:1.0357em; font-weight:700; }
+.shopping-shortcut-count { margin-top:5rpx; color:{{brand}}; font-size:0.8571em; }
+.shopping-shortcut-sync { margin-top:4rpx; color:#71847e; font-size:0.8571em; }
+.shopping-shortcut-open { flex:0 0 auto; min-width:132rpx; margin:0; padding:0; background:transparent; color:{{brand}}; font-size:0.8571em; }
+.shopping-shortcut-open::after { border:0; }
+.menu-section { margin:0 20rpx; overflow:hidden; border:1rpx solid {{border}}; border-radius:16rpx; background:{{card}}; }
+.menu-list { padding:0; }
+.menu-item { min-height:94rpx; box-sizing:border-box; display:flex; align-items:center; gap:12rpx; padding:16rpx 20rpx; border-bottom:1rpx solid #eef4f1; }
+.menu-item:last-child { border-bottom:0; }
+.menu-item:active { background:#f4fbf9; }
+.menu-icon { width:44rpx; display:flex; align-items:center; justify-content:center; color:{{brand}}; }
+.menu-icon .line-icon { width:34rpx; height:34rpx; }
+.menu-content { min-width:0; flex:1; }
+.menu-title,.menu-desc { display:block; word-break:break-word; }
+.menu-title { color:#20312d; font-size:1.0em; }
+.menu-desc { margin-top:4rpx; color:#8a9a93; font-size:0.8571em; }
+.menu-arrow { flex:0 0 auto; color:#a0aea8; font-size:1.2143em; }
+.version-info { margin-top:34rpx; padding:0 20rpx; text-align:center; }
+.version-text { color:#9aa9a2; font-size:0.8571em; }
+.login-modal-mask { position:fixed; inset:0; background:rgba(20,44,37,.42); z-index:200; opacity:0; visibility:hidden; transition:all .3s; }
+.login-modal { position:fixed; left:0; right:0; bottom:0; z-index:201; box-sizing:border-box; padding:24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); border-radius:22rpx 22rpx 0 0; background:{{card}}; transform:translateY(100%); transition:transform .3s; }
+.modal-show { transform:translateY(0); }
+.login-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8rpx; }
+.login-modal-title { color:#20312d; font-size:1.2143em; font-weight:700; }
+.login-modal-close { padding:4rpx 8rpx; color:#9aa9a2; font-size:1.2143em; }
+.login-modal-desc { margin-bottom:20rpx; color:#84948c; font-size:0.8571em; }
+.wx-login-btn { height:88rpx; line-height:88rpx; margin-bottom:12rpx; border-radius:14rpx; background:{{brand}}; color:{{card}}; font-size:1.0714em; }
+.login-skip { padding:10rpx; text-align:center; color:#9aa9a2; font-size:0.8571em; }
+@media (max-width:360px) { .shopping-shortcut { gap:8rpx; padding:14rpx; } .shopping-shortcut-open { min-width:110rpx; font-size:0.8571em; } .menu-item { padding-left:14rpx; padding-right:14rpx; } }
+
+/* 页面共享主题，适用于本页详情、表单和弹层。 */
+
+.avatar-fallback { width:120rpx;height:120rpx;border-radius:60rpx;background:{{brandSoft}};color:{{brand}};display:flex;align-items:center;justify-content:center;font-size:1.5714em; }
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:{{background}}; color:{{text}}; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:{{brand}}; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+.login-modal-close, .login-skip, .edit-btn { min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; }
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

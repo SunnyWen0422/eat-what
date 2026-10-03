@@ -1,45 +1,15 @@
-<view class="calendar-page">
-  <!-- 头部月份导航 -->
-  <view class="calendar-header">
-    <view class="month-nav">
-      <button class="nav-btn" bindtap="onPrevMonth">‹</button>
-      <view class="month-title">{{currentYear}}年 {{currentMonth}}月</view>
-      <button class="nav-btn" bindtap="onNextMonth">›</button>
-    </view>
+<view class="ew-page ew-screen" style="font-size:{{14 * fontScale}}px">
+  <view class="ew-row ew-between"><view><text class="ew-heading">把饭安排好</text><text class="ew-subtitle">计划与实际用餐，分开记录。</text></view><text class="ew-link" bindtap="onToday">今天</text></view>
+  <view class="ew-tabs"><view class="ew-pill {{viewMode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="onModeChange">本周</view><view class="ew-pill {{viewMode === 'month' ? 'active' : ''}}" data-mode="month" bindtap="onModeChange">月历</view></view>
+  <view class="ew-card calendar-card"><view class="ew-row ew-between period"><button class="period-nav" bindtap="onPrevMonth" aria-label="上一周期">‹</button><text>{{rangeLabel}}</text><button class="period-nav" bindtap="onNextMonth" aria-label="下一周期">›</button></view>
+    <view wx:if="{{viewMode === 'month'}}" class="month-weekdays"><text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text></view>
+    <view class="day-grid"><view class="day {{item.selected ? 'selected' : ''}}" wx:for="{{days}}" wx:key="key" data-date="{{item.fullDate}}" bindtap="onSelectDate"><block wx:if="{{!item.blank}}"><text wx:if="{{viewMode === 'week'}}" class="weekday">{{item.weekLabel}}</text><text class="day-number">{{item.day}}</text><text class="day-mark">{{item.eaten ? '✓' : item.hasPlan ? '•' : item.isToday ? '今' : ''}}</text></block></view></view>
+    <text class="ew-muted">• 有安排　✓ 已记录实际用餐</text>
   </view>
-
-  <!-- 星期标题 -->
-  <view class="weekdays">
-    <text wx:for="{{['日', '一', '二', '三', '四', '五', '六']}}" wx:key="index">{{item}}</text>
-  </view>
-
-  <!-- 日历网格 -->
-  <view class="calendar-grid">
-    <view class="calendar-day {{!item.isCurrentMonth ? 'other-month' : ''}} {{item.fullDate === today ? 'today' : ''}} {{item.hasRecord ? 'has-record' : ''}}"
-          wx:for="{{calendarDays}}"
-          wx:key="fullDate"
-          bindtap="onSelectDate"
-          data-full-date="{{item.fullDate}}"
-          data-is-current-month="{{item.isCurrentMonth}}">
-      <text class="day-number">{{item.date}}</text>
-      <view class="record-indicator" wx:if="{{item.hasRecord}}">●</view>
-    </view>
-  </view>
-
-  <!-- 选择模式提示 -->
-  <view class="select-mode-notice" wx:if="{{selectMode}}">
-    <text>请选择要保存菜谱的日期</text>
-  </view>
-
-  <!-- 说明 -->
-  <view class="calendar-info">
-    <view class="info-item">
-      <view class="indicator today-indicator"></view>
-      <text>今天</text>
-    </view>
-    <view class="info-item">
-      <view class="indicator record-indicator"></view>
-      <text>有记录</text>
-    </view>
-  </view>
+  <ui-state wx:if="{{!authenticated}}" kind="auth" title="登录后查看用餐计划" description="计划与实际记录会保存到你的账号。" action-label="去登录" bind:action="onLogin" />
+  <ui-state wx:elif="{{loading && !mealCards.length}}" kind="loading" title="正在读取安排" />
+  <block wx:else><view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}<text class="ew-link" bindtap="loadRecipeRecords">重试</text></view><text class="ew-section-title">{{selectedDate}} 的三餐</text>
+    <meal-card wx:for="{{mealCards}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : item.actualNames || '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际吃了：' + item.actualNames : ''}}" bind:open="onOpenMeal"><view class="ew-actions"><button class="ew-button secondary" bindtap="onOpenMeal">{{item.plan ? '查看与调整' : '安排 / 记录这一餐'}}</button></view></meal-card>
+  </block>
+  <view wx:if="{{!selectMode}}" class="ew-card"><text class="ew-section-title">准备与回顾</text><view class="ew-actions"><button class="ew-button" bindtap="onPurchaseRange">本周期采购预览</button><button class="ew-button secondary" bindtap="onShoppingList">购物清单</button></view><view class="ew-actions"><button class="ew-button secondary" bindtap="onReview">饮食回顾</button><button class="ew-button secondary" bindtap="onAssistant">让助手安排</button></view></view>
 </view>

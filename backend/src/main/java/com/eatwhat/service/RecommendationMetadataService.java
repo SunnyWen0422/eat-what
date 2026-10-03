@@ -32,6 +32,7 @@ public class RecommendationMetadataService {
     private final Set<String> tagCodes = new HashSet<>();
     private final Map<String, Map<String, String>> aliases = new HashMap<>();
 
+    @org.springframework.beans.factory.annotation.Autowired
     public RecommendationMetadataService(DishMapper dishMapper) {
         this(dishMapper, loadCatalog());
     }

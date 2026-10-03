@@ -1,59 +1,14 @@
-.page { min-height: 100vh; background: #F7F8FA; }
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
+.avatar-btn { width:160rpx;height:160rpx;margin:0 0 20rpx;padding:0;border-radius:80rpx;background:#EDF3ED;display:flex;align-items:center;justify-content:center; }
+.avatar-img { width:160rpx;height:160rpx; }
+.avatar-placeholder { color:#28634E;font-size:1.7143em; }
 
-/* 头像区 */
-.avatar-section {
-  background: linear-gradient(150deg, #2BA471 0%, #1A7A4C 60%, #0D5C35 100%);
-  padding: 60rpx 0 40rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.avatar-btn {
-  position: relative; width: 160rpx; height: 160rpx;
-  padding: 0; margin: 0; background: transparent; border: none;
-  display: flex; align-items: center; justify-content: center;
-}
-.avatar-btn::after { border: none; }
-.avatar-img {
-  width: 140rpx; height: 140rpx;
-  border-radius: 50%;
-  border: 4rpx solid rgba(255,255,255,0.9);
-  box-shadow: 0 6rpx 24rpx rgba(0,0,0,0.2);
-  position: absolute;
-}
-.avatar-badge {
-  position: absolute; bottom: 10rpx; right: 10rpx;
-  width: 44rpx; height: 44rpx; background: #fff;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 24rpx; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15);
-  z-index: 2;
-}
-.avatar-hint { color: rgba(255,255,255,0.7); font-size: 24rpx; margin-top: 20rpx; }
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
 
-/* 信息卡片 */
-.info-card {
-  margin: 24rpx 20rpx;
-  background: #fff;
-  border-radius: 18rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.04);
-  overflow: hidden;
-}
-.info-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 28rpx 24rpx;
-  border-bottom: 1rpx solid #F5F5F5;
-}
-.info-row:last-child { border-bottom: none; }
-.info-label { font-size: 30rpx; color: #333; font-weight: 500; flex-shrink: 0; width: 120rpx; }
-.info-value { font-size: 28rpx; color: #222; text-align: right; flex: 1; }
-.info-value.muted { color: #999; }
-
-/* 微信昵称输入框 */
-.nick-input {
-  flex: 1; text-align: right;
-  font-size: 28rpx; color: #222;
-  height: 50rpx; padding: 0;
-}
-
-/* 底部提示 */
-.tip { text-align: center; padding: 30rpx; color: #ccc; font-size: 24rpx; }
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

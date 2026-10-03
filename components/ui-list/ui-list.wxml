@@ -1,0 +1,1 @@
+<view class="ew-card"><button class="list-row" wx:for="{{items}}" wx:key="id" data-index="{{index}}" bindtap="open"><ui-icon name="{{item.icon}}" /><view class="ew-grow"><text>{{item.title}}</text><view class="ew-muted">{{item.description}}</view></view><ui-icon name="chevron-right" /></button></view>

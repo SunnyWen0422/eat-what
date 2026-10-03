@@ -99,6 +99,11 @@ public class AssistantActionService {
     private Map<String, Object> saveCalendar(Long userId, Map<String, Object> plan, boolean overwrite) {
         int saved = 0;
         int retained = 0;
+        Object periodValue = plan.get("period");
+        Map<?, ?> period = periodValue instanceof Map ? (Map<?, ?>) periodValue : Collections.emptyMap();
+        Object peopleValue = period.get("people");
+        int targetPeople = peopleValue == null ? 2 : Integer.parseInt(String.valueOf(peopleValue));
+        if (targetPeople < 1 || targetPeople > 50) throw new IllegalArgumentException("人数应为 1 至 50");
         for (Object value : list(plan.get("meals"))) {
             if (!(value instanceof Map)) continue;
             Map<String, Object> meal = (Map<String, Object>) value;
@@ -121,6 +126,7 @@ public class AssistantActionService {
             record.setDishIds(dishIds);
             record.setRecipeName(String.join("、", names));
             record.setIsManual(0);
+            record.setTargetPeople(targetPeople);
             record.setPreserveExisting(!overwrite);
             RecipeRecord savedRecord = overwrite ? recipeRecordService.saveRecipeRecord(record) : recipeRecordService.saveRecipeRecordIfAbsent(record);
             if (savedRecord == null) retained++;

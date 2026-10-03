@@ -8,9 +8,15 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface ShoppingRequestLogMapper {
-    @Select("SELECT id, user_id AS userId, request_id AS requestId, response_json AS responseJson, status, created_at AS createdAt FROM shopping_request_log WHERE user_id = #{userId} AND request_id = #{requestId} AND status = 'SUCCESS'")
+    @Select("SELECT id, user_id AS userId, request_id AS requestId, request_hash AS requestHash, response_json AS responseJson, status, created_at AS createdAt FROM shopping_request_log WHERE user_id = #{userId} AND request_id = #{requestId} AND status = 'SUCCESS'")
     ShoppingRequestLog findSuccess(@Param("userId") Long userId, @Param("requestId") String requestId);
 
     @Insert("INSERT INTO shopping_request_log (user_id, request_id, response_json, status) VALUES (#{userId}, #{requestId}, #{responseJson}, 'SUCCESS')")
     int insertSuccess(@Param("userId") Long userId, @Param("requestId") String requestId, @Param("responseJson") String responseJson);
+    @Select("SELECT id FROM users WHERE id=#{userId} FOR UPDATE")
+    Long lockUser(@Param("userId") Long userId);
+
+    @Insert("INSERT INTO shopping_request_log (user_id, request_id, request_hash, response_json, status) VALUES (#{userId}, #{requestId}, #{requestHash}, #{responseJson}, 'SUCCESS')")
+    int insertBoundSuccess(@Param("userId") Long userId, @Param("requestId") String requestId,
+        @Param("requestHash") String requestHash, @Param("responseJson") String responseJson);
 }

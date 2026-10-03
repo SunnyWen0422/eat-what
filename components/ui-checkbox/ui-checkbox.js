@@ -1,0 +1,1 @@
+const theme=require('../../utils/ui-tokens');Component({properties:{label:String,checked:Boolean,disabled:Boolean},data:{theme},methods:{change(e){if(!this.properties.disabled)this.triggerEvent('change',{checked:e.detail.value.length>0})}}})

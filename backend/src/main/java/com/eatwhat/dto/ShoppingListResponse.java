@@ -7,7 +7,7 @@ import java.util.List;
 @Data
 public class ShoppingListResponse {
     private Long listId;
-    private Long version;
+    private Long version = 0L;
     private List<ShoppingDishDTO> dishes = new ArrayList<>();
     private PurchaseSummaryDTO purchaseSummary = new PurchaseSummaryDTO(new ArrayList<PurchaseSummaryItemDTO>(), new ArrayList<PurchaseSummaryItemDTO>());
     private int pendingCount;

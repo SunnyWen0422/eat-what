@@ -1,169 +1,20 @@
-.calendar-page {
-  padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
-  box-sizing: border-box;
-  overflow-x: hidden;
-  background: linear-gradient(180deg,#e9faf6 0,#fff 280px);
-  min-height: 100vh;
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
+.period { font-size:0.8571em; color:#617066; gap:8rpx; } .period-nav { margin:0; width:88rpx; padding:0; background:#EDF3ED; color:#28634E; font-size:1.4286em; border-radius:20rpx; }
+.day-grid { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; margin:24rpx 0; } .day { min-width:44px; min-height:44px; border-radius:20rpx; text-align:center; padding:8rpx 0; box-sizing:border-box; } .day.selected { background:#28634E; color:#FFFFFF; } .weekday,.day-mark { display:block; font-size:0.8571em; min-height:26rpx; } .day-number { display:block; font-size:1.0714em; font-weight:600; } .day-mark { color:#28634E; } .selected .day-mark { color:white; }
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+.month-weekdays { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; text-align:center; font-size:0.8571em; color:#617066; margin-top:24rpx; }
+@media (max-width:400px) {
+  /* Seven date targets need at least 308px on a 320px device. */
+  .calendar-card { margin-left:-28rpx; margin-right:-28rpx; padding-left:4rpx; padding-right:4rpx; }
+  .calendar-card .day-grid, .calendar-card .month-weekdays { gap:0; }
 }
 
-.calendar-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 16px;
-  background-color: white;
-  padding: 12px 10px;
-  border-radius: 8px;
-  border: 1px solid #e3eeea;
-}
-
-.month-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.nav-btn {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border: none;
-  background: none;
-  font-size: 22px;
-  color: #3cc51f;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
-}
-.nav-btn::after { border: none; }
-
-.month-title {
-  flex: 1;
-  text-align: center;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-  white-space: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.today-btn {
-  background-color: #3cc51f;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 14px;
-  font-size: 13px;
-  margin-left: 10px;
-}
-.today-btn::after { border: none; }
-
-.weekdays {
-  display: flex;
-  background-color: white;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  border: 1px solid #e3eeea;
-}
-
-.weekdays text {
-  flex: 1;
-  text-align: center;
-  padding: 12px 0;
-  font-weight: bold;
-  color: #666;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-  background-color: white;
-  border-radius: 8px;
-  padding: 10px;
-  border: 1px solid #e3eeea;
-}
-
-.calendar-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-}
-
-.calendar-day.other-month {
-  color: #ccc;
-}
-
-.calendar-day.today {
-  background-color: #e8f5e8;
-  border: 2px solid #3cc51f;
-}
-
-.calendar-day.has-record {
-  background-color: #fff3cd;
-}
-
-.calendar-day.has-record .record-indicator {
-  position: absolute;
-  bottom: 4px;
-  width: 6px;
-  height: 6px;
-  background-color: #ffc107;
-  border-radius: 50%;
-}
-
-.day-number {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.calendar-info {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #666;
-}
-
-.indicator {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-}
-
-.today-indicator {
-  border: 2px solid #3cc51f;
-}
-
-.record-indicator {
-  background-color: #ffc107;
-}
-
-.select-mode-notice {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  padding: 12px 16px;
-  margin: 15px 0;
-  border-radius: 8px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: bold;
-  border: 1px solid #bbdefb;
-}
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

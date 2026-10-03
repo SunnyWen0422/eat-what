@@ -1,128 +1,101 @@
 const api = require('../../utils/api')
-const { consumeShoppingSelection, saveLocalShoppingList, loadLocalShoppingList, enqueueShoppingOperation } = require('../../utils/shopping-list')
-const { parseIngredientText, scaleLocalQuantity } = require('../../utils/shopping-ingredients')
-
+const store = require('../../utils/shopping-list')
+const { getUserStorageKey } = require('../../utils/util')
+const flow = require('../../utils/meal-workflow')
 Page({
-  data: {
-    targetPeople: 2,
-    dishes: [],
-    warnings: [],
-    previewLoading: true,
-    confirmInFlight: false,
-    errorMessage: '',
-    source: '',
-  },
-
-  previewRequestVersion: 0,
-  confirmInFlight: false,
-
+  data: { fontScale: require('../../utils/font-scale')(), targetPeople: 2, uniformPeople: false, dishes: [], warnings: [], previewLoading: true, confirmInFlight: false, errorMessage: '', formVisible: false, formQuantity: '', formError: '', editName: '', canConfirm: false },
   onLoad() {
-    this.selection = consumeShoppingSelection() || { dishIds: [], targetPeople: 2, source: 'unknown', dishes: [] }
-    this.setData({ targetPeople: Number(this.selection.targetPeople) || 2, source: this.selection.source || '' })
-    this.loadPreview()
+    this.selection = store.consumeShoppingSelection() || { dishIds: [], dishes: [], sources: [] }
+    this._scope = getUserStorageKey('shoppingList'); this._selectionId = flow.requestId('selection')
+    this.setData({ targetPeople: Number(this.selection.targetPeople) || 2 }); this.loadPreview()
   },
-
+  onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
+  current() { return !this._unloaded && this._scope === getUserStorageKey('shoppingList') },
+  sources() { return this.selection.sources && this.selection.sources.length ? this.selection.sources : [{ dishIds: this.selection.dishIds || [], targetPeople: this.data.targetPeople }] },
   async loadPreview() {
-    const version = ++this.previewRequestVersion
-    const payload = {
-      dishIds: this.selection.dishIds || [],
-      recipeId: this.selection.recipeId || null,
-      targetPeople: Number(this.data.targetPeople) || 2,
-      clientRequestId: `preview-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    }
-    this.setData({ previewLoading: true, errorMessage: '' })
+    const epoch = this._epoch = (this._epoch || 0) + 1
+    this.setData({ previewLoading: true, errorMessage: '', canConfirm: false })
     try {
-      const result = await api.createShoppingPreview(payload)
-      if (version !== this.previewRequestVersion) return
-      this.setData({ dishes: result.dishes || [], warnings: result.warnings || [], previewLoading: false })
-    } catch (error) {
-      if (version !== this.previewRequestVersion) return
-      const fallback = this.buildLocalFallback()
-      this.setData({ dishes: fallback, previewLoading: false, errorMessage: '网络较慢，已显示本地预览' })
-    }
+      const sources = this.sources(), previewRequests = new Map()
+      for (const source of sources) {
+        const people = this.data.uniformPeople ? Number(this.data.targetPeople) : Number(source.targetPeople) || Number(this.data.targetPeople)
+        if (!previewRequests.has(people)) previewRequests.set(people, new Set())
+        for (const id of source.dishIds || []) previewRequests.get(people).add(id)
+      }
+      const previews = new Map(await Promise.all([...previewRequests].map(async ([people, ids]) => [people, await api.createShoppingPreview({ dishIds: [...ids], targetPeople: people, clientRequestId: this._selectionId })])))
+      if (epoch !== this._epoch || !this.current()) return
+      const dishes = [], seen = new Set(), warnings = []
+      for (const source of sources) {
+        const people = this.data.uniformPeople ? Number(this.data.targetPeople) : Number(source.targetPeople) || Number(this.data.targetPeople)
+        const preview = previews.get(people)
+        warnings.push(...preview.warnings || [])
+        for (const id of source.dishIds || []) {
+          const original = (preview.dishes || []).find(dish => String(dish.dishId) === String(id))
+          if (!original) throw new Error('菜品已失效，请返回重新选择')
+          const selectionKey = source.sourceDate ? `meal-${source.sourceDate}-${source.sourceMealType}-${id}` : `${this._selectionId}-${id}`
+          if (seen.has(selectionKey)) continue
+          seen.add(selectionKey)
+          dishes.push({ ...original, sourceDate: source.sourceDate, sourceMealType: source.sourceMealType, sourceLabel: source.sourceDate ? `${source.sourceDate} ${flow.mealNames[source.sourceMealType] || ''}` : '本次菜谱', selectionKey, items: (original.items || []).map(item => ({ ...item, clientKey: `${selectionKey}-${item.sourceLineNo}` })) })
+        }
+      }
+      this._confirmedPayload = null
+      this.setData({ dishes, warnings: [...new Set(warnings)], canConfirm: true })
+    } catch (error) { if (epoch === this._epoch && this.current()) this.setData({ errorMessage: flow.errorMessage(error, '预览读取失败，请重试；原选择仍然保留。') }) }
+    finally { if (epoch === this._epoch && this.current()) this.setData({ previewLoading: false }) }
   },
-
-  buildLocalFallback() {
-    const sourceDishes = this.selection.dishes || []
-    return sourceDishes.map((dish, index) => {
-      const rawItems = dish.ingredientsAmounts || dish.ingredients || dish.cl || ''
-      const items = String(rawItems).split('###').filter(Boolean).map((line, lineIndex) => {
-        const parsed = parseIngredientText(line)
-        const scaled = scaleLocalQuantity(parsed, 2, this.data.targetPeople)
-        return { ...scaled, clientKey: `local-${dish.id}-${lineIndex}`, sourceDishId: dish.id, sourceDishName: dish.name, sourceLineNo: lineIndex, selectionKey: `dish-${dish.id}-${index}`, userOverride: false }
-      })
-      return { selectionKey: `dish-${dish.id}-${index}`, dishId: dish.id, dishName: dish.name, targetPeople: this.data.targetPeople, items }
-    })
+  async onPeopleChange(e) {
+    const value = Number(e.detail.value)
+    if (!Number.isInteger(value) || value < 1 || value > 50) { this.setData({ errorMessage: '人数应为 1 至 50 的整数' }); return }
+    const approved = await new Promise(resolve => wx.showModal({ title: '重新计算全部食材？', content: '将所有餐次统一为新人数，之前编辑和移除的食材会重新生成。', success: r => resolve(r.confirm), fail: () => resolve(false) }))
+    if (!approved) return
+    this.setData({ targetPeople: value, uniformPeople: true }); this.loadPreview()
   },
-
-  onPeopleChange(e) {
-    const value = Math.max(1, Math.min(50, Number(e.detail.value) || 2))
-    this.setData({ targetPeople: value })
-    this.selection.targetPeople = value
-    this.loadPreview()
-  },
-
   onRemoveItem(e) {
+    if (this.data.confirmInFlight) return
     const { dishIndex, itemIndex } = e.currentTarget.dataset
-    const dishes = this.data.dishes.map((dish, index) => index === Number(dishIndex)
-      ? { ...dish, items: dish.items.filter((_, itemIdx) => itemIdx !== Number(itemIndex)) }
-      : dish)
-    this.setData({ dishes })
+    this._confirmedPayload = null
+    this.setData({ dishes: this.data.dishes.map((dish, index) => index === Number(dishIndex) ? { ...dish, items: dish.items.filter((_, idx) => idx !== Number(itemIndex)) } : dish) })
   },
-
   onEditItem(e) {
-    const { dishIndex, itemIndex } = e.currentTarget.dataset
-    const item = this.data.dishes[dishIndex].items[itemIndex]
-    wx.showModal({
-      title: `调整${item.displayName || '食材'}用量`,
-      editable: true,
-      content: item.quantityText || '',
-      success: (result) => {
-        if (!result.confirm || !String(result.content || '').trim()) return
-        const dishes = this.data.dishes.map((dish, index) => index === Number(dishIndex)
-          ? { ...dish, items: dish.items.map((current, itemIdx) => itemIdx === Number(itemIndex) ? { ...current, quantityText: result.content.trim(), userOverride: true } : current) }
-          : dish)
-        this.setData({ dishes })
-      },
-    })
+    if (this.data.confirmInFlight) return
+    this._edit = { dishIndex: Number(e.currentTarget.dataset.dishIndex), itemIndex: Number(e.currentTarget.dataset.itemIndex) }
+    const item = this.data.dishes[this._edit.dishIndex].items[this._edit.itemIndex]
+    this.setData({ formVisible: true, editName: item.displayName, formQuantity: item.quantityText || '', formError: '' })
   },
-
+  onQuantity(e) { this.setData({ formQuantity: e.detail.value }) }, closeForm() { this.setData({ formVisible: false }) },
+  saveForm() {
+    const text = this.data.formQuantity.trim()
+    if (!text || text.length > 255) return this.setData({ formError: '请输入不超过 255 字的用量和单位' })
+    this._confirmedPayload = null
+    this.setData({ formVisible: false, dishes: this.data.dishes.map((dish, index) => index !== this._edit.dishIndex ? dish : { ...dish, items: dish.items.map((item, idx) => idx !== this._edit.itemIndex ? item : { ...item, quantityText: text, quantityValue: null, quantityMin: null, quantityMax: null, userOverride: true }) }) })
+  },
   async onConfirm() {
-    if (this.confirmInFlight) return
-    this.selection = this.selection || {}
-    const dishes = this.data.dishes || []
-    if (!dishes.some(dish => (dish.items || []).length > 0)) {
-      wx.showToast({ title: '请至少保留一项食材', icon: 'none' })
-      return
-    }
-    this.confirmInFlight = true
-    this.setData({ confirmInFlight: true })
-    const requestId = `add-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    const payload = {
-      requestId,
-      previewId: this.selection.clientRequestId || requestId,
-      targetPeople: this.data.targetPeople,
-      dishes: dishes.map(dish => ({ selectionKey: dish.selectionKey, items: dish.items })),
-      expectedListVersion: loadLocalShoppingList().version || 0,
-    }
+    if (this.data.confirmInFlight || !this.data.canConfirm || !this.current()) return
+    const dishes = this.data.dishes.filter(dish => dish.items.length)
+    if (!dishes.length) return this.setData({ errorMessage: '请至少保留一项食材' })
+    this.setData({ confirmInFlight: true, errorMessage: '' })
     try {
+      if (!this._confirmedPayload) {
+        const remote = await api.getShoppingList('all')
+        if (!this.current()) return
+        store.saveLocalShoppingList(remote)
+        this._confirmedPayload = { requestId: flow.requestId('purchase'), previewId: this._selectionId, targetPeople: this.data.targetPeople, expectedListVersion: remote.version || 0, dishes: dishes.map(dish => ({ selectionKey: dish.selectionKey, sourceDate: dish.sourceDate, sourceMealType: dish.sourceMealType, targetPeople: dish.targetPeople, items: dish.items })) }
+      }
+      const payload = this._confirmedPayload
+      store.enqueueShoppingOperation({ type: 'batch-add', label: '加入采购食材', payload })
       const result = await api.batchAddShoppingItems(payload)
-      saveLocalShoppingList(result.list || result)
-      wx.showToast({ title: '已加入购物清单', icon: 'success' })
-      setTimeout(() => wx.redirectTo({ url: '/pages/shopping-list/shopping-list' }), 300)
+      if (!this.current()) return
+      store.saveLocalShoppingList(result.list || result); store.removePendingOperation(null, payload.requestId)
+      wx.showToast({ title: '已加入购物清单', icon: 'success' }); wx.redirectTo({ url: '/pages/shopping-list/shopping-list' })
     } catch (error) {
-      const local = loadLocalShoppingList()
-      const existing = new Map((local.dishes || []).map(dish => [dish.selectionKey, dish]))
-      for (const dish of dishes) existing.set(dish.selectionKey, dish)
-      saveLocalShoppingList({ ...local, dishes: [...existing.values()], version: local.version || 0 })
-      enqueueShoppingOperation({ type: 'batch-add', requestId, payload })
-      wx.showToast({ title: '已保存本地，联网后同步', icon: 'none', duration: 2200 })
-      setTimeout(() => wx.redirectTo({ url: '/pages/shopping-list/shopping-list' }), 300)
-    } finally {
-      this.confirmInFlight = false
-      this.setData({ confirmInFlight: false })
-    }
+      if (!this.current()) return
+      if (error.statusCode === 409) {
+        if (this._confirmedPayload) store.removePendingOperation(null, this._confirmedPayload.requestId)
+        this._confirmedPayload = null
+        this.setData({ errorMessage: '清单已变化，预览和修改仍保留。再次确认会读取最新版本，保留已买标记和手动用量。' })
+      } else if (error.isNetworkError) this.setData({ errorMessage: '云端结果待确认，已保留本次内容。可重试确认，或在购物清单查看待确认草稿。' })
+      else { if (this._confirmedPayload) store.removePendingOperation(null, this._confirmedPayload.requestId); this.setData({ errorMessage: flow.errorMessage(error) }) }
+    } finally { if (this.current()) this.setData({ confirmInFlight: false }) }
   },
-
-  onBack() { wx.navigateBack() },
+  onBack() { wx.navigateBack() }, onShoppingList() { wx.redirectTo({ url: '/pages/shopping-list/shopping-list' }) },
 })

@@ -15,11 +15,21 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(com.eatwhat.service.MealConsumptionService.VersionConflict.class)
+    public ResponseEntity<Map<String,Object>> handleWorkflowConflict(com.eatwhat.service.MealConsumptionService.VersionConflict e) {
+        Map<String,Object> body=new HashMap<>();body.put("errorCode","WORKFLOW_VERSION_CONFLICT");body.put("message",e.getMessage());return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String,Object>> handleHttpStatus(org.springframework.web.server.ResponseStatusException e) {
+        Map<String,Object> body=new HashMap<>();body.put("message",e.getReason());return ResponseEntity.status(e.getStatus()).body(body);
+    }
+
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleJsonError(HttpMessageNotReadableException e) {
-        log.warn("Request JSON parse failed: {}", e.getMessage());
+        log.warn("Request JSON parse failed kind={}", e.getClass().getSimpleName());
         Map<String, Object> body = new HashMap<>();
         body.put("success", false);
         body.put("errorCode", "BAD_JSON");

@@ -1,0 +1,1 @@
+.status { font-size:0.8571em; border-radius:12rpx; padding:8rpx 14rpx; background:{{brandSoft}}; color:{{muted}}; display:inline-block; } .success { background:{{brandSoft}}; color:{{brand}}; } .warning { background:{{warningSoft}}; color:{{warning}}; } .danger { background:{{dangerSoft}}; color:{{danger}}; }

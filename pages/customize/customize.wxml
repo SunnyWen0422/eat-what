@@ -1,5 +1,5 @@
 <!--pages/customize/customize.wxml-->
-<view class="page mobile-screen">
+<view class="ew-page page mobile-screen" style="font-size:{{14 * fontScale}}px">
 
   <!-- 分类独立横向滚动，末项始终可以滑到 -->
   <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
@@ -54,7 +54,7 @@
 
       <textarea class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" bindinput="onCustomInput" rows="4" />
       <textarea class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" bindinput="onCustomInput" rows="6" />
-      <button class="save-custom-btn" bindtap="onSaveCustomDish">保存菜品</button>
+      <view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">保存菜品</button><button class="ew-link" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>
       </view>
     </scroll-view>
 
@@ -104,7 +104,7 @@
           </scroll-view>
         </view>
       </view>
-      <view wx:if="{{loading}}" class="tip-text">加载中...</view>
+      <ui-state wx:if="{{loading}}" kind="loading" title="正在读取菜品" /><ui-state wx:elif="{{browseError}}" kind="error" title="读取失败" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
 
       <view
         wx:for="{{currentDishes}}"
@@ -130,19 +130,20 @@
         没有更多了
       </view>
 
-      <view wx:if="{{!loading && !loadingMore && currentDishes.length === 0}}" class="tip-text">
-        暂无菜品
+      <view wx:if="{{!loading && !loadingMore && !browseError && currentDishes.length === 0}}" class="tip-text">
+        {{searchKeyword || browseFilterCount ? '没有符合搜索或筛选的菜品' : '这个分类暂时没有菜品'}}
       </view>
       </view>
     </scroll-view>
 
+    <view wx:if="{{saveError}}" class="ew-error">{{saveError}}</view>
     <!-- 底部操作栏 -->
     <view class="bottom-bar" wx:if="{{!showCustomForm}}">
       <view class="selected-wrap" bindtap="onShowSelected">
         <text class="selected-num">已选 {{selectedTotal}} 道</text>
         <text class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}">›</text>
       </view>
-      <button class="save-btn" bindtap="onSaveToCalendar">保存到日历</button>
+      <button class="save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
       <button class="save-btn shopping-btn" bindtap="onAddSelectedToShoppingList">加入清单</button>
     </view>
 

@@ -1,0 +1,241 @@
+const api = require('./api')
+const theme = require('./ui-tokens')
+const { getCurrentUserIdentity, getUserStorageKey } = require('./util')
+const { createWorkspaceStore, defaultTarget, normalizeContext, requestId } = require('./meal-workspace')
+const { beginShoppingSelection } = require('./shopping-list')
+const clone = value => JSON.parse(JSON.stringify(value))
+const MEALS = ['breakfast', 'lunch', 'dinner']
+const LABELS = ['早餐', '午餐', '晚餐']
+
+module.exports = function workspacePage(options = {}) {
+  return {
+    data: {
+      workspaceEnabled: true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
+      draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
+      mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
+      confirmationVisible: false, confirmationText: '', canConfirm: false, taskMessage: '', mode: options.mode || 'today', fontScale: 1,
+    },
+    async onLoad(params = {}) {
+      this._alive = true; this._params = params
+      const app = getApp(); if (app.waitForLogin) await app.waitForLogin()
+      if (!this._alive) return
+      return this.initializeWorkspace(params)
+    },
+    async initializeWorkspace(params = {}) {
+      this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
+      this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
+      const target = { ...defaultTarget(), ...(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || {}) }
+      const pendingPlan = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      if (pendingPlan) { target.date = pendingPlan.date; target.mealType = pendingPlan.mealType }
+      if (params.date) target.date = params.date
+      if (MEALS.includes(params.mealType)) target.mealType = params.mealType
+      this.setData({loading:true,busy:false,errorMessage:'',syncLabel:'',feedbackNotice:'',legacyMeals:[],legacyNotice:'',conflictDraftAvailable:false,context:normalizeContext({...target,people:2}),draft:{dishes:[],history:[],lockedDishIds:[]},linkedPlan:null,actual:null,status:'empty',settingsContext:null,settingsVisible:false,confirmationVisible:false,canConfirm:false})
+      let people = 2
+      try { const saved = await api.getUserPreferences(); if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; people = saved.defaultPeople || 2 }
+      catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({ syncLabel: '常用人数暂未读到，本餐默认两人' }) }
+      let fontScale = 1
+      if (wx.getAppBaseInfo) { const info = wx.getAppBaseInfo(); fontScale = info.fontSizeScaleFactor || (info.fontSizeSetting ? info.fontSizeSetting / 16 : 1) }
+      this.store = createWorkspaceStore()
+      this.setData({ loading: true, busy: false, errorMessage: '', context: normalizeContext({ ...target, people }), draft: { dishes: [], history: [], lockedDishIds: [] }, linkedPlan: null, actual: null, settingsContext: null, settingsVisible: false, confirmationVisible: false, fontScale: Math.max(1, fontScale) })
+      await this.readWorkspace(target, { people })
+      if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return
+      if(options.mode==='assistant') await this.loadLegacyMeals()
+      const selected = wx.getStorageSync(getUserStorageKey('workspaceSelectedDishes'))
+      if (selected && selected.date === target.date && selected.mealType === target.mealType && this.current()) {
+        if(await this.runCommand('select', { dishIds: selected.dishIds })) wx.removeStorageSync(getUserStorageKey('workspaceSelectedDishes'))
+      }
+    },
+    async loadLegacyMeals() {
+      const key=getUserStorageKey('assistantSessionId'),id=wx.getStorageSync(key),scope=this._scope
+      if(!id || !api.getAssistantSession)return
+      try {const session=await api.getAssistantSession(id);if(!this.current() || scope!==this._scope)return;this._legacySession=id;this.setData({legacyMeals:require('./legacy-meal-import').mealsFromSession(session)})}
+      catch(error) {if(this.current() && scope===this._scope)this.setData({legacyNotice:'旧助手草稿暂未读到，可重新进入重试'})}
+    },
+    async onImportLegacyMeal(e) {
+      if(!this.current() || this.data.busy)return
+      const row=this.data.legacyMeals[Number(e.currentTarget.dataset.index)],scope=this._scope,id=this._legacySession
+      if(!row || !id)return
+      try {
+        const latest=require('./legacy-meal-import').mealsFromSession(await api.getAssistantSession(id));if(!this.current() || scope!==this._scope)return
+        const meal=latest.find(m=>m.date===row.date && m.mealType===row.mealType)
+        if(!meal || meal.version!==row.version){this.setData({legacyMeals:latest,legacyNotice:'旧草稿已更新，请检查后再导入'});return}
+        await this.switchTarget({date:meal.date,mealType:meal.mealType});if(!this.current() || scope!==this._scope)return
+        this.store.edit({...this.data.context,people:meal.people});this.renderWorkspace();return this.runCommand('select',{dishIds:meal.dishIds})
+      } catch(error) {if(this.current() && scope===this._scope)this.setData({errorMessage:error.message || '导入未完成，旧草稿仍保留'})}
+    },
+    current() { return this._alive && this._scope === getCurrentUserIdentity() },
+    onShow() {
+      if (!this._scope) return
+      if (!this.current()) return this.initializeWorkspace(this._params || {})
+      const target = wx.getStorageSync(getUserStorageKey('activeMealTarget'))
+      if (target && (target.date !== this.data.context.date || target.mealType !== this.data.context.mealType)) return this.switchTarget(target)
+      const filterKey=getUserStorageKey('pendingRecommendationCriteria'), filter=wx.getStorageSync(filterKey)
+      if(filter && this.store) {wx.removeStorageSync(filterKey);this.store.edit({...this.data.context,criteria:filter});this.renderWorkspace();this.scheduleDraftSave()}
+      if (!this.data.busy) return this.readWorkspace(this.data.context)
+    },
+    onHide() { clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
+    onUnload() { this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
+    stopTimers() { clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
+    async readWorkspace(target = this.data.context, defaults = {}) {
+      if (!this.store || !this.current()) return
+      const store = this.store
+      try { await store.load(target.date, target.mealType, defaults); if (!this.current() || store !== this.store) return; this.setData({ errorMessage: '' }) }
+      catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: error.message || '本餐暂未同步，可重试' }) }
+      if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ loading: false }); this.pollTask() }
+    },
+    renderWorkspace() {
+      if (!this.current()) return
+      const state = this.store.state(), w = state.workspace
+      const labels = { synced: '已同步', unsynced: '本机修改尚未同步', saving: '正在同步', unknown: '上次保存结果待确认', offline: '离线内容，仅供查看；恢复后请重试', conflict: '本餐已在另一处更新，请查看最新内容' }
+      const draft = w && w.draft || { dishes: [], history: [], lockedDishIds: [], planVersion: 0 }
+      this.setData({ context: state.context || this.data.context, draft: { ...draft, dishes: (draft.dishes || []).map(d => ({ ...d, locked: (draft.lockedDishIds || []).includes(d.id) })) },
+        status: w && w.status==='planned' && w.confirmation && w.confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
+        linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
+        canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced' })
+      if (w && w.status === 'draft' && state.syncStatus === 'synced') this.expose(w)
+    },
+    expose(w) {
+      const key = `${w.id}:${w.draft.planVersion}`
+      if (this._exposed === key) return
+      this._exposed = key; const exposedScope=this._scope
+      api.recordBehaviorEvent({ requestId: requestId(), workspaceId: w.id, expectedWorkspaceRevision: w.revision, planVersion: w.draft.planVersion, eventType: 'exposed' })
+        .catch(error => { if (this.current() && exposedScope===this._scope) this.setData({ feedbackNotice: '本次曝光反馈尚未同步' }); console.warn('workspace_exposure_failed', error.statusCode || 'network') })
+    },
+    async pollTask() {
+      clearTimeout(this._pollTimer)
+      if (!this.current() || !this.store || this.store.state().pending) return
+      const w = this.store.state().workspace
+      if (!w || w.status !== 'generating') return
+      const taskId = w.taskId, scope = this._scope, store = this.store
+      this._pollTimer = setTimeout(async () => {
+        if (!this.current() || scope !== this._scope || store !== this.store) return
+        try { const task = await api.getWorkspaceTask(w.id, taskId); if (!this.current() || store !== this.store) return
+          if (['queued', 'running'].includes(task.status)) this.pollTask()
+          else await this.readWorkspace(this.data.context)
+        } catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: '任务状态暂未读到，重试会恢复当前餐' }) }
+      }, 750)
+    },
+    onRequirementInput(e) {
+      if (!this.store || !this.current()) return
+      this.store.edit({ ...this.data.context, requirements: e.detail.value }); this.renderWorkspace()
+      this.scheduleDraftSave()
+    },
+    scheduleDraftSave() {
+      clearTimeout(this._draftTimer); const store = this.store
+      this._draftTimer = setTimeout(async () => {
+        if (!this.current() || store !== this.store || ['offline', 'unknown', 'conflict'].includes(store.state().syncStatus)) return
+        try { await this.flushDraft(); if (this.current() && store === this.store) { this.renderWorkspace(); if (store.state().dirty) this.scheduleDraftSave() } }
+        catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '输入已保留，请重试同步' }) } }
+      }, 500)
+    },
+    async flushDraft() {
+      const store=this.store
+      if(this._draftSave) await this._draftSave
+      if(!this.current() || store!==this.store)return
+      const operation=store.save();this._draftSave=operation
+      try {await operation} finally {if(this._draftSave===operation)this._draftSave=null}
+    },
+    async runCommand(command, extra = {}) {
+      if (this.data.busy || !this.store || !this.current()) return
+      if (getCurrentUserIdentity() === 'guest') return this.onLogin()
+      clearTimeout(this._draftTimer); const store = this.store
+      this.setData({ busy: true, errorMessage: '' })
+      try { await this.flushDraft(); if(!this.current() || store!==this.store)return false; await store.command(command, extra); if (this.current() && store === this.store) { this.renderWorkspace(); this.pollTask(); return true } }
+      catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '安排未完成，输入和原方案已保留' }) } }
+      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+    },
+    async onSuggestedTarget() {
+      if(!this.current() || !this.data.suggestedTarget || this.data.busy)return
+      const requirements=this.data.context.requirements,target=this.data.suggestedTarget,scope=this._scope
+      await this.switchTarget(target)
+      if(!this.current() || scope!==this._scope)return
+      this.store.edit({...this.data.context,requirements});this.renderWorkspace();return this.runCommand('generate')
+    },
+    onGenerate() { return this.runCommand('generate') },
+    onRegenerate() { return this.runCommand('regenerate') },
+    onUndo() { return this.runCommand('undo') },
+    onCancelTask() { return this.runCommand('cancel') },
+    onReplace(e) { return this.runCommand('replace', { dishId: Number(e.currentTarget.dataset.id) }) },
+    onKeep(e) { return this.runCommand(e.currentTarget.dataset.locked ? 'release' : 'keep', { dishId: Number(e.currentTarget.dataset.id) }) },
+    onConfirmPlan() {
+      if (!this.data.canConfirm || this.data.busy || !this.current()) return
+      const state = this.store.state()
+      if (state.linked.plan) {
+        this._confirmation = { scope: this._scope, id: state.workspace.id, revision: state.workspace.revision, planVersion: state.workspace.draft.planVersion, planRevision: state.linked.planRevision }
+        this.setData({ confirmationVisible: true, confirmationText: `原安排：${state.linked.plan.recipeName}\n新方案：${this.data.draft.dishes.map(d => d.name).join('、')}\n日期：${this.data.context.date} ${LABELS[this.data.mealIndex]}` })
+      } else return this.saveConfirmation(state.linked.planRevision || 0)
+    },
+    onCloseConfirmation() { if (!this.data.busy) this.setData({ confirmationVisible: false }) },
+    onApproveReplacement() {
+      const capture = this._confirmation, state = this.store && this.store.state()
+      if (!capture || !this.current() || capture.scope !== this._scope || !state.workspace || capture.id !== state.workspace.id || capture.revision !== state.workspace.revision) return
+      return this.saveConfirmation(capture.planRevision)
+    },
+    async saveConfirmation(revision) {
+      if (this.data.busy || !this.current()) return
+      const store = this.store; this.setData({ busy: true, errorMessage: '' })
+      try { await store.confirm(revision); if (this.current() && store === this.store) {
+        this.setData({ confirmationVisible: false }); wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord')); wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), Date.now()); await this.readWorkspace(this.data.context)
+      } } catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '保存结果待确认，请重试原请求' }) } }
+      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+    },
+    async onRetryWorkspace() {
+      if (!this.store || this.data.busy || !this.current()) return
+      const store = this.store; this.setData({ busy: true })
+      try { await store.retry(); if (this.current() && store === this.store) { this.setData({ errorMessage: '' }); await this.readWorkspace(this.data.context) } }
+      catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '重试未完成，输入仍保留' }) } }
+      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+    },
+    async onLoadLatest() {
+      if (!this.current() || this.data.busy) return
+      const store = this.store, localContext = clone(this.data.context)
+      this.setData({ busy: true }); this._preservedContext = localContext
+      try { await store.reloadLatest(); if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: '', conflictDraftAvailable: true }) } }
+      catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: error.message }) }
+      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+    },
+    onRestoreLocalDraft() { if (this.current() && this._preservedContext) { this.store.edit(this._preservedContext); this.renderWorkspace(); this.setData({ conflictDraftAvailable: false }); this.scheduleDraftSave() } },
+    onOpenMealSettings() {
+      if (!this.current() || this.data.busy) return
+      const c = this.data.settingsContext || clone(this.data.context)
+      this.setData({ settingsVisible: true, settingsContext: c, ownedText: c.ownedIngredients.join('、'), settingsError: '' }); this.renderCounts()
+    },
+    onCloseMealSettings() { if (!this.data.busy) this.setData({ settingsVisible: false }) },
+    onPeopleSetting(e) { this.setData({ 'settingsContext.people': e.detail.value }) },
+    onTimeSetting(e) { this.setData({ 'settingsContext.totalCookMinutes': e.detail.value || null }) },
+    onOwnedSetting(e) { this.setData({ ownedText: e.detail.value }) },
+    onCountSetting(e) { const c = clone(this.data.settingsContext); c.compositionMode = 'manual'; c.counts[e.currentTarget.dataset.type] = Number(e.detail.value); this.setData({ settingsContext: c }) },
+    renderCounts() { this.setData({ countRows: Object.entries(this.data.settingsContext.counts).map(([type, count]) => ({ type, count, label: ({ meat: '荤菜', veg: '素菜', soup: '汤', staple: '主食', dessert: '甜品', side: '配餐' })[type] })) }) },
+    onManualMode() {
+      const c = clone(this.data.settingsContext); c.compositionMode = 'manual';
+      if (c.mealType !== 'breakfast') c.counts = { meat: c.counts.meat || 0, veg: c.counts.veg || 0, soup: c.counts.soup || 0, staple: c.counts.staple || 0, dessert: c.counts.dessert || 0 }
+      this.setData({ settingsContext: c }); this.renderCounts()
+    },
+    onRestoreAuto() { try { const c = normalizeContext({ ...this.data.settingsContext, compositionMode: 'auto' }); this.setData({ settingsContext: c }); this.renderCounts() } catch (error) { this.setData({ settingsError: error.message }) } },
+    async onApplyMealSettings() {
+      if (!this.current()) return
+      try { const c = normalizeContext({ ...this.data.settingsContext, totalCookMinutes: this.data.settingsContext.totalCookMinutes ? Number(this.data.settingsContext.totalCookMinutes) : null, ownedIngredients: this.data.ownedText.split(/[、,，\n]/).map(s => s.trim()).filter(Boolean) });
+        this.store.edit(c); this.setData({ settingsVisible: false, settingsContext: null }); this.renderWorkspace(); this.scheduleDraftSave()
+      } catch (error) { this.setData({ settingsError: error.message }) }
+    },
+    onDateTarget(e) { return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
+    onMealTarget(e) { return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }) },
+    async switchTarget(target) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), target); this._params = target; return this.initializeWorkspace(target) },
+    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType }); wx.switchTab({ url: '/pages/customize/customize' }) } },
+    onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
+    onViewRecipes() { const plan=this.data.linkedPlan;if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
+    onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date }) },
+    onShoppingPreview() {
+      if (!this.current()) return
+      const plan = this.data.linkedPlan; if (!plan) return
+      beginShoppingSelection({ source: 'workspace', targetPeople: plan.targetPeople, sources: [{ sourceDate: this.data.context.date, sourceMealType: this.data.context.mealType, targetPeople: plan.targetPeople, dishIds: plan.dishIds, dishes: plan.dishDetails || [] }] })
+      wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+    },
+    onOpenAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
+    onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
+    onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
+    onLogin() { wx.showToast({ title: '登录后可跨设备保存本餐', icon: 'none' }); wx.switchTab({ url: '/pages/profile/profile' }) },
+    onShareAppMessage() { return { title: '把今天这一餐安排好', path: '/pages/index/index' } },
+  }
+}

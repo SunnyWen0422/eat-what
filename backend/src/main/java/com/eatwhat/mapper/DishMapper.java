@@ -9,6 +9,13 @@ import java.util.List;
  */
 @Mapper
 public interface DishMapper {
+    @Select({"<script>", "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step,",
+      "STEPS as steps, STEP_IMAGES as stepImages, INGREDIENTS_AMOUNTS as ingredientsAmounts, TIPS as tips, METHODS as methods,",
+      "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes FROM food WHERE ID IN ",
+      "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
+      "AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId}) FOR UPDATE", "</script>"})
+    List<Dish> lockReadableDishes(@Param("ids") List<Long> ids,@Param("userId") Long userId);
+
 
     /**
      * 按类型获取菜品（分页）
@@ -146,7 +153,7 @@ public interface DishMapper {
         "<script>",
         "SELECT ID as id, NAME as name, TYPE as type, TAGS as tags, ",
         "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, ",
-        "METADATA_VERSION as metadataVersion, CL as cl, FL as fl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
+        "METADATA_VERSION as metadataVersion, CL as cl, FL as fl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, METHODS as methods, IMAGE as image, COOK_TIME as cookTime, DIFFICULTY as difficulty ",
         "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) AND ID IN ",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
         "</script>"
@@ -188,7 +195,7 @@ public interface DishMapper {
 
     @Select({
         "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, CL as cl, STEP as step, ",
+        "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, ",
         "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, ",
         "INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, ",
         "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, ",

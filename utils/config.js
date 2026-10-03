@@ -17,6 +17,9 @@ const API_BASE_URL = 'https://chishenme.icu/api'
 // 是否启用用户登录
 const ENABLE_LOGIN = true
 
+// Enable only against a V3/V4 migrated test API, then stage the rollout.
+const ENABLE_MEAL_WORKSPACE = false
+
 // 是否启用触觉反馈
 const ENABLE_VIBRATE = true
 
@@ -36,7 +39,7 @@ const RECOMMEND_PLAN_COUNT = 3
 // 人数范围
 const PEOPLE_RANGE = {
   min: 1,
-  max: 10,
+  max: 50,
   default: 2
 }
 
@@ -90,6 +93,7 @@ module.exports = {
   
   // 功能开关
   ENABLE_LOGIN,
+  ENABLE_MEAL_WORKSPACE,
   ENABLE_VIBRATE,
   ENABLE_LOG,
   

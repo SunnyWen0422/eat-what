@@ -27,18 +27,22 @@ public class UserPreferenceService {
 
     public UserPreferenceDTO get(Long userId) {
         UserPreference stored = mapper.selectByUserId(userId);
-        return stored == null ? new UserPreferenceDTO() : fromEntity(stored);
+        if(stored!=null)return fromEntity(stored);
+        UserPreferenceDTO empty=new UserPreferenceDTO();empty.setDefaultPeople(2);return empty;
     }
 
     public UserPreferenceDTO save(Long userId, UserPreferenceDTO input) {
         if (userId == null) throw new IllegalArgumentException("userId is required");
-        UserPreferenceDTO normalized = normalize(input == null ? new UserPreferenceDTO() : input);
+        UserPreferenceDTO value = input == null ? new UserPreferenceDTO() : input;
+        if(value.getDefaultPeople()==null)value.setDefaultPeople(get(userId).getDefaultPeople());
+        UserPreferenceDTO normalized = normalize(value);
         UserPreference entity = new UserPreference();
         entity.setUserId(userId);
         entity.setPreferredCuisinesJson(write(normalized.getPreferredCuisineCodes()));
         entity.setPreferredTagsJson(write(normalized.getPreferredTagCodes()));
         entity.setExcludedTagsJson(write(normalized.getExcludedTagCodes()));
         entity.setExcludedIngredientsJson(write(normalized.getExcludedIngredients()));
+        entity.setDefaultPeople(normalized.getDefaultPeople());
         entity.setAvoidRecentDays(normalized.getAvoidRecentDays());
         entity.setMaxCookMinutes(normalized.getMaxCookMinutes());
         entity.setVersion(normalized.getVersion());
@@ -53,6 +57,9 @@ public class UserPreferenceService {
         result.setPreferredTagCodes(normalizeCodes(input.getPreferredTagCodes(), 20, false));
         result.setExcludedTagCodes(normalizeCodes(input.getExcludedTagCodes(), 20, false));
         result.setExcludedIngredients(normalizeText(input.getExcludedIngredients(), 30, 20));
+        int people = input.getDefaultPeople() == null ? 2 : input.getDefaultPeople();
+        if (people < 1 || people > 50) throw new IllegalArgumentException("常用人数应为 1 至 50");
+        result.setDefaultPeople(people);
         int days = input.getAvoidRecentDays() == null ? 7 : input.getAvoidRecentDays();
         result.setAvoidRecentDays(Math.max(0, Math.min(30, days)));
         Integer minutes = input.getMaxCookMinutes();
@@ -97,6 +104,7 @@ public class UserPreferenceService {
         result.setPreferredTagCodes(read(entity.getPreferredTagsJson()));
         result.setExcludedTagCodes(read(entity.getExcludedTagsJson()));
         result.setExcludedIngredients(read(entity.getExcludedIngredientsJson()));
+        result.setDefaultPeople(entity.getDefaultPeople() == null ? 2 : entity.getDefaultPeople());
         result.setAvoidRecentDays(entity.getAvoidRecentDays() == null ? 7 : entity.getAvoidRecentDays());
         result.setMaxCookMinutes(entity.getMaxCookMinutes());
         result.setVersion(entity.getVersion() == null ? 1 : entity.getVersion());

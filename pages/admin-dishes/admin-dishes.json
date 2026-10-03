@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"菜品管理","enablePullDownRefresh":true}
+{
+  "navigationBarTitleText": "菜品管理",
+  "enablePullDownRefresh": true,
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
+}

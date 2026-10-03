@@ -100,19 +100,23 @@ function buildPurchaseSummary(dishes) {
         separateItems.push({ ...item, sourceDishNames: [dish.dishName], sourceDishLabel: dish.dishName })
         continue
       }
-      const key = `${item.canonicalName}|${item.unitFamily}|${item.unitCode}`
+      const key = `${item.canonicalName || item.displayName}|${item.unitFamily}|${item.unitCode}|${item.normalizedVariant || ''}`
       if (!mergeable.has(key)) {
-        mergeable.set(key, { ...item, sourceDishNames: [dish.dishName], sourceDishLabel: dish.dishName, quantityText: formatShoppingQuantity(item) })
+        mergeable.set(key, { ...item, itemIds: item.id ? [item.id] : [], sources: [{ date: dish.sourceDate, mealType: dish.sourceMealType, dishName: dish.dishName }], checkedItems: item.checked ? 1 : 0, totalItems: 1, sourceDishNames: [dish.dishName], sourceDishLabel: dish.dishName, quantityText: formatShoppingQuantity(item) })
       } else {
         const current = mergeable.get(key)
         current.quantityValue += item.quantityValue
+        if (item.id) current.itemIds.push(item.id)
+        current.sources.push({ date: dish.sourceDate, mealType: dish.sourceMealType, dishName: dish.dishName })
+        current.checkedItems += item.checked ? 1 : 0
+        current.totalItems += 1
         if (!current.sourceDishNames.includes(dish.dishName)) current.sourceDishNames.push(dish.dishName)
         current.sourceDishLabel = current.sourceDishNames.join('、')
         current.quantityText = formatShoppingQuantity(current)
       }
     }
   }
-  return { mergeableItems: [...mergeable.values()], separateItems }
+  return { mergeableItems: [...mergeable.values()].map(item => ({ ...item, checkedState: item.checkedItems === 0 ? 'none' : item.checkedItems === item.totalItems ? 'all' : 'partial' })), separateItems }
 }
 
 module.exports = {

@@ -8,6 +8,8 @@ a guessed session id cannot reveal another user's messages or plan drafts.
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
+import hashlib
 import os
 import re
 import sqlite3
@@ -32,14 +34,19 @@ class AssistantStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self):
         connection = sqlite3.connect(str(self.path), timeout=5, check_same_thread=False)
         connection.row_factory = sqlite3.Row
         # SQLite foreign-key enforcement is connection-local.  Enabling it
         # here (not only during initialisation) guarantees deleted/expired
         # sessions also remove their message rows.
         connection.execute("PRAGMA foreign_keys = ON")
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._lock, self._connect() as connection:
@@ -52,6 +59,12 @@ class AssistantStore:
                     created_at REAL NOT NULL,
                     updated_at REAL NOT NULL,
                     state_json TEXT NOT NULL DEFAULT '{}'
+                );
+                CREATE TABLE IF NOT EXISTS assistant_plan_commands (
+                    session_id TEXT NOT NULL, user_scope TEXT NOT NULL, request_id TEXT NOT NULL,
+                    request_hash TEXT NOT NULL, response_json TEXT NOT NULL,
+                    PRIMARY KEY(user_scope, session_id, request_id),
+                    FOREIGN KEY(session_id) REFERENCES assistant_sessions(session_id) ON DELETE CASCADE
                 );
                 CREATE INDEX IF NOT EXISTS idx_assistant_sessions_owner_updated
                     ON assistant_sessions(user_scope, updated_at);
@@ -212,6 +225,32 @@ class AssistantStore:
                 (identifier, scope, normalized_role, normalized_content[:4000], now),
             )
             return True
+
+    def command_plan(self, session_id, user_scope, command, candidates):
+        from plan_commands import apply_command
+        scope, identifier = self._scope(user_scope), self._session_id(session_id)
+        request_id = str(command.get("request_id") or "")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", request_id): raise ValueError("缺少有效请求标识")
+        digest = hashlib.sha256(json.dumps(command,sort_keys=True,separators=(",",":")).encode()).hexdigest()
+        with self._lock, self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute("SELECT state_json FROM assistant_sessions WHERE session_id=? AND user_scope=?",(identifier,scope)).fetchone()
+            if not row: raise ValueError("助手会话不存在或已过期")
+            prior = connection.execute("SELECT request_hash,response_json FROM assistant_plan_commands WHERE session_id=? AND user_scope=? AND request_id=?",(identifier,scope,request_id)).fetchone()
+            if prior:
+                if prior["request_hash"] != digest: raise ValueError("请求标识已用于不同操作")
+                return json.loads(prior["response_json"])
+            active = connection.execute("SELECT 1 FROM assistant_tasks WHERE session_id=? AND user_scope=? AND status IN ('queued','understanding','querying','planning','validating')",(identifier,scope)).fetchone()
+            if active: raise ValueError("请等待当前生成结束后修改方案")
+            state = apply_command(self._decode_state(row["state_json"]),command,candidates)
+            state["task"] = {"type":"meal_plan","status":"ready","progress":1.0}
+            state["howto"] = None
+            response = {"success":True,"session_id":identifier,"plan":state["plan"],"task":state["task"],"can_undo":len(state.get("plan_history") or [])>1,
+                        "reply":"方案已更新，可查看后确认保存", "actions":[{"type":"SAVE_CALENDAR","label":"保存到计划","requires_confirmation":True},{"type":"ADD_SHOPPING_LIST","label":"准备购物","requires_confirmation":True}]}
+            encoded = json.dumps(response,ensure_ascii=False,separators=(",",":"))
+            connection.execute("UPDATE assistant_sessions SET state_json=?,updated_at=? WHERE session_id=? AND user_scope=?",(json.dumps(state,ensure_ascii=False),time.time(),identifier,scope))
+            connection.execute("INSERT INTO assistant_plan_commands VALUES (?,?,?,?,?)",(identifier,scope,request_id,digest,encoded))
+            return response
 
     def update_state(self, session_id: str, user_scope: str, state: Dict[str, Any]) -> bool:
         scope = self._scope(user_scope)

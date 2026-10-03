@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 
 @Data
 public class ShoppingItemPatchRequest {
+    private String requestId;
     private String displayName;
     private BigDecimal quantityValue;
     private String quantityText;

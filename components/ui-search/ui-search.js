@@ -1,0 +1,1 @@
+Component({properties:{value:String,placeholder:{type:String,value:'搜索菜品'},disabled:Boolean},methods:{input(e){this.triggerEvent('change',{value:e.detail.value})},clear(){if(!this.properties.disabled)this.triggerEvent('change',{value:''})},confirm(e){this.triggerEvent('search',{value:e.detail.value})}}})

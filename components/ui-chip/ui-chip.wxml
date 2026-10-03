@@ -1,0 +1,1 @@
+<button class="chip {{selected ? 'active' : ''}}" disabled="{{disabled}}" aria-pressed="{{selected}}" bindtap="tap">{{label}}</button>

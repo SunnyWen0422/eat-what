@@ -1,142 +1,16 @@
-<view class="detail-page">
-  <!-- 日期标题 -->
-  <view class="date-header">
-    <text class="date-display">{{dateDisplay}}</text>
-  </view>
-
-  <!-- 餐次列表 -->
-  <view class="meals-list">
-    <!-- 早餐 -->
-    <view class="meal-item">
-      <view class="meal-header">
-        <view class="meal-icon breakfast-icon"><view class="line-icon line-icon-sun"></view></view>
-        <text class="meal-title">早餐</text>
-        <view class="meal-actions">
-          <button class="action-btn add-btn" wx:if="{{!meals.breakfast}}" bindtap="onSelectMeal" data-meal="breakfast">+</button>
-          <button class="action-btn delete-btn" wx:if="{{meals.breakfast}}" bindtap="onDeleteMeal" data-meal="breakfast">×</button>
-        </view>
-      </view>
-      <view class="meal-content" wx:if="{{meals.breakfast}}" bindtap="onViewMealDetail" data-meal="{{meals.breakfast}}">
-        <view class="meal-main-info">
-          <text class="meal-name">{{meals.breakfast.name}}</text>
-          <text class="meal-time" wx:if="{{meals.breakfast.createTimeFormatted}}">{{meals.breakfast.createTimeFormatted}} 保存</text>
-        </view>
-        <button class="meal-shopping" catchtap="onAddMealToShoppingList" data-meal="breakfast">加入清单</button>
-        <view class="meal-dishes" wx:if="{{meals.breakfast.dishDetails.length > 0}}">
-          <view class="dish-tag" wx:for="{{meals.breakfast.dishDetails}}" wx:key="id">{{item.name}}</view>
-        </view>
-        <view class="meal-dishes" wx:elif="{{meals.breakfast.dishNames}}">
-          <text class="dish-names-text">{{meals.breakfast.dishNames}}</text>
-        </view>
-        <view class="manual-tag" wx:if="{{meals.breakfast.manual}}">手动添加</view>
-      </view>
-      <view class="empty-meal" wx:if="{{!meals.breakfast}}">
-        <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
-        <text>暂无早餐记录</text>
-        <text class="empty-hint">点击上方"+"添加</text>
-      </view>
-    </view>
-
-    <!-- 午餐 -->
-    <view class="meal-item">
-      <view class="meal-header">
-        <view class="meal-icon lunch-icon"><view class="line-icon line-icon-sun"></view></view>
-        <text class="meal-title">午餐</text>
-        <view class="meal-actions">
-          <button class="action-btn add-btn" wx:if="{{!meals.lunch}}" bindtap="onSelectMeal" data-meal="lunch">+</button>
-          <button class="action-btn delete-btn" wx:if="{{meals.lunch}}" bindtap="onDeleteMeal" data-meal="lunch">×</button>
-        </view>
-      </view>
-      <view class="meal-content" wx:if="{{meals.lunch}}" bindtap="onViewMealDetail" data-meal="{{meals.lunch}}">
-        <view class="meal-main-info">
-          <text class="meal-name">{{meals.lunch.name}}</text>
-          <text class="meal-time" wx:if="{{meals.lunch.createTimeFormatted}}">{{meals.lunch.createTimeFormatted}} 保存</text>
-        </view>
-        <button class="meal-shopping" catchtap="onAddMealToShoppingList" data-meal="lunch">加入清单</button>
-        <view class="meal-dishes" wx:if="{{meals.lunch.dishDetails.length > 0}}">
-          <view class="dish-tag" wx:for="{{meals.lunch.dishDetails}}" wx:key="id">{{item.name}}</view>
-        </view>
-        <view class="meal-dishes" wx:elif="{{meals.lunch.dishNames}}">
-          <text class="dish-names-text">{{meals.lunch.dishNames}}</text>
-        </view>
-        <view class="manual-tag" wx:if="{{meals.lunch.manual}}">手动添加</view>
-      </view>
-      <view class="empty-meal" wx:if="{{!meals.lunch}}">
-        <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
-        <text>暂无午餐记录</text>
-        <text class="empty-hint">点击上方"+"添加</text>
-      </view>
-    </view>
-
-    <!-- 晚餐 -->
-    <view class="meal-item">
-      <view class="meal-header">
-        <view class="meal-icon dinner-icon"><view class="line-icon line-icon-moon"></view></view>
-        <text class="meal-title">晚餐</text>
-        <view class="meal-actions">
-          <button class="action-btn add-btn" wx:if="{{!meals.dinner}}" bindtap="onSelectMeal" data-meal="dinner">+</button>
-          <button class="action-btn delete-btn" wx:if="{{meals.dinner}}" bindtap="onDeleteMeal" data-meal="dinner">×</button>
-        </view>
-      </view>
-      <view class="meal-content" wx:if="{{meals.dinner}}" bindtap="onViewMealDetail" data-meal="{{meals.dinner}}">
-        <view class="meal-main-info">
-          <text class="meal-name">{{meals.dinner.name}}</text>
-          <text class="meal-time" wx:if="{{meals.dinner.createTimeFormatted}}">{{meals.dinner.createTimeFormatted}} 保存</text>
-        </view>
-        <button class="meal-shopping" catchtap="onAddMealToShoppingList" data-meal="dinner">加入清单</button>
-        <view class="meal-dishes" wx:if="{{meals.dinner.dishDetails.length > 0}}">
-          <view class="dish-tag" wx:for="{{meals.dinner.dishDetails}}" wx:key="id">{{item.name}}</view>
-        </view>
-        <view class="meal-dishes" wx:elif="{{meals.dinner.dishNames}}">
-          <text class="dish-names-text">{{meals.dinner.dishNames}}</text>
-        </view>
-        <view class="manual-tag" wx:if="{{meals.dinner.manual}}">手动添加</view>
-      </view>
-      <view class="empty-meal" wx:if="{{!meals.dinner}}">
-        <view class="empty-icon"><view class="line-icon line-icon-meal"></view></view>
-        <text>暂无晚餐记录</text>
-        <text class="empty-hint">点击上方"+"添加</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 使用说明 -->
-  <view class="usage-tips">
-    <view class="tip-title"><view class="line-icon line-icon-spark"></view><text>使用提示</text></view>
-    <view class="tip-content">
-      <text>1. 点击"+"添加餐次记录</text>
-      <text>2. 从首页推荐菜谱中选择会自动保存到此处</text>
-      <text>3. 点击已有记录可查看详情</text>
-      <text>4. 点击"×"可删除记录</text>
-    </view>
-  </view>
-
-  <!-- 详情弹窗 -->
-  <view class="modal-mask" wx:if="{{showDetailModal}}" bindtap="onCloseModal"></view>
-  <view class="detail-modal" wx:if="{{showDetailModal}}">
-    <view class="modal-header">
-      <text class="modal-title">{{modalMeal.name}}</text>
-      <view class="modal-close" bindtap="onCloseModal">×</view>
-    </view>
-    <view class="modal-body">
-      <scroll-view class="modal-scroll" scroll-y="true">
-        <view class="modal-time" wx:if="{{modalMeal.createTimeFormatted}}">
-          <text class="time-label">保存时间：</text>
-          <text class="time-value">{{modalMeal.createTimeFormatted}}</text>
-        </view>
-        <view class="modal-dishes">
-          <view class="dish-detail-item" wx:for="{{modalMeal.dishDetails}}" wx:key="id" bindtap="onViewDish" data-dish="{{item}}">
-            <view class="dish-detail-header">
-              <text class="dish-detail-name">{{item.name}}</text>
-              <text class="dish-detail-type" wx:if="{{item.type}}">{{item.type}}</text>
-              <text class="dish-detail-arrow">›</text>
-            </view>
-            <view class="dish-detail-hint">
-              <text>点击查看详情</text>
-            </view>
-          </view>
-        </view>
-      </scroll-view>
-    </view>
-  </view>
-</view>
+<view class="ew-page ew-screen" style="font-size:{{14 * fontScale}}px"><text class="ew-heading">{{selectedDate}}</text><text class="ew-subtitle">安排与实际用餐分别保存，临时换菜也可以记录。</text>
+<ui-state wx:if="{{loading && !meals.length}}" kind="loading" title="正在读取三餐" />
+<ui-state wx:elif="{{errorMessage && !meals.length}}" kind="error" title="暂时无法读取" description="{{errorMessage}}" action-label="重试" bind:action="loadMealRecords" />
+<view wx:if="{{errorMessage && meals.length}}" class="ew-error">{{errorMessage}}<text class="ew-link" bindtap="loadMealRecords">重新加载</text></view>
+<meal-card wx:for="{{meals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际吃了：' + item.actualNames : ''}}">
+<view wx:if="{{item.plan}}" class="dish-links"><text wx:for="{{item.plan.dishDetails}}" wx:for-item="dish" wx:key="id" class="ew-chip" data-id="{{dish.id}}" bindtap="onViewDish">{{dish.name}} · 做法</text><text class="ew-muted">{{item.plan.targetPeople || 2}} 人用餐</text></view>
+<view class="ew-actions"><button class="ew-button secondary" data-meal="{{item.mealType}}" bindtap="onEditPlan" disabled="{{mutating}}">{{item.plan ? '编辑安排' : '手动安排'}}</button><button class="ew-button secondary" data-meal="{{item.mealType}}" bindtap="onChooseRecipe" disabled="{{mutating}}">从菜谱选菜</button></view>
+<view wx:if="{{item.plan}}" class="ew-actions"><button class="ew-button secondary" data-meal="{{item.mealType}}" bindtap="onCopy" disabled="{{mutating}}">复制到另一天</button><button class="ew-button secondary" data-meal="{{item.mealType}}" bindtap="onAddMealToShoppingList" disabled="{{mutating || item.status === 'skipped'}}">采购预览</button></view>
+<view wx:if="{{canRecord}}" class="ew-actions"><button wx:if="{{item.plan && item.status !== 'eaten'}}" class="ew-button" data-meal="{{item.mealType}}" bindtap="onEaten" disabled="{{mutating}}">按计划吃了</button><button class="ew-button secondary" data-meal="{{item.mealType}}" bindtap="onActualDifferent" disabled="{{mutating}}">{{item.status === 'eaten' ? '修改实际记录' : '记录实际吃的'}}</button></view>
+<view class="ew-actions"><text wx:if="{{item.plan && item.status !== 'skipped'}}" class="ew-link" data-meal="{{item.mealType}}" bindtap="onSkip">取消这餐安排</text><text wx:if="{{item.actual && item.status !== 'unrecorded'}}" class="ew-link" data-meal="{{item.mealType}}" bindtap="onUndoActual">撤销实际记录</text><text wx:if="{{item.plan}}" class="ew-link danger-link" data-meal="{{item.mealType}}" bindtap="onDeleteMeal">删除计划</text></view>
+</meal-card>
+<ui-confirm visible="{{formVisible}}" title="{{formTitle}}" busy="{{mutating}}" confirm-label="保存" bind:cancel="closeForm" bind:confirm="saveForm">
+<block wx:if="{{formMode === 'plan'}}"><ui-field disabled="{{mutating}}" label="安排名称" value="{{formName}}" required bind:change="onName" /><ui-field disabled="{{mutating}}" label="用餐人数" type="number" maxlength="2" value="{{formPeople}}" bind:change="onPeople" /><text class="ew-muted">从菜谱选菜可以生成食材清单；手动文字用于记录安排名称。</text></block>
+<block wx:if="{{formMode === 'actual'}}"><text class="ew-label">实际吃过的菜品</text><textarea disabled="{{mutating}}" adjust-position="{{false}}" class="ew-input" value="{{formActual}}" placeholder="每行一道菜，例如：番茄面" maxlength="3000" bindinput="onActualInput" /><text class="ew-muted">自由填写计入餐次和记录天数，不会推测营养或菜品分类。</text></block>
+<block wx:if="{{formMode === 'copy'}}"><text class="ew-label">复制到哪一天</text><picker disabled="{{mutating}}" mode="date" value="{{copyDate}}" bindchange="onCopyDate"><view class="ew-input">{{copyDate}}</view></picker></block><text wx:if="{{formError}}" class="ew-error">{{formError}}</text>
+</ui-confirm></view>

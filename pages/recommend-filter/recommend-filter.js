@@ -20,7 +20,7 @@ const DURATION_OPTIONS = [
 ]
 
 Page({
-  data: {
+  data: { fontScale: require('../../utils/font-scale')(),
     loading: true,
     offline: false,
     criteria: emptyCriteria(),
@@ -31,11 +31,15 @@ Page({
     featureEnabled: true,
   },
 
+  onShow() { if (this._scope && this._scope !== getUserStorageKey('filterPage')) this.onLoad() },
+  onUnload() { this._unloaded = true },
   async onLoad() {
+    const scope = this._scope = getUserStorageKey('filterPage')
     const editingKey = getUserStorageKey('editingRecommendationCriteria')
     const criteria = normalizeCriteria(wx.getStorageSync(editingKey) || emptyCriteria())
     wx.removeStorageSync(editingKey)
     const result = await loadRecommendationOptions()
+    if (this._unloaded || scope !== getUserStorageKey('filterPage')) return
     this.options = result.options
     this.setData({
       criteria: sanitizeCriteriaForOptions(criteria, this.options),
@@ -123,6 +127,7 @@ Page({
   },
 
   onApply() {
+    if (this._scope !== getUserStorageKey('filterPage')) { this.onLoad(); return }
     wx.setStorageSync(getUserStorageKey('pendingRecommendationCriteria'), normalizeCriteria(this.data.criteria))
     wx.showToast({ title: '筛选已应用', icon: 'success' })
     wx.navigateBack()

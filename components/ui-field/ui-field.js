@@ -1,0 +1,1 @@
+Component({ properties: { label: String, value: String, placeholder: String, error: String, required: Boolean, disabled: Boolean, type: {type:String,value:'text'}, maxlength: {type:Number,value:255} }, methods: { input(e) { this.triggerEvent('change', { value: e.detail.value }) } } })

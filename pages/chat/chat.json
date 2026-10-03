@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"吃什么助手","usingComponents":{}}
+{
+  "navigationBarTitleText": "吃什么助手",
+  "usingComponents": {},
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
+}

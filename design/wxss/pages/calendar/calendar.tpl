@@ -1,0 +1,19 @@
+@import "../../styles/theme.wxss";
+.period { font-size:0.8571em; color:{{muted}}; gap:8rpx; } .period-nav { margin:0; width:88rpx; padding:0; background:{{brandSoft}}; color:{{brand}}; font-size:1.4286em; border-radius:20rpx; }
+.day-grid { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; margin:24rpx 0; } .day { min-width:44px; min-height:44px; border-radius:20rpx; text-align:center; padding:8rpx 0; box-sizing:border-box; } .day.selected { background:{{brand}}; color:{{card}}; } .weekday,.day-mark { display:block; font-size:0.8571em; min-height:26rpx; } .day-number { display:block; font-size:1.0714em; font-weight:600; } .day-mark { color:{{brand}}; } .selected .day-mark { color:white; }
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:{{background}}; color:{{text}}; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:{{brand}}; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+.month-weekdays { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; text-align:center; font-size:0.8571em; color:{{muted}}; margin-top:24rpx; }
+@media (max-width:400px) {
+  /* Seven date targets need at least 308px on a 320px device. */
+  .calendar-card { margin-left:-28rpx; margin-right:-28rpx; padding-left:4rpx; padding-right:4rpx; }
+  .calendar-card .day-grid, .calendar-card .month-weekdays { gap:0; }
+}
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "确认购物清单"
+  "navigationBarTitleText": "确认购物清单",
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }

@@ -1,9 +1,11 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
 /* pages/dish-detail/dish-detail.wxss */
 
 .container {
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   overflow-x: hidden;
-  background: linear-gradient(180deg,#e9faf6 0,#fff 300rpx);
+  background: linear-gradient(180deg,#EDF3ED 0,#FFFFFF 300rpx);
   min-height: 100vh;
 }
 
@@ -12,7 +14,7 @@
   position: relative;
   width: 100%;
   height: 500rpx;
-  background-color: #fff;
+  background-color: #FFFFFF;
 }
 
 .dish-image {
@@ -30,14 +32,14 @@
   justify-content: center;
   flex-direction: column;
   gap: 12rpx;
-  background-color: #f0f0f0;
-  color: #299f91;
+  background-color: #F8F7F2;
+  color: #28634E;
 }
 .dish-image-placeholder .line-icon { width: 72rpx; height: 72rpx; }
 
 .placeholder-text {
-  color: #999;
-  font-size: 28rpx;
+  color: #617066;
+  font-size:1.0em;
 }
 
 .favorite-btn {
@@ -57,11 +59,11 @@
 .favorite-icon {
   width: 48rpx;
   height: 48rpx;
-  color: #2BA471;
+  color: #28634E;
 }
 
 .favorite-btn.favorited .favorite-icon {
-  color: #2BA471;
+  color: #28634E;
 }
 
 .favorite-btn:not(.favorited) .favorite-icon {
@@ -73,15 +75,15 @@
   width: 72rpx; height: 72rpx; background: rgba(255,255,255,0.9);
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   border: 1rpx solid #d7e5df;
-  padding: 0; border: none; font-size: 32rpx;
+  padding: 0; border: none; font-size:1.1429em;
 }
 .share-btn::after { border: none; }
-.share-btn .line-icon { width: 34rpx; height: 34rpx; color: #2BA471; }
+.share-btn .line-icon { width: 34rpx; height: 34rpx; color: #28634E; }
 
 /* 菜品信息 */
 .dish-info {
   padding: 30rpx;
-  background-color: #fff;
+  background-color: #FFFFFF;
   margin-top: 20rpx;
 }
 
@@ -90,9 +92,9 @@
 }
 
 .dish-name {
-  font-size: 40rpx;
+  font-size:1.4286em;
   font-weight: bold;
-  color: #333;
+  color: #25332B;
   display: block;
   word-break: break-word;
   margin-bottom: 16rpx;
@@ -105,8 +107,8 @@
 }
 
 .tag {
-  font-size: 24rpx;
-  color: #2BA471;
+  font-size:0.8571em;
+  color: #28634E;
   background-color: #fff0f0;
   padding: 6rpx 16rpx;
   border-radius: 20rpx;
@@ -132,14 +134,14 @@
 }
 
 .attribute-label {
-  font-size: 24rpx;
-  color: #999;
+  font-size:0.8571em;
+  color: #617066;
   margin-bottom: 8rpx;
 }
 
 .attribute-value {
-  font-size: 28rpx;
-  color: #333;
+  font-size:1.0em;
+  color: #25332B;
   font-weight: 500;
 }
 
@@ -151,18 +153,18 @@
 .section-title {
   margin-bottom: 20rpx;
   padding-bottom: 16rpx;
-  border-bottom: 2rpx solid #f0f0f0;
+  border-bottom: 2rpx solid #F8F7F2;
 }
 
 .section-title-text {
-  font-size: 32rpx;
+  font-size:1.1429em;
   font-weight: bold;
-  color: #333;
+  color: #25332B;
 }
 
 .section-content {
-  font-size: 28rpx;
-  color: #666;
+  font-size:1.0em;
+  color: #617066;
   line-height: 1.6;
 }
 
@@ -183,8 +185,8 @@
 }
 
 .ingredient-text {
-  font-size: 28rpx;
-  color: #333;
+  font-size:1.0em;
+  color: #25332B;
   line-height: 1.5;
   word-break: break-word;
 }
@@ -206,12 +208,12 @@
   height: 48rpx;
   min-width: 48rpx;
   background-color: #ff6b6b;
-  color: #fff;
+  color: #FFFFFF;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
+  font-size:0.8571em;
   font-weight: bold;
   margin-top: 8rpx;
 }
@@ -221,8 +223,8 @@
 }
 
 .step-text {
-  font-size: 28rpx;
-  color: #333;
+  font-size:1.0em;
+  color: #25332B;
   line-height: 1.6;
   display: block;
   margin-bottom: 16rpx;
@@ -267,8 +269,8 @@
 }
 
 .tips-text {
-  font-size: 28rpx;
-  color: #666;
+  font-size:1.0em;
+  color: #617066;
   line-height: 1.6;
 }
 
@@ -279,13 +281,13 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #F8F7F2;
 }
 
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
-  border: 6rpx solid #f0f0f0;
+  border: 6rpx solid #F8F7F2;
   border-top: 6rpx solid #ff6b6b;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -298,8 +300,8 @@
 
 .loading-text {
   margin-top: 20rpx;
-  font-size: 28rpx;
-  color: #999;
+  font-size:1.0em;
+  color: #617066;
 }
 
 /* 错误提示 */
@@ -309,20 +311,31 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #F8F7F2;
 }
 
 .error-text {
-  font-size: 32rpx;
-  color: #666;
+  font-size:1.1429em;
+  color: #617066;
   margin-bottom: 30rpx;
 }
 
 .retry-btn {
   background-color: #ff6b6b;
-  color: #fff;
+  color: #FFFFFF;
   border: none;
   border-radius: 40rpx;
   padding: 16rpx 60rpx;
-  font-size: 28rpx;
+  font-size:1.0em;
 }
+
+/* 页面共享主题，适用于本页详情、表单和弹层。 */
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

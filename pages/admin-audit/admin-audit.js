@@ -2,7 +2,7 @@ const api = require('../../utils/api')
 const ACTIONS = ['', 'USER_STATUS_UPDATE', 'CUSTOM_DISH_CREATE', 'CUSTOM_DISH_UPDATE', 'CUSTOM_DISH_DELETE', 'SYSTEM_DISH_UPDATE', 'SYSTEM_DISH_PUBLICATION']
 
 Page({
-  data: { actions: ACTIONS, actionIndex: 0, targetUserId: '', from: '', to: '', logs: [], total: 0, ready: false, loading: false, loadingMore: false, hasMore: false, error: '', notice: '' },
+  data: { fontScale: require('../../utils/font-scale')(), actions: ACTIONS, actionIndex: 0, targetUserId: '', from: '', to: '', logs: [], total: 0, ready: false, loading: false, loadingMore: false, hasMore: false, error: '', notice: '' },
   page: 0, pageSize: 20, version: 0,
   onLoad() { this.load(true) },
   async onPullDownRefresh() { try { this.page = 0; await this.load(true) } finally { wx.stopPullDownRefresh() } },

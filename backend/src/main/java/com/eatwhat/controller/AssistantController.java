@@ -84,6 +84,11 @@ public class AssistantController {
         return proxy("/assistant/sessions/" + encodePath(sessionId) + "/actions/preview", withUser(body, request));
     }
 
+    @PostMapping("/sessions/{sessionId}/plan-commands")
+    public ResponseEntity<?> planCommand(@PathVariable String sessionId,@RequestBody Map<String,Object> body,HttpServletRequest request) {
+        return proxy("/assistant/sessions/"+encodePath(sessionId)+"/plan-commands",withUser(body,request));
+    }
+
     @PostMapping("/sessions/{sessionId}/undo")
     public ResponseEntity<?> undo(@PathVariable String sessionId,
                                   @RequestBody(required = false) Map<String, Object> body,

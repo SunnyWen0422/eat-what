@@ -11,6 +11,7 @@ public class UserPreferenceDTO {
     private List<String> preferredTagCodes = new ArrayList<>();
     private List<String> excludedTagCodes = new ArrayList<>();
     private List<String> excludedIngredients = new ArrayList<>();
+    private Integer defaultPeople;
     private Integer avoidRecentDays = 7;
     private Integer maxCookMinutes;
     private Integer version = 1;

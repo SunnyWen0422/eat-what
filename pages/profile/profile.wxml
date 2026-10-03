@@ -1,10 +1,10 @@
-<view class="profile-page">
+<view class="ew-page profile-page" style="font-size:{{14 * fontScale}}px">
   <!-- 用户信息卡片 -->
   <view class="user-card" bindtap="onUserInfoTap">
     <view class="user-avatar">
-      <image class="avatar" src="{{userInfo.avatar}}" mode="aspectFill" />
+      <image wx:if="{{userInfo.avatar}}" class="avatar" src="{{userInfo.avatar}}" mode="aspectFill" binderror="onAvatarError" /><view wx:else class="avatar-fallback">我</view>
       <view class="edit-btn" catchtap="onEditProfile">
-        <view class="line-icon line-icon-pencil edit-icon" aria-label="编辑资料"></view>
+        <ui-icon class="line-icon line-icon-pencil edit-icon" name="pencil" aria-label="编辑资料" />
       </view>
     </view>
     <view class="user-info">
@@ -21,13 +21,13 @@
       <text class="login-modal-close" bindtap="onCloseLoginModal">✕</text>
     </view>
     <view class="login-modal-desc">登录后可同步数据、使用全部功能</view>
-    <button class="wx-login-btn" bindtap="onWxLogin">微信一键登录</button>
+    <view wx:if="{{loginError}}" class="ew-error">{{loginError}}</view><button disabled="{{loginBusy}}" loading="{{loginBusy}}" class="wx-login-btn" bindtap="onWxLogin">微信一键登录</button>
     <view class="login-skip" bindtap="onCloseLoginModal">暂不登录，游客体验</view>
   </view>
 
   <!-- 首个快捷入口：保持按菜品统计待购买食材 -->
   <view class="shopping-shortcut" bindtap="onShoppingListTap">
-    <view class="shopping-shortcut-icon"><view class="line-icon line-icon-cart" aria-label="购物清单"></view></view>
+    <view class="shopping-shortcut-icon"><ui-icon class="line-icon line-icon-cart" name="cart" aria-label="购物清单" /></view>
     <view class="shopping-shortcut-body">
       <text class="shopping-shortcut-title">购物清单</text>
       <text class="shopping-shortcut-count">{{shoppingSummary.pendingCount}} 项食材待购买</text>
@@ -41,7 +41,7 @@
     <view class="menu-list">
       <block wx:for="{{menuItems}}" wx:key="title">
         <view class="menu-item" bindtap="onMenuTap" data-index="{{index}}">
-          <view class="menu-icon"><view class="line-icon line-icon-{{item.icon}}" aria-label="{{item.title}}"></view></view>
+          <view class="menu-icon"><ui-icon name="{{item.icon}}" label="{{item.title}}" /></view>
           <view class="menu-content">
             <text class="menu-title">{{item.title}}</text>
             <text class="menu-desc">{{item.desc}}</text>

@@ -10,6 +10,7 @@ public class UserPreference {
     private String preferredTagsJson;
     private String excludedTagsJson;
     private String excludedIngredientsJson;
+    private Integer defaultPeople = 2;
     private Integer avoidRecentDays;
     private Integer maxCookMinutes;
     private Integer version;

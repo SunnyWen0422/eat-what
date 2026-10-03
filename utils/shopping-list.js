@@ -38,27 +38,43 @@ function loadPendingOperations() { return wx.getStorageSync(key('pendingOps')) |
 
 function enqueueShoppingOperation(operation) {
   const operations = loadPendingOperations()
-  operations.push({ operationId: `op-${Date.now()}-${Math.random().toString(16).slice(2)}`, createdAt: Date.now(), ...operation })
+  if (!operations.some(item => item.payload && operation.payload && item.payload.requestId === operation.payload.requestId))
+    operations.push({ operationId: `op-${Date.now()}-${Math.random().toString(16).slice(2)}`, createdAt: Date.now(), ...operation })
   wx.setStorageSync(key('pendingOps'), operations)
   return operations.length
 }
 
 async function flushShoppingOperations() {
   const api = require('./api')
+  const scope = key('pendingOps')
   const operations = loadPendingOperations()
-  const remaining = []
   for (const operation of operations) {
     try {
-      if (operation.type === 'batch-add') await api.batchAddShoppingItems(operation.payload)
-      else if (operation.type === 'patch') await api.patchShoppingItem(operation.itemId, operation.payload)
-      else if (operation.type === 'delete') await api.deleteShoppingItem(operation.itemId, operation.payload)
-      else if (operation.type === 'clear') await api.clearShoppingList(operation.payload)
+      let result
+      if (operation.type === 'batch-add') result = await api.batchAddShoppingItems(operation.payload)
+      else if (operation.type === 'manual') result = await api.addManualShoppingItem(operation.payload)
+      else if (operation.type === 'check') result = await api.checkShoppingItems(operation.payload)
+      else if (operation.type === 'patch') result = await api.patchShoppingItemConfirmed(operation.itemId, operation.payload)
+      else if (operation.type === 'delete') result = await api.deleteShoppingItemConfirmed(operation.itemId, operation.payload)
+      else if (operation.type === 'clear') result = await api.clearShoppingList(operation.payload)
+      else throw new Error('无法识别该草稿，请重新确认内容')
+      if (scope !== key('pendingOps')) return { remaining: operations.length, accountChanged: true }
+      saveLocalShoppingList(result.list || result)
+      removePendingOperation(operation.operationId, operation.payload && operation.payload.requestId)
     } catch (error) {
-      remaining.push(operation)
+      return { remaining: loadPendingOperations().length, conflict: error.statusCode === 409, error }
     }
   }
-  wx.setStorageSync(key('pendingOps'), remaining)
-  return remaining.length
+  return { remaining: loadPendingOperations().length, conflict: false }
+}
+
+function removePendingOperation(operationId, requestId) {
+  wx.setStorageSync(key('pendingOps'), loadPendingOperations().filter(item => operationId
+    ? item.operationId !== operationId : !item.payload || item.payload.requestId !== requestId))
+}
+
+function replacePendingOperation(operationId, operation) {
+  wx.setStorageSync(key('pendingOps'), loadPendingOperations().map(item => item.operationId === operationId ? operation : item))
 }
 
 function beginShoppingSelection(selection) { wx.setStorageSync(key('pendingSelection'), selection); return selection }
@@ -77,4 +93,6 @@ module.exports = {
   beginShoppingSelection,
   consumeShoppingSelection,
   loadPendingOperations,
+  removePendingOperation,
+  replacePendingOperation,
 }

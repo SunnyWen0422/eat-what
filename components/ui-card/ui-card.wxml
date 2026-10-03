@@ -1,0 +1,1 @@
+<view class="ew-card"><view class="ew-title" wx:if="{{title}}">{{title}}</view><view class="ew-muted" wx:if="{{description}}">{{description}}</view><slot /></view>

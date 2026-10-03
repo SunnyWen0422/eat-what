@@ -11,9 +11,9 @@ const {
 } = require('../../utils/recommendation-criteria')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 
-Page({
-  data: {
-    motto: 'Hello World',
+Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'today'}) : {
+  data: { fontScale: require('../../utils/font-scale')(), theme: require('../../utils/ui-tokens'),
+    people: 2, advancedExpanded: false, todayMeals: [], todayError: '',
     // 参数设置
     meat: 2,
     veg: 2,
@@ -59,6 +59,10 @@ Page({
   },
 
   onShow() {
+    const identity = getUserStorageKey('todayMeals')
+    if (this._viewScope && this._viewScope !== identity) this.setData({ selectedDishes: [], hasSelectedDishes: false, todayMeals: [], todayError: '', sessionCriteria: emptyCriteria(), people: 2 })
+    this._viewScope = identity
+    this.loadTodayMeals()
     this.loadSavedRecipes()
     // 也检查本地存储中是否有从定制页带回的菜品
     const { getUserStorageKey } = require('../../utils/util')
@@ -85,6 +89,14 @@ Page({
 
   },
 
+  onPeopleChange(e) { const people = Number(e.detail.value); if (Number.isInteger(people) && people >= 1 && people <= 50) this.setData({ people }); else wx.showToast({ title: '人数应为 1 至 50', icon: 'none' }) },
+  onAdvancedToggle() { this.setData({ advancedExpanded: !this.data.advancedExpanded }) },
+  onTodayMeal(e) { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + require('../../utils/meal-workflow').today() }) },
+  async loadTodayMeals() {
+    const scope = getUserStorageKey('todayMeals'), flow = require('../../utils/meal-workflow'), day = flow.today()
+    try { const overview = await require('../../utils/api').getMealOverview(day, day); if (scope === getUserStorageKey('todayMeals')) this.setData({ todayMeals: flow.mealViews(overview, day), todayError: '' }) }
+    catch (error) { if (scope === getUserStorageKey('todayMeals')) this.setData({ todayMeals: [], todayError: '今日安排暂未读到，可在计划页重试' }) }
+  },
   onShareAppMessage() {
     return {
       title: '今天吃什么？给你几道顺口的家常菜',
@@ -254,6 +266,7 @@ Page({
       dessert: dessert,
       staple: staple,
       mealType: mealType,
+      people: this.data.people,
       criteria: normalizeCriteria(sessionCriteria),
       useSavedPreferences: useSavedPreferences,
       selectedRecipe: selectedRecipe,
@@ -272,7 +285,7 @@ Page({
 
   onOpenChat() {
     wx.vibrateShort({ type: 'light' })
-    wx.switchTab({ url: '/pages/chat/chat' })
+    wx.navigateTo({ url: '/pages/chat/chat' })
   },
   
   onQuickFilterTap(e) {

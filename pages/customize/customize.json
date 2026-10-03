@@ -1,8 +1,7 @@
 {
   "disableScroll": true,
-  "navigationBarTitleText": "定制菜谱",
-  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTitleText": "菜谱",
+  "navigationBarBackgroundColor": "#F8F7F2",
   "navigationBarTextStyle": "black",
   "onReachBottomDistance": 50
 }
-

@@ -13,6 +13,7 @@ import assistant_engine
 from agent_policy import load_policy, policy_hash
 from agent_schemas import SchemaValidationError, to_runtime_plan, validate_final_output, validate_tool_call
 from assistant_store import AssistantStore
+from plan_commands import next_plan_state, PlanCommandError
 from model_client import ModelProtocolError, ModelUnavailable, default_model_client
 
 
@@ -82,7 +83,10 @@ class AgentRuntime:
 
     def _fallback(self, task_id: str, session_id: str, scope: str, message: str, reason: str) -> Dict[str, Any]:
         self._event(task_id, scope, "planning", "正在使用本地菜库和规则整理方案")
-        result = assistant_engine.handle_message(message, scope, session_id=session_id)
+        try:
+            result = assistant_engine.handle_message(message, scope, session_id=session_id)
+        except PlanCommandError as error:
+            return self._plan_constraint_result(task_id, session_id, scope, error)
         result = copy.deepcopy(result or {})
         base_reply = str(result.get("reply") or "我先按本地菜库和规则为你整理了一套方案。")
         result["reply"] = "当前智能模型暂时不可用，我先使用本地菜库和规则处理。" + base_reply
@@ -93,6 +97,18 @@ class AgentRuntime:
         status = "completed" if result.get("plan") or result.get("howto") else "needs_input"
         self._event(task_id, scope, status)
         return self._task_result(task_id, scope, result, status)
+
+    def _plan_constraint_result(self, task_id, session_id, scope, error):
+        # A user edit constraint is recoverable; it must not leave a running task.
+        state = (self.store.get(session_id, scope) or {}).get("state") or {}
+        reply = str(error) + "。原方案已保留，请解除对应菜品的保留后重试。"
+        self.store.append_message(session_id, scope, "assistant", reply)
+        self._event(task_id, scope, "needs_input", reply)
+        return self._task_result(task_id, scope, {
+            "success": True, "session_id": session_id, "reply": reply,
+            "plan": state.get("plan"), "can_undo": len(state.get("plan_history") or []) > 1,
+            "actions": [], "warnings": [str(error)],
+        }, "needs_input")
 
     @staticmethod
     def _collect_ids(value: Any, output: Optional[Set[str]] = None) -> Set[str]:
@@ -128,7 +144,11 @@ class AgentRuntime:
 
     def _persist_model_result(self, session_id: str, scope: str, message: str,
                               payload: Dict[str, Any], candidates: Dict[str, Dict[str, Any]], version: int) -> Dict[str, Any]:
+        previous = (self.store.get(session_id, scope) or {}).get("state") or {}
         plan = to_runtime_plan(payload, candidates, version)
+        history_state = next_plan_state(previous, plan)
+        plan = history_state.get("plan")
+        version = (plan or {}).get("version", version)
         state = {
             "request": {"message": message, "intent": payload.get("intent", "chat"), "skill": "dynamic"},
             "plan": plan,
@@ -142,7 +162,8 @@ class AgentRuntime:
             "mode": "model",
         }
         if plan:
-            state["plan_history"] = [copy.deepcopy(plan)]
+            state["plan_history"] = history_state.get("plan_history") or [copy.deepcopy(plan)]
+            state["plan_archive"] = history_state.get("plan_archive") or []
         self.store.append_message(session_id, scope, "user", message)
         self.store.append_message(session_id, scope, "assistant", str(payload.get("reply") or ""))
         self.store.update_state(session_id, scope, state)
@@ -160,7 +181,7 @@ class AgentRuntime:
             "actions": payload.get("actions") or [],
             "warnings": payload.get("warnings") or [],
             "source": "database" if candidates else "none",
-            "can_undo": False,
+            "can_undo": len(state.get("plan_history") or []) > 1,
             "mode": "model",
             "policy_version": state["policy_version"],
             "policy_hash": state["policy_hash"],
@@ -313,6 +334,8 @@ class AgentRuntime:
                 final_status = "awaiting_confirmation" if result.get("actions") else "completed"
                 return self._task_result(task_id, user_scope, result, final_status)
             raise ModelUnavailable("agent tool loop exceeded round limit")
+        except PlanCommandError as error:
+            return self._plan_constraint_result(task_id, session_id, user_scope, error)
         except TaskCancelled:
             return self._task_result(task_id, user_scope, {
                 "success": False, "error_code": "ASSISTANT_TASK_CANCELLED", "message": "任务已停止",

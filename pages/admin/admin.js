@@ -46,7 +46,7 @@ function formatDate(value) {
 }
 
 Page({
-  data: {
+  data: { fontScale: require('../../utils/font-scale')(),
     mode: 'list',
     users: [],
     total: 0,

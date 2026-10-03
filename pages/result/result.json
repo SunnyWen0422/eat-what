@@ -1,5 +1,6 @@
 {
   "disableScroll": true,
-  "navigationBarTitleText": "今日推荐"
+  "navigationBarTitleText": "今日推荐",
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
 }
-

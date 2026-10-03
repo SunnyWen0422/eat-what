@@ -1,0 +1,1 @@
+Component({ properties: { kind: { type: String, value: 'empty' }, illustration: String, title: String, description: String, actionLabel: String }, methods: { onAction() { this.triggerEvent('action') } } })

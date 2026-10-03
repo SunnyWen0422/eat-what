@@ -29,6 +29,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/dishes/**",
                         "/recommend/**",
                         "/recipe-records/**",
+                        "/meal-consumptions/**",
+                        "/meal-plans/**",
+                        "/meal-workspaces/**",
+                        "/behavior-events",
+                        "/diet-reviews",
                         "/favorite-dishes/**",
                         "/admin/**",
                         "/chat/**",
@@ -39,6 +44,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 )
                 .excludePathPatterns(
                         "/users/login",
+                        "/users/avatar-images/*",
                         "/users/phone-login"
                 );
     }

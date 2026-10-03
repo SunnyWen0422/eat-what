@@ -26,7 +26,7 @@ public interface ShoppingItemMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ShoppingItem item);
 
-    @Update("UPDATE shopping_item i JOIN shopping_dish d ON d.id = i.shopping_dish_id SET i.display_name = #{item.displayName}, i.quantity_value = #{item.quantityValue}, i.quantity_text = #{item.quantityText}, i.unit_code = #{item.unitCode}, i.checked = COALESCE(#{item.checked}, i.checked), i.user_override = COALESCE(#{item.userOverride}, i.user_override) WHERE i.id = #{item.id} AND d.shopping_list_id = #{listId}")
+    @Update("UPDATE shopping_item i JOIN shopping_dish d ON d.id = i.shopping_dish_id SET i.display_name = #{item.displayName}, i.canonical_name = #{item.canonicalName}, i.normalized_variant = #{item.normalizedVariant}, i.quantity_value = #{item.quantityValue}, i.quantity_min = #{item.quantityMin}, i.quantity_max = #{item.quantityMax}, i.parse_status = #{item.parseStatus}, i.calculation_status = #{item.calculationStatus}, i.source_quantity_text = #{item.sourceQuantityText}, i.quantity_text = #{item.quantityText}, i.unit_code = #{item.unitCode}, i.checked = COALESCE(#{item.checked}, i.checked), i.user_override = COALESCE(#{item.userOverride}, i.user_override) WHERE i.id = #{item.id} AND d.shopping_list_id = #{listId}")
     int update(@Param("item") ShoppingItem item, @Param("listId") Long listId);
 
     @Delete("DELETE i FROM shopping_item i JOIN shopping_dish d ON d.id = i.shopping_dish_id WHERE i.id = #{id} AND d.shopping_list_id = #{listId}")

@@ -134,12 +134,14 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
 
   // 请求去重：如果同一个请求已经在进行中，复用其结果
   const reqKey = getRequestKey(url, method, data)
+  const originalIdentity = requestIdentity()
   if (inFlightRequests[reqKey]) {
-    console.log(`🔗 复用进行中的请求: ${reqKey}`)
+    console.log('复用进行中的请求')
     return inFlightRequests[reqKey]
   }
 
   async function attempt(attemptIndex) {
+    if (originalIdentity !== requestIdentity()) throw { statusCode: 401, isAccountChanged: true }
     try {
       const { statusCode, data: resData } = await executeHttpRequest(url, method, data)
 
@@ -153,6 +155,9 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
         console.log('🔄 Token 失效，尝试自动重新登录...')
         try {
           await autoReLogin()
+          if (method !== 'GET' && originalIdentity !== requestIdentity()) {
+            throw { statusCode: 401, isAuthError: true }
+          }
           // 重新登录后用新 token 重试（仅一次，防止死循环）
           return await doRequest(url, method, data, {
             silent,
@@ -209,9 +214,8 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
   const promise = attempt(0)
   inFlightRequests[reqKey] = promise
   // 请求完成后清理（无论成功失败）
-  promise.finally(() => {
-    delete inFlightRequests[reqKey]
-  })
+  const cleanup = () => { delete inFlightRequests[reqKey] }
+  promise.then(cleanup, cleanup)
   return promise
 }
 
@@ -746,6 +750,24 @@ function getAdminAuditLogs(params = {}) {
 // ========================================
 
 module.exports = {
+  getMealWorkspace: (date, mealType) => requestSilent(`/meal-workspaces/current?date=${encodeURIComponent(date)}&mealType=${encodeURIComponent(mealType)}`, 'GET'),
+  createMealWorkspace: body => doRequest('/meal-workspaces', 'POST', body, { silent: true, maxRetries: 0 }),
+  saveWorkspaceContext: (id, body) => doRequest(`/meal-workspaces/${encodeURIComponent(id)}/context`, 'PATCH', body, { silent: true, maxRetries: 0 }),
+  commandMealWorkspace: (id, body) => doRequest(`/meal-workspaces/${encodeURIComponent(id)}/commands`, 'POST', body, { silent: true, maxRetries: 0 }),
+  confirmMealWorkspace: (id, body) => doRequest(`/meal-workspaces/${encodeURIComponent(id)}/confirm`, 'POST', body, { silent: true, maxRetries: 0 }),
+  getWorkspaceTask: (id, taskId) => requestSilent(`/meal-workspaces/${encodeURIComponent(id)}/tasks/${encodeURIComponent(taskId)}`, 'GET'),
+  getWorkspaceRequest: (id, key) => requestSilent(`/meal-workspaces/${encodeURIComponent(id)}/requests/${encodeURIComponent(key)}`, 'GET'),
+  recordBehaviorEvent: body => doRequest('/behavior-events', 'POST', body, { silent: true, maxRetries: 0 }),
+  commandAssistantPlan: (sessionId, body) => assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}/plan-commands`, 'POST', body),
+  getMealOverview: (start, end) => requestSilent(`/recipe-records/overview?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`, 'GET'),
+  getDietReview: (start, end) => requestSilent(`/diet-reviews?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`, 'GET'),
+  saveMealConsumption: (date, meal, body) => doRequest(`/meal-consumptions/${encodeURIComponent(date)}/${encodeURIComponent(meal)}`, 'PUT', body, { silent: true, maxRetries: 0 }),
+  saveMealPlan: (date, meal, body) => doRequest(`/meal-plans/${encodeURIComponent(date)}/${encodeURIComponent(meal)}`, 'PUT', body, { silent: true, maxRetries: 0 }),
+  removeMealPlan: (date, meal, body) => doRequest(`/meal-plans/${encodeURIComponent(date)}/${encodeURIComponent(meal)}`, 'DELETE', body, { silent: true, maxRetries: 0 }),
+  addManualShoppingItem: body => doRequest('/shopping-list/manual-items', 'POST', body, { silent: true, maxRetries: 0 }),
+  checkShoppingItems: body => doRequest('/shopping-list/items:batch-check', 'POST', body, { silent: true, maxRetries: 0 }),
+  patchShoppingItemConfirmed: (id, body) => doRequest(`/shopping-list/items/${encodeURIComponent(id)}/confirmed`, 'PATCH', body, { silent: true, maxRetries: 0 }),
+  deleteShoppingItemConfirmed: (id, body) => doRequest(`/shopping-list/items/${encodeURIComponent(id)}:delete`, 'POST', body, { silent: true, maxRetries: 0 }),
   // 通用方法
   request,
   requestSilent,

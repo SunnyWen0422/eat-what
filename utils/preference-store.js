@@ -7,6 +7,7 @@ function defaultPreferences() {
     preferredTagCodes: [],
     excludedTagCodes: [],
     excludedIngredients: [],
+    defaultPeople: 2,
     avoidRecentDays: 7,
     maxCookMinutes: null,
     version: 1,
@@ -31,6 +32,7 @@ function normalizePreferences(value = {}) {
     excludedIngredients: [...new Set((Array.isArray(value.excludedIngredients) ? value.excludedIngredients : [])
       .map(item => String(item || '').trim().slice(0, 20))
       .filter(Boolean))].sort().slice(0, 30),
+    defaultPeople: Number.isInteger(Number(value.defaultPeople)) && Number(value.defaultPeople) >= 1 && Number(value.defaultPeople) <= 50 ? Number(value.defaultPeople) : 2,
     avoidRecentDays: Number.isFinite(days) ? Math.max(0, Math.min(30, Math.round(days))) : 7,
     maxCookMinutes: Number.isFinite(minutes) && minutes > 0 ? Math.min(240, Math.round(minutes)) : null,
     version: Number(value.version) || 1,
@@ -62,16 +64,18 @@ function createPreferenceStore(dependencies = {}) {
     return normalizePreferences(wxRuntime.getStorageSync(cacheKey()) || defaultPreferences())
   }
 
-  function writeCache(value) {
+  function writeCache(value, key = cacheKey()) {
     const normalized = normalizePreferences(value)
-    wxRuntime.setStorageSync(cacheKey(), normalized)
+    wxRuntime.setStorageSync(key, normalized)
     return normalized
   }
 
   async function load() {
+    const key = cacheKey()
     try {
       const result = await backend.getUserPreferences()
-      const preferences = writeCache((result && result.preferences) || result || defaultPreferences())
+      if (key !== cacheKey()) return { preferences: readCache(), synced: false, accountChanged: true }
+      const preferences = writeCache((result && result.preferences) || result || defaultPreferences(), key)
       return { preferences, synced: true }
     } catch (error) {
       return { preferences: readCache(), synced: false, error }
@@ -79,18 +83,21 @@ function createPreferenceStore(dependencies = {}) {
   }
 
   async function save(value) {
-    const pending = writeCache(value)
+    const key = cacheKey()
+    const pending = writeCache(value, key)
     try {
       const result = await backend.updateUserPreferences(pending)
-      const preferences = writeCache((result && result.preferences) || pending)
+      if (key !== cacheKey()) return { preferences: readCache(), synced: false, accountChanged: true }
+      const preferences = writeCache((result && result.preferences) || pending, key)
       return { preferences, synced: true }
     } catch (error) {
-      return { preferences: pending, synced: false, error }
+      return { preferences: pending, synced: false, error, accountChanged: key !== cacheKey() }
     }
   }
 
   async function migrateLegacy() {
-    const legacy = wxRuntime.getStorageSync(legacyKey())
+    const oldKey = legacyKey()
+    const legacy = wxRuntime.getStorageSync(oldKey)
     if (!legacy) return { migrated: false, preferences: readCache() }
     const existingV2 = wxRuntime.getStorageSync(cacheKey())
     let next
@@ -105,7 +112,7 @@ function createPreferenceStore(dependencies = {}) {
       next = normalizePreferences({ ...defaultPreferences(), preferredCuisineCodes: cuisines })
     }
     const result = await save(next)
-    if (result.synced) wxRuntime.removeStorageSync(legacyKey())
+    if (result.synced && oldKey === legacyKey()) wxRuntime.removeStorageSync(oldKey)
     return { ...result, migrated: result.synced }
   }
 

@@ -1,19 +1,13 @@
-.preview-page { height: 100%; min-height: 100vh; background: linear-gradient(180deg,#e9faf6 0,#fff 300px); box-sizing: border-box; }
-.preview-page .mobile-scroll-content { padding-bottom: calc(170rpx + env(safe-area-inset-bottom)); }
-.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
-.toolbar-title { font-size: 38rpx; font-weight: 700; color: #1f2d27; }
-.people-control { display: flex; align-items: center; gap: 12rpx; color: #61716a; font-size: 26rpx; }
-.people-control input { width: 90rpx; padding: 10rpx 14rpx; background: #fff; border: 1rpx solid #dce6e1; border-radius: 8rpx; text-align: center; }
-.notice, .loading, .empty { padding: 20rpx; margin-bottom: 16rpx; background: #fff; border-radius: 8rpx; color: #5d6d65; }
-.warning-block, .warning { color: #b66a14; }
-.dish-group { margin-bottom: 18rpx; background: #fff; border-radius: 8rpx; overflow: hidden; }
-.dish-header { display: flex; justify-content: space-between; padding: 22rpx; background: #eaf5ef; color: #36745a; }
-.dish-name { font-weight: 700; color: #1e4f3a; }
-.ingredient-row { padding: 20rpx 22rpx; border-top: 1rpx solid #edf1ef; }
-.ingredient-main { display: flex; justify-content: space-between; font-size: 30rpx; }
-.quantity { font-weight: 700; color: #243d31; }
-.row-actions { display: flex; justify-content: flex-end; gap: 28rpx; margin-top: 10rpx; color: #4b8c6d; font-size: 25rpx; }
-.empty-group { padding: 22rpx; color: #84948c; }
-.bottom-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; gap: 20rpx; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); box-sizing:border-box; background: #fff; border-top: 1rpx solid #e3eeea; }
-.bottom-actions button { flex: 1; min-width: 0; margin: 0; border-radius: 8rpx; }
-.bottom-actions .primary { color: #fff; background: #2ba471; }
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
+.ingredient-row { display:flex; align-items:center; gap:12rpx; padding:24rpx 0; border-bottom:1rpx solid #E7ECE5; }
+.ingredient-row .ew-link { padding:0 12rpx; }
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

@@ -1,0 +1,2 @@
+@import "../../styles/theme.wxss";
+.check-row{display:flex;align-items:center;gap:8px;min-height:44px;font-size:1.0em}

@@ -62,6 +62,14 @@ def _meal_types(text: str) -> List[str]:
 
 def _parse_dates(text: str, now: datetime) -> List[str]:
     current = now.date()
+    iso_dates = re.findall(r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)", text)
+    if iso_dates:
+        # Explicit day values from the date picker take priority over relative wording.
+        try:
+            return list(dict.fromkeys(date.fromisoformat(value).isoformat() for value in iso_dates))[:31]
+        except ValueError as error:
+            from plan_commands import PlanCommandError
+            raise PlanCommandError("日期无效，请重新选择日期") from error
     if "明天" in text:
         return [(current + timedelta(days=1)).isoformat()]
     if "后天" in text:
@@ -322,15 +330,20 @@ def _replacement_plan(
     # understandable without asking the user to repeat the whole plan.
     for meal in meals:
         for dish in meal.get("dishes") or []:
-            if any(_term_matches_dish(term, dish) for term in target_terms):
+            if not dish.get("locked") and any(_term_matches_dish(term, dish) for term in target_terms):
                 target, target_meal = dish, meal
                 break
         if target:
             break
+    locked_target = any(dish.get("locked") and any(_term_matches_dish(term,dish) for term in target_terms)
+                        for meal in meals for dish in meal.get("dishes") or [])
+    if locked_target:
+        from plan_commands import PlanCommandError
+        raise PlanCommandError("这道菜已保留，请先解除保留")
     if target is None:
         for meal in meals:
             for dish in meal.get("dishes") or []:
-                if not any(_term_matches_dish(term, dish) for term in preserve_terms):
+                if not dish.get("locked") and not any(_term_matches_dish(term, dish) for term in preserve_terms):
                     target, target_meal = dish, meal
                     break
             if target:
@@ -682,6 +695,8 @@ def handle_message(message: str, user_scope: str, session_id: Optional[str] = No
 
     next_version = int(previous_state.get("next_plan_version") or ((previous_plan or {}).get("version", 0) + 1))
     plan = build_plan(request, candidates, previous_plan=previous_plan, version=next_version)
+    from plan_commands import next_plan_state
+    plan = next_plan_state(previous_state, plan).get("plan")
     status = "ready" if any(meal.get("dishes") for meal in plan.get("meals", [])) else "needs_input"
     reply = _friendly_reply(request, plan)
     model_reply = _safe_model_reply(message, {"reply": reply, "plan": plan})

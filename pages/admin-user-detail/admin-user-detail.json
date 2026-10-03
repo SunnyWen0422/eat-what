@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"用户详情","enablePullDownRefresh":true}
+{
+  "navigationBarTitleText": "用户详情",
+  "enablePullDownRefresh": true,
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "navigationBarTextStyle": "black"
+}

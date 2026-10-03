@@ -1,0 +1,12 @@
+@import "../../styles/theme.wxss";
+.ingredient-row { display:flex; align-items:center; gap:12rpx; padding:24rpx 0; border-bottom:1rpx solid #E7ECE5; }
+.ingredient-row .ew-link { padding:0 12rpx; }
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:{{background}}; color:{{text}}; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:{{brand}}; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

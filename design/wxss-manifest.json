@@ -1,0 +1,170 @@
+[
+  {
+    "source": "design/wxss/pages/about/about.tpl",
+    "output": "pages/about/about.wxss"
+  },
+  {
+    "source": "design/wxss/pages/admin/admin.tpl",
+    "output": "pages/admin/admin.wxss"
+  },
+  {
+    "source": "design/wxss/pages/admin-audit/admin-audit.tpl",
+    "output": "pages/admin-audit/admin-audit.wxss"
+  },
+  {
+    "source": "design/wxss/pages/admin-dashboard/admin-dashboard.tpl",
+    "output": "pages/admin-dashboard/admin-dashboard.wxss"
+  },
+  {
+    "source": "design/wxss/pages/admin-dishes/admin-dishes.tpl",
+    "output": "pages/admin-dishes/admin-dishes.wxss"
+  },
+  {
+    "source": "design/wxss/pages/admin-user-detail/admin-user-detail.tpl",
+    "output": "pages/admin-user-detail/admin-user-detail.wxss"
+  },
+  {
+    "source": "design/wxss/pages/admin-users/admin-users.tpl",
+    "output": "pages/admin-users/admin-users.wxss"
+  },
+  {
+    "source": "design/wxss/pages/calendar/calendar.tpl",
+    "output": "pages/calendar/calendar.wxss"
+  },
+  {
+    "source": "design/wxss/pages/calendar-detail/calendar-detail.tpl",
+    "output": "pages/calendar-detail/calendar-detail.wxss"
+  },
+  {
+    "source": "design/wxss/pages/chat/chat.tpl",
+    "output": "pages/chat/chat.wxss"
+  },
+  {
+    "source": "design/wxss/pages/custom-dishes/custom-dishes.tpl",
+    "output": "pages/custom-dishes/custom-dishes.wxss"
+  },
+  {
+    "source": "design/wxss/pages/customize/customize.tpl",
+    "output": "pages/customize/customize.wxss"
+  },
+  {
+    "source": "design/wxss/pages/dish-detail/dish-detail.tpl",
+    "output": "pages/dish-detail/dish-detail.wxss"
+  },
+  {
+    "source": "design/wxss/pages/favorite-dishes/favorite-dishes.tpl",
+    "output": "pages/favorite-dishes/favorite-dishes.wxss"
+  },
+  {
+    "source": "design/wxss/pages/index/index.tpl",
+    "output": "pages/index/index.wxss"
+  },
+  {
+    "source": "design/wxss/pages/logs/logs.tpl",
+    "output": "pages/logs/logs.wxss"
+  },
+  {
+    "source": "design/wxss/pages/profile/profile.tpl",
+    "output": "pages/profile/profile.wxss"
+  },
+  {
+    "source": "design/wxss/pages/profile-edit/profile-edit.tpl",
+    "output": "pages/profile-edit/profile-edit.wxss"
+  },
+  {
+    "source": "design/wxss/pages/recommend-filter/recommend-filter.tpl",
+    "output": "pages/recommend-filter/recommend-filter.wxss"
+  },
+  {
+    "source": "design/wxss/pages/result/result.tpl",
+    "output": "pages/result/result.wxss"
+  },
+  {
+    "source": "design/wxss/pages/settings/settings.tpl",
+    "output": "pages/settings/settings.wxss"
+  },
+  {
+    "source": "design/wxss/pages/shopping-list/shopping-list.tpl",
+    "output": "pages/shopping-list/shopping-list.wxss"
+  },
+  {
+    "source": "design/wxss/pages/shopping-preview/shopping-preview.tpl",
+    "output": "pages/shopping-preview/shopping-preview.wxss"
+  },
+  {
+    "source": "design/wxss/pages/statistics/statistics.tpl",
+    "output": "pages/statistics/statistics.wxss"
+  },
+  {
+    "source": "design/wxss/pages/sync/sync.tpl",
+    "output": "pages/sync/sync.wxss"
+  },
+  {
+    "source": "design/wxss/components/dish-card/dish-card.tpl",
+    "output": "components/dish-card/dish-card.wxss"
+  },
+  {
+    "source": "design/wxss/components/meal-card/meal-card.tpl",
+    "output": "components/meal-card/meal-card.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-button/ui-button.tpl",
+    "output": "components/ui-button/ui-button.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-card/ui-card.tpl",
+    "output": "components/ui-card/ui-card.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-checkbox/ui-checkbox.tpl",
+    "output": "components/ui-checkbox/ui-checkbox.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-chip/ui-chip.tpl",
+    "output": "components/ui-chip/ui-chip.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-confirm/ui-confirm.tpl",
+    "output": "components/ui-confirm/ui-confirm.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-field/ui-field.tpl",
+    "output": "components/ui-field/ui-field.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-icon/ui-icon.tpl",
+    "output": "components/ui-icon/ui-icon.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-icon-button/ui-icon-button.tpl",
+    "output": "components/ui-icon-button/ui-icon-button.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-list/ui-list.tpl",
+    "output": "components/ui-list/ui-list.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-search/ui-search.tpl",
+    "output": "components/ui-search/ui-search.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-sheet/ui-sheet.tpl",
+    "output": "components/ui-sheet/ui-sheet.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-state/ui-state.tpl",
+    "output": "components/ui-state/ui-state.wxss"
+  },
+  {
+    "source": "design/wxss/components/ui-status/ui-status.tpl",
+    "output": "components/ui-status/ui-status.wxss"
+  },
+  {
+    "source": "design/wxss/app.tpl",
+    "output": "app.wxss"
+  },
+  {
+    "source": "design/wxss/styles/workspace.tpl",
+    "output": "styles/workspace.wxss"
+  }
+]

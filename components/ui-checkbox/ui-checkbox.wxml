@@ -1,0 +1,1 @@
+<checkbox-group bindchange="change"><label class="check-row"><checkbox value="checked" checked="{{checked}}" disabled="{{disabled}}" color="{{theme.brand}}" /><text>{{label}}</text></label></checkbox-group>

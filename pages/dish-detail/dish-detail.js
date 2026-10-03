@@ -1,15 +1,19 @@
+const { getUserStorageKey } = require('../../utils/util')
 // pages/dish-detail/dish-detail.js
 const { getDishById } = require('../../utils/api')
 
 Page({
-  data: {
-    dish: null,
+  data: { fontScale: require('../../utils/font-scale')(),
+    dish: null, targetPeople: 2, ingredientNotice: '',
     loading: true,
     error: false,
     isFavorite: false
   },
 
   onLoad(options) {
+    this._dishId = options.id
+    const people = Number(options.people || 2)
+    this.setData({ targetPeople: Number.isInteger(people) && people >= 1 && people <= 50 ? people : 2, ingredientNotice: '正在读取本餐份量' })
     if (options.id) {
       // 等待登录完成再加载（分享进入时 app.onLaunch 可能未完成）
       this._loadAfterLogin(options.id)
@@ -18,6 +22,9 @@ Page({
     }
   },
 
+  onShow() { if (this._scope && this._scope !== getUserStorageKey('dishView')) this.loadDishDetail(this._dishId) },
+  onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
+  current(scope) { return !this._unloaded && scope === getUserStorageKey('dishView') },
   async _loadAfterLogin(id) {
     const app = getApp()
     if (!app.globalData.loginReady) {
@@ -27,11 +34,15 @@ Page({
   },
 
   async loadDishDetail(id) {
+    const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
+    this.setData({ dish: null, isFavorite: false, favoriteBusy: false })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
+      if (!this.current(scope) || epoch !== this._epoch) return
       
       if (dish) {
+        dish.tagsList = Array.isArray(dish.tags) ? dish.tags : String(dish.tags || '').split(/[,，]/).map(s => s.trim()).filter(Boolean)
         // 处理步骤图片（如果是JSON字符串则解析，再按 # 拆分多张图）
         if (dish.stepImages && typeof dish.stepImages === 'string') {
           try {
@@ -59,7 +70,7 @@ Page({
             dish.ingredientsList = JSON.parse(dish.ingredientsAmounts)
           } catch (e) {
             // 如果不是JSON，按换行分割
-            dish.ingredientsList = dish.ingredientsAmounts.split('\n').filter(item => item.trim())
+            dish.ingredientsList = dish.ingredientsAmounts.split(/###|#|\n/).filter(item => item.trim()).map(item => { const parts=item.split('|'); return parts.length >= 3 ? parts[0] + ' ' + parts[1] + parts[2] : item })
           }
         } else {
           dish.ingredientsList = []
@@ -71,7 +82,7 @@ Page({
           try {
             dish.stepsList = JSON.parse(stepsRaw)
           } catch (e) {
-            dish.stepsList = stepsRaw.split('\n').filter(item => item.trim())
+            dish.stepsList = stepsRaw.split(/###|#|\n/).filter(item => item.trim())
           }
         } else if (Array.isArray(stepsRaw)) {
           dish.stepsList = stepsRaw
@@ -86,19 +97,32 @@ Page({
 
         this.setData({ dish, loading: false })
         this.checkFavoriteStatus(id)
+        this.loadMealQuantities(id, scope, epoch)
       } else {
         this.setData({ loading: false, error: true })
       }
     } catch (err) {
+      if (!this.current(scope) || epoch !== this._epoch) return
       console.error('加载菜品详情失败:', err)
       this.setData({ loading: false, error: true })
     }
   },
 
+  async loadMealQuantities(id, scope, epoch) {
+    try {
+      const preview = await require('../../utils/api').createShoppingPreview({ dishIds: [Number(id)], targetPeople: this.data.targetPeople })
+      if (!this.current(scope) || epoch !== this._epoch) return
+      const items = (preview.dishes || []).flatMap(dish => dish.items || [])
+      this.setData({ 'dish.ingredientsList': items.map(item => item.displayName + ' ' + (item.quantityText || '需核对')), ingredientNotice: items.every(item => item.calculationStatus === 'CALCULATED') ? `按本餐 ${this.data.targetPeople} 人换算，请按实际情况核对` : `本餐 ${this.data.targetPeople} 人，部分用量需手动核对` })
+    } catch (error) { if (this.current(scope) && epoch === this._epoch) this.setData({ ingredientNotice: '份量换算暂不可用，以下为菜谱原始用量' }) }
+  },
+
   async checkFavoriteStatus(dishId) {
+    const scope = this._scope
     try {
       const { checkFavoriteDish } = require('../../utils/api')
       const result = await checkFavoriteDish(dishId)
+      if (!this.current(scope)) return
       this.setData({ isFavorite: result && result.isFavorite })
     } catch (err) {
       console.error('检查收藏状态失败:', err)
@@ -106,30 +130,38 @@ Page({
   },
 
   async toggleFavorite() {
+    if (this.data.favoriteBusy || !this.data.dish || !this.current(this._scope)) return
+    const scope = this._scope
+    this.setData({ favoriteBusy: true })
     try {
       const { addFavoriteDish, removeFavoriteDish } = require('../../utils/api')
       const dishId = this.data.dish.id
       
       if (this.data.isFavorite) {
         await removeFavoriteDish(dishId)
+        if (!this.current(scope)) return
         this.setData({ isFavorite: false })
         wx.showToast({ title: '已取消收藏', icon: 'success' })
       } else {
         await addFavoriteDish(dishId)
+        if (!this.current(scope)) return
         this.setData({ isFavorite: true })
         wx.showToast({ title: '收藏成功', icon: 'success' })
       }
     } catch (err) {
       console.error('收藏操作失败:', err)
       wx.showToast({ title: '操作失败', icon: 'none' })
-    }
+    } finally { if(this.current(scope))this.setData({ favoriteBusy: false }) }
   },
 
+  onEditCustom() { wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + this.data.dish.id }) },
+  onRetry() { if (this._dishId) this.loadDishDetail(this._dishId) },
+  onDishImageError() { this.setData({ 'dish.image': '' }) },
   onAddToShoppingList() {
     const dish = this.data.dish
-    if (!dish || !dish.id) return
+    if (!dish || !dish.id || !this.current(this._scope)) return
     const { beginShoppingSelection } = require('../../utils/shopping-list')
-    beginShoppingSelection({ dishIds: [dish.id], targetPeople: 2, source: 'dish-detail', dishes: [dish] })
+    beginShoppingSelection({ dishIds: [dish.id], targetPeople: this.data.targetPeople, source: 'dish-detail', dishes: [dish] })
     wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
   },
 

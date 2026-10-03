@@ -1,0 +1,1 @@
+.button { min-height:48px; background:{{brand}}; color:white; border-radius:24rpx; font-size:1.0714em; font-weight:600; padding:20rpx 28rpx; line-height:1.5; } .button::after { border:0; } .secondary { background:{{brandSoft}}; color:{{brand}}; } .danger { background:{{dangerSoft}}; color:{{danger}}; } .button[disabled] { background:#e8ebe5; color:{{muted}}; }

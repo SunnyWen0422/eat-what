@@ -1,137 +1,133 @@
 const api = require('../../utils/api')
-const { loadLocalShoppingList, saveLocalShoppingList, enqueueShoppingOperation, flushShoppingOperations, loadPendingOperations, beginShoppingSelection } = require('../../utils/shopping-list')
+const store = require('../../utils/shopping-list')
+const { getUserStorageKey } = require('../../utils/util')
 const { buildPurchaseSummary } = require('../../utils/shopping-ingredients')
-
+const flow = require('../../utils/meal-workflow')
+const confirm = (title, content, confirmText = '确认') => new Promise(resolve => wx.showModal({ title, content, confirmText, success: r => resolve(r.confirm), fail: () => resolve(false) }))
+const sourceLabel = dish => dish.sourceDate ? `${dish.sourceDate} ${flow.mealNames[dish.sourceMealType] || ''} · ${dish.dishName}` : dish.dishId ? dish.dishName : '手动添加'
 Page({
-  data: {
-    dishes: [],
-    statusFilter: 'pending',
-    loading: true,
-    refreshing: false,
-    syncState: 'unknown',
-    pendingCount: 0,
-    checkedCount: 0,
-    version: 0,
-    summaryExpanded: false,
-    purchaseSummary: { mergeableItems: [], separateItems: [] },
-    errorMessage: '',
-  },
-
-  onShow() {
-    this.loadList()
-  },
-
+  data: { fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formNote: '', formError: '' },
+  onShow() { this.loadList() },
+  onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
+  current(scope) { return !this._unloaded && scope === getUserStorageKey('shoppingList') },
   async loadList() {
-    const local = loadLocalShoppingList()
-    this.applyList(local, 'local')
-    this.setData({ loading: this.data.dishes.length === 0, refreshing: true, errorMessage: '' })
+    const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
+    if (this._scope !== scope) { this._signature = null; this._pendingMutation = null; this.setData({ formVisible: false, formName: '', formQuantity: '', formNote: '', busy: false }) }
+    this._scope = scope
+    this.applyList(store.loadLocalShoppingList())
+    this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
     try {
-      const pending = await flushShoppingOperations()
-      const remote = await api.getShoppingList(this.data.statusFilter)
-      this.applyList(remote, pending ? 'pending' : 'synced')
+      const list = await api.getShoppingList('all')
+      if (epoch !== this._epoch || !this.current(scope)) return
+      this.applyList(store.saveLocalShoppingList(list)); this.setData({ offline: false })
     } catch (error) {
-      const pending = loadPendingOperations().length
-      this.setData({ syncState: pending ? `待同步 ${pending} 项` : '离线模式', errorMessage: '已保留本地清单，待联网同步' })
-    } finally {
-      this.setData({ loading: false, refreshing: false })
-    }
+      if (epoch === this._epoch && this.current(scope)) this.setData({ offline: true, errorMessage: flow.errorMessage(error, '暂时无法读取云端，显示上次清单。新增内容可保存为待确认草稿。') })
+    } finally { if (epoch === this._epoch && this.current(scope)) this.setData({ loading: false, refreshing: false }) }
   },
-
-  applyList(list, syncState) {
-    const dishes = (list && Array.isArray(list.dishes)) ? list.dishes : []
-    const summary = list && list.purchaseSummary ? list.purchaseSummary : buildPurchaseSummary(dishes)
-    this.setData({ version: Number(list.version) || 0, dishes, purchaseSummary: summary, pendingCount: list.pendingCount || countItems(dishes, false), checkedCount: list.checkedCount || countItems(dishes, true), syncState })
+  applyList(list) {
+    this._full = { version: 0, dishes: [], ...list }
+    let pendingCount = 0, checkedCount = 0
+    for (const group of this._full.dishes) for (const item of group.items || []) item.checked ? checkedCount++ : pendingCount++
+    this.setData({ version: Number(this._full.version) || 0, pendingCount, checkedCount }); this.renderList()
   },
-
-  onFilterChange(e) {
-    this.setData({ statusFilter: e.currentTarget.dataset.status })
-    this.loadList()
+  renderList() {
+    const filter = this.data.statusFilter
+    const groups = this._full.dishes.map(group => ({ ...group, sourceLabel: sourceLabel(group), items: (group.items || []).filter(item => filter === 'all' || (filter === 'checked' ? item.checked : !item.checked)) })).filter(group => group.items.length)
+    const summary = buildPurchaseSummary(groups)
+    const rows = [...summary.mergeableItems, ...summary.separateItems].map((item, index) => ({ ...item, rowKey: `summary-${index}`, itemIds: item.itemIds || [item.id].filter(Boolean), note: !item.sourceDishId ? item.sourceQuantityText || '' : '', sourceLabel: (item.sources || []).map(source => sourceLabel(source)).join('；') || item.sourceDishLabel || '手动添加', checkedState: item.checkedState || (item.checked ? 'all' : 'none') }))
+    this.setData({ dishes: groups, summaryRows: rows })
   },
-
-  onToggleSummary() { this.setData({ summaryExpanded: !this.data.summaryExpanded }) },
-
-  async onToggleItem(e) {
-    const { dishIndex, itemIndex } = e.currentTarget.dataset
-    const item = this.data.dishes[dishIndex].items[itemIndex]
-    await this.mutateItem(dishIndex, itemIndex, { checked: !item.checked })
-  },
-
+  onFilterChange(e) { this.setData({ statusFilter: e.currentTarget.dataset.status }); this.renderList() },
+  onViewMode(e) { this.setData({ viewMode: e.currentTarget.dataset.mode }) },
+  onAddManual() { this.setData({ formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formNote: '', formError: '' }) },
   onEditItem(e) {
-    const { dishIndex, itemIndex } = e.currentTarget.dataset
-    const item = this.data.dishes[dishIndex].items[itemIndex]
-    wx.showModal({
-      title: `调整${item.displayName || '食材'}用量`,
-      editable: true,
-      content: item.quantityText || '',
-      success: (result) => {
-        if (result.confirm && String(result.content || '').trim()) this.mutateItem(dishIndex, itemIndex, { quantityText: result.content.trim(), userOverride: true })
-      },
-    })
+    const item = this.findItem(e.currentTarget.dataset.id)
+    if (!item) return
+    this._editId = item.id
+    this.setData({ formVisible: true, formMode: 'edit', formName: item.displayName, formQuantity: item.quantityText || '', formNote: '', formError: '' })
   },
-
-  async mutateItem(dishIndex, itemIndex, patch) {
-    const dishes = this.data.dishes.map((dish, dIdx) => dIdx === Number(dishIndex)
-      ? { ...dish, items: dish.items.map((item, iIdx) => iIdx === Number(itemIndex) ? { ...item, ...patch } : item) }
-      : dish)
-    const local = saveLocalShoppingList({ ...loadLocalShoppingList(), dishes, purchaseSummary: buildPurchaseSummary(dishes) })
-    this.applyList(local, 'pending')
-    const item = dishes[dishIndex].items[itemIndex]
-    if (!item.id) return
+  findItem(id) { for (const group of this._full.dishes) { const item = (group.items || []).find(row => String(row.id) === String(id)); if (item) return item } },
+  onName(e) { this.setData({ formName: e.detail.value }) }, onQuantity(e) { this.setData({ formQuantity: e.detail.value }) }, onNote(e) { this.setData({ formNote: e.detail.value }) },
+  closeForm() { if (!this.data.busy) this.setData({ formVisible: false }) },
+  stableOperation(type, body, itemId) {
+    const signature = JSON.stringify([type, body, itemId])
+    if (signature !== this._signature) { this._signature = signature; this._pendingMutation = { scope: this._scope, type, itemId, payload: { ...body, expectedListVersion: this.data.version, requestId: flow.requestId(type) } } }
+    return this._pendingMutation
+  },
+  async perform(operation) {
+    if (this.data.busy || !this.current(this._scope) || operation.scope && operation.scope !== this._scope) return
+    const scope = this._scope
+    this.setData({ busy: true, errorMessage: '', formError: '' })
     try {
-      const remote = await api.patchShoppingItem(item.id, { ...patch, expectedListVersion: local.version })
-      this.applyList(remote, 'synced')
+      let response
+      if (operation.type === 'manual') response = await api.addManualShoppingItem(operation.payload)
+      else if (operation.type === 'check') response = await api.checkShoppingItems(operation.payload)
+      else if (operation.type === 'patch') response = await api.patchShoppingItemConfirmed(operation.itemId, operation.payload)
+      else if (operation.type === 'delete') response = await api.deleteShoppingItemConfirmed(operation.itemId, operation.payload)
+      else if (operation.type === 'clear') response = await api.clearShoppingList(operation.payload)
+      if (!this.current(scope)) return
+      this.applyList(store.saveLocalShoppingList(response.list || response))
+      store.removePendingOperation(null, operation.payload.requestId)
+      this._signature = null
+      this.setData({ formVisible: false, offline: false, drafts: store.loadPendingOperations() })
+      wx.showToast({ title: '已保存到云端', icon: 'success' })
     } catch (error) {
-      enqueueShoppingOperation({ type: 'patch', itemId: item.id, payload: { ...patch, expectedListVersion: local.version } })
-      this.setData({ syncState: '本地已更新，等待同步' })
-    }
+      if (!this.current(scope)) return
+      if (error.isNetworkError) {
+        store.enqueueShoppingOperation(operation)
+        this.setData({ drafts: store.loadPendingOperations(), offline: true, formError: '已保存待确认草稿，尚未确认云端结果。可在下方重试。', errorMessage: '网络中断，云端结果待确认，清单没有被误标为已同步。' })
+      } else {
+        const message = flow.errorMessage(error)
+        this.setData({ formError: message, errorMessage: message })
+        if (error.statusCode === 409) { await this.refreshConflict(scope); this._signature = null }
+      }
+    } finally { if (this.current(scope)) this.setData({ busy: false }) }
   },
-
-  async onDeleteItem(e) {
-    const { dishIndex, itemIndex } = e.currentTarget.dataset
-    const item = this.data.dishes[dishIndex].items[itemIndex]
-    const dishes = this.data.dishes.map((dish, index) => index === Number(dishIndex) ? { ...dish, items: dish.items.filter((_, i) => i !== Number(itemIndex)) } : dish)
-    saveLocalShoppingList({ ...loadLocalShoppingList(), dishes })
-    this.applyList({ ...loadLocalShoppingList(), dishes }, 'pending')
-    if (!item.id) return
-    const payload = { expectedListVersion: loadLocalShoppingList().version || 0 }
-    try { await api.deleteShoppingItem(item.id, payload) } catch (error) { enqueueShoppingOperation({ type: 'delete', itemId: item.id, payload }) }
+  async refreshConflict(scope) {
+    try { const remote = await api.getShoppingList('all'); if (this.current(scope)) this.applyList(store.saveLocalShoppingList(remote)) }
+    catch (error) { if (this.current(scope)) this.setData({ offline: true, errorMessage: '发生版本冲突，最新清单暂未读到。请联网刷新后确认。' }) }
   },
-
-  onClearCompleted() { this.clearItems('completed') },
-
-  onClearAll() {
-    wx.showModal({ title: '清空全部清单', content: '清空后将删除所有菜品明细，确定继续吗？', success: (result) => { if (result.confirm) this.clearItems('all') } })
+  saveForm() {
+    const name = this.data.formName.trim(), quantityText = this.data.formQuantity.trim()
+    if (!name || !quantityText || name.length > 255 || quantityText.length > 255) return this.setData({ formError: '请填写食材名称和用量，两者各不超过 255 字。' })
+    const body = this.data.formMode === 'manual' ? { name, quantityText, note: this.data.formNote.trim() } : { displayName: name, quantityText }
+    return this.perform(this.stableOperation(this.data.formMode === 'manual' ? 'manual' : 'patch', body, this.data.formMode === 'edit' ? this._editId : undefined))
   },
-
-  async clearItems(scope) {
-    const payload = { requestId: `clear-${Date.now()}-${Math.random().toString(16).slice(2)}`, scope, expectedListVersion: loadLocalShoppingList().version || 0 }
+  onToggleItem(e) {
+    const item = this.findItem(e.currentTarget.dataset.id)
+    if (item) this.perform(this.stableOperation('check', { itemIds: [item.id], checked: !item.checked }))
+  },
+  onToggleSummary(e) {
+    const row = this.data.summaryRows[e.currentTarget.dataset.index]
+    if (row && row.itemIds.length) this.perform(this.stableOperation('check', { itemIds: row.itemIds, checked: row.checkedState !== 'all' }))
+  },
+  async onDeleteItem(e) { const id = Number(e.currentTarget.dataset.id), origin = this._scope; if (await confirm('删除这项食材？', '删除后可重新从菜谱或手动添加。', '删除') && this.current(origin)) this.perform(this.stableOperation('delete', {}, id)) },
+  async clear(scope) { const origin = this._scope; if (await confirm(scope === 'all' ? '清空全部食材？' : '清空已购食材？', '该操作会保存到云端，请确认清空范围。', '清空') && this.current(origin)) this.perform(this.stableOperation('clear', { scope })) },
+  onClearCompleted() { return this.clear('checked') }, onClearAll() { return this.clear('all') },
+  async onRetryDrafts() {
+    const scope = this._scope
+    if (this.data.busy || !await confirm('重试待确认草稿？', '按原请求重试；遇到冲突会停止，不会覆盖最新数据。', '重试') || !this.current(scope)) return
+    this.setData({ busy: true })
     try {
-      const remote = await api.clearShoppingList(payload)
-      this.applyList(remote, 'synced')
-      saveLocalShoppingList(remote)
-    } catch (error) {
-      const local = loadLocalShoppingList()
-      const dishes = scope === 'all' ? [] : local.dishes.map(dish => ({ ...dish, items: dish.items.filter(item => !item.checked) }))
-      saveLocalShoppingList({ ...local, dishes })
-      enqueueShoppingOperation({ type: 'clear', payload })
-      this.applyList({ ...local, dishes }, 'pending')
-    }
+      const result = await store.flushShoppingOperations()
+      if (!this.current(scope)) return
+      this.setData({ drafts: store.loadPendingOperations(), errorMessage: result.remaining ? result.conflict ? '草稿版本已过期，请查看并重新确认这项修改。' : '仍有待确认草稿，联网后可重试。' : '' })
+      if (result.conflict) { const first = store.loadPendingOperations()[0]; if (first) store.replacePendingOperation(first.operationId, { ...first, conflict: true }); this.setData({ drafts: store.loadPendingOperations() }) }
+      await this.loadList()
+      if (result.conflict) this.setData({ errorMessage: '请查看冲突草稿，重新确认后才会应用到最新清单。' })
+    } finally { if (this.current(scope)) this.setData({ busy: false }) }
   },
-
+  async onReviewDraft(e) {
+    const scope = this._scope
+    const operation = store.loadPendingOperations().find(item => item.operationId === e.currentTarget.dataset.id)
+    if (!operation) return
+    const detail = operation.type === 'manual' ? `${operation.payload.name} ${operation.payload.quantityText || ''}` : operation.type === 'batch-add' ? (operation.payload.dishes || []).map(d => `${d.sourceDate || ''} ${flow.mealNames[d.sourceMealType] || ''} ${(d.items || []).map(i => i.displayName).join('、')}`).join('；') : `${operation.type} · 原清单版本 ${operation.payload.expectedListVersion}`
+    if (!operation.conflict) { await confirm('草稿内容', detail + '\n云端结果待确认，请先点击重试草稿。', '知道了'); return }
+    if (!await confirm('重新确认冲突草稿？', `${detail}\n将以刚读取的清单版本 ${this.data.version} 提交。`, '应用修改') || !this.current(scope)) return
+    const next = { ...operation, conflict: false, payload: { ...operation.payload, expectedListVersion: this.data.version, requestId: flow.requestId(operation.type) } }
+    store.replacePendingOperation(operation.operationId, next)
+    await this.onRetryDrafts()
+  },
+  async onDiscardDraft(e) { const scope = this._scope; if (await confirm('丢弃本地草稿？', '只移除待确认草稿；云端可能已保存的内容请刷新查看。', '丢弃') && this.current(scope)) { store.removePendingOperation(e.currentTarget.dataset.id); this.setData({ drafts: store.loadPendingOperations() }) } },
   onAddFromRecipe() { wx.switchTab({ url: '/pages/customize/customize' }) },
-  onAddManual() {
-    wx.showModal({ title: '手动添加食材', editable: true, placeholderText: '例如：鸡蛋 6个', success: (result) => {
-      if (!result.confirm || !String(result.content || '').trim()) return
-      const item = { clientKey: `manual-${Date.now()}`, displayName: result.content.trim(), quantityText: '需调整', parseStatus: 'NEEDS_ADJUSTMENT', calculationStatus: 'NEEDS_ADJUSTMENT', userOverride: true, checked: false }
-      const dishes = [...this.data.dishes, { selectionKey: `manual-${Date.now()}`, dishName: '手动添加', targetPeople: null, items: [item] }]
-      saveLocalShoppingList({ ...loadLocalShoppingList(), dishes })
-      this.applyList({ ...loadLocalShoppingList(), dishes }, 'pending')
-    } })
-  },
-
-  onBack() { wx.navigateBack() },
 })
-
-function countItems(dishes, checked) {
-  return (dishes || []).reduce((sum, dish) => sum + (dish.items || []).filter(item => !!item.checked === checked).length, 0)
-}

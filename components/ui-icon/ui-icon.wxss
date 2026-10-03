@@ -1,0 +1,3 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
+.icon{display:block;flex-shrink:0}

@@ -8,7 +8,7 @@ if (-not $python) {
 
 Write-Host 'Checking JSON files...'
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.json -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
     ForEach-Object {
         Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
     }
@@ -24,7 +24,7 @@ $textExtensions = @('.bat', '.java', '.js', '.json', '.md', '.properties', '.py'
 Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object {
         $textExtensions -contains $_.Extension -and
-        $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\'
+        $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\'
     } |
     ForEach-Object {
         $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName
@@ -38,7 +38,7 @@ Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
 Write-Host 'Checking JavaScript syntax...'
 $node = (Get-Command node -ErrorAction Stop).Source
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\.pytest_cache\\|\\node_modules\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\.pytest_cache\\|\\node_modules\\' } |
     ForEach-Object {
         & $node --check $_.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -52,7 +52,7 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 
 Write-Host 'Checking Python syntax...'
 $pythonFiles = Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.py -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
     Select-Object -ExpandProperty FullName
 if ($pythonFiles.Count -gt 0) {
     & $python -m py_compile @pythonFiles
@@ -74,8 +74,21 @@ foreach ($bundle in $replacementBundles) {
     }
 }
 
-Write-Host 'Checking Java build configuration...'
-& mvn -q -f (Join-Path $root 'backend\pom.xml') -DskipTests package
+Write-Host 'Checking database migration manifest...'
+& (Join-Path $PSScriptRoot 'check_database_migrations.ps1') -Root $root
+
+Write-Host 'Running frontend workflow regression tests...'
+Push-Location -LiteralPath $root
+try {
+    $frontendTests = Get-ChildItem -LiteralPath (Join-Path $root 'tests') -Filter *.test.js -File | Select-Object -ExpandProperty FullName
+    & $node --test @frontendTests
+    if ($LASTEXITCODE -ne 0) { throw 'Frontend regression tests failed.' }
+    & $python -m unittest discover -s tests -p 'test_*.py' -v
+    if ($LASTEXITCODE -ne 0) { throw 'Assistant and template regression tests failed.' }
+} finally { Pop-Location }
+
+Write-Host 'Checking Java tests and package...'
+& mvn -q -f (Join-Path $root 'backend\pom.xml') test package
 if ($LASTEXITCODE -ne 0) {
     throw 'Java build check failed.'
 }

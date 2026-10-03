@@ -1,0 +1,2 @@
+@import "../../styles/theme.wxss";
+.icon-button{width:44px;min-height:44px;margin:0;padding:10px;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center}

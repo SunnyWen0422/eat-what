@@ -1,14 +1,16 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
 /* pages/about/about.wxss */
 
 .about-page {
-  background-color: #f5f5f5;
+  background-color: #F8F7F2;
   min-height: 100vh;
   padding-bottom: 40px;
 }
 
 /* 顶部标题区 */
 .header {
-  background: #299f91;
+  background: #28634E;
   padding: 40px 20px 30px;
   display: flex;
   flex-direction: column;
@@ -17,19 +19,19 @@
 }
 
 .app-name {
-  font-size: 32px;
+  font-size:2.2857em;
   font-weight: bold;
   margin-bottom: 8px;
 }
 
 .app-slogan {
-  font-size: 18px;
+  font-size:1.2857em;
   opacity: 0.9;
   margin-bottom: 12px;
 }
 
 .version {
-  font-size: 14px;
+  font-size:1.0em;
   opacity: 0.7;
   background: rgba(255, 255, 255, 0.2);
   padding: 4px 12px;
@@ -38,15 +40,15 @@
 
 /*  section标题 */
 .section-title {
-  font-size: 20px;
+  font-size:1.4286em;
   font-weight: bold;
-  color: #333;
+  color: #25332B;
   padding: 20px 20px 12px;
   display: flex;
   align-items: center;
   gap: 8rpx;
 }
-.section-title .line-icon { width: 32rpx; height: 32rpx; color: #299f91; }
+.section-title .line-icon { width: 32rpx; height: 32rpx; color: #28634E; }
 
 /* 步骤卡片 */
 .step-card {
@@ -54,7 +56,7 @@
   margin: 0 20px 16px;
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e3eeea;
+  border: 1px solid #D9E1D5;
 }
 
 .step-header {
@@ -66,22 +68,22 @@
 .step-number {
   width: 32px;
   height: 32px;
-  background: #299f91;
+  background: #28634E;
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size:1.2857em;
   font-weight: bold;
   margin-right: 12px;
   flex-shrink: 0;
 }
 
 .step-title {
-  font-size: 20px;
+  font-size:1.4286em;
   font-weight: bold;
-  color: #333;
+  color: #25332B;
 }
 
 .step-content {
@@ -89,7 +91,7 @@
 }
 
 .step-text {
-  font-size: 16px;
+  font-size:1.1429em;
   color: #555;
   line-height: 1.8;
   display: block;
@@ -105,14 +107,14 @@
 }
 
 .detail-item {
-  font-size: 16px;
-  color: #666;
+  font-size:1.1429em;
+  color: #617066;
   line-height: 2;
   display: block;
 }
 
 .step-tip {
-  font-size: 15px;
+  font-size:1.0714em;
   color: #3cc51f;
   line-height: 1.8;
   display: flex;
@@ -123,7 +125,7 @@
   background-color: #f0f9eb;
   border-radius: 8px;
 }
-.step-tip .line-icon { width: 28rpx; height: 28rpx; flex: 0 0 auto; color: #299f91; margin-top: 2rpx; }
+.step-tip .line-icon { width: 28rpx; height: 28rpx; flex: 0 0 auto; color: #28634E; margin-top: 2rpx; }
 
 /* 小提示区域 */
 .tips-section {
@@ -135,12 +137,12 @@
   margin: 0 20px;
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #e3eeea;
+  border: 1px solid #D9E1D5;
 }
 
 .tip-item {
-  font-size: 16px;
-  color: #666;
+  font-size:1.1429em;
+  color: #617066;
   line-height: 2.2;
   display: block;
 }
@@ -155,7 +157,18 @@
 }
 
 .footer-text {
-  font-size: 14px;
-  color: #999;
+  font-size:1.0em;
+  color: #617066;
   line-height: 1.8;
 }
+
+/* 页面共享主题，适用于本页详情、表单和弹层。 */
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}

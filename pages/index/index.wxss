@@ -1,9 +1,11 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
 /**index.wxss**/
 page {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #e9faf6 0, #f7fcfb 140px, #fff 300px);
+  background: linear-gradient(180deg, #EDF3ED 0, #F8F7F2 140px, #FFFFFF 300px);
   overflow: hidden;
   padding-top: 0;
 }
@@ -21,8 +23,8 @@ page {
 }
 .container > view { flex-shrink: 0; min-width: 0; }
 .meal-options { display: flex; gap: 8px; margin: 0 16px 12px; }
-.meal-option { flex: 1; min-width: 0; padding: 12px 0; border-radius: 8px; text-align: center; background: #f3f9f7; color: #71847e; font-size: 14px; }
-.meal-option.active { background: #e7f8f4; color: #176f66; font-weight: 600; box-shadow: inset 0 0 0 1px #299f91; }
+.meal-option { flex: 1; min-width: 0; padding: 12px 0; border-radius: 8px; text-align: center; background: #f3f9f7; color: #71847e; font-size:1.0em; }
+.meal-option.active { background: #EDF3ED; color: #28634E; font-weight: 600; box-shadow: inset 0 0 0 1px #28634E; }
 
 /* 标题区 */
 .header-area {
@@ -30,9 +32,9 @@ page {
   text-align: center;
 }
 .header-title {
-  font-size: 22px;
+  font-size:1.5714em;
   font-weight: bold;
-  color: #1A7A4C;
+  color: #28634E;
   letter-spacing: 1px;
   display: block;
   display: flex;
@@ -40,9 +42,9 @@ page {
   justify-content: center;
   gap: 8rpx;
 }
-.header-title .line-icon { width: 34rpx; height: 34rpx; color: #1A7A4C; }
+.header-title .line-icon { width: 34rpx; height: 34rpx; color: #28634E; }
 .header-subtitle {
-  font-size: 12px;
+  font-size:0.8571em;
   color: #8fa996;
   margin-top: 8px;
   display: block;
@@ -56,24 +58,24 @@ page {
   gap: 8px;
 }
 .param-card {
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 14rpx;
   padding: 24rpx 20rpx;
-  border: 1px solid #e3eeea;
+  border: 1px solid #D9E1D5;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .card-label {
-  font-size: 30rpx;
-  color: #333;
+  font-size:1.0714em;
+  color: #25332B;
   font-weight: 500;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8rpx;
 }
-.card-label .line-icon { width: 32rpx; height: 32rpx; color: #2BA471; }
+.card-label .line-icon { width: 32rpx; height: 32rpx; color: #28634E; }
 .card-count {
   display: flex;
   align-items: center;
@@ -81,9 +83,9 @@ page {
   flex-shrink: 0;
 }
 .card-num {
-  font-size: 40rpx;
+  font-size:1.4286em;
   font-weight: bold;
-  color: #2BA471;
+  color: #28634E;
   min-width: 56rpx;
   text-align: center;
 }
@@ -91,9 +93,9 @@ page {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: #2BA471;
-  color: #fff;
-  font-size: 36rpx;
+  background: #28634E;
+  color: #FFFFFF;
+  font-size:1.2857em;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -117,13 +119,13 @@ page {
   align-items: center;
   gap: 8px;
 }
-.tip-icon { width: 28rpx; height: 28rpx; color: #299f91; flex-shrink: 0; }
-.tip-text { font-size: 12px; color: #2d5a3d; line-height: 1.4; }
+.tip-icon { width: 28rpx; height: 28rpx; color: #28634E; flex-shrink: 0; }
+.tip-text { font-size:0.8571em; color: #2d5a3d; line-height: 1.4; }
 
 /* 热门搭配标签组 */
 .tags-area { margin: 0 16px 10px; }
 .tags-label {
-  font-size: 13px;
+  font-size:0.9286em;
   font-weight: bold;
   color: #555;
   margin-bottom: 10px;
@@ -136,16 +138,16 @@ page {
   padding: 8px 16px;
   background: #f5f7f4;
   border-radius: 20px;
-  font-size: 13px;
-  color: #666;
+  font-size:0.9286em;
+  color: #617066;
   border: 1px solid #e0e8dc;
   transition: all 0.25s;
 }
 .hot-tag:first-child { margin-left: 2px; }
 .hot-tag:last-child { margin-right: 16px; }
 .hot-tag.active {
-  background: #2BA471;
-  color: #fff;
+  background: #28634E;
+  color: #FFFFFF;
   border-color: transparent;
   box-shadow: none;
 }
@@ -158,17 +160,17 @@ page {
   gap: 8px;
 }
 .filter-more,
-.filter-clear { color: #16865f; font-size: 13px; }
-.selected-mark { margin-left: 4px; font-size: 10px; font-weight: 600; }
-.filter-feedback { margin-top: 9px; padding-top: 8px; border-top: 1px solid #e8ecea; }
-.filter-summary { min-width: 0; flex: 1; color: #4e5c56; font-size: 12px; line-height: 1.5; }
+.filter-clear { color: #28634E; font-size:0.9286em; }
+.selected-mark { margin-left: 4px; font-size:0.8571em; font-weight: 600; }
+.filter-feedback { margin-top: 9px; padding-top: 8px; border-top: 1px solid #D9E1D5; }
+.filter-summary { min-width: 0; flex: 1; color: #4e5c56; font-size:0.8571em; line-height: 1.5; }
 .preference-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 10px;
   color: #4e5c56;
-  font-size: 12px;
+  font-size:0.8571em;
 }
 .preference-toggle-row switch { transform: scale(0.8); transform-origin: right center; }
 
@@ -176,59 +178,59 @@ page {
 .selected-dishes-hint {
   margin: 0 16px 10px;
   padding: 10px 12px;
-  background: #E8F5E9;
+  background: #EDF3ED;
   border: 1px solid #C8E6C9;
   border-radius: 10px;
 }
 .hint-header { display: flex; align-items: center; margin-bottom: 6px; }
-.hint-icon { color: #2BA471; font-size: 14px; font-weight: bold; margin-right: 4px; }
-.hint-title { font-size: 13px; font-weight: bold; color: #2d5a3d; flex: 1; }
-.hint-clear { font-size: 11px; color: #999; padding: 2px 8px; }
+.hint-icon { color: #28634E; font-size:1.0em; font-weight: bold; margin-right: 4px; }
+.hint-title { font-size:0.9286em; font-weight: bold; color: #2d5a3d; flex: 1; }
+.hint-clear { font-size:0.8571em; color: #617066; padding: 2px 8px; }
 .selected-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.dish-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.dish-tag { font-size:0.8571em; padding: 2px 6px; border-radius: 4px; }
 .meat-tag { color: #E74C3C; background: #FDE8E8; border: 1px solid #ffbb96; }
-.veg-tag { color: #2BA471; background: #E8F5E9; border: 1px solid #b7e1b0; }
-.soup-tag { color: #2196F3; background: #E3F2FD; border: 1px solid #91d5ff; }
+.veg-tag { color: #28634E; background: #EDF3ED; border: 1px solid #b7e1b0; }
+.soup-tag { color: #28634E; background: #E3F2FD; border: 1px solid #91d5ff; }
 .dessert-tag { color: #E91E63; background: #FCE4EC; border: 1px solid #ffb6c1; }
 
 /* 我的菜谱区域 */
-.my-recipes { margin: 0 16px 16px; padding: 14px; background: #fff; border: 1px solid #e3eeea; border-radius: 12px; }
+.my-recipes { margin: 0 16px 16px; padding: 14px; background: #FFFFFF; border: 1px solid #D9E1D5; border-radius: 12px; }
 .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.section-header-title { font-size: 14px; font-weight: bold; color: #333; }
+.section-header-title { font-size:1.0em; font-weight: bold; color: #25332B; }
 .section-header-title { display: flex; align-items: center; gap: 6rpx; }
-.section-header-title .line-icon { width: 28rpx; height: 28rpx; color: #299f91; }
-.section-header-hint { font-size: 11px; color: #aaa; }
+.section-header-title .line-icon { width: 28rpx; height: 28rpx; color: #28634E; }
+.section-header-hint { font-size:0.8571em; color: #aaa; }
 .recipe-list { height: auto; }
 .recipe-item { padding: 10px; background: #fafbfa; border-radius: 8px; border: 1px solid #eee; position: relative; margin-bottom: 8px; transition: all 0.2s; }
-.recipe-item.selected { background: #E8F5E9; border-color: #2BA471; }
+.recipe-item.selected { background: #EDF3ED; border-color: #28634E; }
 .recipe-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size: 13px; font-weight: bold; color: #333; }
-.delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background: #ff7875; color: #fff; border-radius: 50%; font-size: 14px; font-weight: bold; }
+.recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size:0.9286em; font-weight: bold; color: #25332B; }
+.delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background: #ff7875; color: #FFFFFF; border-radius: 50%; font-size:1.0em; font-weight: bold; }
 .recipe-info { display: flex; gap: 5px; flex-wrap: wrap; }
-.info-tag { font-size: 11px; color: #777; background: #fff; padding: 2px 5px; border-radius: 3px; }
+.info-tag { font-size:0.8571em; color: #777; background: #FFFFFF; padding: 2px 5px; border-radius: 3px; }
 .recipe-dishes { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
-.recipe-dishes .dish-tag { font-size: 10px; color: #2BA471; background: #fff; padding: 1px 4px; border-radius: 3px; border: 1px solid #2BA471; }
-.selected-badge { position: absolute; top: -6px; right: -6px; background: #2BA471; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
-.unselect-btn { margin-top: 10px; text-align: center; padding: 6px; background: #f5f5f5; border-radius: 4px; color: #888; font-size: 12px; }
+.recipe-dishes .dish-tag { font-size:0.8571em; color: #28634E; background: #FFFFFF; padding: 1px 4px; border-radius: 3px; border: 1px solid #28634E; }
+.selected-badge { position: absolute; top: -6px; right: -6px; background: #28634E; color: #FFFFFF; font-size:0.8571em; padding: 1px 6px; border-radius: 10px; }
+.unselect-btn { margin-top: 10px; text-align: center; padding: 6px; background: #F8F7F2; border-radius: 4px; color: #617066; font-size:0.8571em; }
 
 /* 数据加载提示 */
 .loading-tip { margin: 0 16px 10px; padding: 12px 16px; background: #fff9e6; border-radius: 10px; border: 1px solid rgba(212,160,23,0.2); }
 .loading-tip-content { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .loading-spinner { width: 20px; height: 20px; border: 3px solid #d4a017; border-top: 3px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.loading-text { font-size: 14px; color: #d4a017; font-weight: 500; }
+.loading-text { font-size:1.0em; color: #d4a017; font-weight: 500; }
 
 /* 按钮区 */
 .cta-area { padding: 2px 16px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .chat-btn {
-  border: 2rpx solid #2BA471;
-  color: #2BA471;
+  border: 2rpx solid #28634E;
+  color: #28634E;
 }
 .chat-btn::after { border: none; }
 .primary-btn {
   width: 80%; height: 48px;
-  background: #2BA471;
-  color: #fff; font-size: 34rpx; font-weight: bold;
+  background: #28634E;
+  color: #FFFFFF; font-size:1.2143em; font-weight: bold;
   border-radius: 28rpx; border: none;
   box-shadow: none;
   letter-spacing: 2rpx;
@@ -236,7 +238,7 @@ page {
 .primary-btn::after { border: none; }
 .secondary-btn {
   width: 80%; height: 42px;
-  background: #fff; color: #FF7D3B; font-size: 28rpx; font-weight: bold;
+  background: #FFFFFF; color: #FF7D3B; font-size:1.0em; font-weight: bold;
   border-radius: 24rpx; border: 2rpx solid #FFD5BF;
   box-shadow: none;
   display: flex;
@@ -253,3 +255,18 @@ page {
 .card-label { flex-shrink: 1; min-width: 0; }
 .param-card { gap: 8px; }
 .cta-area button { min-width: 0; max-width: 100%; }
+
+/* 页面共享主题，适用于本页详情、表单和弹层。 */
+
+.count-btn,.meal-option,.hot-tag,.delete-btn { min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; }
+
+/* Shared finish for legacy pages; layout and permission-specific states remain local. */
+.ew-page { background:#F8F7F2; color:#25332B; }
+.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
+.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
+
+@import "../../styles/workspace.wxss";
+
+/* Input and touch minima remain fixed under small screens/font changes. */
+.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
+.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}
