@@ -84,6 +84,7 @@ class MealWorkspaceHttpIT {
             assertNull(call("/meal-workspaces/current?date="+day+"&mealType="+meal,4L,null,Map.class).getBody().get("plan"));
         }
         Map<?,?> review=call("/diet-reviews?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();assertEquals(3,((Number)review.get("mealCount")).intValue());
+        releaseShoppingReferencesBeforeCatalogDeletion();
         exerciseHistoricalActualEdits(day);
         exercisePersistentClearScopesAndReplay();
         review=call("/diet-reviews?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();
@@ -125,6 +126,15 @@ class MealWorkspaceHttpIT {
         entry.setUserId(user);entry.setMealDate(day);entry.setMealType("lunch");entry.setStatus("eaten");entry.setRevision(1L);entry.setActualDishesJson("[{\"dishId\":"+dishId+"}]");
         actualRecords.save(entry);
     }
+    private void releaseShoppingReferencesBeforeCatalogDeletion() {
+        // Shopping groups intentionally retain a food FK; release them through the authenticated business API first.
+        Map<?,?> list=call("/shopping-list",3L,null,Map.class).getBody();assertTrue(ownedItemCount()>0);
+        ShoppingClearRequest request=new ShoppingClearRequest();request.setRequestId("http-history-release-shopping");request.setScope("all");request.setExpectedListVersion(((Number)list.get("version")).longValue());
+        ResponseEntity<Map> cleared=call("/shopping-list:clear",3L,request,Map.class);assertEquals(200,cleared.getStatusCodeValue());
+        assertEquals(0,ownedItemCount());assertTrue(((List<?>)cleared.getBody().get("dishes")).isEmpty());
+        assertEquals(0,sql.queryForObject("SELECT COUNT(*) FROM shopping_dish d JOIN shopping_list l ON l.id=d.shopping_list_id WHERE l.user_id=3",Integer.class));
+        assertEquals(cleared.getBody(),call("/shopping-list/:clear",3L,request,Map.class).getBody());
+    }
     private void exerciseHistoricalActualEdits(String day) {
         for(String meal:Arrays.asList("breakfast","lunch","dinner")) {
             Map<?,?> overview=call("/recipe-records/overview?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();
@@ -136,6 +146,7 @@ class MealWorkspaceHttpIT {
             Long renamed=Long.valueOf(String.valueOf(((Map<?,?>)history.get(1)).get("dishId")));
             sql.update("UPDATE food SET NAME='renamed after actual',TYPE='dessert' WHERE ID=?",renamed);
             sql.update("DELETE FROM food WHERE ID=?",deleted);
+            assertEquals(0,sql.queryForObject("SELECT COUNT(*) FROM food WHERE ID=?",Integer.class,deleted));
             sql.update("UPDATE recipe_records SET recipe_name='modified later plan',target_people=4,revision=revision+1,is_deleted=? WHERE user_id=3 AND record_date=? AND meal_type=?","dinner".equals(meal),day,meal);
             MealConsumptionRequest edit=new MealConsumptionRequest(); edit.setRequestId("http-retain-"+meal); edit.setExpectedRevision(((Number)original.get("revision")).longValue()); edit.setStatus("eaten");
             for(int index=0;index<history.size();index++) {MealConsumptionRequest.Entry retained=new MealConsumptionRequest.Entry();retained.setRetainedEntryIndex(index);edit.getDishes().add(retained);}
