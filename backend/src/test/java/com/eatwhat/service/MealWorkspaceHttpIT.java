@@ -22,6 +22,13 @@ class MealWorkspaceHttpIT {
     @Autowired private com.eatwhat.mapper.FavoriteDishMapper favorites;
     @Autowired private com.eatwhat.mapper.MealConsumptionMapper actualRecords;
     @Autowired private MealWorkspacePlanner planner;
+    @BeforeEach void initializeHttpTransport() { configureHttpTransport(http); }
+    static void configureHttpTransport(TestRestTemplate client) {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory=new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        // JDK streaming mode hides a real 401 POST behind HttpRetryException; keep the test response readable.
+        factory.setOutputStreaming(false);
+        client.getRestTemplate().setRequestFactory(factory);
+    }
     @DynamicPropertySource static void configuration(DynamicPropertyRegistry r) {
         String url=System.getenv("V4_TEST_JDBC");
         if(url==null||!url.matches("jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/eatwhat_v4_test_[a-z0-9]+\\?.*"))throw new IllegalStateException("Use private MySQL test script");
