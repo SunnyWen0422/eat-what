@@ -42,6 +42,8 @@ public class ShoppingListMergeService {
 
     private boolean compatible(ShoppingPreviewItemDTO a, ShoppingPreviewItemDTO b) {
         return !a.isUserOverride() && !b.isUserOverride()
+                && "CALCULATED".equals(a.getCalculationStatus()) && "CALCULATED".equals(b.getCalculationStatus())
+                && Boolean.TRUE.equals(a.getServingsVerified()) && Boolean.TRUE.equals(b.getServingsVerified())
                 && "PARSED".equals(a.getParseStatus()) && "PARSED".equals(b.getParseStatus())
                 && safe(a.getUnitFamily()).equals(safe(b.getUnitFamily()))
                 && safe(a.getUnitCode()).equals(safe(b.getUnitCode()))

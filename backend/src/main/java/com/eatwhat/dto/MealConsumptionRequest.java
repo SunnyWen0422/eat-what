@@ -15,5 +15,9 @@ public class MealConsumptionRequest {
     @Data public static class Entry {
         private Long dishId;
         private String name;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private Integer retainedEntryIndex;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private String type;
     }
 }

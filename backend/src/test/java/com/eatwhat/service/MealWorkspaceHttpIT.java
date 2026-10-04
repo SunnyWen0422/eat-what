@@ -33,6 +33,11 @@ class MealWorkspaceHttpIT {
         if(user!=null)headers.setBearerAuth(tokens.generateToken(user));
         return http.exchange(path,body==null?HttpMethod.GET:HttpMethod.POST,new HttpEntity<>(body,headers),response);
     }
+    private ResponseEntity<Map> actual(String day,String meal,Long user,MealConsumptionRequest body) {
+        HttpHeaders headers=new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON);
+        if(user!=null)headers.setBearerAuth(tokens.generateToken(user));
+        return http.exchange("/meal-consumptions/"+day+"/"+meal,HttpMethod.PUT,new HttpEntity<>(body,headers),Map.class);
+    }
     @Test void allThreeMealsUseAuthenticatedPersistentRulesAndConfirmation() throws Exception {
         String day=java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).toString();
         assertEquals(401,call("/meal-workspaces/current?date="+day+"&mealType=lunch",null,null,Map.class).getStatusCodeValue());
@@ -75,5 +80,70 @@ class MealWorkspaceHttpIT {
             assertNull(call("/meal-workspaces/current?date="+day+"&mealType="+meal,4L,null,Map.class).getBody().get("plan"));
         }
         Map<?,?> review=call("/diet-reviews?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();assertEquals(3,((Number)review.get("mealCount")).intValue());
+        exerciseHistoricalActualEdits(day);
+        exercisePersistentClearScopesAndReplay();
+        review=call("/diet-reviews?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();
+        assertEquals(3,((Number)review.get("mealCount")).intValue()); assertEquals(9,((Number)review.get("entryCount")).intValue());
+        assertEquals(0,((Number)call("/diet-reviews?startDate="+day+"&endDate="+day,4L,null,Map.class).getBody().get("mealCount")).intValue());
+    }
+    private void exerciseHistoricalActualEdits(String day) {
+        for(String meal:Arrays.asList("breakfast","lunch","dinner")) {
+            Map<?,?> overview=call("/recipe-records/overview?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();
+            Map<?,?> original=(Map<?,?>)((List<?>)overview.get("consumptions")).stream().filter(row->meal.equals(((Map<?,?>)row).get("mealType"))).findFirst().orElseThrow(()->new AssertionError("Missing actual meal"));
+            List<?> history=(List<?>)original.get("actualDishes");
+            Map<?,?> snapshot=(Map<?,?>)original.get("plannedSnapshot"); assertEquals(2,((Number)snapshot.get("targetPeople")).intValue());
+            // Changes and deletion occur after all three meal confirmations so fixture eligibility remains stable.
+            Long deleted=Long.valueOf(String.valueOf(((Map<?,?>)history.get(0)).get("dishId")));
+            Long renamed=Long.valueOf(String.valueOf(((Map<?,?>)history.get(1)).get("dishId")));
+            sql.update("UPDATE food SET NAME='renamed after actual',TYPE='dessert' WHERE ID=?",renamed);
+            sql.update("DELETE FROM food WHERE ID=?",deleted);
+            sql.update("UPDATE recipe_records SET recipe_name='modified later plan',target_people=4,revision=revision+1,is_deleted=? WHERE user_id=3 AND record_date=? AND meal_type=?","dinner".equals(meal),day,meal);
+            MealConsumptionRequest edit=new MealConsumptionRequest(); edit.setRequestId("http-retain-"+meal); edit.setExpectedRevision(((Number)original.get("revision")).longValue()); edit.setStatus("eaten");
+            for(int index=0;index<history.size();index++) {MealConsumptionRequest.Entry retained=new MealConsumptionRequest.Entry();retained.setRetainedEntryIndex(index);edit.getDishes().add(retained);}
+            MealConsumptionRequest.Entry changed=new MealConsumptionRequest.Entry(); changed.setName("HTTP实际新增"+meal); edit.getDishes().add(changed);
+            ResponseEntity<Map> saved=actual(day,meal,3L,edit); assertEquals(200,saved.getStatusCodeValue());
+            List<?> savedHistory=(List<?>)saved.getBody().get("actualDishes");
+            for(int index=0;index<history.size();index++)assertEquals(history.get(index),savedHistory.get(index));
+            assertEquals(original.get("sourceRecordId"),saved.getBody().get("sourceRecordId"));
+            Map<?,?> savedSnapshot=(Map<?,?>)saved.getBody().get("plannedSnapshot");
+            for(String field:Arrays.asList("name","dishIds","revision","recordOrigin","targetPeople"))assertEquals(snapshot.get(field),savedSnapshot.get(field));
+            assertEquals(false,savedSnapshot.get("confirmedAsPlanned"));
+            assertEquals(saved.getBody(),actual(day,meal,3L,edit).getBody());
+            assertEquals(2L,sql.queryForObject("SELECT revision FROM meal_consumption WHERE user_id=3 AND meal_date=? AND meal_type=?",Long.class,day,meal));
+            edit.setRequestId("http-retain-stale-"+meal); assertEquals(409,actual(day,meal,3L,edit).getStatusCodeValue());
+            edit.setExpectedRevision(2L);edit.setRequestId("http-retain-forged-"+meal);edit.getDishes().get(0).setName("fabricated retained name");
+            assertEquals(400,actual(day,meal,3L,edit).getStatusCodeValue());
+            edit.getDishes().get(0).setName(null);edit.getDishes().get(0).setRetainedEntryIndex(99);edit.setRequestId("http-retain-index-"+meal);
+            assertEquals(400,actual(day,meal,3L,edit).getStatusCodeValue());
+            edit.getDishes().get(0).setRetainedEntryIndex(0);edit.setRequestId("http-retain-foreign-"+meal); assertEquals(409,actual(day,meal,4L,edit).getStatusCodeValue());
+            edit.setRequestId("http-retain-"+meal); assertEquals(409,actual(day,meal,3L,edit).getStatusCodeValue());
+        }
+    }
+    private void exercisePersistentClearScopesAndReplay() {
+        long version=((Number)call("/shopping-list",3L,null,Map.class).getBody().get("version")).longValue();
+        for(int index=0;index<2;index++) {
+            ShoppingManualRequest manual=new ShoppingManualRequest();manual.setRequestId("http-clear-manual-"+index);manual.setExpectedListVersion(version);manual.setName("clear fixture "+index);manual.setQuantityText("1包");
+            ResponseEntity<Map> added=call("/shopping-list/manual-items",3L,manual,Map.class);assertEquals(200,added.getStatusCodeValue());version=((Number)added.getBody().get("version")).longValue();
+        }
+        Long checkedId=sql.queryForObject("SELECT i.id FROM shopping_item i JOIN shopping_dish d ON d.id=i.shopping_dish_id JOIN shopping_list l ON l.id=d.shopping_list_id WHERE l.user_id=3 AND i.display_name='clear fixture 0'",Long.class);
+        ShoppingCheckRequest check=new ShoppingCheckRequest();check.setRequestId("http-clear-check");check.setExpectedListVersion(version);check.setChecked(true);check.setItemIds(Collections.singletonList(checkedId));
+        ResponseEntity<Map> checked=call("/shopping-list/items:batch-check",3L,check,Map.class);assertEquals(200,checked.getStatusCodeValue());version=((Number)checked.getBody().get("version")).longValue();
+        int before=ownedItemCount();assertTrue(before>=2);
+        ShoppingClearRequest request=new ShoppingClearRequest();request.setRequestId("http-clear-checked");request.setExpectedListVersion(version);request.setScope("checked");
+        assertEquals(401,call("/shopping-list:clear",null,request,Map.class).getStatusCodeValue());
+        ResponseEntity<Map> cleared=call("/shopping-list:clear",3L,request,Map.class);assertEquals(200,cleared.getStatusCodeValue());assertEquals(before-1,ownedItemCount());
+        assertEquals(0,sql.queryForObject("SELECT COUNT(*) FROM shopping_item WHERE id=?",Integer.class,checkedId));
+        assertEquals(cleared.getBody(),call("/shopping-list/:clear",3L,request,Map.class).getBody());assertEquals(before-1,ownedItemCount());
+        request.setScope("all");assertEquals(409,call("/shopping-list:clear",3L,request,Map.class).getStatusCodeValue());
+        request.setRequestId("http-clear-no-version");request.setExpectedListVersion(null);assertEquals(422,call("/shopping-list/:clear",3L,request,Map.class).getStatusCodeValue());assertEquals(before-1,ownedItemCount());
+        request.setExpectedListVersion(version);request.setRequestId("http-clear-stale");assertEquals(409,call("/shopping-list:clear",3L,request,Map.class).getStatusCodeValue());
+        request.setExpectedListVersion(((Number)cleared.getBody().get("version")).longValue());request.setRequestId("http-clear-all");
+        ResponseEntity<Map> all=call("/shopping-list:clear",3L,request,Map.class);assertEquals(200,all.getStatusCodeValue());assertEquals(0,ownedItemCount());
+        assertEquals(all.getBody(),call("/shopping-list/:clear",3L,request,Map.class).getBody());
+        assertEquals(all.getBody(),call("/shopping-list:clear",3L,request,Map.class).getBody());
+        assertEquals(2,sql.queryForObject("SELECT COUNT(*) FROM shopping_request_log WHERE user_id=3 AND request_id IN ('http-clear-checked','http-clear-all')",Integer.class));
+    }
+    private int ownedItemCount() {
+        return sql.queryForObject("SELECT COUNT(*) FROM shopping_item i JOIN shopping_dish d ON d.id=i.shopping_dish_id JOIN shopping_list l ON l.id=d.shopping_list_id WHERE l.user_id=3",Integer.class);
     }
 }

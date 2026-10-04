@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/shopping-list")
+@RequestMapping
 public class ShoppingListController {
     private final ShoppingPreviewService previewService;
     private final ShoppingListService listService;
@@ -34,7 +34,7 @@ public class ShoppingListController {
         this.listService = listService;
     }
 
-    @PostMapping("/preview")
+    @PostMapping("/shopping-list/preview")
     public ResponseEntity<?> preview(@RequestBody ShoppingPreviewRequest request, HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(previewService.createPreview(userId(httpRequest), request));
@@ -43,7 +43,7 @@ public class ShoppingListController {
         }
     }
 
-    @PostMapping("/items:batch-add")
+    @PostMapping("/shopping-list/items:batch-add")
     public ResponseEntity<?> batchAdd(@RequestBody ShoppingBatchAddRequest request, HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(listService.batchAdd(userId(httpRequest), request));
@@ -56,13 +56,13 @@ public class ShoppingListController {
         }
     }
 
-    @GetMapping
+    @GetMapping("/shopping-list")
     public ResponseEntity<ShoppingListResponse> getList(@RequestParam(defaultValue = "all") String status,
                                                          HttpServletRequest httpRequest) {
         return ResponseEntity.ok(listService.getList(userId(httpRequest), status));
     }
 
-    @PatchMapping("/items/{itemId}")
+    @PatchMapping("/shopping-list/items/{itemId}")
     public ResponseEntity<?> patchItem(@PathVariable Long itemId, @RequestBody ShoppingItemPatchRequest request,
                                        HttpServletRequest httpRequest) {
         try {
@@ -76,7 +76,7 @@ public class ShoppingListController {
         }
     }
 
-    @DeleteMapping("/items/{itemId}")
+    @DeleteMapping("/shopping-list/items/{itemId}")
     public ResponseEntity<?> deleteItem(@PathVariable Long itemId,
                                         @RequestBody(required = false) ShoppingItemPatchRequest request,
                                         HttpServletRequest httpRequest) {
@@ -87,10 +87,12 @@ public class ShoppingListController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(conflict(e));
         } catch (ShoppingListService.NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error(e.getMessage()));
         }
     }
 
-    @PostMapping(":clear")
+    @PostMapping({"/shopping-list:clear", "/shopping-list/:clear"})
     public ResponseEntity<?> clear(@RequestBody ShoppingClearRequest request, HttpServletRequest httpRequest) {
         try {
             return ResponseEntity.ok(listService.clear(userId(httpRequest), request));

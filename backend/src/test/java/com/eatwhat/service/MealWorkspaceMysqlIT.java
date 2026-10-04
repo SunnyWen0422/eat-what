@@ -85,7 +85,7 @@ class MealWorkspaceMysqlIT {
         DishCandidateQueryService candidates=mock(DishCandidateQueryService.class);
         when(candidates.findForUser(anyLong(),isNull(),isNull(),any(),anyInt())).thenReturn(Collections.singletonList(reviewed));
         UserPreferenceService prefs=mock(UserPreferenceService.class);when(prefs.get(1L)).thenReturn(new UserPreferenceDTO());
-        MealWorkspacePlanner currentPlanner=new MealWorkspacePlanner(candidates,food,prefs,new RecommendationMetadataService(food));
+        MealWorkspacePlanner currentPlanner=new MealWorkspacePlanner(candidates,food,prefs,new RecommendationMetadataService(food),mock(FavoriteDishService.class),actual,json);
         JdbcTemplate other=new JdbcTemplate(new DriverManagerDataSource(System.getenv("V4_TEST_JDBC"),"root",System.getenv("V4_TEST_PASSWORD")));
         tx.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
         tx.execute(t->{

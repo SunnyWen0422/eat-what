@@ -79,6 +79,14 @@ public class ShoppingPreviewService {
         item.setParseStatus(result.getParseStatus());
         item.setQuantityKind(result.getQuantityKind());
         item.setWarnings(new ArrayList<String>());
+        if (basePeople == null) {
+            item.setUnitCode(quantity == null ? null : quantity.getUnitCode());
+            item.setUnitFamily(quantity == null ? "unknown" : quantity.getUnitFamily());
+            item.setCalculationStatus("NEEDS_ADJUSTMENT");
+            item.setQuantityText(result.getSourceText());
+            item.getWarnings().add("缺少可信的原始份数，请按实际用餐人数核对原量");
+            return item;
+        }
         if (quantity == null || quantity.getValue() == null) {
             item.setCalculationStatus("NEEDS_ADJUSTMENT");
             item.setQuantityText(result.getSourceText());
@@ -94,14 +102,19 @@ public class ShoppingPreviewService {
         item.setUnitFamily(quantity.getUnitFamily());
         item.setQuantityText(scaled.stripTrailingZeros().toPlainString() + quantity.getUnitCode());
         item.setCalculationStatus("CALCULATED");
+        item.setServingsVerified(true);
         return item;
     }
 
     private BigDecimal parseBasePeople(String fl) {
-        if (fl == null || fl.trim().isEmpty()) return new BigDecimal("2");
-        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)").matcher(fl);
-        if (matcher.find()) return new BigDecimal(matcher.group(1));
-        return new BigDecimal("2");
+        if (fl == null || fl.trim().isEmpty()) return null;
+        // FL also contains allowance/free text in older recipes; a number inside it is not a servings source.
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+                "^(?:serves\\s+)?(\\d+(?:\\.\\d+)?)\\s*(?:人(?:\\s*份|基础份量)?|份|servings?)?$",
+                java.util.regex.Pattern.CASE_INSENSITIVE).matcher(fl.trim());
+        if (!matcher.matches()) return null;
+        BigDecimal people = new BigDecimal(matcher.group(1));
+        return people.signum() > 0 ? people : null;
     }
 
     private void validatePeople(BigDecimal targetPeople) {

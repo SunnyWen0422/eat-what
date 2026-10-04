@@ -61,7 +61,9 @@ class ShoppingListReliabilityTest {
         when(logs.findSuccess(3L,"same-request")).thenReturn(log);
         ShoppingListService service = new ShoppingListService(mock(ShoppingListMapper.class),mock(ShoppingDishMapper.class),
             mock(ShoppingItemMapper.class),logs,mock(ShoppingListMergeService.class),mock(ShoppingPreviewService.class),new ObjectMapper());
-        ShoppingClearRequest request = new ShoppingClearRequest(); request.setRequestId("same-request"); request.setScope("all");
+        ShoppingClearRequest request = new ShoppingClearRequest(); request.setRequestId("same-request"); request.setScope("all"); request.setExpectedListVersion(2L);
+        try { log.setRequestHash(com.eatwhat.util.WorkflowRequestHash.sha256("ShoppingClearRequest|"+new ObjectMapper().writeValueAsString(request))); }
+        catch(Exception error) { throw new AssertionError(error); }
         assertThrows(IllegalStateException.class,()->service.clear(3L,request));
         verify(logs,never()).insertSuccess(anyLong(),anyString(),anyString());
     }

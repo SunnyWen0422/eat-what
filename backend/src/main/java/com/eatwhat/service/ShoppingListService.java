@@ -97,12 +97,13 @@ public class ShoppingListService {
         String requestHash = requestHash(request);
         ShoppingRequestLog existing = logMapper.findSuccess(userId, request.getRequestId());
         if (existing != null) {
-            if (existing.getRequestHash() != null && !requestHash.equals(existing.getRequestHash()))
+            if (!requestHash.equals(existing.getRequestHash()))
                 throw new MealConsumptionService.VersionConflict("请求标识已用于不同购物操作");
             try {
                 return new ShoppingSyncResponse(objectMapper.readValue(existing.getResponseJson(), ShoppingListResponse.class), true);
             } catch (Exception error) { throw new IllegalStateException("采购请求记录无法读取，请联系管理员", error); }
         }
+        requireVersion(request.getExpectedListVersion());
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, request.getExpectedListVersion());
         if (request.getDishes() != null) {
@@ -163,6 +164,7 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListResponse patchItem(Long userId, Long itemId, ShoppingItemPatchRequest patch) {
         if (patch == null) throw new IllegalArgumentException("修改内容不能为空");
+        requireVersion(patch.getExpectedListVersion());
         if (patch.getDisplayName() != null && (patch.getDisplayName().trim().isEmpty() || patch.getDisplayName().trim().length() > 255)) {
             throw new IllegalArgumentException("食材名称长度无效");
         }
@@ -178,6 +180,14 @@ public class ShoppingListService {
         if (item == null) throw new NotFoundException("购物项目不存在");
         if (patch.getUnitCode() != null && !sameUnitFamily(item.getUnitFamily(), patch.getUnitCode())) {
             throw new IllegalArgumentException("不能跨单位族修改食材用量");
+        }
+        if (!Boolean.TRUE.equals(item.getUserOverride()) && ("CALCULATED".equals(item.getCalculationStatus())
+                || "NEEDS_ADJUSTMENT".equals(item.getCalculationStatus()))) {
+            // Editing a label or checked flag does not confirm an inferred historical amount.
+            item.setQuantityValue(null); item.setQuantityMin(null); item.setQuantityMax(null);
+            if (item.getSourceQuantityText() != null && !item.getSourceQuantityText().trim().isEmpty())
+                item.setQuantityText(item.getSourceQuantityText());
+            item.setCalculationStatus("NEEDS_ADJUSTMENT");
         }
         if (patch.getDisplayName() != null) item.setDisplayName(patch.getDisplayName().trim());
         if (patch.getQuantityValue() != null) item.setQuantityValue(patch.getQuantityValue());
@@ -197,6 +207,7 @@ public class ShoppingListService {
 
     @Transactional
     public ShoppingListResponse deleteItem(Long userId, Long itemId, Long expectedListVersion) {
+        requireVersion(expectedListVersion);
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, expectedListVersion);
         if (itemMapper.delete(itemId, list.getId()) == 0) throw new NotFoundException("购物项目不存在");
@@ -212,12 +223,13 @@ public class ShoppingListService {
         String requestHash = requestHash(request);
         ShoppingRequestLog existing = logMapper.findSuccess(userId, request.getRequestId());
         if (existing != null) {
-            if (existing.getRequestHash() != null && !requestHash.equals(existing.getRequestHash()))
+            if (!requestHash.equals(existing.getRequestHash()))
                 throw new MealConsumptionService.VersionConflict("请求标识已用于不同购物操作");
             try {
                 return objectMapper.readValue(existing.getResponseJson(), ShoppingListResponse.class);
             } catch (Exception error) { throw new IllegalStateException("清空请求记录无法读取，请联系管理员", error); }
         }
+        requireVersion(request.getExpectedListVersion());
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, request.getExpectedListVersion());
         if (!"all".equals(request.getScope()) && !"checked".equals(request.getScope()))
@@ -331,6 +343,7 @@ public class ShoppingListService {
         copy.setSourceDishName(source.getSourceDishName());
         copy.setSourceLineNo(source.getSourceLineNo());
         copy.setSourceBasePeople(source.getSourceBasePeople());
+        copy.setServingsVerified(source.getServingsVerified());
         copy.setCalculationStatus(source.getCalculationStatus());
         copy.setParseStatus(source.getParseStatus());
         copy.setUserOverride(source.isUserOverride());
@@ -368,7 +381,12 @@ public class ShoppingListService {
     }
 
     private void checkVersion(ShoppingList list, Long expected) {
-        if (expected != null && !expected.equals(list.getVersion())) throw new VersionConflictException(list.getVersion());
+        requireVersion(expected);
+        if (!expected.equals(list.getVersion())) throw new VersionConflictException(list.getVersion());
+    }
+
+    private void requireVersion(Long expected) {
+        if (expected == null || expected < 0) throw new IllegalArgumentException("缺少有效的清单版本");
     }
 
     private ShoppingListResponse emptyResponse() { return new ShoppingListResponse(); }
@@ -392,7 +410,9 @@ public class ShoppingListService {
         entity.setUnitFamily(item.getUnitFamily());
         entity.setSourceQuantityText(item.getSourceQuantityText());
         entity.setParseStatus(item.getParseStatus());
-        entity.setCalculationStatus(item.getCalculationStatus());
+        // This marker fits the existing VARCHAR(24) and distinguishes new verified writes from inferred legacy bases.
+        entity.setCalculationStatus("CALCULATED".equals(item.getCalculationStatus()) && Boolean.TRUE.equals(item.getServingsVerified())
+                ? "CALCULATED_VERIFIED" : item.getCalculationStatus());
         entity.setChecked(item.isChecked());
         entity.setUserOverride(item.isUserOverride());
         return entity;
@@ -420,6 +440,20 @@ public class ShoppingListService {
         dto.setCalculationStatus(item.getCalculationStatus());
         dto.setChecked(Boolean.TRUE.equals(item.getChecked()));
         dto.setUserOverride(Boolean.TRUE.equals(item.getUserOverride()));
+        if ("CALCULATED_VERIFIED".equals(item.getCalculationStatus())) {
+            dto.setCalculationStatus("CALCULATED");
+            dto.setServingsVerified(true);
+        } else if ("CALCULATED".equals(item.getCalculationStatus()) && !dto.isUserOverride()) {
+            // Legacy rows did not persist the servings basis. A current catalog lookup cannot prove that historical basis.
+            dto.setCalculationStatus("NEEDS_ADJUSTMENT");
+            dto.setQuantityValue(null); dto.setQuantityMin(null); dto.setQuantityMax(null);
+            dto.setQuantityText(item.getSourceQuantityText() == null || item.getSourceQuantityText().trim().isEmpty()
+                    ? item.getQuantityText() : item.getSourceQuantityText());
+            dto.getWarnings().add("历史原始份数未核验，请确认原量后使用");
+        } else if ("NEEDS_ADJUSTMENT".equals(item.getCalculationStatus()) && !dto.isUserOverride()) {
+            dto.setQuantityValue(null); dto.setQuantityMin(null); dto.setQuantityMax(null);
+            dto.getWarnings().add("原始数量或份数需要核对");
+        }
         return dto;
     }
 
@@ -452,11 +486,13 @@ public class ShoppingListService {
         summary.setUnitCode(item.getUnitCode());
         summary.setUnitFamily(item.getUnitFamily());
         summary.add(item.getQuantityValue(), dishName);
+        if (!isSafe(item)) summary.setQuantityText(item.getQuantityText());
         return summary;
     }
 
     private boolean isSafe(ShoppingPreviewItemDTO item) {
         return item.getQuantityValue() != null && !item.isUserOverride()
+                && "CALCULATED".equals(item.getCalculationStatus()) && Boolean.TRUE.equals(item.getServingsVerified())
                 && "PARSED".equals(item.getParseStatus())
                 && ("mass".equals(item.getUnitFamily()) || "volume".equals(item.getUnitFamily()) || "count".equals(item.getUnitFamily()));
     }

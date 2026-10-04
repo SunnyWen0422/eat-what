@@ -1,5 +1,5 @@
 const { getUserStorageKey } = require('./util')
-const { buildPurchaseSummary } = require('./shopping-ingredients')
+const { buildPurchaseSummary, normalizeQuantitySafety } = require('./shopping-ingredients')
 
 const STORAGE_KEYS = {
   list: 'shoppingList',
@@ -24,12 +24,18 @@ function defaultList() {
 
 function loadLocalShoppingList() {
   const saved = wx.getStorageSync(key('list'))
-  return saved && typeof saved === 'object' ? saved : defaultList()
+  return normalizeList(saved && typeof saved === 'object' ? saved : defaultList())
+}
+
+function normalizeList(list) {
+  const next = { ...defaultList(), ...(list || {}) }
+  next.dishes = (next.dishes || []).map(dish => ({ ...dish, items: (dish.items || []).map(normalizeQuantitySafety) }))
+  next.purchaseSummary = buildPurchaseSummary(next.dishes)
+  return next
 }
 
 function saveLocalShoppingList(list) {
-  const next = { ...defaultList(), ...(list || {}) }
-  next.purchaseSummary = buildPurchaseSummary(next.dishes)
+  const next = normalizeList(list)
   wx.setStorageSync(key('list'), next)
   return next
 }

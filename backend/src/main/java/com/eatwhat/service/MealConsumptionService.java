@@ -87,7 +87,8 @@ public class MealConsumptionService {
         long version=current==null?0:current.getRevision();
         if(version!=request.getExpectedRevision())throw new VersionConflict("用餐记录已更新，请重新加载后确认");
         RecipeRecord plan=plans.selectByUserAndDate(userId,day).stream().filter(p->mealType.equals(p.getMealType())).findFirst().orElse(null);
-        if (request.getExpectedPlanRevision() != null && request.getExpectedPlanRevision() != (plan == null ? 0 : plan.getRevision()))
+        if ((Boolean.TRUE.equals(request.getUsePlan()) || current == null) && request.getExpectedPlanRevision() != null
+                && request.getExpectedPlanRevision() != (plan == null ? 0 : plan.getRevision()))
         throw new VersionConflict("本餐安排已更新，请查看最新安排后确认");
         if (Boolean.TRUE.equals(request.getUsePlan()) && request.getExpectedPlanRevision() == null)
         throw new IllegalArgumentException("按计划确认时请提供安排版本");
@@ -101,9 +102,20 @@ public class MealConsumptionService {
             }
             else {
                 if(request.getDishes()==null||request.getDishes().isEmpty()||request.getDishes().size()>30)throw new IllegalArgumentException("请填写 1 至 30 道实际吃过的菜");
+                List<Map<String,Object>> historical = current == null ? Collections.emptyList() : hydrate(current).getActualDishes();
+                Set<Integer> retained = new HashSet<>();
                 for(MealConsumptionRequest.Entry entry:request.getDishes()) {
                     if(entry==null)throw new IllegalArgumentException("菜品内容无效");
-                    actual.add(entry.getDishId()==null?freeEntry(entry.getName()):trustedDish(entry.getDishId(),userId));
+                    if (entry.getRetainedEntryIndex() != null) {
+                        int index = entry.getRetainedEntryIndex();
+                        if (current == null || !"eaten".equals(current.getStatus()) || index < 0 || index >= historical.size()
+                                || !retained.add(index) || entry.getDishId() != null || entry.getName() != null || entry.getType() != null)
+                            throw new IllegalArgumentException("历史菜品引用无效，请重新读取实际记录");
+                        // The owned record and its revision were checked above; only the server snapshot may supply historical fields.
+                        actual.add(new LinkedHashMap<>(historical.get(index)));
+                    } else {
+                        actual.add(entry.getDishId()==null?freeEntry(entry.getName()):trustedDish(entry.getDishId(),userId));
+                    }
                 }
             }
         }
@@ -114,30 +126,24 @@ public class MealConsumptionService {
         value.setStatus(request.getStatus());
         value.setRevision(version+1);
         value.setActualDishesJson(encode(actual));
-        if(plan!=null) {
+        if(current!=null && !Boolean.TRUE.equals(request.getUsePlan())) {
+            value.setSourceRecordId(current.getSourceRecordId());
+            if (current.getPlannedSnapshotJson() != null) {
+                Map<String,Object> snapshot = new LinkedHashMap<>(hydrate(current).getPlannedSnapshot());
+                snapshot.put("confirmedAsPlanned",false);
+                value.setPlannedSnapshotJson(encode(snapshot));
+            }
+        }
+        else if(plan!=null) {
             value.setSourceRecordId(plan.getId());
             Map<String,Object> snapshot=new LinkedHashMap<>();
             snapshot.put("name",plan.getRecipeName());
             snapshot.put("dishIds",plan.getDishIds());
             snapshot.put("revision",plan.getRevision());
             snapshot.put("recordOrigin",plan.getRecordOrigin());
+            if (plan.getTargetPeople() != null) snapshot.put("targetPeople",plan.getTargetPeople());
             snapshot.put("confirmedAsPlanned",Boolean.TRUE.equals(request.getUsePlan()) && "eaten".equals(request.getStatus()));
             value.setPlannedSnapshotJson(encode(snapshot));
-        }
-        else if(current!=null) {
-            value.setSourceRecordId(current.getSourceRecordId());
-            if(current.getPlannedSnapshotJson()!=null) {
-                try {
-                    Map<String,Object> snapshot=json.readValue(current.getPlannedSnapshotJson(),new com.fasterxml.jackson.core.type.TypeReference<Map<String,Object>>() {
-                    }
-                    );
-                    snapshot.put("confirmedAsPlanned",false);
-                    value.setPlannedSnapshotJson(encode(snapshot));
-                }
-                catch(Exception error) {
-                    throw new IllegalStateException("历史计划快照无法读取",error);
-                }
-            }
         }
         mapper.save(value);
         if (behavior!=null && "eaten".equals(value.getStatus())) behavior.domain(userId,day,mealType,request.getRequestId(),"actual_completed");

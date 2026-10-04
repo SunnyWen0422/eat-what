@@ -25,6 +25,8 @@ public class ShoppingPreviewItemDTO {
     private String sourceDishName;
     private Integer sourceLineNo;
     private BigDecimal sourceBasePeople;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private Boolean servingsVerified;
     private String calculationStatus;
     private String parseStatus;
     private boolean userOverride;

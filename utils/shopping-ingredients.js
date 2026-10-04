@@ -69,11 +69,12 @@ function scaleLocalQuantity(item, basePeople, targetPeople) {
 function mergeLocalItems(items) {
   const result = []
   const indexes = new Map()
-  for (const item of items || []) {
+  for (const input of items || []) {
+    const item = normalizeQuantitySafety(input)
     const key = [item.selectionKey || item.sourceDishId || '', item.canonicalName || item.displayName || '', item.unitFamily || 'unknown', item.unitCode || 'unknown', item.normalizedVariant || ''].join('|')
-    const canMerge = item.parseStatus === 'PARSED' && !item.userOverride && Number.isFinite(item.quantityValue) && item.unitFamily !== 'unknown'
+    const canMerge = isSafeQuantity(item)
     if (!canMerge || !indexes.has(key)) {
-      indexes.set(key, result.length)
+      if (canMerge) indexes.set(key, result.length)
       result.push({ ...item })
       continue
     }
@@ -94,8 +95,9 @@ function buildPurchaseSummary(dishes) {
   const mergeable = new Map()
   const separateItems = []
   for (const dish of dishes || []) {
-    for (const item of dish.items || []) {
-      const safe = item.parseStatus === 'PARSED' && !item.userOverride && Number.isFinite(item.quantityValue) && ['mass', 'volume', 'count'].includes(item.unitFamily)
+    for (const input of dish.items || []) {
+      const item = normalizeQuantitySafety(input)
+      const safe = isSafeQuantity(item)
       if (!safe) {
         separateItems.push({ ...item, sourceDishNames: [dish.dishName], sourceDishLabel: dish.dishName })
         continue
@@ -119,6 +121,27 @@ function buildPurchaseSummary(dishes) {
   return { mergeableItems: [...mergeable.values()].map(item => ({ ...item, checkedState: item.checkedItems === 0 ? 'none' : item.checkedItems === item.totalItems ? 'all' : 'partial' })), separateItems }
 }
 
+function normalizeQuantitySafety(item) {
+  const value = { ...item }
+  if (value.userOverride) return value
+  // Old cache entries never recorded their servings basis; retain source text until the shopper confirms it.
+  if (value.calculationStatus === 'NEEDS_ADJUSTMENT' || value.calculationStatus === 'CALCULATED' && value.servingsVerified !== true || !value.calculationStatus) {
+    value.calculationStatus = 'NEEDS_ADJUSTMENT'
+    value.servingsVerified = false
+    value.quantityValue = null
+    value.quantityMin = null
+    value.quantityMax = null
+    value.quantityText = value.sourceQuantityText || value.sourceText || value.quantityText || '需调整'
+    value.warnings = [...new Set([...(value.warnings || []), '原始数量或份数需要核对'])]
+  }
+  return value
+}
+
+function isSafeQuantity(item) {
+  return item.calculationStatus === 'CALCULATED' && item.servingsVerified === true && item.parseStatus === 'PARSED'
+    && !item.userOverride && Number.isFinite(item.quantityValue) && ['mass', 'volume', 'count'].includes(item.unitFamily)
+}
+
 module.exports = {
   parseIngredientText,
   normalizeLocalIngredient,
@@ -126,4 +149,5 @@ module.exports = {
   mergeLocalItems,
   formatShoppingQuantity,
   buildPurchaseSummary,
+  normalizeQuantitySafety,
 }

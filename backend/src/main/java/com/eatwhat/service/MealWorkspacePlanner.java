@@ -1,7 +1,11 @@
 package com.eatwhat.service;
 import com.eatwhat.dto.*;
 import com.eatwhat.entity.Dish;
+import com.eatwhat.entity.MealConsumption;
 import com.eatwhat.mapper.DishMapper;
+import com.eatwhat.mapper.MealConsumptionMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -11,18 +15,43 @@ public class MealWorkspacePlanner {
     private final DishMapper dishes;
     private final UserPreferenceService preferences;
     private final RecommendationMetadataService metadata;
-    public MealWorkspacePlanner(DishCandidateQueryService candidates,DishMapper dishes,UserPreferenceService preferences,RecommendationMetadataService metadata) {
+    private final FavoriteDishService favorites;
+    private final MealConsumptionMapper actual;
+    private final ObjectMapper json;
+    public MealWorkspacePlanner(DishCandidateQueryService candidates,DishMapper dishes,UserPreferenceService preferences,RecommendationMetadataService metadata,
+                                FavoriteDishService favorites,MealConsumptionMapper actual,ObjectMapper json) {
         this.candidates=candidates;this.dishes=dishes;this.preferences=preferences;this.metadata=metadata;
+        this.favorites=favorites;this.actual=actual;this.json=json;
     }
     public List<Dish> eligible(Long user,MealContext c) {
         if(!metadata.validateCriteria(c.getCriteria()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
         EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolve(c.getCriteria(),preferences.get(user),true);
-        List<Dish> pool=candidates.findForUser(user,null,null,criteria,10000);
+        List<Dish> pool=new ArrayList<>(candidates.findForUser(user,null,null,criteria,10000));
         if ("breakfast".equals(c.getMealType())) pool=pool.stream().filter(d->Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE")).collect(Collectors.toList());
         Collections.shuffle(pool);
         final EffectiveRecommendationCriteria effective=criteria;
-        pool.sort(Comparator.comparingInt((Dish d)->new RecommendationScorer().score(d,effective,Collections.emptySet(),Collections.emptySet())+ownedScore(d,c)).reversed());
+        Set<Long> favoriteIds=new HashSet<>(favorites.getFavoriteDishIds(user));
+        Set<Long> recentIds=recentDishIds(user,c,criteria.getAvoidRecentDays());
+        RecommendationScorer scorer=new RecommendationScorer();
+        pool.sort(Comparator.comparingInt((Dish d)->scorer.score(d,effective,favoriteIds,recentIds)+ownedScore(d,c)).reversed());
         return pool;
+    }
+    private Set<Long> recentDishIds(Long user,MealContext context,Integer days) {
+        if (days == null || days <= 0) return Collections.emptySet();
+        java.time.LocalDate end=MealConsumptionService.date(context.getDate());
+        java.time.LocalDate start=end.minusDays(Math.min(30,days)-1);
+        Set<Long> ids=new HashSet<>();
+        for (MealConsumption meal:actual.range(user,start.toString(),end.toString())) {
+            if (!"eaten".equals(meal.getStatus())) continue;
+            try {
+                List<Map<String,Object>> entries=json.readValue(meal.getActualDishesJson(),new TypeReference<List<Map<String,Object>>>(){});
+                for (Map<String,Object> entry:entries) {
+                    Object id=entry.get("dishId");
+                    if (id != null && String.valueOf(id).matches("[1-9][0-9]*")) ids.add(Long.valueOf(String.valueOf(id)));
+                }
+            } catch (Exception error) { throw new IllegalStateException("近期实际用餐快照无法读取",error); }
+        }
+        return ids;
     }
     private int ownedScore(Dish d,MealContext c) {
         int score=0;String ingredients=String.valueOf(d.getCl())+String.valueOf(d.getIngredientsAmounts());

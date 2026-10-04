@@ -61,7 +61,13 @@ Page({
   async saveForm() {
     const type=this.data.formMeal,value=this.meal(type)
     if(this.data.formMode==='actual') {
-      const entries=this.data.formActual.split(/[\n、，,]/).map(x=>x.trim()).filter(Boolean).map(name=>{const known=[...(value.actual && value.actual.actualDishes || []),...(value.plan && value.plan.dishDetails || [])].find(d=>d.name===name);return known && (known.dishId || known.id) ? {dishId:Number(known.dishId || known.id)} : {name}})
+      const history=value.actual && value.actual.actualDishes || [], retained=new Set()
+      const entries=this.data.formActual.split(/[\n、，,]/).map(x=>x.trim()).filter(Boolean).map(name=>{
+        const index=history.findIndex((dish,index)=>dish.name===name && !retained.has(index))
+        if(index>=0){retained.add(index);return {retainedEntryIndex:index}}
+        const selected=(value.plan && value.plan.dishDetails || []).find(dish=>dish.name===name)
+        return selected && (selected.dishId || selected.id) ? {dishId:Number(selected.dishId || selected.id)} : {name}
+      })
       if(!entries.length)return this.setData({formError:'请填写实际吃过的菜品，每行一道。'})
       return this.run(()=>this.consumption(type,'eaten',false,entries),'已保存实际用餐')
     }
