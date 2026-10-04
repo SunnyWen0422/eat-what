@@ -1,9 +1,9 @@
-<view class="ew-page profile-page" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page profile-page" style="font-size:{{fontBase * fontScale}}px">
   <!-- 用户信息卡片 -->
-  <view class="user-card" bindtap="onUserInfoTap">
+  <view class="ew-hit-target user-card" bindtap="onUserInfoTap">
     <view class="user-avatar">
       <image wx:if="{{userInfo.avatar}}" class="avatar" src="{{userInfo.avatar}}" mode="aspectFill" binderror="onAvatarError" /><view wx:else class="avatar-fallback">我</view>
-      <view class="edit-btn" catchtap="onEditProfile">
+      <view class="ew-hit-target edit-btn" catchtap="onEditProfile">
         <ui-icon class="line-icon line-icon-pencil edit-icon" name="pencil" aria-label="编辑资料" />
       </view>
     </view>
@@ -14,33 +14,33 @@
   </view>
 
   <!-- 微信登录弹窗 -->
-  <view class="login-modal-mask {{showLoginModal ? 'mask-show' : ''}}" bindtap="onCloseLoginModal" />
+  <view class="ew-hit-target login-modal-mask {{showLoginModal ? 'mask-show' : ''}}" catchtap="onCloseLoginModal" />
   <view class="login-modal {{showLoginModal ? 'modal-show' : ''}}">
     <view class="login-modal-header">
       <text class="login-modal-title">登录「吃什么」</text>
-      <text class="login-modal-close" bindtap="onCloseLoginModal">✕</text>
+      <text class="ew-hit-target login-modal-close" bindtap="onCloseLoginModal">✕</text>
     </view>
     <view class="login-modal-desc">登录后可同步数据、使用全部功能</view>
-    <view wx:if="{{loginError}}" class="ew-error">{{loginError}}</view><button disabled="{{loginBusy}}" loading="{{loginBusy}}" class="wx-login-btn" bindtap="onWxLogin">微信一键登录</button>
-    <view class="login-skip" bindtap="onCloseLoginModal">暂不登录，游客体验</view>
+    <view wx:if="{{loginError}}" class="ew-error">{{loginError}}</view><button disabled="{{loginBusy}}" loading="{{loginBusy}}" class="ew-hit-target wx-login-btn" bindtap="onWxLogin">微信一键登录</button>
+    <view class="ew-hit-target login-skip" bindtap="onCloseLoginModal">暂不登录，游客体验</view>
   </view>
 
   <!-- 首个快捷入口：保持按菜品统计待购买食材 -->
-  <view class="shopping-shortcut" bindtap="onShoppingListTap">
+  <view class="ew-hit-target shopping-shortcut" bindtap="onShoppingListTap">
     <view class="shopping-shortcut-icon"><ui-icon class="line-icon line-icon-cart" name="cart" aria-label="购物清单" /></view>
     <view class="shopping-shortcut-body">
       <text class="shopping-shortcut-title">购物清单</text>
       <text class="shopping-shortcut-count">{{shoppingSummary.pendingCount}} 项食材待购买</text>
       <text class="shopping-shortcut-sync">{{shoppingSummary.refreshing ? '更新中 · 已显示本地清单' : shoppingSummary.syncLabel}}</text>
     </view>
-    <button class="shopping-shortcut-open" catchtap="onShoppingListTap">查看清单 ›</button>
+    <button class="ew-hit-target shopping-shortcut-open" catchtap="onShoppingListTap">查看清单 ›</button>
   </view>
 
   <!-- 功能菜单 -->
   <view class="menu-section">
     <view class="menu-list">
       <block wx:for="{{menuItems}}" wx:key="title">
-        <view class="menu-item" bindtap="onMenuTap" data-index="{{index}}">
+        <view class="ew-hit-target menu-item" bindtap="onMenuTap" data-index="{{index}}">
           <view class="menu-icon"><ui-icon name="{{item.icon}}" label="{{item.title}}" /></view>
           <view class="menu-content">
             <text class="menu-title">{{item.title}}</text>
@@ -53,7 +53,7 @@
   </view>
 
   <!-- 版本信息 -->
-  <view class="version-info" bindtap="onVersionTap">
+  <view class="ew-hit-target version-info" bindtap="onVersionTap">
     <text class="version-text">吃什么 v3.2.0</text>
   </view>
 </view>

@@ -4,7 +4,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const app = getApp()
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), userInfo: {}, nickname: '', joinDays: 0, busy: false, errorMessage: '', dirty: false },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), userInfo: {}, nickname: '', joinDays: 0, busy: false, errorMessage: '', dirty: false },
   onShow() { if (this._scope !== getUserStorageKey('profileEdit') || !this.data.dirty) this.loadUser() },
   onUnload() { this._unloaded = true },
   loadUser() {

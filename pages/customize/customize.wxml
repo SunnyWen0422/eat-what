@@ -1,5 +1,5 @@
 <!--pages/customize/customize.wxml-->
-<view class="ew-page page mobile-screen" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
 
   <!-- 分类独立横向滚动，末项始终可以滑到 -->
   <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
@@ -8,7 +8,7 @@
       wx:for="{{tabs}}"
       wx:key="*this"
       id="category-{{item}}"
-      class="sidebar-item {{activeTab === item ? 'sidebar-active' : ''}}"
+      class="ew-hit-target sidebar-item {{activeTab === item ? 'sidebar-active' : ''}}"
       data-tab="{{item}}"
       bindtap="onTabChange"
     >
@@ -16,7 +16,7 @@
     </view>
     <view
       id="category-custom"
-      class="sidebar-item custom-btn {{activeTab === 'custom' ? 'sidebar-active' : ''}}"
+      class="ew-hit-target sidebar-item custom-btn {{activeTab === 'custom' ? 'sidebar-active' : ''}}"
       data-tab="custom"
       bindtap="onTabChange"
     >
@@ -32,48 +32,48 @@
     <scroll-view class="custom-form mobile-scroll" scroll-y enhanced wx:if="{{showCustomForm}}">
       <view class="custom-form-content">
       <view class="form-title">添加我的私房菜</view>
-      <input class="form-input" placeholder="菜品名称" value="{{customForm.name}}" data-field="name" bindinput="onCustomInput" />
+      <input placeholder-class="ew-placeholder" class="form-input" placeholder="菜品名称" value="{{customForm.name}}" data-field="name" bindinput="onCustomInput" />
 
       <view class="type-row">
         <text class="type-label">分类：</text>
-        <view class="type-options" wx:for="{{['meat','veg','soup','staple','dessert']}}" wx:key="*this" data-type="{{item}}" bindtap="onCustomTypeChange">
+        <view class="ew-hit-target type-options" wx:for="{{['meat','veg','soup','staple','dessert']}}" wx:key="*this" data-type="{{item}}" bindtap="onCustomTypeChange">
           <text class="type-opt {{customForm.type === item ? 'opt-active' : ''}}">{{tabNames[item]}}</text>
         </view>
       </view>
 
-      <picker mode="selector" range="{{cuisineOptions}}" range-key="label" bindchange="onCustomCuisineChange">
+      <picker class="ew-hit-target" mode="selector" range="{{cuisineOptions}}" range-key="label" bindchange="onCustomCuisineChange">
         <view class="form-input selector-input">菜系：{{customForm.cuisineLabel}}</view>
       </picker>
 
       <view class="custom-tag-title">推荐标签</view>
       <view class="custom-tag-grid">
-        <view class="custom-tag {{item.selected ? 'selected' : ''}}" wx:for="{{customTagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCustomTagTap">{{item.label}}</view>
+        <view class="ew-hit-target custom-tag {{item.selected ? 'selected' : ''}}" wx:for="{{customTagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCustomTagTap">{{item.label}}</view>
       </view>
 
-      <input class="form-input" type="number" maxlength="3" placeholder="烹饪时长（分钟，可选）" value="{{customForm.cookMinutes}}" data-field="cookMinutes" bindinput="onCustomInput" />
+      <input placeholder-class="ew-placeholder" class="form-input" type="number" maxlength="3" placeholder="烹饪时长（分钟，可选）" value="{{customForm.cookMinutes}}" data-field="cookMinutes" bindinput="onCustomInput" />
 
-      <textarea class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" bindinput="onCustomInput" rows="4" />
-      <textarea class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" bindinput="onCustomInput" rows="6" />
-      <view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">保存菜品</button><button class="ew-link" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>
+      <textarea placeholder-class="ew-placeholder" class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" bindinput="onCustomInput" rows="4" />
+      <textarea placeholder-class="ew-placeholder" class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" bindinput="onCustomInput" rows="6" />
+      <view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="ew-hit-target save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">保存菜品</button><button class="ew-hit-target ew-link" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>
       </view>
     </scroll-view>
 
     <!-- 搜索框 -->
     <view class="search-wrap" wx:if="{{!showCustomForm}}">
-      <input class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+      <input placeholder-class="ew-placeholder" class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
       <view class="hot-tags" wx:if="{{!searchKeyword}}">
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="红烧">红烧</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="清蒸">清蒸</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="糖醋">糖醋</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="麻辣">麻辣</text>
-        <text class="hot-tag" bindtap="onQuickSearch" data-kw="凉拌">凉拌</text>
+        <text class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="红烧">红烧</text>
+        <text class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="清蒸">清蒸</text>
+        <text class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="糖醋">糖醋</text>
+        <text class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="麻辣">麻辣</text>
+        <text class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="凉拌">凉拌</text>
       </view>
       <view class="browse-filter-header">
-        <view class="browse-filter-command" bindtap="onToggleBrowseFilters">
+        <view class="ew-hit-target browse-filter-command" bindtap="onToggleBrowseFilters">
           <text>筛选{{browseFilterCount > 0 ? ' (' + browseFilterCount + ')' : ''}}</text>
           <text class="browse-filter-arrow">{{showBrowseFilters ? '收起' : '展开'}}</text>
         </view>
-        <text class="browse-filter-clear" wx:if="{{browseFilterCount > 0}}" bindtap="onClearBrowseFilters">清除</text>
+        <text class="ew-hit-target browse-filter-clear" wx:if="{{browseFilterCount > 0}}" bindtap="onClearBrowseFilters">清除</text>
       </view>
     </view>
 
@@ -91,7 +91,7 @@
         <view class="browse-filter-group" wx:for="{{browseFilterGroups}}" wx:key="key" wx:for-item="group">
           <text class="browse-filter-label">{{group.label}}</text>
           <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
-            <view class="browse-filter-option {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-group="{{group.key}}" data-code="{{item.code}}" bindtap="onBrowseOptionTap">
+            <view class="ew-hit-target browse-filter-option {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-group="{{group.key}}" data-code="{{item.code}}" bindtap="onBrowseOptionTap">
               <text>{{item.label}}</text>
               <text class="browse-filter-count" wx:if="{{item.count}}">{{item.count}}</text>
             </view>
@@ -100,7 +100,7 @@
         <view class="browse-filter-group">
           <text class="browse-filter-label">时长</text>
           <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
-            <view class="browse-filter-option {{browseCriteria.maxCookMinutes === item.value ? 'selected' : ''}}" wx:for="{{browseDurationOptions}}" wx:key="key" data-value="{{item.key}}" bindtap="onBrowseDurationTap">{{item.label}}</view>
+            <view class="ew-hit-target browse-filter-option {{browseCriteria.maxCookMinutes === item.value ? 'selected' : ''}}" wx:for="{{browseDurationOptions}}" wx:key="key" data-value="{{item.key}}" bindtap="onBrowseDurationTap">{{item.label}}</view>
           </scroll-view>
         </view>
       </view>
@@ -112,14 +112,14 @@
         class="dish-row {{item.isSelected ? 'dish-selected' : ''}}"
       >
         <!-- 勾选圆圈 -->
-        <view class="check-wrap" data-dish="{{item}}" bindtap="onToggleSelect">
+        <view class="ew-hit-target check-wrap" data-dish="{{item}}" bindtap="onToggleSelect">
           <view class="check-circle {{item.isSelected ? 'checked' : ''}}">
             <text wx:if="{{item.isSelected}}" class="check-tick">✓</text>
           </view>
         </view>
 
         <!-- 菜名（点击进入详情） -->
-        <view class="name-wrap" data-dish="{{item}}" bindtap="onTapDish">
+        <view class="ew-hit-target name-wrap" data-dish="{{item}}" bindtap="onTapDish">
           <text class="dish-name">{{item.name}}</text>
         </view>
       </view>
@@ -139,22 +139,22 @@
     <view wx:if="{{saveError}}" class="ew-error">{{saveError}}</view>
     <!-- 底部操作栏 -->
     <view class="bottom-bar" wx:if="{{!showCustomForm}}">
-      <view class="selected-wrap" bindtap="onShowSelected">
+      <view class="ew-hit-target selected-wrap" bindtap="onShowSelected">
         <text class="selected-num">已选 {{selectedTotal}} 道</text>
         <text class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}">›</text>
       </view>
-      <button class="save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
-      <button class="save-btn shopping-btn" bindtap="onAddSelectedToShoppingList">加入清单</button>
+      <button class="ew-hit-target save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
+      <button class="ew-hit-target save-btn shopping-btn" bindtap="onAddSelectedToShoppingList">加入清单</button>
     </view>
 
   </view>
 
   <!-- 已选菜品弹出面板（从底部拉出） -->
-  <view class="panel-mask {{showSelectedPanel ? 'mask-show' : ''}}" bindtap="onHideSelected" />
+  <view class="ew-hit-target panel-mask {{showSelectedPanel ? 'mask-show' : ''}}" bindtap="onHideSelected" />
   <view class="selected-panel {{showSelectedPanel ? 'panel-show' : ''}}">
     <view class="panel-header">
       <text class="panel-title">已选菜品（{{selectedTotal}} 道）</text>
-      <text class="panel-close" bindtap="onHideSelected">✕</text>
+      <text class="ew-hit-target panel-close" bindtap="onHideSelected">✕</text>
     </view>
     <scroll-view class="panel-list mobile-scroll" scroll-y enhanced>
       <view class="panel-list-content">
@@ -165,7 +165,7 @@
       >
         <text class="panel-item-name">{{item.name}}</text>
         <text
-          class="panel-item-remove"
+          class="ew-hit-target panel-item-remove"
           data-id="{{item.id}}"
           bindtap="onRemoveSelected"
         >删除</text>
@@ -176,7 +176,7 @@
       </view>
     </scroll-view>
     <view class="panel-footer">
-      <button class="panel-clear" bindtap="onClearSelected">清空全部</button>
+      <button class="ew-hit-target panel-clear" bindtap="onClearSelected">清空全部</button>
     </view>
   </view>
 

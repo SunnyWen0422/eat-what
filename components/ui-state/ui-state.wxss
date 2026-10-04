@@ -1,4 +1,14 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
-.state { text-align:center; padding:64rpx 32rpx; color:#617066; } .symbol { font-size:2.1429em; color:#28634E; margin-bottom:24rpx; } .title { display:block; color:#25332B; font-size:1.1429em; font-weight:600; } .description { display:block; margin:16rpx 0; font-size:0.9286em; line-height:1.6; } .action { background:#EDF3ED; color:#28634E; min-height:44px; border-radius:24rpx; font-size:1.0em; margin-top:24rpx; } .action::after { border:0; } .error .symbol { color:#A93B30; }
+.state { text-align:center; padding:64rpx 32rpx; color:#617066; } .symbol { font-size:2.142891em; color:#28634E; margin-bottom:24rpx; } .title { display:block; color:#25332B; font-size:1.142857em; font-weight:600; } .description { display:block; margin:16rpx 0; font-size:0.928571em; line-height:1.6; } .action { background:#EDF3ED; color:#28634E; min-height:44px; border-radius:24rpx; font-size:1em; margin-top:24rpx; } .action::after { border:0; } .error .symbol { color:#A93B30; }
 
 .illustration{width:160px;height:145px;display:block;margin:0 auto 16px}
+
+/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
+.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
+text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
+picker.ew-hit-target { display:block; }
+button { min-width:44px; min-height:48px; }
+
+.ew-placeholder { color:#617066; }
+
+button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

@@ -1,17 +1,17 @@
 <block wx:if="{{workspaceEnabled}}"><include src="../../templates/meal-workspace.wxml" /></block>
 <block wx:else>
-<view class="ew-page page" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page page" style="font-size:{{fontBase * fontScale}}px">
   <view class="assistant-head">
     <view>
       <view class="head-title">吃什么助手</view>
       <view class="head-subtitle">把这一餐安排好，再决定要不要保存</view>
     </view>
-    <button class="ew-button secondary" disabled="{{loading || pendingAction}}" bindtap="onOpenSettings">人数 / 餐次</button><view class="clear-btn" bindtap="onClearSession"><ui-icon class="line-icon line-icon-refresh" name="refresh" /><text>清空</text></view>
+    <button class="ew-hit-target ew-button secondary" disabled="{{loading || pendingAction}}" bindtap="onOpenSettings">人数 / 餐次</button><view class="ew-hit-target clear-btn" bindtap="onClearSession"><ui-icon class="line-icon line-icon-refresh" name="refresh" /><text>清空</text></view>
   </view>
 
   <view wx:if="{{taskStage || (task && task.status === 'ready')}}" class="task-summary">
     <view class="task-dot {{loading ? 'task-dot-loading' : ''}}"></view><text wx:if="{{loading}}">{{taskStage === 'querying' ? '正在查询菜库' : taskStage === 'planning' ? '正在组合方案' : taskStage === 'validating' ? '正在检查规则' : '正在理解你的需求'}}</text><text wx:else>{{task && task.type === 'period_plan' ? '多日安排已整理' : '本餐安排已整理'}}</text>
-    <text wx:if="{{loading}}" class="stop-task" bindtap="onStopTask">停止</text><text wx:elif="{{plan && plan.period && plan.period.people}}">{{plan.period.people}}人</text>
+    <text wx:if="{{loading}}" class="ew-hit-target stop-task" bindtap="onStopTask">停止</text><text wx:elif="{{plan && plan.period && plan.period.people}}">{{plan.period.people}}人</text>
   </view>
 
   <scroll-view class="msg-list" scroll-y enhanced scroll-top="{{scrollTop}}" scroll-with-animation>
@@ -28,7 +28,7 @@
         <view class="msg-bubble {{item.role === 'user' ? 'bubble-right' : 'bubble-left'}}"><text>{{item.content}}</text></view>
       </view>
       <view wx:if="{{item.role === 'assistant' && item.dishes && item.dishes.length}}" class="dish-cards">
-        <view class="dish-card" wx:for="{{item.dishes}}" wx:key="id" wx:for-item="dish" bindtap="onTapDish" data-id="{{dish.id}}">
+        <view class="ew-hit-target dish-card" wx:for="{{item.dishes}}" wx:key="id" wx:for-item="dish" bindtap="onTapDish" data-id="{{dish.id}}">
           <image wx:if="{{dish.image}}" class="dc-img" src="{{dish.image}}" mode="aspectFill" lazy-load />
           <view wx:else class="dc-img-fb"><ui-icon class="line-icon line-icon-meal" name="meal" /></view>
           <view class="dc-info"><text class="dc-name">{{dish.name}}</text><text wx:if="{{dish.match_reasons && dish.match_reasons[0]}}" class="dc-reason">{{dish.match_reasons[0]}}</text></view>
@@ -40,17 +40,17 @@
       <view class="plan-heading"><text>这次安排</text><text class="plan-version">方案 {{plan.version}}</text></view>
       <view wx:for="{{plan.meals}}" wx:for-item="meal" wx:key="index" class="meal-group">
         <view class="meal-heading"><text>{{meal.date}}</text><text>{{meal.label}}</text></view>
-        <view wx:for="{{meal.dishes}}" wx:key="index" wx:for-item="dish" class="plan-dish" bindtap="onTapDish" data-id="{{dish.id}}">
+        <view wx:for="{{meal.dishes}}" wx:key="index" wx:for-item="dish" class="ew-hit-target plan-dish" bindtap="onTapDish" data-id="{{dish.id}}">
           <view class="plan-dish-main"><text class="plan-dish-name">{{dish.name}}</text><text wx:if="{{dish.match_reasons && dish.match_reasons[0]}}" class="plan-reason">{{dish.match_reasons[0]}}</text></view>
           <ui-status wx:if="{{dish.locked}}" label="已保留" />
-          <view class="dish-commands"><button class="ew-link" disabled="{{loading || pendingAction}}" data-id="{{dish.id}}" data-date="{{meal.date}}" data-meal="{{meal.meal_type}}" data-locked="{{dish.locked}}" catchtap="onToggleKeepDish">{{dish.locked ? '解除保留' : '保留'}}</button><button class="ew-link" disabled="{{loading || pendingAction || dish.locked}}" data-id="{{dish.id}}" data-date="{{meal.date}}" data-meal="{{meal.meal_type}}" catchtap="onReplaceDish">换菜</button></view>
+          <view class="dish-commands"><button class="ew-hit-target ew-link" disabled="{{loading || pendingAction}}" data-id="{{dish.id}}" data-date="{{meal.date}}" data-meal="{{meal.meal_type}}" data-locked="{{dish.locked}}" catchtap="onToggleKeepDish">{{dish.locked ? '解除保留' : '保留'}}</button><button class="ew-hit-target ew-link" disabled="{{loading || pendingAction || dish.locked}}" data-id="{{dish.id}}" data-date="{{meal.date}}" data-meal="{{meal.meal_type}}" catchtap="onReplaceDish">换菜</button></view>
         </view>
       </view>
       <view wx:if="{{plan.warnings && plan.warnings.length}}" class="plan-warning"><ui-icon class="line-icon line-icon-info" name="info" /><text>{{plan.warnings[0]}}</text></view>
       <view class="plan-actions">
-        <button class="secondary-action" disabled="{{loading || pendingAction}}" bindtap="onKeepDish">保留全部</button>
-        <button class="secondary-action" disabled="{{loading || pendingAction}}" bindtap="onReplaceDish">换一道</button>
-        <button wx:if="{{canUndo}}" class="secondary-action" disabled="{{loading || pendingAction}}" bindtap="onUndoPlan">撤销修改</button>
+        <button class="ew-hit-target secondary-action" disabled="{{loading || pendingAction}}" bindtap="onKeepDish">保留全部</button>
+        <button class="ew-hit-target secondary-action" disabled="{{loading || pendingAction}}" bindtap="onReplaceDish">换一道</button>
+        <button wx:if="{{canUndo}}" class="ew-hit-target secondary-action" disabled="{{loading || pendingAction}}" bindtap="onUndoPlan">撤销修改</button>
       </view>
     </view>
     <view wx:if="{{howto}}" class="howto-block">
@@ -62,26 +62,26 @@
     </view>
     <view wx:if="{{alternatives && alternatives.length}}" class="alternatives-block">
       <view class="alternatives-heading"><text>还可以考虑</text><text>同样来自菜库</text></view>
-      <view wx:for="{{alternatives}}" wx:key="id" class="alternative-row" bindtap="onTapDish" data-id="{{item.id}}">
+      <view wx:for="{{alternatives}}" wx:key="id" class="ew-hit-target alternative-row" bindtap="onTapDish" data-id="{{item.id}}">
         <view class="alternative-main"><text class="alternative-name">{{item.name}}</text><text wx:if="{{item.match_reasons && item.match_reasons[0]}}" class="alternative-reason">{{item.match_reasons[0]}}</text></view><text class="plan-arrow">›</text>
       </view>
     </view>
     <view wx:if="{{loading}}" class="msg-row row-left"><view class="avatar-bot-fb"><ui-icon class="line-icon line-icon-bot" name="bot" /></view><view class="msg-bubble bubble-left typing-dots"><text class="dot">●</text><text class="dot">●</text><text class="dot">●</text></view></view>
-    <view wx:if="{{errorMessage}}" class="error-state"><text>{{errorMessage}}</text><button bindtap="onRetry">重试</button></view>
+    <view wx:if="{{errorMessage}}" class="error-state"><text>{{errorMessage}}</text><button class="ew-hit-target" bindtap="onRetry">重试</button></view>
   </scroll-view>
 
   <view wx:if="{{actions && actions.length}}" class="action-bar">
-    <button wx:for="{{actions}}" wx:key="type" class="primary-action" loading="{{pendingAction === item.type}}" disabled="{{!!pendingAction}}" bindtap="onAction" data-type="{{item.type}}">{{item.label}}</button>
+    <button wx:for="{{actions}}" wx:key="type" class="ew-hit-target primary-action" loading="{{pendingAction === item.type}}" disabled="{{!!pendingAction}}" bindtap="onAction" data-type="{{item.type}}">{{item.label}}</button>
   </view>
   <scroll-view class="quick-bar" scroll-x enhanced show-scrollbar="false">
-    <text class="quick-btn" bindtap="onQuick" data-kw="推荐今天的晚餐">今晚吃什么</text>
-    <text class="quick-btn" bindtap="onQuick" data-kw="家里有鸡蛋和番茄，安排一顿晚饭">看看冰箱</text>
-    <text class="quick-btn" bindtap="onQuick" data-kw="推荐几道清淡的菜">清淡推荐</text>
-    <text class="quick-btn" bindtap="onQuick" data-kw="帮我搭配三菜一汤">搭配一桌</text>
-    <text class="quick-btn" bindtap="onQuick" data-kw="红烧排骨怎么做">查做法</text>
+    <text class="ew-hit-target quick-btn" bindtap="onQuick" data-kw="推荐今天的晚餐">今晚吃什么</text>
+    <text class="ew-hit-target quick-btn" bindtap="onQuick" data-kw="家里有鸡蛋和番茄，安排一顿晚饭">看看冰箱</text>
+    <text class="ew-hit-target quick-btn" bindtap="onQuick" data-kw="推荐几道清淡的菜">清淡推荐</text>
+    <text class="ew-hit-target quick-btn" bindtap="onQuick" data-kw="帮我搭配三菜一汤">搭配一桌</text>
+    <text class="ew-hit-target quick-btn" bindtap="onQuick" data-kw="红烧排骨怎么做">查做法</text>
   </scroll-view>
-  <view class="input-bar"><input class="chat-input" value="{{inputText}}" placeholder="告诉我你想怎么吃" bindinput="onInput" confirm-type="send" bindconfirm="onSend" /><button class="send-btn" bindtap="onSend"><ui-icon class="line-icon line-icon-send" name="send" /></button></view>
-<ui-confirm visible="{{settingsVisible}}" title="本次用餐" busy="{{loading}}" confirm-label="应用到输入" bind:cancel="onCloseSettings" bind:confirm="onApplySettings"><view class="ew-field"><text class="ew-label">日期</text><picker mode="date" value="{{settingDate}}" bindchange="onSettingDate"><view class="ew-input">{{settingDate}}</view></picker></view><view class="ew-field"><text class="ew-label">餐次</text><picker range="{{mealLabels}}" value="{{settingMealIndex}}" bindchange="onSettingMeal"><view class="ew-input">{{mealLabels[settingMealIndex]}}</view></picker></view><ui-field disabled="{{loading}}" label="人数" type="number" value="{{settingPeople}}" maxlength="2" bind:change="onSettingPeople" /><view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view></ui-confirm>
+  <view class="input-bar"><input placeholder-class="ew-placeholder" class="chat-input" value="{{inputText}}" placeholder="告诉我你想怎么吃" bindinput="onInput" confirm-type="send" bindconfirm="onSend" /><button class="ew-hit-target send-btn" bindtap="onSend" disabled="{{loading || !inputText}}" loading="{{loading}}" aria-label="发送消息">发送</button></view>
+<ui-confirm visible="{{settingsVisible}}" title="本次用餐" busy="{{loading}}" confirm-label="应用到输入" bind:cancel="onCloseSettings" bind:confirm="onApplySettings"><view class="ew-field"><text class="ew-label">日期</text><picker class="ew-hit-target" mode="date" value="{{settingDate}}" bindchange="onSettingDate"><view class="ew-input">{{settingDate}}</view></picker></view><view class="ew-field"><text class="ew-label">餐次</text><picker class="ew-hit-target" range="{{mealLabels}}" value="{{settingMealIndex}}" bindchange="onSettingMeal"><view class="ew-input">{{mealLabels[settingMealIndex]}}</view></picker></view><ui-field disabled="{{loading}}" label="人数" type="number" value="{{settingPeople}}" maxlength="2" bind:change="onSettingPeople" /><view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view></ui-confirm>
 </view>
 
 </block>

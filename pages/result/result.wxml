@@ -1,6 +1,6 @@
 <block wx:if="{{workspaceEnabled}}"><include src="../../templates/meal-workspace.wxml" /></block>
 <block wx:else>
-<view class="ew-page result-page mobile-screen" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page result-page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
 <view wx:if="{{saveError}}" class="ew-error">{{saveError}}</view>
   <!-- 骨架屏加载 -->
   <scroll-view wx:if="{{loading}}" class="skeleton-wrap" scroll-y>
@@ -22,7 +22,7 @@
     <text class="empty-title">还没搭出合适的一桌</text>
     <text class="empty-desc" wx:if="{{warnings.length === 0}}">换个数量或口味，我再帮你排一套</text>
     <text class="context-warning empty-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
-    <button class="empty-btn" bindtap="onRegenerate">重新生成</button>
+    <button class="ew-hit-target empty-btn" bindtap="onRegenerate">重新生成</button>
   </scroll-view>
 
   <!-- 正常结果 -->
@@ -39,7 +39,7 @@
               <text class="context-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
             </view>
             <view class="plan-label">方案 {{planIndex + 1}} / {{plans.length}}</view>
-            <view class="dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
+            <view class="ew-hit-target dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
                 <view class="dish-media">
                   <image wx:if="{{item.image}}" class="dish-img" src="{{item.image}}" mode="aspectFill" lazy-load binderror="onImgError" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}" />
                   <view wx:else class="dish-img dish-img-placeholder"><ui-icon class="line-icon line-icon-meal" name="meal" /></view>
@@ -49,8 +49,8 @@
                 <view class="dish-body">
                   <view class="dish-top">
                     <text class="dish-name">{{item.name}}</text>
-                    <view class="star-btn {{item.isFavorite ? 'on' : ''}}" catchtap="onToggleFavorite" data-dish="{{item}}" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
-                      <ui-icon class="line-icon line-icon-heart" name="heart" aria-label="{{item.isFavorite ? '取消收藏' : '收藏'}}" />
+                    <view class="ew-hit-target star-btn {{item.isFavorite ? 'on' : ''}}" catchtap="onToggleFavorite" data-dish="{{item}}" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
+                      <ui-icon class="line-icon line-icon-heart" name="{{item.isFavorite ? 'favorite-filled' : 'favorite'}}" aria-label="{{item.isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusyKey === planIndex + ':' + dishIndex}}" class="ew-small">处理中</text>
                     </view>
                   </view>
                   <!-- 标签 -->
@@ -65,7 +65,7 @@
                   </view>
                 </view>
                 <!-- 换一个 -->
-                <view class="refresh-btn" catchtap="onRefreshDish" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
+                <view class="ew-hit-target refresh-btn" catchtap="onRefreshDish" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
                   <ui-icon class="line-icon line-icon-refresh" name="refresh" aria-label="换一道" />
                 </view>
               </view>
@@ -77,21 +77,21 @@
 
     <!-- 操作栏 -->
     <view class="bottom-actions">
-      <button class="act-btn act-back" bindtap="onBack">返回</button>
-      <button class="act-btn act-regen" loading="{{refreshing}}" disabled="{{refreshing}}" bindtap="onRegenerate">重新生成</button>
-      <button class="act-btn act-save" bindtap="onSelectForMeal">选择此方案</button>
-      <button class="act-btn act-shopping" bindtap="onAddPlanToShoppingList">加入清单</button>
+      <button class="ew-hit-target act-btn act-back" bindtap="onBack">返回</button>
+      <button class="ew-hit-target act-btn act-regen" loading="{{refreshing}}" disabled="{{refreshing}}" bindtap="onRegenerate">重新生成</button>
+      <button class="ew-hit-target act-btn act-save" bindtap="onSelectForMeal">选择此方案</button>
+      <button class="ew-hit-target act-btn act-shopping" bindtap="onAddPlanToShoppingList">加入清单</button>
     </view>
   </view>
 
   <!-- 日期选择器 -->
-  <view class="date-overlay" wx:if="{{showDatePicker}}" bindtap="onCancelDatePicker">
-    <view class="date-box" catchtap="">
+  <view class="ew-hit-target date-overlay" wx:if="{{showDatePicker}}" bindtap="onCancelDatePicker">
+    <view class="ew-hit-target date-box" catchtap="">
       <text class="date-title">选择保存日期</text>
-      <picker mode="date" value="{{customDate}}" start="2025-01-01" end="2027-12-31" bindchange="onCustomDateChange">
+      <picker class="ew-hit-target" mode="date" value="{{customDate}}" start="2025-01-01" end="2027-12-31" bindchange="onCustomDateChange">
         <view class="date-btn">点击选择</view>
       </picker>
-      <view class="date-cancel" bindtap="onCancelDatePicker">取消</view>
+      <view class="ew-hit-target date-cancel" bindtap="onCancelDatePicker">取消</view>
     </view>
   </view>
 </view>

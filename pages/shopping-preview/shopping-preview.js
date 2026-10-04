@@ -3,7 +3,7 @@ const store = require('../../utils/shopping-list')
 const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), targetPeople: 2, uniformPeople: false, dishes: [], warnings: [], previewLoading: true, confirmInFlight: false, errorMessage: '', formVisible: false, formQuantity: '', formError: '', editName: '', canConfirm: false },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), targetPeople: 2, uniformPeople: false, dishes: [], warnings: [], previewLoading: true, confirmInFlight: false, errorMessage: '', formVisible: false, formQuantity: '', formError: '', editName: '', canConfirm: false },
   onLoad() {
     this.selection = store.consumeShoppingSelection() || { dishIds: [], dishes: [], sources: [] }
     this._scope = getUserStorageKey('shoppingList'); this._selectionId = flow.requestId('selection')

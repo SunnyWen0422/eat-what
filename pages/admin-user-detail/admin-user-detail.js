@@ -4,7 +4,7 @@ const { withAdminIdentity } = require('../../utils/admin-page-identity')
 function emptyDish() { return { name: '', type: 'meat', cl: '', fl: '', step: '', tags: '', cuisineCode: '', tagCodes: '', cookMinutes: '' } }
 
 Page(withAdminIdentity({
-  data: { fontScale: require('../../utils/font-scale')(), userId: null, user: null, dishes: [], types: ['meat', 'veg', 'soup', 'staple', 'dessert'], ready: false, loading: false, error: '', notice: '', updatingStatus: false, deletingId: null, mode: 'detail', form: emptyDish(), editingId: null, saving: false },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), userId: null, user: null, dishes: [], types: ['meat', 'veg', 'soup', 'staple', 'dessert'], ready: false, loading: false, error: '', notice: '', updatingStatus: false, deletingId: null, mode: 'detail', form: emptyDish(), editingId: null, saving: false },
   onLoad(options) { this.setData({ userId: options.userId }); this.load() },
   async onPullDownRefresh() { try { await this.load() } finally { wx.stopPullDownRefresh() } },
   async load() {

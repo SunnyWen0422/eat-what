@@ -1,4 +1,4 @@
-<view class="ew-page filter-page mobile-screen" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page filter-page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
   <view class="mobile-scroll-content">
   <view class="offline-tip" wx:if="{{offline}}">当前使用本地筛选目录</view>
@@ -10,15 +10,15 @@
   <block wx:else>
 
   <view class="mode-row">
-    <view class="mode-btn {{tagMode === 'include' ? 'active' : ''}}" data-mode="include" bindtap="onTagModeChange">想吃</view>
-    <view class="mode-btn {{tagMode === 'exclude' ? 'active' : ''}}" data-mode="exclude" bindtap="onTagModeChange">排除</view>
+    <view class="ew-hit-target mode-btn {{tagMode === 'include' ? 'active' : ''}}" data-mode="include" bindtap="onTagModeChange">想吃</view>
+    <view class="ew-hit-target mode-btn {{tagMode === 'exclude' ? 'active' : ''}}" data-mode="exclude" bindtap="onTagModeChange">排除</view>
   </view>
 
   <view class="filter-section" wx:for="{{groupViews}}" wx:key="key">
     <view class="section-title">{{item.label}}</view>
     <view class="option-grid">
       <view
-        class="option-chip {{choice.selected ? 'selected' : ''}}"
+        class="ew-hit-target option-chip {{choice.selected ? 'selected' : ''}}"
         wx:for="{{item.items}}"
         wx:for-item="choice"
         wx:key="code"
@@ -36,7 +36,7 @@
     <view class="section-title">最长用时</view>
     <view class="option-grid">
       <view
-        class="option-chip {{(item.value === null && !criteria.maxCookMinutes) || item.value === criteria.maxCookMinutes ? 'selected' : ''}}"
+        class="ew-hit-target option-chip {{(item.value === null && !criteria.maxCookMinutes) || item.value === criteria.maxCookMinutes ? 'selected' : ''}}"
         wx:for="{{durationOptions}}"
         wx:key="label"
         data-value="{{item.value === null ? 'none' : item.value}}"
@@ -48,11 +48,11 @@
   <view class="filter-section">
     <view class="section-title">忌口食材</view>
     <view class="ingredient-row">
-      <input class="ingredient-input" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
-      <button class="add-btn" bindtap="onAddIngredient">添加</button>
+      <input placeholder-class="ew-placeholder" class="ingredient-input" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
+      <button class="ew-hit-target add-btn" bindtap="onAddIngredient">添加</button>
     </view>
     <view class="ingredient-list" wx:if="{{criteria.excludedIngredients.length}}">
-      <view class="ingredient-chip" wx:for="{{criteria.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
+      <view class="ew-hit-target ingredient-chip" wx:for="{{criteria.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
     </view>
   </view>
 
@@ -60,7 +60,7 @@
   </view>
   </scroll-view>
   <view class="action-bar" wx:if="{{featureEnabled}}">
-    <button class="clear-btn" bindtap="onClear">清空</button>
-    <button class="apply-btn" bindtap="onApply">应用筛选</button>
+    <button class="ew-hit-target clear-btn" bindtap="onClear">清空</button>
+    <button class="ew-hit-target apply-btn" bindtap="onApply">应用筛选</button>
   </view>
 </view>

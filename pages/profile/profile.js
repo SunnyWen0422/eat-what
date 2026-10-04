@@ -22,7 +22,7 @@ function localShoppingSummary() {
 }
 
 Page({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     userInfo: {
       avatar: '',
       nickname: '点击登录',

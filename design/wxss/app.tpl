@@ -5,7 +5,7 @@ page {
   height: 100%;
   background-color: {{card}};
   color: {{text}};
-  font-size:14px;
+  font-size:{{font.body.px}};
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
@@ -29,7 +29,7 @@ page {
 }
 .mobile-scroll-content {
   min-width: 0;
-  padding: 16px 16px 24px;
+  padding:{{space.3.px}} {{space.3.px}} {{space.5.px}};
   box-sizing: border-box;
 }
 
@@ -39,7 +39,7 @@ page {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  padding: 0;
+  padding:0;
   box-sizing: border-box;
 }
 
@@ -59,63 +59,63 @@ page {
   position: absolute;
   box-sizing: border-box;
 }
-.line-icon-cart::before { left: 8rpx; top: 11rpx; width: 25rpx; height: 17rpx; border: 2rpx solid currentColor; border-top: 0; border-radius: 0 0 5rpx 5rpx; transform: skew(-7deg); }
-.line-icon-cart::after { left: 9rpx; top: 29rpx; width: 5rpx; height: 5rpx; border: 2rpx solid currentColor; border-radius: 50%; box-shadow: 17rpx 0 0 -2rpx {{card}}, 17rpx 0 0 0 currentColor; }
+.line-icon-cart::before { left: 8rpx; top: 11rpx; width: 25rpx; height: 17rpx; border: 2rpx solid currentColor; border-top: 0; border-radius:0 0 {{radius.0.rpx*0.41666667}} {{radius.0.rpx*0.41666667}}; transform: skew(-7deg); }
+.line-icon-cart::after { left: 9rpx; top: 29rpx; width: 5rpx; height: 5rpx; border: 2rpx solid currentColor; border-radius:50%; box-shadow: 17rpx 0 0 -2rpx {{card}}, 17rpx 0 0 0 currentColor; }
 .line-icon-chart::before { left: 8rpx; top: 7rpx; width: 26rpx; height: 26rpx; border-left: 2rpx solid currentColor; border-bottom: 2rpx solid currentColor; }
 .line-icon-chart::after { left: 13rpx; top: 20rpx; width: 5rpx; height: 8rpx; border: 2rpx solid currentColor; border-bottom: 0; box-shadow: 8rpx -5rpx 0 -1rpx currentColor, 16rpx -12rpx 0 -1rpx currentColor; }
-.line-icon-heart::before { content: '♡'; left: 1rpx; top: -2rpx; width: 38rpx; height: 40rpx; font-size:1.3571em; line-height: 40rpx; text-align: center; }
-.line-icon-chef::before { left: 8rpx; top: 16rpx; width: 25rpx; height: 16rpx; border: 2rpx solid currentColor; border-radius: 3rpx 3rpx 7rpx 7rpx; }
-.line-icon-chef::after { left: 11rpx; top: 7rpx; width: 19rpx; height: 13rpx; border: 2rpx solid currentColor; border-radius: 12rpx 12rpx 3rpx 3rpx; background: {{card}}; }
-.line-icon-settings::before { left: 8rpx; top: 8rpx; width: 24rpx; height: 24rpx; border: 2rpx solid currentColor; border-radius: 50%; box-shadow: 0 0 0 5rpx {{card}}, 0 0 0 7rpx currentColor; }
-.line-icon-settings::after { left: 17rpx; top: 17rpx; width: 6rpx; height: 6rpx; border: 2rpx solid currentColor; border-radius: 50%; background: {{card}}; }
-.line-icon-info::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 26rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-info::after { content: 'i'; left: 17rpx; top: 8rpx; font-size:0.8571em; line-height: 24rpx; font-weight: 700; }
-.line-icon-pencil::before { left: 7rpx; top: 17rpx; width: 25rpx; height: 8rpx; border: 2rpx solid currentColor; border-radius: 2rpx; transform: rotate(-45deg); }
+.line-icon-heart::before { content: '♡'; left: 1rpx; top: -2rpx; width: 38rpx; height: 40rpx; font-size:{{font.section.em}}; line-height: 40rpx; text-align: center; }
+.line-icon-chef::before { left: 8rpx; top: 16rpx; width: 25rpx; height: 16rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.25}} {{radius.0.rpx*0.25}} {{radius.0.rpx*0.58333333}} {{radius.0.rpx*0.58333333}}; }
+.line-icon-chef::after { left: 11rpx; top: 7rpx; width: 19rpx; height: 13rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx}} {{radius.0.rpx}} {{radius.0.rpx*0.25}} {{radius.0.rpx*0.25}}; background: {{card}}; }
+.line-icon-settings::before { left: 8rpx; top: 8rpx; width: 24rpx; height: 24rpx; border: 2rpx solid currentColor; border-radius:50%; box-shadow: 0 0 0 5rpx {{card}}, 0 0 0 7rpx currentColor; }
+.line-icon-settings::after { left: 17rpx; top: 17rpx; width: 6rpx; height: 6rpx; border: 2rpx solid currentColor; border-radius:50%; background: {{card}}; }
+.line-icon-info::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 26rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-info::after { content: 'i'; left: 17rpx; top: 8rpx; font-size:{{font.caption.em}}; line-height: 24rpx; font-weight: 700; }
+.line-icon-pencil::before { left: 7rpx; top: 17rpx; width: 25rpx; height: 8rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.16666667}}; transform: rotate(-45deg); }
 .line-icon-pencil::after { left: 6rpx; top: 27rpx; width: 9rpx; height: 2rpx; background: currentColor; transform: rotate(-45deg); }
-.line-icon-meal::before { left: 6rpx; top: 8rpx; width: 28rpx; height: 22rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-meal::after { left: 11rpx; top: 29rpx; width: 18rpx; height: 2rpx; background: currentColor; border-radius: 2rpx; }
-.line-icon-spark::before { left: 18rpx; top: 5rpx; width: 3rpx; height: 30rpx; border-radius: 3rpx; background: currentColor; }
-.line-icon-spark::after { left: 5rpx; top: 18rpx; width: 30rpx; height: 3rpx; border-radius: 3rpx; background: currentColor; }
-.line-icon-meat::before { left: 7rpx; top: 11rpx; width: 26rpx; height: 18rpx; border: 2rpx solid currentColor; border-radius: 5rpx 12rpx 5rpx 12rpx; transform: rotate(-12deg); }
-.line-icon-meat::after { left: 19rpx; top: 17rpx; width: 6rpx; height: 6rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-veg::before { left: 10rpx; top: 7rpx; width: 20rpx; height: 27rpx; border: 2rpx solid currentColor; border-radius: 100% 0 100% 0; transform: rotate(45deg); }
+.line-icon-meal::before { left: 6rpx; top: 8rpx; width: 28rpx; height: 22rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-meal::after { left: 11rpx; top: 29rpx; width: 18rpx; height: 2rpx; background: currentColor; border-radius:{{radius.0.rpx*0.16666667}}; }
+.line-icon-spark::before { left: 18rpx; top: 5rpx; width: 3rpx; height: 30rpx; border-radius:{{radius.0.rpx*0.25}}; background: currentColor; }
+.line-icon-spark::after { left: 5rpx; top: 18rpx; width: 30rpx; height: 3rpx; border-radius:{{radius.0.rpx*0.25}}; background: currentColor; }
+.line-icon-meat::before { left: 7rpx; top: 11rpx; width: 26rpx; height: 18rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.41666667}} {{radius.0.rpx}} {{radius.0.rpx*0.41666667}} {{radius.0.rpx}}; transform: rotate(-12deg); }
+.line-icon-meat::after { left: 19rpx; top: 17rpx; width: 6rpx; height: 6rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-veg::before { left: 10rpx; top: 7rpx; width: 20rpx; height: 27rpx; border: 2rpx solid currentColor; border-radius:100% 0 100% 0; transform: rotate(45deg); }
 .line-icon-veg::after { left: 19rpx; top: 11rpx; width: 2rpx; height: 24rpx; background: currentColor; transform: rotate(45deg); }
-.line-icon-soup::before { left: 7rpx; top: 17rpx; width: 26rpx; height: 14rpx; border: 2rpx solid currentColor; border-top: 0; border-radius: 0 0 14rpx 14rpx; }
+.line-icon-soup::before { left: 7rpx; top: 17rpx; width: 26rpx; height: 14rpx; border: 2rpx solid currentColor; border-top: 0; border-radius:0 0 {{radius.0.rpx*1.1666667}} {{radius.0.rpx*1.1666667}}; }
 .line-icon-soup::after { left: 13rpx; top: 6rpx; width: 3rpx; height: 9rpx; border-left: 2rpx solid currentColor; border-right: 2rpx solid currentColor; transform: skew(-8deg); }
-.line-icon-dessert::before { left: 8rpx; top: 16rpx; width: 24rpx; height: 16rpx; border: 2rpx solid currentColor; border-radius: 2rpx 2rpx 9rpx 9rpx; }
-.line-icon-dessert::after { left: 6rpx; top: 11rpx; width: 28rpx; height: 8rpx; border: 2rpx solid currentColor; border-radius: 9rpx; background: {{card}}; }
-.line-icon-staple::before { left: 7rpx; top: 17rpx; width: 26rpx; height: 14rpx; border: 2rpx solid currentColor; border-top: 0; border-radius: 0 0 14rpx 14rpx; }
-.line-icon-staple::after { left: 12rpx; top: 10rpx; width: 16rpx; height: 8rpx; border-top: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-book::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 27rpx; border: 2rpx solid currentColor; border-radius: 3rpx; }
+.line-icon-dessert::before { left: 8rpx; top: 16rpx; width: 24rpx; height: 16rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.16666667}} {{radius.0.rpx*0.16666667}} {{radius.0.rpx*0.75}} {{radius.0.rpx*0.75}}; }
+.line-icon-dessert::after { left: 6rpx; top: 11rpx; width: 28rpx; height: 8rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.75}}; background: {{card}}; }
+.line-icon-staple::before { left: 7rpx; top: 17rpx; width: 26rpx; height: 14rpx; border: 2rpx solid currentColor; border-top: 0; border-radius:0 0 {{radius.0.rpx*1.1666667}} {{radius.0.rpx*1.1666667}}; }
+.line-icon-staple::after { left: 12rpx; top: 10rpx; width: 16rpx; height: 8rpx; border-top: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-book::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 27rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.25}}; }
 .line-icon-book::after { left: 19rpx; top: 9rpx; width: 2rpx; height: 23rpx; background: currentColor; }
-.line-icon-refresh::before { left: 8rpx; top: 8rpx; width: 24rpx; height: 24rpx; border: 2rpx solid currentColor; border-right-color: transparent; border-radius: 50%; }
+.line-icon-refresh::before { left: 8rpx; top: 8rpx; width: 24rpx; height: 24rpx; border: 2rpx solid currentColor; border-right-color: transparent; border-radius:50%; }
 .line-icon-refresh::after { left: 26rpx; top: 7rpx; width: 8rpx; height: 8rpx; border-top: 2rpx solid currentColor; border-right: 2rpx solid currentColor; transform: rotate(25deg); }
-.line-icon-clock::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 26rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-clock::after { left: 19rpx; top: 12rpx; width: 2rpx; height: 10rpx; border-radius: 2rpx; background: currentColor; box-shadow: -5rpx 8rpx 0 -0.5rpx currentColor; transform-origin: bottom center; transform: rotate(-35deg); }
-.line-icon-search::before { left: 7rpx; top: 7rpx; width: 20rpx; height: 20rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-search::after { left: 25rpx; top: 25rpx; width: 10rpx; height: 2rpx; border-radius: 2rpx; background: currentColor; transform: rotate(45deg); }
-.line-icon-sun::before { left: 11rpx; top: 11rpx; width: 18rpx; height: 18rpx; border: 2rpx solid currentColor; border-radius: 50%; }
+.line-icon-clock::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 26rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-clock::after { left: 19rpx; top: 12rpx; width: 2rpx; height: 10rpx; border-radius:{{radius.0.rpx*0.16666667}}; background: currentColor; box-shadow: -5rpx 8rpx 0 -0.5rpx currentColor; transform-origin: bottom center; transform: rotate(-35deg); }
+.line-icon-search::before { left: 7rpx; top: 7rpx; width: 20rpx; height: 20rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-search::after { left: 25rpx; top: 25rpx; width: 10rpx; height: 2rpx; border-radius:{{radius.0.rpx*0.16666667}}; background: currentColor; transform: rotate(45deg); }
+.line-icon-sun::before { left: 11rpx; top: 11rpx; width: 18rpx; height: 18rpx; border: 2rpx solid currentColor; border-radius:50%; }
 .line-icon-sun::after { left: 18rpx; top: 3rpx; width: 3rpx; height: 34rpx; background: currentColor; box-shadow: 0 0 0 0 currentColor; transform: rotate(90deg); }
-.line-icon-moon::before { left: 9rpx; top: 7rpx; width: 25rpx; height: 25rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-moon::after { left: 17rpx; top: 4rpx; width: 22rpx; height: 22rpx; border-radius: 50%; background: {{card}}; }
-.line-icon-bot::before { left: 7rpx; top: 11rpx; width: 26rpx; height: 21rpx; border: 2rpx solid currentColor; border-radius: 7rpx; }
-.line-icon-bot::after { left: 14rpx; top: 19rpx; width: 5rpx; height: 5rpx; border: 2rpx solid currentColor; border-radius: 50%; box-shadow: 9rpx 0 0 -2rpx {{card}}, 9rpx 0 0 0 currentColor; }
-.line-icon-user::before { left: 13rpx; top: 5rpx; width: 14rpx; height: 14rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-user::after { left: 7rpx; top: 23rpx; width: 26rpx; height: 13rpx; border: 2rpx solid currentColor; border-bottom: 0; border-radius: 16rpx 16rpx 0 0; }
-.line-icon-send::before { left: 6rpx; top: 8rpx; width: 27rpx; height: 22rpx; border: 2rpx solid currentColor; border-radius: 3rpx; transform: skewY(-20deg) rotate(-18deg); }
+.line-icon-moon::before { left: 9rpx; top: 7rpx; width: 25rpx; height: 25rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-moon::after { left: 17rpx; top: 4rpx; width: 22rpx; height: 22rpx; border-radius:50%; background: {{card}}; }
+.line-icon-bot::before { left: 7rpx; top: 11rpx; width: 26rpx; height: 21rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.58333333}}; }
+.line-icon-bot::after { left: 14rpx; top: 19rpx; width: 5rpx; height: 5rpx; border: 2rpx solid currentColor; border-radius:50%; box-shadow: 9rpx 0 0 -2rpx {{card}}, 9rpx 0 0 0 currentColor; }
+.line-icon-user::before { left: 13rpx; top: 5rpx; width: 14rpx; height: 14rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-user::after { left: 7rpx; top: 23rpx; width: 26rpx; height: 13rpx; border: 2rpx solid currentColor; border-bottom: 0; border-radius:{{radius.0.rpx*1.3333333}} {{radius.0.rpx*1.3333333}} 0 0; }
+.line-icon-send::before { left: 6rpx; top: 8rpx; width: 27rpx; height: 22rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.25}}; transform: skewY(-20deg) rotate(-18deg); }
 .line-icon-send::after { left: 14rpx; top: 17rpx; width: 15rpx; height: 2rpx; background: currentColor; transform: rotate(-28deg); }
-.line-icon-share::before { left: 8rpx; top: 8rpx; width: 21rpx; height: 21rpx; border: 2rpx solid currentColor; border-radius: 50%; }
+.line-icon-share::before { left: 8rpx; top: 8rpx; width: 21rpx; height: 21rpx; border: 2rpx solid currentColor; border-radius:50%; }
 .line-icon-share::after { left: 21rpx; top: 5rpx; width: 12rpx; height: 12rpx; border-top: 2rpx solid currentColor; border-right: 2rpx solid currentColor; transform: rotate(45deg); }
-.line-icon-camera::before { left: 6rpx; top: 11rpx; width: 28rpx; height: 20rpx; border: 2rpx solid currentColor; border-radius: 4rpx; }
-.line-icon-camera::after { left: 15rpx; top: 16rpx; width: 10rpx; height: 10rpx; border: 2rpx solid currentColor; border-radius: 50%; }
-.line-icon-check::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 26rpx; border: 2rpx solid currentColor; border-radius: 50%; }
+.line-icon-camera::before { left: 6rpx; top: 11rpx; width: 28rpx; height: 20rpx; border: 2rpx solid currentColor; border-radius:{{radius.0.rpx*0.33333333}}; }
+.line-icon-camera::after { left: 15rpx; top: 16rpx; width: 10rpx; height: 10rpx; border: 2rpx solid currentColor; border-radius:50%; }
+.line-icon-check::before { left: 7rpx; top: 7rpx; width: 26rpx; height: 26rpx; border: 2rpx solid currentColor; border-radius:50%; }
 .line-icon-check::after { left: 13rpx; top: 18rpx; width: 14rpx; height: 7rpx; border-left: 2rpx solid currentColor; border-bottom: 2rpx solid currentColor; transform: rotate(-45deg); }
 
 /* 通用卡片 */
 .card {
   background: {{card}};
-  border-radius: 14rpx;
-  padding: 24rpx;
+  border-radius:{{radius.0.rpx*1.1666667}};
+  padding:{{space.2.rpx}};
   border: 1rpx solid #e3eeea;
 }
 
@@ -125,14 +125,14 @@ button::after { border: none; }
   background: {{brand}};
   color: {{card}};
   font-weight: 600;
-  border-radius: 14rpx;
+  border-radius:{{radius.0.rpx*1.1666667}};
 }
 
 /* 标签 */
 .tag-green {
-  font-size:0.8571em;
-  padding: 2rpx 12rpx;
-  border-radius: 10rpx;
+  font-size:{{font.caption.em}};
+  padding:{{space.0.rpx*0.25}} {{space.0.rpx*1.5}};
+  border-radius:{{radius.0.rpx*0.83333333}};
   background: {{brandSoft}};
   color: {{brand}};
 }
@@ -154,12 +154,12 @@ button::after { border: none; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80rpx 40rpx;
+  padding:{{space.6.rpx*1.25}} {{space.4.rpx}};
 }
-.empty-icon { font-size:2.8571em; opacity: 0.5; margin-bottom: 20rpx; }
-.empty-title { font-size:1.1429em; font-weight: bold; color: {{text}}; }
-.empty-desc { font-size:0.8571em; color: {{muted}}; margin-top: 10rpx; }
+.empty-icon { font-size:{{font.page.em*1.66664}}; opacity: 0.5; margin-bottom:{{space.1.rpx*1.25}}; }
+.empty-title { font-size:{{font.card.em}}; font-weight: bold; color: {{text}}; }
+.empty-desc { font-size:{{font.caption.em}}; color: {{muted}}; margin-top:{{space.0.rpx*1.25}}; }
 
 ui-icon.line-icon::before,ui-icon.line-icon::after{display:none}
-page{background:{{background}};color:{{text}};font-size:14px}
+page{background:{{background}};color:{{text}};font-size:{{font.body.px}}}
 .mobile-screen{background:{{background}}}

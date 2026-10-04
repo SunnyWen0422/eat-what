@@ -13,5 +13,33 @@ module.exports = {
   "warningSoft": "#FFF1DB",
   "disabled": "#E8EBE5",
   "primaryHeight": 48,
-  "touchSize": 44
+  "touchSize": 44,
+  "font": {
+    "page": 24,
+    "section": 18,
+    "card": 16,
+    "body": 14,
+    "secondary": 13,
+    "caption": 12
+  },
+  "space": [
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    32
+  ],
+  "radius": [
+    6,
+    10,
+    14,
+    18,
+    24
+  ],
+  "controls": {
+    "primaryHeight": 48,
+    "touchSize": 44
+  }
 }

@@ -47,7 +47,7 @@ function formatDate(value) {
 }
 
 Page(withAdminIdentity({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     mode: 'list',
     users: [],
     total: 0,

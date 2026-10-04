@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const { currentIdentity } = require('../../utils/account-identity')
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), dishes: [], loading: true, errorMessage: '', editing: false, saving: false, form: {}, formError: '', types: ['荤菜','素菜','汤品','主食','甜品'], typeIndex: 0 },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], loading: true, errorMessage: '', editing: false, saving: false, form: {}, formError: '', types: ['荤菜','素菜','汤品','主食','甜品'], typeIndex: 0 },
   onLoad(options = {}) { this._requestedEdit = options.edit; this._identity = currentIdentity(); this._viewScope = getUserStorageKey('customDishesCloud') },
   onShow() {
     this.ensureOwner()

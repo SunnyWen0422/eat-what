@@ -6,7 +6,7 @@ const flow = require('../../utils/meal-workflow')
 const confirm = (title, content, confirmText = '确认') => new Promise(resolve => wx.showModal({ title, content, confirmText, success: r => resolve(r.confirm), fail: () => resolve(false) }))
 const sourceLabel = dish => dish.sourceDate ? `${dish.sourceDate} ${flow.mealNames[dish.sourceMealType] || ''} · ${dish.dishName}` : dish.dishId ? dish.dishName : '手动添加'
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formNote: '', formError: '' },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formNote: '', formError: '' },
   onShow() { this.loadList() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   current(scope) { return !this._unloaded && scope === getUserStorageKey('shoppingList') },

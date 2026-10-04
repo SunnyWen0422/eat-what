@@ -7,11 +7,12 @@ const { filterAndRankDishes } = require('../../utils/recommendation-matcher')
 const { createPreferenceStore } = require('../../utils/preference-store')
 
 Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'result'}) : {
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     loading: true,
     refreshing: false,
     loadingStage: '',
     generationNotice: '',
+    favoriteBusyKey: '',
     empty: false,
     plans: [],
     params: null,
@@ -51,9 +52,10 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
   onShow() {
     if(this._viewScope && this._viewScope !== getUserStorageKey('resultView')) {
+      this._favoriteRequest = null
       this.generationVersion += 1; this.generationInFlight = false; this.allDishes = []; this._pendingPlanWrite = null
       this._selectingPlan = null; this._selectingScope = null
-      this.setData({ plans: [], params: null, people: 2, savingPlan: false, saveError: '', showDatePicker: false }); this.generatePlans()
+      this.setData({ plans: [], params: null, people: 2, savingPlan: false, saveError: '', showDatePicker: false, favoriteBusyKey: '' }); this.generatePlans()
     }
     // 检查是否有从日历页面选择返回的日期
     this.checkSelectedDateFromCalendar()
@@ -61,6 +63,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
   onUnload() {
     this._unloaded = true
+    this._favoriteRequest = null
     this.generationVersion += 1
     this.generationInFlight = false
     this.clearGenerationStageTimers()
@@ -76,6 +79,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     const scope = this._viewScope = getUserStorageKey('resultView')
     this._planOwnerScope = getUserStorageKey('mealView')
     const generationVersion = ++this.generationVersion
+    this._favoriteRequest = null
     this.generationInFlight = true
     this.startGenerationStageFeedback(generationVersion)
     this.setData({
@@ -83,6 +87,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
       refreshing: hasExistingPlans,
       loadingStage: '先看看你今天想吃什么',
       generationNotice: '',
+      favoriteBusyKey: '',
       empty: false,
     })
     let timeoutId
@@ -188,8 +193,9 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
   // 检查收藏状态
   async checkFavoriteStatus(generationVersion = this.generationVersion) {
+    const favoriteVersion = this._favoriteVersion || 0, scope = getUserStorageKey('resultView')
     try {
-      if (generationVersion !== this.generationVersion) return
+      if (generationVersion !== this.generationVersion || this._unloaded || scope !== getUserStorageKey('resultView')) return
       const { plans } = this.data
       // 收集所有菜品ID
       const allDishIds = []
@@ -203,7 +209,8 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
       // 批量检查收藏状态
       const favoriteIds = await batchCheckFavoriteDishes(allDishIds)
-      if (generationVersion !== this.generationVersion) return
+      if (generationVersion !== this.generationVersion || favoriteVersion !== (this._favoriteVersion || 0)
+        || this._unloaded || scope !== getUserStorageKey('resultView')) return
       const favoriteSet = new Set(favoriteIds)
 
       // 更新plans中的收藏状态
@@ -224,26 +231,41 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
   // 切换收藏状态
   async onToggleFavorite(e) {
     const { dish, planIndex, dishIndex } = e.currentTarget.dataset
-    if (!dish || !dish.id) return
-
+    const plan = this.data.plans[planIndex]
+    const target = plan && plan.dishes[dishIndex]
+    if (this._unloaded || !dish || !dish.id || !target || target.id !== dish.id) return
+    if (this._viewScope && this._viewScope !== getUserStorageKey('resultView')) return
+    if (this._favoriteRequest && this._favoriteRequest.current()) return
+    const scope = getUserStorageKey('resultView'), generationVersion = this.generationVersion
+    const request = { current: () => {
+      const row = this.data.plans[planIndex] && this.data.plans[planIndex].dishes[dishIndex]
+      return !this._unloaded && scope === getUserStorageKey('resultView') && generationVersion === this.generationVersion
+        && this._favoriteRequest === request && row && row.id === dish.id
+    } }
+    this._favoriteRequest = request
+    this._favoriteVersion = (this._favoriteVersion || 0) + 1
+    this.setData({ favoriteBusyKey: `${planIndex}:${dishIndex}` })
     try {
-      const isFavorite = dish.isFavorite
+      const isFavorite = target.isFavorite
       if (isFavorite) {
         await removeFavoriteDish(dish.id)
-        wx.showToast({ title: '已取消收藏', icon: 'success' })
       } else {
         await addFavoriteDish(dish.id)
-        wx.showToast({ title: '已收藏', icon: 'success' })
       }
-
+      if (!request.current()) return
+      wx.showToast({ title: isFavorite ? '已取消收藏' : '已收藏', icon: 'success' })
       // 更新本地状态（部分更新，避免整体 setData 传大量数据）
       const newPlans = [...this.data.plans]
       newPlans[planIndex] = { ...newPlans[planIndex], dishes: [...newPlans[planIndex].dishes] }
       newPlans[planIndex].dishes[dishIndex] = { ...newPlans[planIndex].dishes[dishIndex], isFavorite: !isFavorite }
       this.setData({ [`plans[${planIndex}]`]: newPlans[planIndex] })
     } catch (error) {
+      if (!request.current()) return
       console.error('收藏操作失败:', error)
       wx.showToast({ title: '操作失败', icon: 'none' })
+    } finally {
+      if (request.current()) this.setData({ favoriteBusyKey: '' })
+      if (this._favoriteRequest === request) this._favoriteRequest = null
     }
   },
 

@@ -1,2 +1,12 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
-.status { font-size:0.8571em; border-radius:12rpx; padding:8rpx 14rpx; background:#EDF3ED; color:#617066; display:inline-block; } .success { background:#EDF3ED; color:#28634E; } .warning { background:#FFF1DB; color:#75501A; } .danger { background:#FFF0ED; color:#A93B30; }
+.status { font-size:0.857143em; border-radius:12rpx; padding:8rpx 14rpx; background:#EDF3ED; color:#617066; display:inline-block; } .success { background:#EDF3ED; color:#28634E; } .warning { background:#FFF1DB; color:#75501A; } .danger { background:#FFF0ED; color:#A93B30; }
+
+/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
+.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
+text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
+picker.ew-hit-target { display:block; }
+button { min-width:44px; min-height:48px; }
+
+.ew-placeholder { color:#617066; }
+
+button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

@@ -2,7 +2,7 @@ const api = require('../../utils/api')
 const { withAdminIdentity } = require('../../utils/admin-page-identity')
 
 Page(withAdminIdentity({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     overview: null,
     loading: false,
     ready: false,

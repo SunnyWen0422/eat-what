@@ -1,4 +1,4 @@
-<view class="ew-page ew-screen" style="font-size:{{14 * fontScale}}px"><text class="ew-heading">吃什么</text><text class="ew-subtitle">把每天的一餐，安排得轻松一些 · {{version}}</text>
+<view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px"><text class="ew-heading">吃什么</text><text class="ew-subtitle">把每天的一餐，安排得轻松一些 · {{version}}</text>
 <view class="ew-section-title">从决定吃什么，到回顾吃过什么</view>
 <view class="ew-card"><text class="ew-title">1 · 今天决定</text><text class="ew-subtitle">设置人数、餐次和偏好，浏览推荐或与助手一起搭配。方案中的菜可以换一换、保留和撤销修改。</text></view>
 <view class="ew-card"><text class="ew-title">2 · 计划安排</text><text class="ew-subtitle">按周或按月查看。选一天编辑餐次、复制到别的日期，或从菜谱选择菜品。同一餐已有安排时会提示确认更新。</text></view>

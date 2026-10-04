@@ -1,4 +1,4 @@
-const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
-function component(name){let def;vm.runInNewContext(fs.readFileSync(`components/${name}/${name}.js`,'utf8'),{Component:d=>def=d,require});return def}
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');const {createRequire}=require('node:module');
+function component(name){const file=path.resolve(`components/${name}/${name}.js`);let def;vm.runInNewContext(fs.readFileSync(file,'utf8'),{Component:d=>def=d,require:createRequire(file)});return def}
 test('busy sheet preserves editing until the save is known',()=>{const def=component('ui-sheet');let closed=0;const view={properties:{busy:true},triggerEvent:()=>closed++};def.methods.close.call(view);assert.equal(closed,0);view.properties.busy=false;def.methods.close.call(view);assert.equal(closed,1)})
 test('disabled chip cannot mutate selection',()=>{const def=component('ui-chip');let changed=0;const view={properties:{disabled:true,selected:false},triggerEvent:()=>changed++};def.methods.tap.call(view);assert.equal(changed,0);view.properties.disabled=false;def.methods.tap.call(view);assert.equal(changed,1)})

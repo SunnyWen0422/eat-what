@@ -1,5 +1,5 @@
 <!--pages/dish-detail/dish-detail.wxml-->
-<view class="ew-page container" style="font-size:{{14 * fontScale}}px" wx:if="{{!loading && !error && dish}}">
+<view class="ew-page container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
   <!-- 菜品图片 -->
   <view class="dish-image-container">
     <image
@@ -16,8 +16,8 @@
     </view>
 
     <!-- 收藏按钮 -->
-    <view class="favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
-      <ui-icon class="line-icon line-icon-heart favorite-icon" name="heart" aria-label="{{isFavorite ? '取消收藏' : '收藏'}}" />
+    <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
+      <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" aria-label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
     </view>
     <button class="share-btn" open-type="share">
       <ui-icon class="line-icon line-icon-share" name="share" aria-label="分享" />
@@ -26,8 +26,8 @@
 
   <!-- 菜品信息 -->
   <view class="dish-info">
-    <button class="shopping-entry" bindtap="onAddToShoppingList">加入购物清单</button>
-    <button wx:if="{{canEditCustom}}" class="shopping-entry" bindtap="onEditCustom">编辑我的菜品</button>
+    <button class="ew-hit-target shopping-entry" bindtap="onAddToShoppingList">加入购物清单</button>
+    <button wx:if="{{canEditCustom}}" class="ew-hit-target shopping-entry" bindtap="onEditCustom">编辑我的菜品</button>
     <view class="dish-header">
       <text class="dish-name">{{dish.name}}</text>
       <view class="dish-tags" wx:if="{{dish.tags}}">
@@ -134,5 +134,5 @@
 <!-- 错误提示 -->
 <view class="error-container" wx:if="{{!loading && error}}">
   <text class="error-text">加载失败，请重试</text>
-  <button class="retry-btn" bindtap="onRetry">重试</button>
+  <button class="ew-hit-target retry-btn" bindtap="onRetry">重试</button>
 </view>

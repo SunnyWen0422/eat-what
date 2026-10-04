@@ -12,7 +12,7 @@ const {
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 
 Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'today'}) : {
-  data: { fontScale: require('../../utils/font-scale')(), theme: require('../../utils/ui-tokens'),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), theme: require('../../utils/ui-tokens'),
     people: 2, advancedExpanded: false, todayMeals: [], todayError: '',
     // 参数设置
     meat: 2,

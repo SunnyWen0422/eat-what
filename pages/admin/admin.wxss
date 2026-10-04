@@ -3,7 +3,7 @@
 page {
   min-height: 100%;
   background: #F8F7F2;
-  color: #202523;
+  color:#25332B;
 }
 
 button::after {
@@ -13,7 +13,7 @@ button::after {
 .admin-page {
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 24rpx 24rpx 0;
+  padding:24rpx 24rpx 0;
 }
 
 .page-heading,
@@ -28,29 +28,29 @@ button::after {
 
 .page-heading {
   min-height: 88rpx;
-  margin-bottom: 18rpx;
+  margin-bottom:18rpx;
 }
 
 .page-title {
   display: block;
-  font-size:1.3571em;
+  font-size:1.285714em;
   font-weight: 700;
-  color: #17201c;
+  color:#25332B;
 }
 
 .page-count,
 .section-count {
   display: block;
-  margin-top: 4rpx;
-  color: #6f7873;
-  font-size:0.8571em;
+  margin-top:4rpx;
+  color:#617066;
+  font-size:0.857143em;
 }
 
 .search-bar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 112rpx;
-  gap: 12rpx;
-  margin-bottom: 16rpx;
+  gap:12rpx;
+  margin-bottom:16rpx;
 }
 
 .search-field {
@@ -61,15 +61,15 @@ button::after {
   align-items: center;
   background: #FFFFFF;
   border: 2rpx solid #dce2df;
-  border-radius: 12rpx;
-  padding: 0 18rpx;
+  border-radius:12rpx;
+  padding:0 18rpx;
 }
 
 .search-input {
   min-width: 0;
   flex: 1;
   height: 84rpx;
-  font-size:1.0em;
+  font-size:1em;
 }
 
 .clear-button,
@@ -77,14 +77,14 @@ button::after {
   flex: none;
   width: 72rpx;
   min-height: 72rpx;
-  margin: 0;
-  padding: 0;
+  margin:0;
+  padding:0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #68716d;
-  font-size:1.3571em;
+  color:#617066;
+  font-size:1.285714em;
   line-height: 1;
 }
 
@@ -98,11 +98,11 @@ button::after {
 .tag-chip {
   min-height: 88rpx;
   box-sizing: border-box;
-  margin: 0;
+  margin:0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size:1.0em;
+  font-size:1em;
   line-height: 1.25;
 }
 
@@ -110,14 +110,14 @@ button::after {
 .primary-action {
   background: #28634E;
   color: #FFFFFF;
-  border-radius: 12rpx;
+  border-radius:12rpx;
   font-weight: 600;
 }
 
 .result-note {
-  margin: 4rpx 0 14rpx;
-  color: #626c67;
-  font-size:0.8571em;
+  margin:4rpx 0 14rpx;
+  color:#617066;
+  font-size:0.857143em;
   word-break: break-word;
 }
 
@@ -126,10 +126,10 @@ button::after {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  margin: 0 0 14rpx;
-  padding: 12rpx 18rpx;
-  border-radius: 8rpx;
-  font-size:0.8571em;
+  margin:0 0 14rpx;
+  padding:12rpx 18rpx;
+  border-radius:8rpx;
+  font-size:0.857143em;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -140,7 +140,7 @@ button::after {
 }
 
 .feedback-banner.warning {
-  color: #835117;
+  color:#75501A;
   background: #FFF1DB;
 }
 
@@ -148,7 +148,7 @@ button::after {
 .dish-list {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap:12rpx;
 }
 
 .user-card,
@@ -158,11 +158,11 @@ button::after {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16rpx;
-  padding: 20rpx;
+  gap:16rpx;
+  padding:20rpx;
   background: #FFFFFF;
   border: 2rpx solid #e3e7e5;
-  border-radius: 16rpx;
+  border-radius:16rpx;
 }
 
 .user-card:active {
@@ -178,8 +178,8 @@ button::after {
 .dish-name,
 .summary-title {
   min-width: 0;
-  color: #1d2521;
-  font-size:1.0714em;
+  color:#25332B;
+  font-size:1em;
   font-weight: 650;
   word-break: break-word;
 }
@@ -189,19 +189,19 @@ button::after {
 .dish-tags,
 .summary-line {
   display: block;
-  margin-top: 8rpx;
-  color: #68716d;
-  font-size:0.8571em;
+  margin-top:8rpx;
+  color:#617066;
+  font-size:0.857143em;
   line-height: 1.45;
   word-break: break-word;
 }
 
 .status-badge {
   flex: none;
-  margin-left: 12rpx;
-  padding: 6rpx 12rpx;
-  border-radius: 8rpx;
-  font-size:0.8571em;
+  margin-left:12rpx;
+  padding:6rpx 12rpx;
+  border-radius:8rpx;
+  font-size:0.857143em;
 }
 
 .status-badge.active {
@@ -215,8 +215,8 @@ button::after {
 }
 
 .row-arrow {
-  color: #8c9590;
-  font-size:1.5em;
+  color:#617066;
+  font-size:1.714286em;
 }
 
 .state-block {
@@ -226,8 +226,8 @@ button::after {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40rpx 24rpx;
-  color: #6c7570;
+  padding:40rpx 24rpx;
+  color:#617066;
   text-align: center;
 }
 
@@ -236,23 +236,23 @@ button::after {
 }
 
 .state-title {
-  font-size:0.9643em;
+  font-size:1em;
 }
 
 .state-button {
-  margin-top: 20rpx;
-  padding: 0 32rpx;
+  margin-top:20rpx;
+  padding:0 32rpx;
   color: #28634E;
   background: #FFFFFF;
   border: 2rpx solid #28634E;
-  border-radius: 12rpx;
+  border-radius:12rpx;
 }
 
 .loading-line {
   width: 86%;
   height: 28rpx;
-  margin: 10rpx 0;
-  border-radius: 8rpx;
+  margin:10rpx 0;
+  border-radius:8rpx;
   background: #e2e7e4;
 }
 
@@ -261,33 +261,33 @@ button::after {
 }
 
 .load-more {
-  margin-top: 8rpx;
+  margin-top:8rpx;
   color: #28634E;
   background: transparent;
 }
 
 .list-end {
-  padding: 28rpx 0 calc(28rpx + env(safe-area-inset-bottom));
-  color: #929a96;
-  font-size:0.8571em;
+  padding:28rpx 0 calc(28rpx + env(safe-area-inset-bottom));
+  color:#617066;
+  font-size:0.857143em;
   text-align: center;
 }
 
 .page-nav {
   min-height: 88rpx;
-  margin-bottom: 16rpx;
+  margin-bottom:16rpx;
 }
 
 .nav-icon {
   width: 88rpx;
   min-height: 88rpx;
-  margin-left: -16rpx;
-  color: #1f6e4e;
-  font-size:1.8571em;
+  margin-left:-16rpx;
+  color:#28634E;
+  font-size:1.857103em;
 }
 
 .nav-title {
-  font-size:1.1429em;
+  font-size:1.142857em;
   font-weight: 650;
 }
 
@@ -297,41 +297,41 @@ button::after {
 
 .user-summary,
 .target-user {
-  padding: 24rpx;
+  padding:24rpx;
   background: #FFFFFF;
   border-left: 6rpx solid #28634E;
-  border-radius: 8rpx;
+  border-radius:8rpx;
 }
 
 .summary-title-row {
-  margin-bottom: 12rpx;
+  margin-bottom:12rpx;
 }
 
 .section-heading {
   min-height: 78rpx;
-  margin-top: 18rpx;
+  margin-top:18rpx;
 }
 
 .section-title {
-  font-size:1.0em;
+  font-size:1em;
   font-weight: 650;
 }
 
 .section-count {
-  margin: 0;
-  padding: 4rpx 12rpx;
+  margin:0;
+  padding:4rpx 12rpx;
   background: #D9E1D5;
-  border-radius: 8rpx;
+  border-radius:8rpx;
 }
 
 .delete-button {
   min-width: 96rpx;
   min-height: 72rpx;
-  padding: 0 20rpx;
-  color: #b8323c;
+  padding:0 20rpx;
+  color:#A93B30;
   background: #fff2f3;
-  border-radius: 10rpx;
-  font-size:0.8571em;
+  border-radius:10rpx;
+  font-size:0.857143em;
 }
 
 .action-bar {
@@ -339,9 +339,9 @@ button::after {
   z-index: 20;
   bottom: 0;
   display: flex;
-  gap: 16rpx;
-  margin: 24rpx -24rpx 0;
-  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  gap:16rpx;
+  margin:24rpx -24rpx 0;
+  padding:18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.97);
   border-top: 2rpx solid #e1e6e3;
 }
@@ -353,34 +353,34 @@ button::after {
 
 .secondary-action {
   background: #eef1ef;
-  color: #46504b;
-  border-radius: 12rpx;
+  color:#25332B;
+  border-radius:12rpx;
 }
 
 .target-user {
   display: flex;
   align-items: baseline;
-  gap: 14rpx;
-  margin-bottom: 18rpx;
+  gap:14rpx;
+  margin-bottom:18rpx;
 }
 
 .target-label {
   flex: none;
-  color: #69736e;
-  font-size:0.8571em;
+  color:#617066;
+  font-size:0.857143em;
 }
 
 .target-name {
   min-width: 0;
-  color: #1d2521;
-  font-size:1.0em;
+  color:#25332B;
+  font-size:1em;
   font-weight: 600;
   word-break: break-word;
 }
 
 .form-section {
-  margin: 0 -24rpx;
-  padding: 24rpx;
+  margin:0 -24rpx;
+  padding:24rpx;
   background: #FFFFFF;
   border-bottom: 2rpx solid #edf0ee;
 }
@@ -388,9 +388,9 @@ button::after {
 .field-label,
 .tag-group-label {
   display: block;
-  margin-bottom: 14rpx;
-  color: #343d38;
-  font-size:0.8929em;
+  margin-bottom:14rpx;
+  color:#25332B;
+  font-size:0.928571em;
   font-weight: 600;
 }
 
@@ -403,18 +403,18 @@ button::after {
   box-sizing: border-box;
   background: #f7f9f8;
   border: 2rpx solid #dfe5e2;
-  border-radius: 12rpx;
-  color: #202723;
-  font-size:1.0em;
+  border-radius:12rpx;
+  color:#25332B;
+  font-size:1em;
 }
 
 .field-input {
-  padding: 0 20rpx;
+  padding:0 20rpx;
 }
 
 .field-textarea {
   min-height: 176rpx;
-  padding: 20rpx;
+  padding:20rpx;
   line-height: 1.55;
 }
 
@@ -425,21 +425,21 @@ button::after {
 .type-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
+  gap:12rpx;
 }
 
 .type-option,
 .tag-chip {
-  padding: 12rpx 14rpx;
-  color: #4f5954;
+  padding:12rpx 14rpx;
+  color:#25332B;
   background: #f2f5f3;
   border: 2rpx solid transparent;
-  border-radius: 10rpx;
+  border-radius:10rpx;
 }
 
 .type-option.selected,
 .tag-chip.selected {
-  color: #175e42;
+  color:#28634E;
   background: #e1f2e9;
   border-color: #4d9878;
   font-weight: 600;
@@ -448,7 +448,7 @@ button::after {
 .split-fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 18rpx;
+  gap:18rpx;
 }
 
 .split-field {
@@ -460,7 +460,7 @@ button::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18rpx;
+  padding:0 18rpx;
 }
 
 .number-input {
@@ -471,29 +471,29 @@ button::after {
 
 .number-unit {
   flex: none;
-  color: #69726e;
-  font-size:0.8571em;
+  color:#617066;
+  font-size:0.857143em;
 }
 
 .tag-group + .tag-group {
-  margin-top: 22rpx;
+  margin-top:22rpx;
 }
 
 .tag-group-label {
-  color: #6a746f;
+  color:#617066;
   font-weight: 500;
 }
 
 .tag-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10rpx;
+  gap:10rpx;
 }
 
 .tag-chip {
   min-width: 0;
   min-height: 72rpx;
-  font-size:0.8571em;
+  font-size:0.857143em;
   white-space: normal;
   word-break: break-word;
 }
@@ -526,3 +526,13 @@ button::after {
 /* Input and touch minima remain fixed under small screens/font changes. */
 .ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
 .ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}
+
+/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
+.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
+text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
+picker.ew-hit-target { display:block; }
+button { min-width:44px; min-height:48px; }
+
+.section-count { color:#25332B; }
+
+button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

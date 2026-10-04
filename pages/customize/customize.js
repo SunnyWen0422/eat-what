@@ -29,7 +29,7 @@ function emptyCustomForm() {
 }
 
 Page({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',
     tabs: ['meat', 'veg', 'soup', 'staple', 'dessert'],
     tabNames: {

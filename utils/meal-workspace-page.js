@@ -14,7 +14,7 @@ module.exports = function workspacePage(options = {}) {
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
-      confirmationVisible: false, confirmationText: '', canConfirm: false, taskMessage: '', mode: options.mode || 'today', fontScale: 1,
+      confirmationVisible: false, confirmationText: '', canConfirm: false, taskMessage: '', mode: options.mode || 'today', fontBase: theme.font.body, fontScale: 1,
     },
     async onLoad(params = {}) {
       this._alive = true; this._params = params

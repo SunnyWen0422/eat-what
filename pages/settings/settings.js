@@ -6,7 +6,7 @@ const DAY_OPTIONS = [0, 3, 7, 14, 30]
 const DURATION_OPTIONS = [null, 10, 20, 30, 45, 60]
 
 Page({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     loading: true,
     saving: false,
     synced: false,

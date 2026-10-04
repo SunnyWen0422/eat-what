@@ -3,7 +3,7 @@ const { withAdminIdentity } = require('../../utils/admin-page-identity')
 const TYPES = [{ code: '', label: '全部分类' }, { code: 'meat', label: '荤菜' }, { code: 'veg', label: '素菜' }, { code: 'soup', label: '汤品' }, { code: 'staple', label: '主食' }, { code: 'dessert', label: '甜品' }]
 
 Page(withAdminIdentity({
-  data: { fontScale: require('../../utils/font-scale')(), scope: 'system', keywordInput: '', keyword: '', typeIndex: 0, types: TYPES, publishedIndex: 0, publishedOptions: ['全部状态', '已发布', '已下架'], dishes: [], total: 0, ready: false, loading: false, loadingMore: false, hasMore: false, error: '', notice: '', updatingId: null, mode: 'list', form: null, saving: false },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), scope: 'system', keywordInput: '', keyword: '', typeIndex: 0, types: TYPES, publishedIndex: 0, publishedOptions: ['全部状态', '已发布', '已下架'], dishes: [], total: 0, ready: false, loading: false, loadingMore: false, hasMore: false, error: '', notice: '', updatingId: null, mode: 'list', form: null, saving: false },
   page: 0,
   pageSize: 20,
   version: 0,

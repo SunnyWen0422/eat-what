@@ -1,6 +1,37 @@
+const tokens = require('../../utils/ui-tokens')
+
 Component({
- options:{multipleSlots:true},properties:{visible:Boolean,title:String,busy:Boolean},data:{keyboardHeight:0,bodyHeight:360,sheetHeight:520},
- lifetimes:{attached(){this._windowHeight=wx.getWindowInfo?wx.getWindowInfo().windowHeight:600;this._keyboard=e=>{if(!this.properties.visible)return;const height=Math.max(0,e.height||0),available=Math.max(160,this._windowHeight-height-24);this.setData({keyboardHeight:height,sheetHeight:available,bodyHeight:Math.max(44,available-160)})};if(wx.onKeyboardHeightChange)wx.onKeyboardHeightChange(this._keyboard)},detached(){if(wx.offKeyboardHeightChange)wx.offKeyboardHeightChange(this._keyboard)}},
- observers:{visible(value){if(!value)this.setData({keyboardHeight:0})}},
- methods:{close(){if(!this.properties.busy)this.triggerEvent('close')},stop(){return false}}
+  options: { multipleSlots: true },
+  properties: { visible: Boolean, title: String, busy: Boolean },
+  data: { keyboardHeight: 0, bodyHeight: 0, sheetHeight: 0 },
+  lifetimes: {
+    attached() {
+      this._keyboard = event => {
+        if (this.properties.visible) this.resize(Math.max(0, Number(event.height) || 0))
+      }
+      this.resize(0)
+      if (wx.onKeyboardHeightChange) wx.onKeyboardHeightChange(this._keyboard)
+    },
+    detached() {
+      if (wx.offKeyboardHeightChange && this._keyboard) wx.offKeyboardHeightChange(this._keyboard)
+      this._keyboard = null
+    },
+  },
+  observers: {
+    visible() {
+      // Reopening cannot rely on a keyboard-dismiss event delivered while hidden.
+      this.resize(0)
+    },
+  },
+  methods: {
+    resize(keyboardHeight) {
+      const info = wx.getWindowInfo ? wx.getWindowInfo() : { windowHeight: 600 }
+      // Reserve header/footer touch targets plus their three vertical spacing bands.
+      const chrome = tokens.controls.touchSize * 2 + tokens.space[5] * 3
+      const available = Math.max(chrome, (Number(info.windowHeight) || 600) - keyboardHeight - tokens.space[5])
+      this.setData({ keyboardHeight, sheetHeight: available, bodyHeight: Math.max(tokens.controls.touchSize, available - chrome) })
+    },
+    close() { if (!this.properties.busy) this.triggerEvent('close') },
+    stop() { return false },
+  },
 })

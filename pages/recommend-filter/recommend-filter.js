@@ -20,7 +20,7 @@ const DURATION_OPTIONS = [
 ]
 
 Page({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     loading: true,
     offline: false,
     criteria: emptyCriteria(),

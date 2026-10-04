@@ -3,7 +3,7 @@
 /* pages/dish-detail/dish-detail.wxss */
 
 .container {
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  padding-bottom:calc(40rpx + env(safe-area-inset-bottom));
   overflow-x: hidden;
   background: linear-gradient(180deg,#EDF3ED 0,#FFFFFF 300rpx);
   min-height: 100vh;
@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 12rpx;
+  gap:12rpx;
   background-color: #F8F7F2;
   color: #28634E;
 }
@@ -39,7 +39,7 @@
 
 .placeholder-text {
   color: #617066;
-  font-size:1.0em;
+  font-size:1em;
 }
 
 .favorite-btn {
@@ -48,8 +48,8 @@
   bottom: 30rpx;
   width: 80rpx;
   height: 80rpx;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
+  background-color: #FFFFFF;
+  border-radius:50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,62 +67,62 @@
 }
 
 .favorite-btn:not(.favorited) .favorite-icon {
-  color: #ccc;
+  color:#617066;
 }
 
 .share-btn {
   position: absolute; left: 30rpx; bottom: 30rpx;
-  width: 72rpx; height: 72rpx; background: rgba(255,255,255,0.9);
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  width: 72rpx; height: 72rpx; background: #FFFFFF;
+  border-radius:50%; display: flex; align-items: center; justify-content: center;
   border: 1rpx solid #d7e5df;
-  padding: 0; border: none; font-size:1.1429em;
+  padding:0; border: none; font-size:1.142857em;
 }
 .share-btn::after { border: none; }
 .share-btn .line-icon { width: 34rpx; height: 34rpx; color: #28634E; }
 
 /* 菜品信息 */
 .dish-info {
-  padding: 30rpx;
+  padding:30rpx;
   background-color: #FFFFFF;
-  margin-top: 20rpx;
+  margin-top:20rpx;
 }
 
 .dish-header {
-  margin-bottom: 30rpx;
+  margin-bottom:30rpx;
 }
 
 .dish-name {
-  font-size:1.4286em;
+  font-size:1.285714em;
   font-weight: bold;
   color: #25332B;
   display: block;
   word-break: break-word;
-  margin-bottom: 16rpx;
+  margin-bottom:16rpx;
 }
 
 .dish-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap:12rpx;
 }
 
 .tag {
-  font-size:0.8571em;
+  font-size:0.857143em;
   color: #28634E;
   background-color: #fff0f0;
-  padding: 6rpx 16rpx;
-  border-radius: 20rpx;
+  padding:6rpx 16rpx;
+  border-radius:20rpx;
 }
 
 /* 菜品属性 */
 .dish-attributes {
   display: flex;
   flex-wrap: wrap;
-  gap: 20rpx;
-  padding: 24rpx;
+  gap:20rpx;
+  padding:24rpx;
   background-color: #f9f9f9;
-  border-radius: 16rpx;
-  margin-bottom: 30rpx;
+  border-radius:16rpx;
+  margin-bottom:30rpx;
 }
 
 .attribute-item {
@@ -134,36 +134,36 @@
 }
 
 .attribute-label {
-  font-size:0.8571em;
+  font-size:0.857143em;
   color: #617066;
-  margin-bottom: 8rpx;
+  margin-bottom:8rpx;
 }
 
 .attribute-value {
-  font-size:1.0em;
+  font-size:1em;
   color: #25332B;
   font-weight: 500;
 }
 
 /* 段落样式 */
 .section {
-  margin-bottom: 40rpx;
+  margin-bottom:40rpx;
 }
 
 .section-title {
-  margin-bottom: 20rpx;
-  padding-bottom: 16rpx;
+  margin-bottom:20rpx;
+  padding-bottom:16rpx;
   border-bottom: 2rpx solid #F8F7F2;
 }
 
 .section-title-text {
-  font-size:1.1429em;
+  font-size:1.142857em;
   font-weight: bold;
   color: #25332B;
 }
 
 .section-content {
-  font-size:1.0em;
+  font-size:1em;
   color: #617066;
   line-height: 1.6;
 }
@@ -172,20 +172,20 @@
 .ingredients-list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap:16rpx;
 }
 
 .ingredient-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 20rpx;
+  padding:16rpx 20rpx;
   background-color: #f9f9f9;
-  border-radius: 12rpx;
+  border-radius:12rpx;
   align-items: flex-start;
 }
 
 .ingredient-text {
-  font-size:1.0em;
+  font-size:1em;
   color: #25332B;
   line-height: 1.5;
   word-break: break-word;
@@ -195,27 +195,27 @@
 .steps-list {
   display: flex;
   flex-direction: column;
-  gap: 30rpx;
+  gap:30rpx;
 }
 
 .step-item {
   display: flex;
-  gap: 20rpx;
+  gap:20rpx;
 }
 
 .step-number {
   width: 48rpx;
   height: 48rpx;
   min-width: 48rpx;
-  background-color: #ff6b6b;
+  background-color:#28634E;
   color: #FFFFFF;
-  border-radius: 50%;
+  border-radius:50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size:0.8571em;
+  font-size:0.857143em;
   font-weight: bold;
-  margin-top: 8rpx;
+  margin-top:8rpx;
 }
 
 .step-content {
@@ -223,53 +223,53 @@
 }
 
 .step-text {
-  font-size:1.0em;
+  font-size:1em;
   color: #25332B;
   line-height: 1.6;
   display: block;
-  margin-bottom: 16rpx;
+  margin-bottom:16rpx;
 }
 
 .step-image {
   width: 100%;
-  border-radius: 12rpx;
-  margin-top: 8rpx;
+  border-radius:12rpx;
+  margin-top:8rpx;
 }
 
 .step-images {
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 10rpx;
+  gap:8rpx;
+  margin-top:10rpx;
 }
 
 .step-images .step-image {
   width: 48%;
-  border-radius: 10rpx;
+  border-radius:10rpx;
 }
 
 /* 步骤图片汇总 */
 .all-images {
   display: flex;
   flex-wrap: wrap;
-  gap: 10rpx;
+  gap:10rpx;
 }
 
 .all-image {
   width: 31%;
-  border-radius: 10rpx;
+  border-radius:10rpx;
 }
 
 /* 小贴士 */
 .tips-content {
-  padding: 24rpx;
+  padding:24rpx;
   background-color: #f0f9ff;
-  border-radius: 12rpx;
+  border-radius:12rpx;
   border-left: 6rpx solid #4dabf7;
 }
 
 .tips-text {
-  font-size:1.0em;
+  font-size:1em;
   color: #617066;
   line-height: 1.6;
 }
@@ -289,7 +289,7 @@
   height: 60rpx;
   border: 6rpx solid #F8F7F2;
   border-top: 6rpx solid #ff6b6b;
-  border-radius: 50%;
+  border-radius:50%;
   animation: spin 0.8s linear infinite;
 }
 
@@ -299,8 +299,8 @@
 }
 
 .loading-text {
-  margin-top: 20rpx;
-  font-size:1.0em;
+  margin-top:20rpx;
+  font-size:1em;
   color: #617066;
 }
 
@@ -315,18 +315,18 @@
 }
 
 .error-text {
-  font-size:1.1429em;
+  font-size:1.142857em;
   color: #617066;
-  margin-bottom: 30rpx;
+  margin-bottom:30rpx;
 }
 
 .retry-btn {
-  background-color: #ff6b6b;
+  background-color:#28634E;
   color: #FFFFFF;
   border: none;
-  border-radius: 40rpx;
-  padding: 16rpx 60rpx;
-  font-size:1.0em;
+  border-radius:40rpx;
+  padding:16rpx 60rpx;
+  font-size:1em;
 }
 
 /* 页面共享主题，适用于本页详情、表单和弹层。 */
@@ -339,3 +339,13 @@
 /* Input and touch minima remain fixed under small screens/font changes. */
 .ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
 .ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}
+
+/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
+.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
+text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
+picker.ew-hit-target { display:block; }
+button { min-width:44px; min-height:48px; }
+
+.favorite-status { color:#28634E; font-size:0.857143em; }
+
+button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

@@ -1,22 +1,22 @@
-<view class="ew-page page" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page page" style="font-size:{{fontBase * fontScale}}px">
   <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view class="heading"><text class="title">用户管理</text><text class="count">{{total}} 位用户</text></view>
-  <view class="search"><input value="{{keywordInput}}" placeholder="搜索昵称、手机号或 ID" confirm-type="search" bindinput="onInput" bindconfirm="search"/><button class="search-btn" bindtap="search" loading="{{loading || refreshing}}">搜索</button></view>
-  <button wx:if="{{keywordInput}}" class="clear" bindtap="clear">清除搜索条件</button>
+  <view class="search"><input placeholder-class="ew-placeholder" value="{{keywordInput}}" placeholder="搜索昵称、手机号或 ID" confirm-type="search" bindinput="onInput" bindconfirm="search"/><button class="ew-hit-target search-btn" bindtap="search" loading="{{loading || refreshing}}">搜索</button></view>
+  <button wx:if="{{keywordInput}}" class="ew-hit-target clear" bindtap="clear">清除搜索条件</button>
   <view wx:if="{{notice}}" class="notice">{{notice}}</view>
   <view wx:if="{{loading && !ready}}" class="state">正在加载用户...</view>
-  <view wx:elif="{{error && !ready}}" class="state"><text>{{error}}</text><button class="primary" bindtap="retry">重新加载</button></view>
+  <view wx:elif="{{error && !ready}}" class="state"><text>{{error}}</text><button class="ew-hit-target primary" bindtap="retry">重新加载</button></view>
   <view wx:elif="{{ready && !users.length}}" class="state">暂无匹配用户</view>
   <view wx:else class="list">
-    <view class="card" wx:for="{{users}}" wx:key="id" bindtap="openUser" data-id="{{item.id}}">
+    <view class="ew-hit-target card" wx:for="{{users}}" wx:key="id" bindtap="openUser" data-id="{{item.id}}">
       <view class="main">
         <view class="row"><text class="name">{{item.displayName}}</text><text class="badge {{item.status === 0 ? 'off' : 'on'}}">{{item.status === 0 ? '已停用' : '正常'}}</text></view>
         <text class="meta">ID {{item.id}} · {{item.phone || '未绑定手机'}}</text>
         <text class="meta">注册 {{item.registerTime || '暂无'}} · 自定义菜品 {{item.customCount || 0}}</text>
       </view>
-      <button class="status-btn" catchtap="toggleStatus" data-id="{{item.id}}" loading="{{updatingId === item.id}}">{{item.status === 0 ? '启用' : '停用'}}</button>
+      <button class="ew-hit-target status-btn" catchtap="toggleStatus" data-id="{{item.id}}" loading="{{updatingId === item.id}}">{{item.status === 0 ? '启用' : '停用'}}</button>
     </view>
-    <button wx:if="{{hasMore}}" class="more" bindtap="more" loading="{{loadingMore}}">加载更多</button>
+    <button wx:if="{{hasMore}}" class="ew-hit-target more" bindtap="more" loading="{{loadingMore}}">加载更多</button>
     <text wx:else class="end">已显示全部用户</text>
   </view>
 </view>

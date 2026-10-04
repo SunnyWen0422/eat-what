@@ -1,4 +1,4 @@
-<view class="ew-page admin-page" style="font-size:{{14 * fontScale}}px">
+<view class="ew-page admin-page" style="font-size:{{fontBase * fontScale}}px">
   <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view wx:if="{{mode === 'list'}}" class="list-page">
     <view class="page-heading">
@@ -11,16 +11,16 @@
     <view class="search-bar">
       <view class="search-field">
         <input
-          class="search-input"
+ placeholder-class="ew-placeholder"          class="search-input"
           value="{{searchInput}}"
           placeholder="搜索昵称、手机号或用户ID"
           confirm-type="search"
           bindinput="onSearchInput"
           bindconfirm="onSearchSubmit"
         />
-        <button wx:if="{{searchInput}}" class="clear-button" bindtap="onClearSearch" aria-label="清空搜索">×</button>
+        <button wx:if="{{searchInput}}" class="ew-hit-target clear-button" bindtap="onClearSearch" aria-label="清空搜索">×</button>
       </view>
-      <button class="search-button" loading="{{loading || refreshing}}" bindtap="onSearchSubmit">搜索</button>
+      <button class="ew-hit-target search-button" loading="{{loading || refreshing}}" bindtap="onSearchSubmit">搜索</button>
     </view>
 
     <view wx:if="{{displayedKeyword}}" class="result-note">“{{displayedKeyword}}”的搜索结果</view>
@@ -33,13 +33,13 @@
     </view>
     <view wx:elif="{{listError && !listReady}}" class="state-block">
       <text class="state-title">{{listError}}</text>
-      <button class="state-button" bindtap="onRetryList">重新加载</button>
+      <button class="ew-hit-target state-button" bindtap="onRetryList">重新加载</button>
     </view>
     <view wx:elif="{{listReady && users.length === 0}}" class="state-block">
       <text class="state-title">{{displayedKeyword ? '没有匹配的用户' : '暂无用户'}}</text>
     </view>
     <view wx:else class="user-list">
-      <view class="user-card" wx:for="{{users}}" wx:key="id" bindtap="onSelectUser" data-id="{{item.id}}">
+      <view class="ew-hit-target user-card" wx:for="{{users}}" wx:key="id" bindtap="onSelectUser" data-id="{{item.id}}">
         <view class="user-main">
           <view class="user-title-row">
             <text class="user-name">{{item.displayName}}</text>
@@ -50,7 +50,7 @@
         </view>
         <text class="row-arrow">›</text>
       </view>
-      <button wx:if="{{hasMore}}" class="load-more" loading="{{loadingMore}}" disabled="{{loadingMore}}" bindtap="onLoadMore">
+      <button wx:if="{{hasMore}}" class="ew-hit-target load-more" loading="{{loadingMore}}" disabled="{{loadingMore}}" bindtap="onLoadMore">
         {{loadingMore ? '加载中' : '加载更多'}}
       </button>
       <view wx:else class="list-end">已显示全部用户</view>
@@ -59,7 +59,7 @@
 
   <view wx:elif="{{mode === 'detail'}}" class="detail-page">
     <view class="page-nav">
-      <button class="nav-icon" bindtap="onBack" aria-label="返回用户列表">‹</button>
+      <button class="ew-hit-target nav-icon" bindtap="onBack" aria-label="返回用户列表">‹</button>
       <text class="nav-title">用户详情</text>
       <view class="nav-spacer"></view>
     </view>
@@ -70,7 +70,7 @@
     <view wx:if="{{detailLoading && !detailReady}}" class="state-block"><text class="state-title">加载中</text></view>
     <view wx:elif="{{detailError && !detailReady}}" class="state-block">
       <text class="state-title">{{detailError}}</text>
-      <button class="state-button" bindtap="onRetryDetail">重新加载</button>
+      <button class="ew-hit-target state-button" bindtap="onRetryDetail">重新加载</button>
     </view>
     <block wx:elif="{{detailReady}}">
       <view class="user-summary">
@@ -98,19 +98,19 @@
             <text class="dish-meta">{{item.typeLabel}}{{item.cuisineLabel ? ' · ' + item.cuisineLabel : ''}}{{item.cookMinutes ? ' · ' + item.cookMinutes + '分钟' : ''}}</text>
             <text wx:if="{{item.tagLabel}}" class="dish-tags">{{item.tagLabel}}</text>
           </view>
-          <button class="delete-button" data-id="{{item.id}}" loading="{{deletingDishId === item.id}}" disabled="{{deletingDishId !== null}}" catchtap="onDeleteDish">删除</button>
+          <button class="ew-hit-target delete-button" data-id="{{item.id}}" loading="{{deletingDishId === item.id}}" disabled="{{deletingDishId !== null}}" catchtap="onDeleteDish">删除</button>
         </view>
       </view>
 
       <view class="action-bar">
-        <button class="primary-action" bindtap="onShowAdd">＋ 添加菜品</button>
+        <button class="ew-hit-target primary-action" bindtap="onShowAdd">＋ 添加菜品</button>
       </view>
     </block>
   </view>
 
   <view wx:elif="{{mode === 'form'}}" class="form-page">
     <view class="page-nav">
-      <button class="nav-icon" bindtap="onCancelAdd" disabled="{{saving}}" aria-label="返回用户详情">‹</button>
+      <button class="ew-hit-target nav-icon" bindtap="onCancelAdd" disabled="{{saving}}" aria-label="返回用户详情">‹</button>
       <text class="nav-title">添加菜品</text>
       <view class="nav-spacer"></view>
     </view>
@@ -122,27 +122,27 @@
 
     <view class="form-section">
       <text class="field-label">菜名</text>
-      <input class="field-input" maxlength="255" value="{{newDish.name}}" data-field="name" bindinput="onDishInput" placeholder="输入菜品名称" />
+      <input placeholder-class="ew-placeholder" class="field-input" maxlength="255" value="{{newDish.name}}" data-field="name" bindinput="onDishInput" placeholder="输入菜品名称" />
     </view>
 
     <view class="form-section">
       <text class="field-label">分类</text>
       <view class="type-grid">
-        <button class="type-option {{newDish.type === item.code ? 'selected' : ''}}" wx:for="{{typeOptions}}" wx:key="code" data-type="{{item.code}}" bindtap="onTypeTap">{{item.label}}</button>
+        <button class="ew-hit-target type-option {{newDish.type === item.code ? 'selected' : ''}}" wx:for="{{typeOptions}}" wx:key="code" data-type="{{item.code}}" bindtap="onTypeTap">{{item.label}}</button>
       </view>
     </view>
 
     <view class="form-section split-fields">
       <view class="split-field">
         <text class="field-label">菜系</text>
-        <picker mode="selector" range="{{cuisineOptions}}" range-key="label" value="{{cuisineIndex}}" bindchange="onCuisineChange">
+        <picker class="ew-hit-target" mode="selector" range="{{cuisineOptions}}" range-key="label" value="{{cuisineIndex}}" bindchange="onCuisineChange">
           <view class="picker-field">{{newDish.cuisineLabel}}<text>⌄</text></view>
         </picker>
       </view>
       <view class="split-field">
         <text class="field-label">烹饪时间</text>
         <view class="number-field">
-          <input class="number-input" type="number" maxlength="3" value="{{newDish.cookMinutes}}" data-field="cookMinutes" bindinput="onDishInput" placeholder="可选" />
+          <input placeholder-class="ew-placeholder" class="number-input" type="number" maxlength="3" value="{{newDish.cookMinutes}}" data-field="cookMinutes" bindinput="onDishInput" placeholder="可选" />
           <text class="number-unit">分钟</text>
         </view>
       </view>
@@ -153,24 +153,24 @@
       <view class="tag-group" wx:for="{{tagGroups}}" wx:key="key" wx:for-item="group">
         <text class="tag-group-label">{{group.label}}</text>
         <view class="tag-list">
-          <button class="tag-chip {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-code="{{item.code}}" bindtap="onTagTap">{{item.label}}</button>
+          <button class="ew-hit-target tag-chip {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-code="{{item.code}}" bindtap="onTagTap">{{item.label}}</button>
         </view>
       </view>
     </view>
 
     <view class="form-section">
       <text class="field-label">食材用量</text>
-      <textarea class="field-textarea" maxlength="10000" auto-height value="{{newDish.ingredients}}" data-field="ingredients" bindinput="onDishInput" placeholder="输入食材和用量" />
+      <textarea placeholder-class="ew-placeholder" class="field-textarea" maxlength="10000" auto-height value="{{newDish.ingredients}}" data-field="ingredients" bindinput="onDishInput" placeholder="输入食材和用量" />
     </view>
 
     <view class="form-section">
       <text class="field-label">烹饪步骤</text>
-      <textarea class="field-textarea steps" maxlength="20000" auto-height value="{{newDish.steps}}" data-field="steps" bindinput="onDishInput" placeholder="输入烹饪步骤" />
+      <textarea placeholder-class="ew-placeholder" class="field-textarea steps" maxlength="20000" auto-height value="{{newDish.steps}}" data-field="steps" bindinput="onDishInput" placeholder="输入烹饪步骤" />
     </view>
 
     <view class="action-bar dual-actions">
-      <button class="secondary-action" bindtap="onCancelAdd" disabled="{{saving}}">取消</button>
-      <button class="primary-action" bindtap="onSaveDish" loading="{{saving}}" disabled="{{saving}}">保存菜品</button>
+      <button class="ew-hit-target secondary-action" bindtap="onCancelAdd" disabled="{{saving}}">取消</button>
+      <button class="ew-hit-target primary-action" bindtap="onSaveDish" loading="{{saving}}" disabled="{{saving}}">保存菜品</button>
     </view>
   </view>
 </view>

@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const { beginShoppingSelection } = require('../../utils/shopping-list')
 const flow = require('../../utils/meal-workflow')
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
   onLoad(options) { this.setData({ selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
   onShow() { this.loadMealRecords() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },

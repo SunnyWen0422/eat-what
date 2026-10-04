@@ -2,7 +2,7 @@ const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), periodMode: 'week', selectedDate: flow.today(), rangeLabel: '', loading: true, errorMessage: '', report: null, categoryRows: [], dailyRows: [], recordRows: [] },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), periodMode: 'week', selectedDate: flow.today(), rangeLabel: '', loading: true, errorMessage: '', report: null, categoryRows: [], dailyRows: [], recordRows: [] },
   onShow() { this.loadStatistics() }, onUnload() { this._epoch = (this._epoch || 0) + 1 },
   range() { const date=flow.parseDay(this.data.selectedDate); return this.data.periodMode==='week'?flow.weekRange(this.data.selectedDate):flow.monthRange(date.getFullYear(),date.getMonth()+1) },
   async loadStatistics() {

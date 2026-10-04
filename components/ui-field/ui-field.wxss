@@ -1,2 +1,12 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
-.field { margin:24rpx 0; } .label { display:block; font-size:1.0em; font-weight:600; color:#25332B; margin-bottom:12rpx; } .input { min-height:44px; padding:20rpx 24rpx; box-sizing:border-box; width:100%; background:#f5f6f0; border:1rpx solid #d9e1d5; border-radius:20rpx; font-size:1.0714em; } .error { color:#A93B30; font-size:0.9286em; margin-top:12rpx; display:block; } .invalid { border-color:#A93B30; }
+.field { margin:24rpx 0; } .label { display:block; font-size:1em; font-weight:600; color:#25332B; margin-bottom:12rpx; } .input { min-height:44px; padding:20rpx 24rpx; box-sizing:border-box; width:100%; background:#f5f6f0; border:1rpx solid #d9e1d5; border-radius:20rpx; font-size:1em; } .error { color:#A93B30; font-size:0.928571em; margin-top:12rpx; display:block; } .invalid { border-color:#A93B30; }
+
+/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
+.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
+text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
+picker.ew-hit-target { display:block; }
+button { min-width:44px; min-height:48px; }
+
+.ew-placeholder { color:#617066; }
+
+button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const { getDishById } = require('../../utils/api')
 
 Page({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     dish: null, targetPeople: 2, ingredientNotice: '', canEditCustom: false,
     loading: true,
     error: false,

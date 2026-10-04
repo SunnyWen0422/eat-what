@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const { beginShoppingSelection } = require('../../utils/shopping-list')
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), weekdays: ['一','二','三','四','五','六','日'], selectedDate: flow.today(), viewMode: 'week', rangeLabel: '', days: [], mealCards: [], overview: { plans: [], consumptions: [] }, loading: true, errorMessage: '', selectMode: false, authenticated: true },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), weekdays: ['一','二','三','四','五','六','日'], selectedDate: flow.today(), viewMode: 'week', rangeLabel: '', days: [], mealCards: [], overview: { plans: [], consumptions: [] }, loading: true, errorMessage: '', selectMode: false, authenticated: true },
   onLoad(options) { this.setData({ selectMode: options.mode === 'select' || options.select === 'true' }); this.rebuild() },
   onShow() { if(wx.getStorageSync(getUserStorageKey('selectingDateForRecipe')))this.setData({selectMode:true}); this.loadRecipeRecords() },
   onHide() { if(this.data.selectMode){wx.removeStorageSync(getUserStorageKey('selectingDateForRecipe'));this.setData({selectMode:false})} },

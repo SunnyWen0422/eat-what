@@ -18,7 +18,7 @@ function currentUser() {
 }
 
 Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'assistant'}) : {
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     settingsVisible: false, settingDate: flow.today(), settingPeople: '2', settingMealIndex: 2, mealLabels: ['早餐','午餐','晚餐'], settingsError: '',
     messages: [], inputText: '', loading: false, errorMessage: '', userAvatar: '',
     scrollTop: 0, sessionId: '', task: null, taskStage: '', mode: '', plan: null, howto: null, alternatives: [], canUndo: false, actions: [], pendingAction: '', initialized: false,

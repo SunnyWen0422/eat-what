@@ -2,7 +2,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const store = require('../../utils/shopping-list')
 const flow = require('../../utils/meal-workflow')
 Page({
-  data: { fontScale: require('../../utils/font-scale')(), workspaceDrafts: [], pendingSync: [], shoppingDraftCount: 0, syncing: false, errorMessage: '', syncResult: { success: 0, failed: 0 } },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), workspaceDrafts: [], pendingSync: [], shoppingDraftCount: 0, syncing: false, errorMessage: '', syncResult: { success: 0, failed: 0 } },
   onShow() { this.loadPendingSync() },
   onUnload() { this._unloaded = true },
   loadPendingSync() {

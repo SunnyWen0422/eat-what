@@ -1,12 +1,12 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-.check { width:88rpx; height:88rpx; padding:0; flex-shrink:0; background:#F1F4ED; color:#28634E; font-size:1.2857em; border-radius:44rpx; }
+.check { width:88rpx; height:88rpx; padding:0; flex-shrink:0; background:#F1F4ED; color:#28634E; font-size:1.285714em; border-radius:44rpx; }
 .check.checked { background:#28634E; color:#FFFFFF; }
 .item-row { display:flex; align-items:center; gap:12rpx; padding:20rpx 0; border-bottom:1rpx solid #E7ECE5; }
 .item-row .ew-link { padding:0 10rpx; }
 .source { margin-top:16rpx; white-space:normal; overflow-wrap:anywhere; }
 .compact { min-width:112rpx; padding:0 16rpx; }
-.danger { color:#A33B32; }
+.danger { color:#A93B30; }
 
 /* Shared finish for legacy pages; layout and permission-specific states remain local. */
 .ew-page { background:#F8F7F2; color:#25332B; }
@@ -16,3 +16,13 @@
 /* Input and touch minima remain fixed under small screens/font changes. */
 .ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
 .ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}
+
+.quantity-warning { color:#75501A; background:#FFF1DB; padding:8px 12px; margin-top:8px; border-radius:6px; font-size:0.928571em; }
+
+/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
+.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
+text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
+picker.ew-hit-target { display:block; }
+button { min-width:44px; min-height:48px; }
+
+button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

@@ -2,7 +2,7 @@ const { getFavoriteDishes, removeFavoriteDish } = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 
 Page({
-  data: { fontScale: require('../../utils/font-scale')(),
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     favorites: [],
     filtered: [],
     loading: true,
