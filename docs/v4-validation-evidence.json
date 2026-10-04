@@ -1,14 +1,15 @@
 {
-  "date": "2026-10-03",
-  "baselineCommit": "47b854ed4b8d3c1683baa248cf9a3701515511b2",
-  "branch": "codex/full-ui-meal-workflow",
+  "date": "2026-10-04",
+  "baselineCommit": "59f74041b1fb73c9b46a73f308833a2f5cdd0d3d",
+  "verifiedProductCommit": "348f1fb2973d2e4ca2dce5fc3f74e3479a396fd0",
+  "branch": "codex/v4-meal-workspace-green-20261003",
   "verification": {
-    "node": 36,
-    "python": 13,
-    "javaUnit": 35,
-    "ordinaryTotal": 84,
+    "node": 143,
+    "python": 23,
+    "javaUnit": 58,
+    "ordinaryTotal": 224,
     "mysqlAndHttp": 5,
-    "total": 89,
+    "total": 229,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -19,129 +20,169 @@
       "tests": 1,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:00.2632560+08:00"
     },
     {
       "suite": "com.eatwhat.service.AvatarImageValidatorTest",
       "tests": 2,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:00.2949430+08:00"
     },
     {
       "suite": "com.eatwhat.service.DietReviewCalculatorTest",
       "tests": 3,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:00.3610370+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealConsumptionServiceTest",
       "tests": 3,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:00.5517173+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealPlanServiceTest",
       "tests": 2,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:00.7388040+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceFallbackTest",
       "tests": 3,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.0120151+08:00"
     },
     {
-      "suite": "com.eatwhat.service.MealWorkspaceHttpIT",
+      "suite": "com.eatwhat.service.MealWorkspaceHttpTransportTest",
       "tests": 1,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
-    },
-    {
-      "suite": "com.eatwhat.service.MealWorkspaceMysqlIT",
-      "tests": 4,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.2572083+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspacePlannerTest",
       "tests": 4,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.3588943+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceRulesTest",
       "tests": 6,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.3740456+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceServiceTest",
       "tests": 3,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.4120116+08:00"
     },
     {
       "suite": "com.eatwhat.service.ShoppingListReliabilityTest",
       "tests": 4,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.4507384+08:00"
     },
     {
       "suite": "com.eatwhat.service.ShoppingMutationServiceTest",
       "tests": 2,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.4657438+08:00"
     },
     {
       "suite": "com.eatwhat.service.UserAvatarServiceTest",
       "tests": 1,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.4908822+08:00"
+    },
+    {
+      "suite": "com.eatwhat.service.V4ActualHistoryContractTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.5335190+08:00"
+    },
+    {
+      "suite": "com.eatwhat.service.V4RankingContractTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:01.8679681+08:00"
+    },
+    {
+      "suite": "com.eatwhat.service.V4ShoppingContractTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:02.3824302+08:00"
     },
     {
       "suite": "com.eatwhat.service.WorkspacePlanSnapshotTest",
       "tests": 1,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "modified": "2026-10-04T20:12:02.3844255+08:00"
     }
   ],
-  "nativeCompile": {
-    "scope": "WXML/WXSS compile only; native runtime and device acceptance pending",
-    "results": [
-      {
-        "compiler": "wcc.exe",
-        "fileCount": 41,
-        "exitCode": 0,
-        "compiledBytes": 314293
-      },
-      {
-        "compiler": "wcsc.exe",
-        "fileCount": 43,
-        "exitCode": 0,
-        "compiledBytes": 10231
-      }
+  "integration": {
+    "verifiedBusinessCommit": "4908cc5c5bc7596bec01f0d67066266b058ed167",
+    "subsequentChanges": "UI/templates/tests/docs only; business code unchanged",
+    "mysqlTests": 4,
+    "httpTests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "migrations": [
+      "database_migration.sql",
+      "ensure_food_import_schema.sql",
+      "create_favorite_dishes_table.sql",
+      "shopping_list_schema.sql",
+      "recommendation_preferences_schema.sql",
+      "db/migrations/V1__production_hardening.sql",
+      "db/migrations/V2__admin_console.sql",
+      "db/migrations/V3__meal_workflow.sql",
+      "db/migrations/V4__meal_workspace.sql"
     ]
   },
-  "generatedAssets": {
-    "filesCompared": 135,
-    "rebuildChanged": 0
+  "mysqlEvidence": ".mysql-test-data/v4-cb69a2996b/result.json",
+  "restartProbe": {
+    "status": "passed",
+    "scope": "two real JVM processes; stale running lease fixture reclaimed after crash",
+    "firstPid": 12076,
+    "secondPid": 15396,
+    "revisionBefore": 1,
+    "revisionAfter": 2,
+    "draftDishCount": 2,
+    "leaseAgeAdvancedSeconds": 31
   },
-  "mysqlEvidence": ".mysql-test-data/v4-0a819a3bb9/result.json",
   "syntheticFeedbackScenario": [
     [
       {
@@ -154,7 +195,7 @@
     ],
     [
       {
-        "event_type": "actual_completed",
+        "event_type": "plan_saved",
         "source": "rules",
         "event_count": 3
       },
@@ -164,7 +205,7 @@
         "event_count": 3
       },
       {
-        "event_type": "plan_saved",
+        "event_type": "exposed",
         "source": "rules",
         "event_count": 3
       },
@@ -179,9 +220,9 @@
         "event_count": 3
       },
       {
-        "event_type": "exposed",
+        "event_type": "actual_completed",
         "source": "rules",
-        "event_count": 3
+        "event_count": 6
       },
       {
         "event_type": "generated",
@@ -196,22 +237,99 @@
       }
     ]
   ],
+  "feedbackInterpretation": "6 actual_completed operations include edits; current completed meals = 3. Synthetic fixture, not production metrics.",
+  "apiContracts": {
+    "passed": true,
+    "compiledBackendRoutes": 82,
+    "literalFrontendCalls": 74,
+    "registeredPages": 25,
+    "unmatched": 0,
+    "unknownExports": 0,
+    "dynamicSourceChecks": [
+      "GET /dishes/search",
+      "GET /dishes",
+      "GET /dishes/lite",
+      "POST /users/avatar multipart file",
+      "GET /users/avatar-images/{imageId}"
+    ],
+    "scope": "Mapping/export/source checks; not live coverage of every endpoint."
+  },
+  "uiSourceAudit": {
+    "kind": "Declared source/VM contract audit; no native compile, runtime layout or rendered pixel acceptance",
+    "pages": 25,
+    "components": 15,
+    "clickableNonButtonNodes": 115,
+    "pageTextPairs": 1476,
+    "componentTextPairs": 60,
+    "minimumDeclaredContrast": 4.57,
+    "tokenDimensions": 20,
+    "isolatedTokenMutationDelta": 2,
+    "limits": [
+      "source parser and declared cascade only",
+      "no native pixel/layout/keyboard/device acceptance",
+      "body/body=1em mutation checked by effective runtime base, not CSS byte change",
+      "dynamic class/attribute/state combinations are partial; pair counts are not complete interaction coverage"
+    ],
+    "targetedGeometry": "Result star/refresh ancestor declared scale removed; minimum declared width/height = 44. No native layout acceptance.",
+    "nativeTagBinding": "Legacy slice replaced by native loop; source/VM preserves first three tags and order. No native compile/runtime executed."
+  },
+  "generatedAssets": {
+    "filesCompared": 136,
+    "identicalBuilds": 3,
+    "rootAdditionalRebuildChanged": 0
+  },
+  "favoriteAssetPixels": {
+    "kind": "intrinsic asset pixels only; no native rendered UI",
+    "size": [
+      72,
+      72
+    ],
+    "outlineCenter": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "filledCenter": [
+      40,
+      99,
+      78,
+      255
+    ],
+    "differentPixels": 1902
+  },
+  "nativeCompile": {
+    "executedForRepairs": false,
+    "reason": "User requested code/interface checks without WeChat developer tools.",
+    "historicalFirstVersionOnly": {
+      "scope": "WXML/WXSS compile only; native runtime and device acceptance pending",
+      "results": [
+        {
+          "compiler": "wcc.exe",
+          "fileCount": 41,
+          "exitCode": 0,
+          "compiledBytes": 314293
+        },
+        {
+          "compiler": "wcsc.exe",
+          "fileCount": 43,
+          "exitCode": 0,
+          "compiledBytes": 10231
+        }
+      ]
+    }
+  },
   "remainingAcceptance": [
-    "WeChat native runtime and iOS/Android page/state acceptance",
+    "WeChat runtime and iOS/Android 25-page applicable states",
     "two physical devices restore and conflicts",
     "real model quality and P95 performance",
     "breakfast product/cooking review",
     "stable WeChat base library selection"
   ],
   "published": false,
-  "restartProbe": {
-    "status": "passed",
-    "scope": "two real JVM processes; stale running lease fixture reclaimed after crash",
-    "firstPid": 38152,
-    "secondPid": 40548,
-    "revisionBefore": 1,
-    "revisionAfter": 2,
-    "draftDishCount": 2,
-    "leaseAgeAdvancedSeconds": 31
-  }
+  "featureFlags": {
+    "frontendV4": false,
+    "backendV4": false
+  },
+  "reviewStatus": "Task1/Task2/Task3 independent spec and quality reviews approved; final whole-diff review pending"
 }

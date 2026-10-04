@@ -1,6 +1,6 @@
 # Eat-What V4：开发者改造说明
 
-> 更新：2026-10-03。分支 `codex/full-ui-meal-workflow`，基准 HEAD `47b854ed4b8d3c1683baa248cf9a3701515511b2`。本次包含原未提交改动，已保存可恢复快照。源码已实施，V4 默认关闭，尚未发布。详细接口、25 页及内部功能清单见 [前后端详细设计](./eat-what-agent-fullstack-detailed-design.md)。
+> 更新：2026-10-04。当前分支 `codex/v4-meal-workspace-green-20261003`；原实施基准 `47b854ed` 与开工快照已保留，首版提交 `59f7404` 已推送到自己的分支。本轮自检的 18 项修复已实施，分组独立复核通过，最终全范围审查中，见 [修复与复核记录](./v4-self-check-fix-status.md)。V4 默认关闭，尚未发布。详细接口、25 页及内部功能清单见 [前后端详细设计](./eat-what-agent-fullstack-detailed-design.md)。
 
 ## 1. 一眼看懂现在的项目
 
@@ -72,6 +72,7 @@ Eat-What 是微信原生小程序，已有菜谱、推荐、助手、日历、�
 | 当前餐前端、草稿与恢复 | `utils/meal-workspace.js`、`meal-workspace-page.js`、`templates/meal-workspace.wxml` |
 | 三个共享入口与选菜 | `pages/index/`、`result/`、`chat/`、`customize/`、`utils/legacy-meal-import.js` |
 | 颜色/字号/间距/组件/资产 | `design/tokens.json`、模板、`components/`、`scripts/build_ui_assets.py`；勿手改生成样式 |
+| 账号切换与管理页异步隔离 | `utils/account-identity.js`、`admin-page-identity.js`、`api.js`、`plan-save.js`；重点检查回包及弹窗确认后身份 |
 | 工作区版本/确认/请求回执 | `MealWorkspaceService`、`MealWorkspaceMapper`、`MealWorkspaceController` |
 | 自动搭配/保留/撤销/任务 | `MealWorkspaceRules`、`MealWorkspacePlanner`、`MealWorkspaceTaskRunner` |
 | 自由文本与安全降级 | `MealWorkspaceAgentGateway`、`recommend-service/workspace_agent.py`、内部任务 endpoint |
@@ -99,11 +100,13 @@ Java/MySQL 是工作区权威。Python 仅返回候选 ID 和明确理解的限�
 ## 7. 当前验证到哪一步
 
 <!-- V4-VERIFICATION -->
-最新验证（2026-10-03）：Node **36**、Python **13**、Java 普通回归 **35**，合计 **84**；另有真实 MySQL 事务 **4** 与本地 Spring Boot HTTP **1**，共 **89** 项，失败/错误/跳过均为 0。Java `test package`、JSON/JS/Python 语法、25 路由结构/事件、四份迁移 manifest 校验通过。官方编译器通过 **41 WXML / 43 WXSS**，135 个生成文件重建无变化，`git diff --check` 通过。
+最新修复验证（2026-10-04，产品代码 `348f1fb`）：Node **143**、Python **23**、Java 普通回归 **58**，合计 **224**；另有真实 MySQL 事务 **4** 与本地 Spring Boot HTTP **1**，共 **229** 项，失败/错误/跳过均为 0。Java `test package` 有直接 `BUILD SUCCESS` 与新普通测试 XML；不依赖统一脚本的成功尾句。JSON/JS/Python 语法、25 路由结构/事件和迁移 manifest 检查通过。
 
-真实迁移/接口证据：`.mysql-test-data/v4-0a819a3bb9/result.json`；反馈 SQL：同目录 `feedback-metrics.json`（人工测试三餐场景，非生产接受率）；原生编译：`.mysql-test-data/native-v4/native-compile.json`；统一日志：`.mysql-test-data/final-verification.log`。可随代码审阅的汇总见 [验证记录](./v4-validation-evidence.json)。原始本机测试目录已忽略，不进入 Git/小程序包。 另有真实 JVM 崩溃/重启恢复检查通过，证据为 `.mysql-test-data/v4-0a819a3bb9/restart-evidence.json`（推进隔离 fixture 的租约年龄31秒，两个进程PID不同，版本1→2）。
+编译后的 Spring **82** 个路由与前端 **74** 处固定路径调用、25 页及共享模块导出匹配。搜索/分页/头像上传的动态路径另做源码核对；这不表示每个接口都执行了真实 HTTP。UI 声明检查覆盖 25 页、15 公共组件、115 个非原生按钮点击节点，以及 1476 个页面和 60 个组件文字/背景状态对；声明对比度均 ≥4.5。20 维 Token 隔离变更与有效字号检查通过，136 个生成文件连续三次一致，最终额外重建也无变化。这些属于源码/VM/生成证据，不能代替实际像素和运行布局；声明对数不是完整交互组合数，动态class/属性、裁切与引擎级联尚需运行验收。
 
-**未执行：**开发者工具原生运行交互、iOS/Android 25 页全状态验收、两台真实设备恢复、真实模型效果/P95 测量、早餐产品审阅、稳定基础库固定。没有生产访问、推送或部署。
+真实接口与迁移证据：`.mysql-test-data/v4-cb69a2996b/result.json`；反馈 SQL 和两个真实 JVM 重启恢复见同目录 `feedback-metrics.json` / `restart-evidence.json`。业务证据提交为 `4908cc5`，后续仅 UI/测试/文档改动，业务代码未变。合成三餐场景的实际完成操作事件为 6，当前已完成餐次为 3；编辑不会新增餐次。汇总见 [验证记录](./v4-validation-evidence.json)。私有日志和测试目录不进入 Git/小程序包。
+
+**本轮未执行：**微信开发者工具、原生编译/运行、iOS/Android 25 页全状态、两台真实设备恢复、真实模型效果/P95、早餐产品审阅和稳定基础库固定。首版 41 WXML / 43 WXSS 编译属于历史证据，不能标成本轮通过。V4 两端默认关闭，没有访问生产、合并或部署；修复审查通过后仅推送用户授权的独立分支。
 <!-- /V4-VERIFICATION -->
 
 已通过的真实 HTTP 覆盖三餐生成→确认→采购→实际→回顾，以及无认证拒绝、错误账号不可读、原 key 回放和 stale 请求冲突。MySQL 事务覆盖计划/回执/事件一起回滚、独立 actual 保留、取消后迟到结果、两设备版本冲突；新增双连接 RR 菜品编辑回归已从失败变为通过。
@@ -125,10 +128,22 @@ V4 前端 `ENABLE_MEAL_WORKSPACE=false`、Java `MEAL_WORKSPACE_ENABLED=false`。
 
 内部 Agent 使用环境变量 `MEAL_WORKSPACE_SERVICE_TOKEN`，Java/Python 一致；空配置拒绝。原模型、认证、微信凭证、MySQL 配置沿用环境，不能硬编码或绕过鉴权。首次 schema 仍要核对历史列/索引，私有测试 fixture 不能代替已有库审核。
 
-**发布前仍需完成：**开发者工具真实运行、iOS/Android 全部页面与小功能状态、320px/字体放大/键盘/安全区/授权取消、两个真实设备草稿恢复、Agent 效果/P95 测量、早餐产品审阅、固定实际通过验收的稳定基础库。目前 `libVersion=trial` 尚未作为发布版本确认。
+**发布前仍需完成：**微信真实运行、iOS/Android 全部页面与小功能状态、320px/字体放大/键盘/安全区/授权取消、两个真实设备草稿恢复、Agent 效果/P95 测量、早餐产品审阅、固定实际通过验收的稳定基础库。目前 `libVersion=trial` 尚未作为发布版本确认。
 
-回滚优先关开关或恢复前端，保留兼容 V3/V4 的后端与数据。旧后端不了解计划墓碑，不能直接混用；数据库回滚恢复审核过的备份，不删除实际快照或请求日志。开工快照在任务目录 `snapshots/`，本次没有 commit/push/部署。
+回滚优先关开关或恢复前端，保留兼容 V3/V4 的后端与数据。旧后端不了解计划墓碑，不能直接混用；数据库回滚恢复审核过的备份，不删除实际快照或请求日志。开工快照在任务目录 `snapshots/`，首版已提交推送自己的分支；本轮修复逐组提交，未合并或部署。
 
 ## 9. 下一版的承接点
 
 先完成当前主闭环的运行验收和反馈口径验证，再扩展。家庭协作需要成员与共享权限模型；库存扣减需要数量账本和补购差额；营养需要可靠份量和食品数据库；食材复用需要跨餐优化。这些不能通过重命名现有分类统计替代。
+
+## 10. 这轮自检为什么还要修
+
+既有回归通过，但逐页代码自检发现了未覆盖的账号切换、晚到请求、分页、购物路由、数量可信度、历史记录编辑和 UI 状态问题。完整的 18 项问题按 [修复与复核记录](./v4-self-check-fix-status.md) 逐项推进；通过旧测试不能代替新场景的复核。
+
+修复后的目标是：切换账号不会显示或提交上一账号的内容；搜索和自定义菜编辑入口完整；旧换菜不覆盖新方案；清空清单正常且不会覆盖另一设备的改动。缺少基础人数的食材保留原量并提示核对，实际用餐中的保留历史不受菜库或计划修改影响。
+
+V4 的近期避免只参考明确记录的实际用餐，历史计划不当作吃过；旧推荐接口不更换其历史策略。旧购物数据若未保存可信人数来源，重新进入或离线读取也会提示核对，不能继续冒充可靠换算；用户已明确修改的数量予以保留。
+
+购物新写入必须带清单版本，旧客户端省略版本会收到明确错误而不会覆盖。已提交的原请求可继续读取原回执，新可选字段不改变旧 payload 的 hash。无需新增迁移；新增可信数量标记使用现有列，回滚业务服务需一并处理标记兼容，不删除旧购物行、实际快照或请求日志。
+
+界面修复覆盖登录遮罩、键盘后弹层高度、收藏和发送状态、全页触控区域、文字对比，以及真正由 Token 驱动的字号和尺寸。当前按用户要求不使用微信开发者工具，验收证据仅限源码、VM 和本地接口；实际运行视觉、系统授权和真机适配另行登记。
