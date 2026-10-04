@@ -46,6 +46,29 @@ test('offline list reentry normalizes both meal view and summary without changin
   assert.equal(rewritten.dishes[0].items[0].calculationStatus, 'NEEDS_ADJUSTMENT')
   assert.equal(rewritten.version, 3)
 })
+test('label and unit edits keep server quantity warnings through cache reentry and summary rebuilding', () => {
+  const unresolved = item({ displayName: '土豆大块', unitCode: 'kg', calculationStatus: 'NEEDS_ADJUSTMENT', servingsVerified: undefined, userOverride: false, quantityValue: null, quantityText: '土豆|200|g|主料', warnings: ['原始数量或份数需要核对'] })
+  const confirmed = item({ calculationStatus: 'USER_OVERRIDE', servingsVerified: undefined, userOverride: true, quantityValue: 450, quantityText: '我确认450g', warnings: [] })
+  const cloud = { version: 3, dishes: [{ dishName: '旧菜', items: [unresolved, confirmed] }] }
+  const storage = new Map()
+  const context = { module: { exports: {} }, require: name => name === './util' ? { getUserStorageKey: name => `A:${name}` } : ingredients, wx: { getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value) } }
+  vm.runInNewContext(fs.readFileSync('utils/shopping-list.js', 'utf8'), context)
+  context.module.exports.saveLocalShoppingList(cloud)
+  const loaded = context.module.exports.loadLocalShoppingList()
+  const mealItem = loaded.dishes[0].items[0]
+  const summaryItem = loaded.purchaseSummary.separateItems[0]
+  for (const row of [mealItem, summaryItem]) {
+    assert.equal(row.calculationStatus, 'NEEDS_ADJUSTMENT')
+    assert.equal(row.userOverride, false)
+    assert.equal(row.quantityValue, null)
+    assert.equal(row.quantityText, '土豆|200|g|主料')
+    assert.ok(row.warnings.includes('原始数量或份数需要核对'))
+  }
+  assert.equal(loaded.purchaseSummary.mergeableItems.length, 0)
+  assert.equal(loaded.dishes[0].items[1].quantityValue, 450)
+  assert.equal(loaded.dishes[0].items[1].quantityText, '我确认450g')
+  assert.equal(loaded.purchaseSummary.separateItems[1].calculationStatus, 'USER_OVERRIDE')
+})
 test('actual editor retains historical indexes and sends changed selections through catalog ids', async () => {
   let page, body
   const api = { saveMealConsumption: async (date, meal, value) => { body = value } }

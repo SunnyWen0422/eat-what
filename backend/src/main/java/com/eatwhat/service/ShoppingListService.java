@@ -181,8 +181,9 @@ public class ShoppingListService {
         if (patch.getUnitCode() != null && !sameUnitFamily(item.getUnitFamily(), patch.getUnitCode())) {
             throw new IllegalArgumentException("不能跨单位族修改食材用量");
         }
-        if (!Boolean.TRUE.equals(item.getUserOverride()) && ("CALCULATED".equals(item.getCalculationStatus())
-                || "NEEDS_ADJUSTMENT".equals(item.getCalculationStatus()))) {
+        boolean requiresQuantityConfirmation = !Boolean.TRUE.equals(item.getUserOverride())
+                && ("CALCULATED".equals(item.getCalculationStatus()) || "NEEDS_ADJUSTMENT".equals(item.getCalculationStatus()));
+        if (requiresQuantityConfirmation) {
             // Editing a label or checked flag does not confirm an inferred historical amount.
             item.setQuantityValue(null); item.setQuantityMin(null); item.setQuantityMax(null);
             if (item.getSourceQuantityText() != null && !item.getSourceQuantityText().trim().isEmpty())
@@ -196,7 +197,10 @@ public class ShoppingListService {
         if (patch.getChecked() != null) item.setChecked(patch.getChecked());
         boolean edited = patch.getDisplayName() != null || patch.getQuantityValue() != null
                 || patch.getQuantityText() != null || patch.getUnitCode() != null;
-        if (edited) { item.setUserOverride(true); item.setCalculationStatus("USER_OVERRIDE"); }
+        boolean quantityConfirmed = patch.getQuantityValue() != null || patch.getQuantityText() != null;
+        if (quantityConfirmed || (edited && !requiresQuantityConfirmation)) {
+            item.setUserOverride(true); item.setCalculationStatus("USER_OVERRIDE");
+        }
         if (patch.getQuantityText() != null && patch.getQuantityValue() == null) {
             item.setQuantityValue(null); item.setQuantityMin(null); item.setQuantityMax(null);
         }

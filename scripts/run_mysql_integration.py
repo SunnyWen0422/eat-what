@@ -88,7 +88,7 @@ def main():
             cursor.execute(f"CREATE DATABASE `{database}` CHARACTER SET utf8mb4")
             cursor.execute(f"USE `{database}`")
             cursor.execute("CREATE TABLE food(id INT PRIMARY KEY AUTO_INCREMENT, NAME VARCHAR(255),TYPE VARCHAR(16),CL TEXT,FL TEXT,STEP LONGTEXT)")
-            scripts = ["database_migration.sql", "ensure_food_import_schema.sql", "shopping_list_schema.sql", "recommendation_preferences_schema.sql"]
+            scripts = ["database_migration.sql", "ensure_food_import_schema.sql", "create_favorite_dishes_table.sql", "shopping_list_schema.sql", "recommendation_preferences_schema.sql"]
             scripts += ["db/migrations/" + row["file"] for row in json.loads((ROOT / "backend/db/migration-manifest.json").read_text(encoding="utf-8"))["migrations"]]
             for relative in scripts:
                 for sql in statements((ROOT / "backend" / relative).read_text(encoding="utf-8")):

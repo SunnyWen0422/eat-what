@@ -19,6 +19,9 @@ class MealWorkspaceHttpIT {
     @Autowired private TokenService tokens;
     @Autowired private com.fasterxml.jackson.databind.ObjectMapper json;
     @Autowired private org.springframework.jdbc.core.JdbcTemplate sql;
+    @Autowired private com.eatwhat.mapper.FavoriteDishMapper favorites;
+    @Autowired private com.eatwhat.mapper.MealConsumptionMapper actualRecords;
+    @Autowired private MealWorkspacePlanner planner;
     @DynamicPropertySource static void configuration(DynamicPropertyRegistry r) {
         String url=System.getenv("V4_TEST_JDBC");
         if(url==null||!url.matches("jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/eatwhat_v4_test_[a-z0-9]+\\?.*"))throw new IllegalStateException("Use private MySQL test script");
@@ -41,6 +44,7 @@ class MealWorkspaceHttpIT {
     @Test void allThreeMealsUseAuthenticatedPersistentRulesAndConfirmation() throws Exception {
         String day=java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).toString();
         assertEquals(401,call("/meal-workspaces/current?date="+day+"&mealType=lunch",null,null,Map.class).getStatusCodeValue());
+        exerciseOwnedRankingSql(day);
         for(String meal:Arrays.asList("breakfast","lunch","dinner")) {
             MealContext c=new MealContext();c.setDate(day);c.setMealType(meal);c.setPeople(2);
             WorkspaceRequest create=new WorkspaceRequest();create.setRequestId("http-create-"+meal);create.setExpectedWorkspaceRevision(0L);create.setContext(c);
@@ -85,6 +89,41 @@ class MealWorkspaceHttpIT {
         review=call("/diet-reviews?startDate="+day+"&endDate="+day,3L,null,Map.class).getBody();
         assertEquals(3,((Number)review.get("mealCount")).intValue()); assertEquals(9,((Number)review.get("entryCount")).intValue());
         assertEquals(0,((Number)call("/diet-reviews?startDate="+day+"&endDate="+day,4L,null,Map.class).getBody().get("mealCount")).intValue());
+    }
+    private void exerciseOwnedRankingSql(String day) throws Exception {
+        // Query ranking dependencies directly so fixture/schema failures expose the actual SQL cause.
+        assertTrue(favorites.selectDishIdsByUser(3L).isEmpty());
+        String recentDate=java.time.LocalDate.parse(day).minusDays(1).toString();
+        String outsideDate=java.time.LocalDate.parse(day).minusDays(8).toString();
+        List<Long> ids=sql.queryForList("SELECT id FROM food WHERE IS_PUBLISHED=1 AND FIND_IN_SET('BREAKFAST_ELIGIBLE',TAG_CODES)>0 ORDER BY id LIMIT 3",Long.class);
+        assertEquals(3,ids.size());
+        MealContext context=new MealContext();context.setDate(day);context.setMealType("breakfast");context.setPeople(2);
+        try {
+            saveRankingFavorite(3L,ids.get(0));saveRankingFavorite(4L,ids.get(1));
+            assertEquals(Collections.singletonList(ids.get(0)),favorites.selectDishIdsByUser(3L));
+            assertEquals(Collections.singletonList(ids.get(1)),favorites.selectDishIdsByUser(4L));
+            saveRankingFavorite(3L,ids.get(0));
+            assertEquals(1,sql.queryForObject("SELECT COUNT(*) FROM favorite_dishes WHERE USER_ID=3 AND DISH_ID=?",Integer.class,ids.get(0)));
+            assertEquals(ids.get(0),planner.eligible(3L,context).get(0).getId());
+            saveRankingActual(3L,recentDate,ids.get(0));saveRankingActual(4L,recentDate,ids.get(1));saveRankingActual(3L,outsideDate,ids.get(2));
+            List<com.eatwhat.entity.MealConsumption> history=actualRecords.range(3L,recentDate,day);
+            assertEquals(1,history.size());assertEquals(3L,history.get(0).getUserId());assertEquals(recentDate,history.get(0).getMealDate());
+            assertEquals(ids.get(0).longValue(),json.readTree(history.get(0).getActualDishesJson()).get(0).path("dishId").asLong());
+            List<com.eatwhat.entity.Dish> ranked=planner.eligible(3L,context);
+            assertEquals(ids.get(0),ranked.get(ranked.size()-1).getId());
+        } finally {
+            sql.update("DELETE FROM favorite_dishes WHERE USER_ID IN (3,4)");
+            sql.update("DELETE FROM meal_consumption WHERE user_id IN (3,4) AND meal_date IN (?,?) AND meal_type='lunch'",recentDate,outsideDate);
+        }
+    }
+    private void saveRankingFavorite(Long user,Long dishId) {
+        com.eatwhat.entity.FavoriteDish entry=new com.eatwhat.entity.FavoriteDish();
+        entry.setUserId(user);entry.setDishId(dishId);favorites.insert(entry);
+    }
+    private void saveRankingActual(Long user,String day,Long dishId) {
+        com.eatwhat.entity.MealConsumption entry=new com.eatwhat.entity.MealConsumption();
+        entry.setUserId(user);entry.setMealDate(day);entry.setMealType("lunch");entry.setStatus("eaten");entry.setRevision(1L);entry.setActualDishesJson("[{\"dishId\":"+dishId+"}]");
+        actualRecords.save(entry);
     }
     private void exerciseHistoricalActualEdits(String day) {
         for(String meal:Arrays.asList("breakfast","lunch","dinner")) {

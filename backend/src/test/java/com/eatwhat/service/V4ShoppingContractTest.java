@@ -176,8 +176,37 @@ class V4ShoppingContractTest {
         ShoppingItemPatchRequest patch=new ShoppingItemPatchRequest();patch.setExpectedListVersion(2L);patch.setDisplayName("土豆大块");
         ShoppingPreviewItemDTO renamed=store.service.patchItem(3L,1L,patch).getDishes().get(0).getItems().get(0);
         assertNull(renamed.getQuantityValue());assertEquals("土豆|200|g|主料",renamed.getQuantityText());
+        assertEquals("NEEDS_ADJUSTMENT",renamed.getCalculationStatus());assertFalse(renamed.isUserOverride());assertFalse(renamed.getWarnings().isEmpty());
+        assertEquals(renamed,store.service.getList(3L,"all").getDishes().get(0).getItems().get(0));
         patch.setExpectedListVersion(3L);patch.setQuantityValue(new BigDecimal("450"));patch.setQuantityText("450g");
         ShoppingPreviewItemDTO confirmed=store.service.patchItem(3L,1L,patch).getDishes().get(0).getItems().get(0);
         assertEquals(new BigDecimal("450"),confirmed.getQuantityValue());assertEquals("450g",confirmed.getQuantityText());assertTrue(confirmed.isUserOverride());
+        assertEquals("USER_OVERRIDE",confirmed.getCalculationStatus());assertTrue(confirmed.getWarnings().isEmpty());
+    }
+    @Test void editingOnlyUnverifiedItemUnitCannotClearItsQuantityWarning() {
+        for(String status:Arrays.asList("CALCULATED","NEEDS_ADJUSTMENT")) {
+            Store store=new Store(mock(ShoppingPreviewService.class));store.row(false);ShoppingItem row=store.rows.get(0);
+            row.setQuantityValue(new BigDecimal("400"));row.setQuantityText("400g");row.setSourceQuantityText("原始200g");row.setUnitFamily("mass");row.setUnitCode("g");row.setParseStatus("PARSED");row.setCalculationStatus(status);
+            when(store.items.findById(1L,1L)).thenReturn(row);
+            ShoppingItemPatchRequest patch=new ShoppingItemPatchRequest();patch.setExpectedListVersion(2L);patch.setUnitCode("kg");
+            ShoppingPreviewItemDTO edited=store.service.patchItem(3L,1L,patch).getDishes().get(0).getItems().get(0);
+            assertNull(edited.getQuantityValue());assertEquals("原始200g",edited.getQuantityText());assertEquals("kg",edited.getUnitCode());
+            assertEquals("NEEDS_ADJUSTMENT",edited.getCalculationStatus());assertFalse(edited.isUserOverride());assertFalse(edited.getWarnings().isEmpty());
+            assertEquals(edited,store.service.getList(3L,"all").getDishes().get(0).getItems().get(0));
+            patch.setExpectedListVersion(3L);patch.setQuantityText("我确认半袋");
+            ShoppingPreviewItemDTO confirmed=store.service.patchItem(3L,1L,patch).getDishes().get(0).getItems().get(0);
+            assertEquals("我确认半袋",confirmed.getQuantityText());assertNull(confirmed.getQuantityValue());assertTrue(confirmed.isUserOverride());
+            assertEquals("USER_OVERRIDE",confirmed.getCalculationStatus());assertTrue(confirmed.getWarnings().isEmpty());
+        }
+    }
+    @Test void labelingVerifiedOrManualQuantityPreservesItsAmount() {
+        for(String status:Arrays.asList("CALCULATED_VERIFIED","USER_OVERRIDE")) {
+            Store store=new Store(mock(ShoppingPreviewService.class));store.row(false);ShoppingItem row=store.rows.get(0);
+            row.setQuantityValue(new BigDecimal("450"));row.setQuantityText("450g");row.setCalculationStatus(status);row.setUserOverride("USER_OVERRIDE".equals(status));
+            when(store.items.findById(1L,1L)).thenReturn(row);
+            ShoppingItemPatchRequest patch=new ShoppingItemPatchRequest();patch.setExpectedListVersion(2L);patch.setDisplayName("我的食材");
+            ShoppingPreviewItemDTO edited=store.service.patchItem(3L,1L,patch).getDishes().get(0).getItems().get(0);
+            assertEquals(new BigDecimal("450"),edited.getQuantityValue());assertEquals("450g",edited.getQuantityText());assertEquals("我的食材",edited.getDisplayName());assertTrue(edited.getWarnings().isEmpty());
+        }
     }
 }
