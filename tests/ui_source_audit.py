@@ -105,6 +105,39 @@ def styles(node, stylesheet, selected=False):
     return {key: value[1] for key, value in chosen.items()}
 
 
+def declared_hit_bounds(node, stylesheet):
+    """Conservative matching scale declarations on the real ancestor chain, not native layout."""
+    style = styles(node, stylesheet)
+    minimum = [style.get('min-width', ''), style.get('min-height', '')]
+    width, height = [float(value[:-2]) if re.fullmatch(r'[\d.]+px', value) else None for value in minimum]
+    ancestor, transforms, unresolved = node, [], []
+    while ancestor:
+        for selector, declarations, evidence in stylesheet:
+            if not matches(ancestor, selector, False) or 'transform' not in declarations:
+                continue
+            transform = declarations['transform']
+            functions = re.findall(r'([\w]+)\(([^)]*)\)', transform)
+            transforms.append({'selector': selector, 'transform': transform, 'file': evidence})
+            if not functions and transform != 'none':
+                unresolved.append(transform)
+            for function, arguments in functions:
+                if function == 'scale':
+                    factors = [float(value) for value in re.split(r'[,\s]+', arguments.strip())]
+                    if width is not None:
+                        width *= min(1, abs(factors[0]))
+                    if height is not None:
+                        height *= min(1, abs(factors[-1]))
+                elif function == 'scaleX' and width is not None:
+                    width *= min(1, abs(float(arguments)))
+                elif function == 'scaleY' and height is not None:
+                    height *= min(1, abs(float(arguments)))
+                elif not function.startswith('translate'):
+                    unresolved.append(transform)
+        ancestor = ancestor.parent
+    return {'minWidthAfterDeclaredScale': width, 'minHeightAfterDeclaredScale': height,
+            'ancestorTransforms': transforms, 'unresolvedTransformGeometry': unresolved}
+
+
 def colors(value):
     result = []
     for value in re.findall(r'#[\da-fA-F]{3,8}\b|rgba?\([^)]*\)|\bwhite\b|\bblack\b', value):
@@ -167,7 +200,7 @@ def page_audit(route):
         local_line = node.line - start + 1
         if node.tag in ('view', 'text', 'picker') and any(key.endswith('tap') or node.tag == 'picker' and key.endswith('change') for key in node.attrs):
             style = styles(node, stylesheet)
-            clicks.append({'selector': node.tag + '.' + '.'.join(sorted(node.classes())), 'file': template_source, 'line': local_line, 'minWidth': style.get('min-width'), 'minHeight': style.get('min-height')})
+            clicks.append({'selector': node.tag + '.' + '.'.join(sorted(node.classes())), 'file': template_source, 'line': local_line, 'minWidth': style.get('min-width'), 'minHeight': style.get('min-height'), **declared_hit_bounds(node, stylesheet)})
         if not node.text.strip() and node.tag not in ('input', 'textarea'):
             continue
         for selected in (False, True):

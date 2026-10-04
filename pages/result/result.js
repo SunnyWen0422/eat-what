@@ -237,11 +237,14 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     if (this._viewScope && this._viewScope !== getUserStorageKey('resultView')) return
     if (this._favoriteRequest && this._favoriteRequest.current()) return
     const scope = getUserStorageKey('resultView'), generationVersion = this.generationVersion
-    const request = { current: () => {
-      const row = this.data.plans[planIndex] && this.data.plans[planIndex].dishes[dishIndex]
-      return !this._unloaded && scope === getUserStorageKey('resultView') && generationVersion === this.generationVersion
-        && this._favoriteRequest === request && row && row.id === dish.id
-    } }
+    const request = {
+      active: () => !this._unloaded && scope === getUserStorageKey('resultView')
+        && generationVersion === this.generationVersion && this._favoriteRequest === request,
+      current: () => {
+        const row = this.data.plans[planIndex] && this.data.plans[planIndex].dishes[dishIndex]
+        return request.active() && row && row.id === dish.id
+      }
+    }
     this._favoriteRequest = request
     this._favoriteVersion = (this._favoriteVersion || 0) + 1
     this.setData({ favoriteBusyKey: `${planIndex}:${dishIndex}` })
@@ -264,7 +267,8 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
       console.error('收藏操作失败:', error)
       wx.showToast({ title: '操作失败', icon: 'none' })
     } finally {
-      if (request.current()) this.setData({ favoriteBusyKey: '' })
+      // A replaced dish invalidates its feedback, but the settled request still owns its busy marker.
+      if (request.active()) this.setData({ favoriteBusyKey: '' })
       if (this._favoriteRequest === request) this._favoriteRequest = null
     }
   },

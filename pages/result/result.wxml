@@ -55,7 +55,9 @@
                   </view>
                   <!-- 标签 -->
                   <view class="dish-tags" wx:if="{{item.tags && item.tags.length > 0}}">
-                    <text class="tag" wx:for="{{item.tags.slice(0, 3)}}" wx:key="*this">{{item}}</text>
+                    <block wx:for="{{item.tags}}" wx:for-item="tag" wx:for-index="tagIndex" wx:key="*this">
+                      <text class="tag" wx:if="{{tagIndex < 3}}">{{tag}}</text>
+                    </block>
                   </view>
                   <!-- 属性 -->
                   <view class="dish-meta">

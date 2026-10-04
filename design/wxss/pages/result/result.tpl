@@ -59,7 +59,6 @@
   background: {{card}}; border: 1rpx solid {{border}}; border-radius:{{radius.0.rpx*1.1666667}};
   padding:{{space.2.px*1.1666667}}; margin-bottom:{{space.1.px*1.25}};
 }
-.dish-card:active { transform: scale(0.98); }
 
 .dish-media { position: relative; width: 160rpx; height: 128rpx; flex: 0 0 auto; overflow: hidden; border-radius:{{radius.0.rpx}}; margin-right:{{space.2.px*1.1666667}}; background: #f2f7f5; }
 .dish-img { width: 100%; height: 100%; display: block; background: #f2f7f5; }

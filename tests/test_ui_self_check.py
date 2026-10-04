@@ -8,10 +8,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ui_source_audit import ROOT, Template, page_audit, rules, styles
+from ui_source_audit import ROOT, Template, page_audit, rules, styles, declared_hit_bounds
 
 
 class UiSelfCheckTest(unittest.TestCase):
+    def test_result_favorite_and_refresh_keep_44px_through_actual_pressed_ancestors(self):
+        route = 'pages/result/result'
+        css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
+        template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
+        targets = [node for node in template.nodes if node.attrs.get('catchtap') in ('onToggleFavorite', 'onRefreshDish')]
+        self.assertEqual(2, len(targets))
+        for target in targets:
+            with self.subTest(handler=target.attrs['catchtap']):
+                bounds = declared_hit_bounds(target, css)
+                self.assertEqual([], bounds['unresolvedTransformGeometry'], bounds)
+                self.assertGreaterEqual(bounds['minWidthAfterDeclaredScale'], 44, bounds)
+                self.assertGreaterEqual(bounds['minHeightAfterDeclaredScale'], 44, bounds)
+
     def test_all_clickable_nodes_have_fixed_44px_minimum_at_320px(self):
         routes = json.loads((ROOT / 'app.json').read_text(encoding='utf-8'))['pages']
         failures = []
