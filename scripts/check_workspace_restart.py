@@ -39,6 +39,10 @@ def probe(connection, environment, output, root):
                   "expectedWorkspaceRevision": 0, "requestId": "restart-task"}}
     with connection.cursor() as cursor:
         cursor.execute("INSERT INTO users(id,open_id) VALUES(5,'restart-test')")
+        # The preceding HTTP history scenario intentionally deletes/reclassifies system dishes.
+        for name, kind, ingredients in (("重启测试肉菜", "meat", "鸡肉:200克"), ("重启测试素菜", "veg", "青菜:200克")):
+            cursor.execute("INSERT INTO food(NAME,TYPE,CL,FL,STEP,COOK_MINUTES,METADATA_VERSION,IS_PUBLISHED,is_custom,user_id) VALUES(%s,%s,%s,'2人基础份量',%s,15,1,1,1,5)",
+                           (name, kind, ingredients, "将测试食材洗净并煮至熟透"))
         cursor.execute("INSERT INTO meal_workspace(id,user_id,meal_date,meal_type,revision,state_json) VALUES(%s,5,%s,'lunch',1,%s)",
                        (workspace_id, context["date"], json.dumps(after)))
         cursor.execute("INSERT INTO workspace_task(id,workspace_id,user_id,base_revision,status,input_json,lease_token) VALUES(%s,%s,5,1,'running',%s,%s)",
