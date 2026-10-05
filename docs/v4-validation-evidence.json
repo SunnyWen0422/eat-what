@@ -1,15 +1,15 @@
 {
-  "date": "2026-10-04",
+  "date": "2026-10-05",
   "baselineCommit": "59f74041b1fb73c9b46a73f308833a2f5cdd0d3d",
-  "verifiedProductCommit": "348f1fb2973d2e4ca2dce5fc3f74e3479a396fd0",
+  "verifiedProductCommit": "173a148f0a50fc15eabd78221f156934f647a703",
   "branch": "codex/v4-meal-workspace-green-20261003",
   "verification": {
-    "node": 143,
+    "node": 184,
     "python": 23,
     "javaUnit": 58,
-    "ordinaryTotal": 224,
+    "ordinaryTotal": 265,
     "mysqlAndHttp": 5,
-    "total": 229,
+    "total": 270,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -21,7 +21,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:00.2632560+08:00"
+      "modified": "2026-10-05T08:51:32.7184171+08:00"
     },
     {
       "suite": "com.eatwhat.service.AvatarImageValidatorTest",
@@ -29,7 +29,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:00.2949430+08:00"
+      "modified": "2026-10-05T08:51:32.7404805+08:00"
     },
     {
       "suite": "com.eatwhat.service.DietReviewCalculatorTest",
@@ -37,7 +37,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:00.3610370+08:00"
+      "modified": "2026-10-05T08:51:32.7868516+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealConsumptionServiceTest",
@@ -45,7 +45,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:00.5517173+08:00"
+      "modified": "2026-10-05T08:51:32.9630610+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealPlanServiceTest",
@@ -53,7 +53,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:00.7388040+08:00"
+      "modified": "2026-10-05T08:51:33.1358749+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceFallbackTest",
@@ -61,7 +61,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.0120151+08:00"
+      "modified": "2026-10-05T08:51:33.3730950+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceHttpTransportTest",
@@ -69,7 +69,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.2572083+08:00"
+      "modified": "2026-10-05T08:51:33.6198887+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspacePlannerTest",
@@ -77,7 +77,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.3588943+08:00"
+      "modified": "2026-10-05T08:51:33.7281275+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceRulesTest",
@@ -85,7 +85,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.3740456+08:00"
+      "modified": "2026-10-05T08:51:33.7418451+08:00"
     },
     {
       "suite": "com.eatwhat.service.MealWorkspaceServiceTest",
@@ -93,7 +93,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.4120116+08:00"
+      "modified": "2026-10-05T08:51:33.7785049+08:00"
     },
     {
       "suite": "com.eatwhat.service.ShoppingListReliabilityTest",
@@ -101,7 +101,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.4507384+08:00"
+      "modified": "2026-10-05T08:51:33.8174395+08:00"
     },
     {
       "suite": "com.eatwhat.service.ShoppingMutationServiceTest",
@@ -109,7 +109,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.4657438+08:00"
+      "modified": "2026-10-05T08:51:33.8308753+08:00"
     },
     {
       "suite": "com.eatwhat.service.UserAvatarServiceTest",
@@ -117,7 +117,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.4908822+08:00"
+      "modified": "2026-10-05T08:51:33.8579129+08:00"
     },
     {
       "suite": "com.eatwhat.service.V4ActualHistoryContractTest",
@@ -125,7 +125,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.5335190+08:00"
+      "modified": "2026-10-05T08:51:33.8981415+08:00"
     },
     {
       "suite": "com.eatwhat.service.V4RankingContractTest",
@@ -133,7 +133,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:01.8679681+08:00"
+      "modified": "2026-10-05T08:51:34.2222403+08:00"
     },
     {
       "suite": "com.eatwhat.service.V4ShoppingContractTest",
@@ -141,7 +141,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:02.3824302+08:00"
+      "modified": "2026-10-05T08:51:34.7827727+08:00"
     },
     {
       "suite": "com.eatwhat.service.WorkspacePlanSnapshotTest",
@@ -149,7 +149,7 @@
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "modified": "2026-10-04T20:12:02.3844255+08:00"
+      "modified": "2026-10-05T08:51:34.7862687+08:00"
     }
   ],
   "integration": {
@@ -276,7 +276,9 @@
   "generatedAssets": {
     "filesCompared": 136,
     "identicalBuilds": 3,
-    "rootAdditionalRebuildChanged": 0
+    "rootAdditionalRebuildChanged": 0,
+    "rootAdditionalRebuildCommit": "39302621ce6914af57c720390d50108427f70994",
+    "finalBytesCheckedCommit": "173a148f0a50fc15eabd78221f156934f647a703"
   },
   "favoriteAssetPixels": {
     "kind": "intrinsic asset pixels only; no native rendered UI",
@@ -331,5 +333,27 @@
     "frontendV4": false,
     "backendV4": false
   },
-  "reviewStatus": "Task1/Task2/Task3 independent spec and quality reviews approved; final whole-diff review pending"
+  "reviewStatus": "Task1/Task2/Task3 spec and quality approved; final whole-diff review raised 2 Important; single fix wave addressed both but scoped review found N1. Narrow follow-up Task5 closed N1; no remaining Critical/Important/Minor. Native/device/model acceptance pending.",
+  "javaVerification": {
+    "directRun": {
+      "exitCode": 0,
+      "started": "2026-10-05T08:51:27.3802488+08:00",
+      "finished": "2026-10-05T08:51:38.5899543+08:00"
+    },
+    "checkedOnCommit": "39302621ce6914af57c720390d50108427f70994",
+    "sourcesUnchangedThrough": "173a148f0a50fc15eabd78221f156934f647a703",
+    "scope": "Ordinary Java tests/package; no Java or backend changes in the final JS follow-up"
+  },
+  "finalFix": {
+    "reviewBase": "596a8ecac9368b97087de7b32b379ffb05673e01",
+    "reviewHead": "173a148f0a50fc15eabd78221f156934f647a703",
+    "firstFixCommit": "39302621ce6914af57c720390d50108427f70994",
+    "followupReviewBase": "39302621ce6914af57c720390d50108427f70994",
+    "importantAddressed": 3,
+    "unresolvedCritical": 0,
+    "unresolvedImportant": 0,
+    "unresolvedMinor": 0,
+    "scope": "Favorite/read/replacement ordering, explicit shopping quantity intent, N1 current-menu candidate collision; UI JS/tests only",
+    "nativeExecuted": false
+  }
 }
