@@ -340,6 +340,16 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     }
     const applyReplacement = newDish => {
       if (!current()) return false
+      // Concurrent requests share an old exclusion list; recheck the current menu at commit time.
+      const duplicate = this.data.plans.some((otherPlan, otherPlanIndex) => (otherPlan.dishes || []).some((dish, otherDishIndex) => {
+        if (otherPlanIndex === Number(planIndex) && otherDishIndex === Number(dishIndex)) return false
+        const sameId = dish.id != null && newDish.id != null && String(dish.id) === String(newDish.id)
+        return sameId || Boolean(dish.name) && dish.name === newDish.name
+      }))
+      if (duplicate) {
+        wx.showToast({ title: '这道菜已存在，请重试', icon: 'none' })
+        return false
+      }
       // Favorite refreshes and other row replacements may update the plan while this request waits.
       const currentPlan = this.data.plans[planIndex]
       const newDishes = [...currentPlan.dishes]

@@ -129,7 +129,7 @@ test('both shopping views show unresolved quantities even with readable amounts 
   }
 })
 
-function legacyResult(api = {}) {
+function legacyResult(api = {}, moduleOverrides = {}) {
   let page, account = 'A'
   const pending = [], toasts = []
   const change = () => new Promise((resolve, reject) => pending.push({ resolve, reject }))
@@ -140,8 +140,9 @@ function legacyResult(api = {}) {
     '../../utils/recommendation-matcher': require('../utils/recommendation-matcher'),
     '../../utils/font-scale': Object.assign(() => 1, { base: 14 }),
     '../../utils/config': { ENABLE_MEAL_WORKSPACE: false },
+    ...moduleOverrides,
   }
-  vm.runInNewContext(read('pages/result/result.js'), { Page: value => { page = value }, require: name => modules[name] || {}, wx: { showToast: value => toasts.push(value), getStorageSync: key => key === 'userInfo' ? { id: 1 } : '' }, console: { error() {} }, clearTimeout() {} })
+  vm.runInNewContext(read('pages/result/result.js'), { Page: value => { page = value }, require: name => modules[name] || {}, wx: { showToast: value => toasts.push(value), getStorageSync: key => key === 'userInfo' ? { id: 1 } : '' }, console: { error() {}, log() {} }, clearTimeout() {} })
   page.setData = values => {
     for (const [key, value] of Object.entries(values)) {
       const parts = key.replace(/\[(\d+)\]/g, '.$1').split('.')
@@ -335,6 +336,75 @@ test('real replacements to neighboring rows preserve each completed current row'
   requests[0]({ success: true, dish: { id: 8, name: '新菜一', type: 'meat' } }); await first
   requests[1]({ success: true, dish: { id: 9, name: '新菜二', type: 'veg' } }); await second
   assert.deepEqual(Array.from(view.page.data.plans[0].dishes, dish => dish.id), [8, 9])
+})
+
+async function concurrentSameType(entry, crossPlan = false) {
+  const backendCalls = [], pending = []
+  const view = legacyResult({ getSingleRecommendation: (type, excludeIds) => {
+    backendCalls.push({ type, excludeIds: Array.from(excludeIds) })
+    return entry === 'backend' ? new Promise(resolve => pending.push(resolve)) : Promise.reject(Error('offline'))
+  } }, { '../../utils/recommend': { getAllDishes: () => new Promise(resolve => pending.push(resolve)) } })
+  const old = [{ id: 1, name: '原菜一', type: 'meat' }, { id: 2, name: '原菜二', type: 'meat' }]
+  view.page.data.plans = crossPlan ? old.map(dish => ({ dishes: [dish] })) : [{ dishes: old }]
+  const operations = [0, 1].map(index => view.page.onRefreshDish({ currentTarget: { dataset: { planIndex: crossPlan ? index : 0, dishIndex: crossPlan ? 0 : index } } }))
+  if (entry === 'local') await new Promise(resolve => setImmediate(resolve))
+  assert.equal(pending.length, 2, 'both real same-type replacements must be pending')
+  const finish = async (index, candidate) => {
+    pending[index](entry === 'backend' ? { success: true, dish: candidate, isFavorite: false } : [candidate])
+    await operations[index]
+  }
+  return { ...view, finish, backendCalls, pending }
+}
+
+for (const entry of ['backend', 'local']) for (const order of [[0, 1], [1, 0]]) for (const collision of ['same', 'id-only', 'name-only', 'different']) test(`${entry} same-type replacements ${order.join(' then ')} recheck current menu for ${collision}`, async () => {
+  const view = await concurrentSameType(entry)
+  const candidates = [{ id: 9, name: '候选一', type: 'meat' }, {
+    id: collision === 'same' || collision === 'id-only' ? 9 : 10,
+    name: collision === 'same' || collision === 'name-only' ? '候选一' : '候选二', type: 'meat',
+  }]
+  await view.finish(order[0], candidates[order[0]])
+  await view.finish(order[1], candidates[order[1]])
+  const ids = Array.from(view.page.data.plans[0].dishes, dish => dish.id)
+  const names = Array.from(view.page.data.plans[0].dishes, dish => dish.name)
+  if (collision === 'different') {
+    assert.deepEqual(ids, [9, 10])
+    assert.deepEqual(names, ['候选一', '候选二'])
+    assert.equal(view.toasts.length, 0)
+  } else {
+    assert.deepEqual(ids, order[0] === 0 ? [9, 2] : [1, candidates[1].id])
+    assert.deepEqual(names, order[0] === 0 ? ['候选一', '原菜二'] : ['原菜一', candidates[1].name])
+    assert.equal(view.toasts.length, 1)
+    assert.match(view.toasts[0].title, /重试|再换/)
+  }
+  assert.deepEqual(view.backendCalls, [{ type: 'meat', excludeIds: [1, 2] }, { type: 'meat', excludeIds: [1, 2] }], 'a rejected commit must not add an implicit backend retry')
+  assert.equal(view.pending.length, 2, 'a rejected commit must not repeat a local lookup')
+})
+
+for (const entry of ['backend', 'local']) test(`${entry} commit checks all current plans rather than only its own plan`, async () => {
+  const view = await concurrentSameType(entry, true)
+  const candidate = { id: 9, name: '共同候选', type: 'meat' }
+  await view.finish(0, candidate)
+  await view.finish(1, candidate)
+  assert.deepEqual(Array.from(view.page.data.plans, plan => plan.dishes[0].id), [9, 2])
+  assert.equal(view.toasts.length, 1)
+  assert.match(view.toasts[0].title, /重试|再换/)
+  assert.equal(view.backendCalls.length, 2)
+})
+
+for (const reason of ['account', 'generation', 'unload', 'slot']) test(`a stale colliding replacement cannot emit retry feedback after ${reason}`, async () => {
+  const pending = []
+  const view = legacyResult({ getSingleRecommendation: () => new Promise(resolve => pending.push(resolve)) })
+  view.page.data.plans = [{ dishes: [{ id: 1, name: '原菜', type: 'meat' }, { id: 9, name: '已有菜', type: 'meat' }] }]
+  const event = { currentTarget: { dataset: { planIndex: 0, dishIndex: 0 } } }
+  const replacing = view.page.onRefreshDish(event)
+  if (reason === 'account') view.switchAccount()
+  if (reason === 'generation') view.page.generationVersion++
+  if (reason === 'unload') view.page.onUnload()
+  const newer = reason === 'slot' ? view.page.onRefreshDish(event) : null
+  pending[0]({ success: true, dish: { id: 9, name: '已有菜别名', type: 'meat' } }); await replacing
+  assert.equal(view.page.data.plans[0].dishes[0].id, 1)
+  assert.equal(view.toasts.length, 0)
+  if (newer) { pending[1]({ success: true, dish: { id: 10, name: '新请求候选', type: 'meat' } }); await newer }
 })
 
 test('an account switch blocks a favorite tap on the old page before onShow clears it', () => {
