@@ -6,13 +6,13 @@ const flow = require('../../utils/meal-workflow')
 const confirm = (title, content, confirmText = '确认') => new Promise(resolve => wx.showModal({ title, content, confirmText, success: r => resolve(r.confirm), fail: () => resolve(false) }))
 const sourceLabel = dish => dish.sourceDate ? `${dish.sourceDate} ${flow.mealNames[dish.sourceMealType] || ''} · ${dish.dishName}` : dish.dishId ? dish.dishName : '手动添加'
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formNote: '', formError: '' },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
   onShow() { this.loadList() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   current(scope) { return !this._unloaded && scope === getUserStorageKey('shoppingList') },
   async loadList() {
     const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
-    if (this._scope !== scope) { this._signature = null; this._pendingMutation = null; this.setData({ formVisible: false, formName: '', formQuantity: '', formNote: '', busy: false }) }
+    if (this._scope !== scope) { this._signature = null; this._pendingMutation = null; this.setData({ formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
     this._scope = scope
     this.applyList(store.loadLocalShoppingList())
     this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
@@ -39,15 +39,18 @@ Page({
   },
   onFilterChange(e) { this.setData({ statusFilter: e.currentTarget.dataset.status }); this.renderList() },
   onViewMode(e) { this.setData({ viewMode: e.currentTarget.dataset.mode }) },
-  onAddManual() { this.setData({ formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formNote: '', formError: '' }) },
+  onAddManual() { this.setData({ formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' }) },
   onEditItem(e) {
     const item = this.findItem(e.currentTarget.dataset.id)
     if (!item) return
     this._editId = item.id
-    this.setData({ formVisible: true, formMode: 'edit', formName: item.displayName, formQuantity: item.quantityText || '', formNote: '', formError: '' })
+    this.setData({ formVisible: true, formMode: 'edit', formName: item.displayName, formQuantity: item.quantityText || '', formQuantityEdited: false, formNote: '', formError: '' })
   },
   findItem(id) { for (const group of this._full.dishes) { const item = (group.items || []).find(row => String(row.id) === String(id)); if (item) return item } },
-  onName(e) { this.setData({ formName: e.detail.value }) }, onQuantity(e) { this.setData({ formQuantity: e.detail.value }) }, onNote(e) { this.setData({ formNote: e.detail.value }) },
+  onName(e) { this.setData({ formName: e.detail.value }) },
+  // An input event is explicit quantity intent even when the shopper confirms the same text.
+  onQuantity(e) { this.setData({ formQuantity: e.detail.value, formQuantityEdited: true }) },
+  onNote(e) { this.setData({ formNote: e.detail.value }) },
   closeForm() { if (!this.data.busy) this.setData({ formVisible: false }) },
   stableOperation(type, body, itemId) {
     const signature = JSON.stringify([type, body, itemId])
@@ -89,8 +92,10 @@ Page({
   },
   saveForm() {
     const name = this.data.formName.trim(), quantityText = this.data.formQuantity.trim()
-    if (!name || !quantityText || name.length > 255 || quantityText.length > 255) return this.setData({ formError: '请填写食材名称和用量，两者各不超过 255 字。' })
-    const body = this.data.formMode === 'manual' ? { name, quantityText, note: this.data.formNote.trim() } : { displayName: name, quantityText }
+    const manual = this.data.formMode === 'manual', quantityConfirmed = manual || this.data.formQuantityEdited
+    if (!name || name.length > 255 || quantityConfirmed && (!quantityText || quantityText.length > 255)) return this.setData({ formError: '请填写食材名称和用量，两者各不超过 255 字。' })
+    const body = manual ? { name, quantityText, note: this.data.formNote.trim() } : { displayName: name }
+    if (!manual && quantityConfirmed) body.quantityText = quantityText
     return this.perform(this.stableOperation(this.data.formMode === 'manual' ? 'manual' : 'patch', body, this.data.formMode === 'edit' ? this._editId : undefined))
   },
   onToggleItem(e) {

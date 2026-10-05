@@ -195,34 +195,32 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
   async checkFavoriteStatus(generationVersion = this.generationVersion) {
     const favoriteVersion = this._favoriteVersion || 0, scope = getUserStorageKey('resultView')
     try {
-      if (generationVersion !== this.generationVersion || this._unloaded || scope !== getUserStorageKey('resultView')) return
-      const { plans } = this.data
+      if (generationVersion !== this.generationVersion || this._unloaded || this._viewScope && this._viewScope !== scope
+        || this._favoriteRequest && this._favoriteRequest.active()) return
+      const readVersion = this._favoriteReadVersion = (this._favoriteReadVersion || 0) + 1
       // 收集所有菜品ID
-      const allDishIds = []
-      plans.forEach(plan => {
-        plan.dishes.forEach(dish => {
-          if (dish.id) allDishIds.push(dish.id)
+      const targets = []
+      this.data.plans.forEach((plan, planIndex) => {
+        plan.dishes.forEach((dish, dishIndex) => {
+          if (dish.id) targets.push({ id: dish.id, planIndex, dishIndex })
         })
       })
 
-      if (allDishIds.length === 0) return
+      if (targets.length === 0) return
 
       // 批量检查收藏状态
-      const favoriteIds = await batchCheckFavoriteDishes(allDishIds)
+      const favoriteIds = await batchCheckFavoriteDishes(targets.map(target => target.id))
       if (generationVersion !== this.generationVersion || favoriteVersion !== (this._favoriteVersion || 0)
-        || this._unloaded || scope !== getUserStorageKey('resultView')) return
+        || readVersion !== this._favoriteReadVersion || this._unloaded || scope !== getUserStorageKey('resultView')) return
       const favoriteSet = new Set(favoriteIds)
 
-      // 更新plans中的收藏状态
-      const newPlans = plans.map(plan => ({
-        ...plan,
-        dishes: plan.dishes.map(dish => ({
-          ...dish,
-          isFavorite: favoriteSet.has(dish.id)
-        }))
-      }))
-
-      this.setData({ plans: newPlans })
+      // Only update matching favorite properties; a background read never owns the menu itself.
+      const updates = {}
+      targets.forEach(({ id, planIndex, dishIndex }) => {
+        const plan = this.data.plans[planIndex], dish = plan && plan.dishes[dishIndex]
+        if (dish && dish.id === id) updates[`plans[${planIndex}].dishes[${dishIndex}].isFavorite`] = favoriteSet.has(id)
+      })
+      if (Object.keys(updates).length) this.setData(updates)
     } catch (error) {
       console.log('检查收藏状态失败:', error)
     }
@@ -331,15 +329,23 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     // Without a stable user identifier, invalidate local fallback when the token
     // changes even though the user-scoped storage key still says guest.
     const fallbackToken = user.id || user.openId ? null : String(wx.getStorageSync('token') || '')
-    const current = () => !this._unloaded && scope === getUserStorageKey('resultView') && generationVersion === this.generationVersion
-      && (fallbackToken === null || fallbackToken === String(wx.getStorageSync('token') || ''))
-      && this.data.plans[planIndex] === plan && this.data.plans[planIndex].dishes[dishIndex] === targetDish
+    const slot = `${planIndex}:${dishIndex}`, request = {}
+    this._replacementRequests = this._replacementRequests || {}
+    this._replacementRequests[slot] = request
+    const current = () => {
+      const row = this.data.plans[planIndex] && this.data.plans[planIndex].dishes[dishIndex]
+      return !this._unloaded && scope === getUserStorageKey('resultView') && generationVersion === this.generationVersion
+        && (fallbackToken === null || fallbackToken === String(wx.getStorageSync('token') || ''))
+        && this._replacementRequests[slot] === request && row && row.id === targetDish.id && row.name === targetDish.name
+    }
     const applyReplacement = newDish => {
       if (!current()) return false
-      const newDishes = [...plan.dishes]
+      // Favorite refreshes and other row replacements may update the plan while this request waits.
+      const currentPlan = this.data.plans[planIndex]
+      const newDishes = [...currentPlan.dishes]
       newDishes[dishIndex] = { ...newDish }
       const newPlans = [...this.data.plans]
-      newPlans[planIndex] = { ...plan, dishes: newDishes }
+      newPlans[planIndex] = { ...currentPlan, dishes: newDishes }
       this.setData({ plans: newPlans })
       return true
     }

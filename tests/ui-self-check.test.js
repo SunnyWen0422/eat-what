@@ -249,6 +249,94 @@ test('a late background favorite read cannot overwrite the shopper toggle in the
   assert.equal(view.page.data.plans[0].dishes[0].isFavorite, true)
 })
 
+for (const order of ['replacement-first', 'favorites-first']) test(`background favorites and real dish replacement preserve the current menu when ${order}`, async () => {
+  let finishRead, replace
+  const view = legacyResult({
+    batchCheckFavoriteDishes: () => new Promise(resolve => { finishRead = resolve }),
+    getSingleRecommendation: () => new Promise(resolve => { replace = resolve }),
+  })
+  view.page.data.plans = [{ dishes: [{ id: 1, name: '原菜', type: 'meat', isFavorite: false }, { id: 2, name: '配菜', type: 'veg', isFavorite: false }] }]
+  const reading = view.page.checkFavoriteStatus()
+  const replacing = view.page.onRefreshDish({ currentTarget: { dataset: { planIndex: 0, dishIndex: 0 } } })
+  if (order === 'favorites-first') {
+    finishRead([1, 2])
+    await reading
+    assert.equal(view.page.data.plans[0].dishes[0].isFavorite, true)
+  }
+  replace({ success: true, dish: { id: 9, name: '新菜', type: 'meat' }, isFavorite: false })
+  await replacing
+  assert.equal(view.page.data.plans[0].dishes[0].id, 9, 'favorite-only refresh must not invalidate an already requested replacement')
+  if (order === 'replacement-first') {
+    finishRead([1, 2])
+    await reading
+  }
+  assert.equal(view.page.data.plans[0].dishes[0].id, 9, 'old favorite read must not restore a replaced dish')
+  assert.equal(view.page.data.plans[0].dishes[0].isFavorite, false, 'replacement status does not belong to the old query target')
+  assert.equal(view.page.data.plans[0].dishes[1].isFavorite, true, 'matching current query targets still receive favorite updates')
+})
+
+for (const order of ['older-first', 'newer-first']) test(`real same-row replacement retains the latest request when ${order}`, async () => {
+  const requests = []
+  const view = legacyResult({ getSingleRecommendation: () => new Promise(resolve => requests.push(resolve)) })
+  view.page.data.plans[0].dishes[0] = { id: 1, name: '原菜', type: 'meat', isFavorite: false }
+  const event = { currentTarget: { dataset: { planIndex: 0, dishIndex: 0 } } }
+  const older = view.page.onRefreshDish(event), newer = view.page.onRefreshDish(event)
+  if (order === 'older-first') {
+    requests[0]({ success: true, dish: { id: 8, name: '旧回包', type: 'meat' } })
+    await older
+    requests[1]({ success: true, dish: { id: 9, name: '新回包', type: 'meat' } })
+    await newer
+  } else {
+    requests[1]({ success: true, dish: { id: 9, name: '新回包', type: 'meat' } })
+    await newer
+    requests[0]({ success: true, dish: { id: 8, name: '旧回包', type: 'meat' } })
+    await older
+  }
+  assert.equal(view.page.data.plans[0].dishes[0].id, 9)
+})
+
+for (const reason of ['account', 'generation', 'unload']) test(`background favorite reads cannot modify a current menu after ${reason}`, async () => {
+  let finishRead
+  const view = legacyResult({ batchCheckFavoriteDishes: () => new Promise(resolve => { finishRead = resolve }) })
+  const reading = view.page.checkFavoriteStatus()
+  if (reason === 'account') view.switchAccount()
+  if (reason === 'generation') view.page.generationVersion++
+  if (reason === 'unload') view.page.onUnload()
+  finishRead([1])
+  await reading
+  assert.equal(view.page.data.plans[0].dishes[0].isFavorite, false)
+})
+
+for (const state of ['account', 'favorite-busy']) test(`a background favorite read cannot start during ${state}`, async () => {
+  let reads = 0
+  const view = legacyResult({ batchCheckFavoriteDishes: async () => { reads++; return [] } })
+  if (state === 'account') view.switchAccount()
+  const toggle = state === 'favorite-busy' ? view.tap() : null
+  await view.page.checkFavoriteStatus()
+  assert.equal(reads, 0, state)
+  if (toggle) { view.pending[0].resolve({}); await toggle; assert.equal(view.page.data.plans[0].dishes[0].isFavorite, true) }
+})
+
+test('only the latest background favorite read may update matching current dishes', async () => {
+  const reads = []
+  const view = legacyResult({ batchCheckFavoriteDishes: () => new Promise(resolve => reads.push(resolve)) })
+  const older = view.page.checkFavoriteStatus(), newer = view.page.checkFavoriteStatus()
+  reads[1]([1]); await newer
+  reads[0]([]); await older
+  assert.equal(view.page.data.plans[0].dishes[0].isFavorite, true)
+})
+
+test('real replacements to neighboring rows preserve each completed current row', async () => {
+  const requests = []
+  const view = legacyResult({ getSingleRecommendation: () => new Promise(resolve => requests.push(resolve)) })
+  view.page.data.plans = [{ dishes: [{ id: 1, name: '原菜一', type: 'meat' }, { id: 2, name: '原菜二', type: 'veg' }] }]
+  const first = view.page.onRefreshDish({ currentTarget: { dataset: { planIndex: 0, dishIndex: 0 } } })
+  const second = view.page.onRefreshDish({ currentTarget: { dataset: { planIndex: 0, dishIndex: 1 } } })
+  requests[0]({ success: true, dish: { id: 8, name: '新菜一', type: 'meat' } }); await first
+  requests[1]({ success: true, dish: { id: 9, name: '新菜二', type: 'veg' } }); await second
+  assert.deepEqual(Array.from(view.page.data.plans[0].dishes, dish => dish.id), [8, 9])
+})
+
 test('an account switch blocks a favorite tap on the old page before onShow clears it', () => {
   const view = legacyResult()
   view.switchAccount()
