@@ -10,7 +10,7 @@
 
 私有证据位于 `../work/v4-closeout/`：`final-verification.log`、`native-compile-final/native-compile.json`、`http-current.json`、`recovery-summary.json`、`isolated_acceptance.py`、`evaluation-dry-run-final.json`、`evaluation-live.json`、`basic-probe.json`。模型本次 3 请求，累计 15/20；60 条实际模型评测并未完成。修复后的无模型登录、16 道菜读取和模型适配器复用另有实际 HTTP 证据，未消耗额外模型请求。
 
-逐页原生交互仍未完成：官方 CLI 的 `.cli` 写入未获当前执行权限，跨命令窗口回环连接超时；旧临时目录移动也报权限错误。导出的 `wechat-local-reviewed` 避开了该目录，但没有将导出成功当成微信端体验通过。用户控制台中的图标 JSON 依赖已修复；原生 `trial`/3.17.3 灰度库保留，未取得稳定基础库验收证据。普通本机 PowerShell 持续启动服务后，才可继续开发者工具体验。
+逐页原生交互仍未完成：官方 CLI 的 `.cli` 写入未获当前执行权限，跨命令窗口回环连接超时；旧临时目录移动也报权限错误。导出的 `wechat-local-final` 避开了该目录，但没有将导出成功当成微信端体验通过。用户控制台中的图标 JSON 依赖已修复；原生 `trial`/3.17.3 灰度库保留，未取得稳定基础库验收证据。普通本机 PowerShell 持续启动服务后，才可继续开发者工具体验。
 
 执行决定：按用户要求在当前项目保留开发分支，未重置、另建工作区或自动推送；本机/远程上一版仅内容对齐，保留不同提交身份；接口相互依赖的代码同批提交，适用测试按改动运行；保留无权限旧测试目录，使用独立可丢弃的运行副本；未连接生产或导入完整菜库。代价是后续仍需处理 Git 身份衔接、重新导出运行包及单独安排完整数据/原生验收。
 

@@ -23,6 +23,13 @@ def export(source,destination):
   if file.is_symlink():raise ValueError('Runtime symlinks are unsupported')
   relative=file.relative_to(source);target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(file,target)
   manifest.append({'path':relative.as_posix(),'sha256':hashlib.sha256(target.read_bytes()).hexdigest()})
+ # Preserve the user's existing domain-check choice for this local preview only.
+ # Never infer a disabled setting or copy unrelated private project data.
+ private=source/'project.private.config.json'
+ if private.is_file():
+  setting=json.loads(private.read_text(encoding='utf-8-sig')).get('setting',{})
+  if type(setting.get('urlCheck')) is bool:
+   (destination/'project.private.config.json').write_text(json.dumps({'setting':{'urlCheck':setting['urlCheck']}}),encoding='utf-8')
  (destination/'source-manifest.json').write_text(json.dumps({'source':str(source),'files':manifest},ensure_ascii=False,indent=2),encoding='utf-8')
  return {'fileCount':len(manifest),'output':str(destination)}
 
