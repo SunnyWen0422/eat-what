@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-06",
+  "timezone": "Asia/Shanghai",
+  "head": "c1525506035ca79f500d2665be0fbd01ea3d1ccd",
+  "branch": "codex/v4-meal-workspace-green-20261003",
+  "tracked_diff_against_target": [],
+  "validation_source": "clean git archive; all archived files byte-verified unchanged after tests",
+  "node": {
+    "tests": 184,
+    "pass": 184,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "python": {
+    "tests": 23,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "java": {
+    "tests": 58,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "xml_reports": 17,
+    "build": "BUILD SUCCESS",
+    "class_major_versions": [
+      52
+    ]
+  },
+  "ordinary_test_total": 265,
+  "static_checks": [
+    "JSON",
+    "embedded-credential markers",
+    "JavaScript syntax",
+    "Python compilation",
+    "migration manifest"
+  ],
+  "unified_script_initial_result": "stopped on missing CairoSVG; later Python and Java stages completed with direct commands",
+  "configurations_preserved": true,
+  "routes": 25,
+  "tabs": [
+    "今天",
+    "菜谱",
+    "计划",
+    "我的"
+  ],
+  "global_components": 15,
+  "not_run": [
+    "live MySQL migrations/integration",
+    "Spring business HTTP integration",
+    "JVM restart probe",
+    "real model evaluation",
+    "WeChat native compile/runtime",
+    "real devices",
+    "production access/deploy"
+  ],
+  "logs": [
+    "verify.log",
+    "python-tests.log",
+    "java-clean-test-package.log"
+  ]
+}

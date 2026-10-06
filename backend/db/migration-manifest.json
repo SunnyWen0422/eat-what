@@ -33,6 +33,13 @@
       "description": "authoritative meal workspace, durable tasks and receipts, breakfast candidates and behavioral events",
       "checksumSha256": "41c4e9a9a88baff6e1903366130632a6ea3ba5d8e6cbc169ebf08e8189787e7d",
       "rollback": "Disable the frontend/workspace feature flag; keep the V3/V4-aware backend, snapshots and receipts. Database restoration requires a reviewed backup; never drop live workspace or event tables."
+    },
+    {
+      "version": "V5__shopping_prices",
+      "file": "V5__shopping_prices.sql",
+      "description": "V4 ingredient reference quotes and separate actual shopping expenses",
+      "checksumSha256": "e633917288cb6aace675583098aeb25165258a56e0da7a70da4d90857c1ab8d0",
+      "rollback": "Disable pricing; retain quote and expense tables. Restore a reviewed backup only for database rollback."
     }
   ]
 }

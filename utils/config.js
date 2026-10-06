@@ -8,7 +8,7 @@
 const USE_BACKEND_API = true  // 默认false，开发完成后改为true
 
 // API 地址只有一个权威来源。需要切换部署环境时只修改此处。
-const API_BASE_URL = 'https://chishenme.icu/api'
+const API_BASE_URL = 'http://127.0.0.1:18780/api'
 
 // ========================================
 // 功能开关
@@ -18,7 +18,7 @@ const API_BASE_URL = 'https://chishenme.icu/api'
 const ENABLE_LOGIN = true
 
 // Enable only against a V3/V4 migrated test API, then stage the rollout.
-const ENABLE_MEAL_WORKSPACE = false
+const ENABLE_MEAL_WORKSPACE = true
 
 // 是否启用触觉反馈
 const ENABLE_VIBRATE = true

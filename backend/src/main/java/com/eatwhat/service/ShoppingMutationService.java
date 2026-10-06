@@ -12,6 +12,25 @@ import java.util.function.Supplier;
 
 @Service
 public class ShoppingMutationService {
+    private ShoppingExpenseMapper expenses;
+    @org.springframework.beans.factory.annotation.Autowired public void setExpenses(ShoppingExpenseMapper value) { expenses=value; }
+
+    @Transactional public ShoppingListResponse expense(Long userId,ShoppingExpenseRequest request) {
+        return execute(userId,request.getRequestId(),"expense",request,()->{
+            ShoppingList list=lockedList(userId,request.getExpectedListVersion());
+            ShoppingListResponse current=listService.getList(userId,"all");
+            boolean found=false;
+            for(ShoppingDishDTO d:current.getDishes()) for(ShoppingPreviewItemDTO i:d.getItems()) if(com.eatwhat.util.ShoppingIngredientKey.of(i).equals(request.getIngredientKey()))found=true;
+            if(!found)throw new IllegalArgumentException("食材不在当前清单中");
+            if(request.isRemove()) expenses.delete(list.getId(),request.getIngredientKey());
+            else {
+                if(request.getAmount()==null || !request.getAmount().matches("^(0|[1-9][0-9]{0,6})(\\.[0-9]{1,2})?$"))throw new IllegalArgumentException("金额最多两位小数，不能为负数");
+                if(request.getChannel()!=null && !Arrays.asList("叮咚","盒马","菜市场","超市","其他","").contains(request.getChannel()))throw new IllegalArgumentException("采购渠道无效");
+                ShoppingExpense e=new ShoppingExpense();e.setIngredientKey(request.getIngredientKey());e.setAmount(new java.math.BigDecimal(request.getAmount()).setScale(2));e.setChannel(request.getChannel());expenses.save(list.getId(),e);
+            }
+            increment(list,userId);return listService.getList(userId,"all");
+        });
+    }
     private final ShoppingMutationMapper logs;
     private final ShoppingListMapper lists;
     private final ShoppingDishMapper groups;
@@ -62,6 +81,11 @@ public class ShoppingMutationService {
             }
         }
         ShoppingListResponse result=action.get();
+        if (expenses != null && result.getListId()!=null) {
+            Set<String> keys=new HashSet<>();
+            for(ShoppingDishDTO d:result.getDishes())for(ShoppingPreviewItemDTO i:d.getItems())keys.add(com.eatwhat.util.ShoppingIngredientKey.of(i));
+            for(ShoppingExpense e:expenses.find(result.getListId()))if(!keys.contains(e.getIngredientKey()))expenses.delete(result.getListId(),e.getIngredientKey());
+        }
         logs.log(userId,requestId,hash,encode(result));
         return result;
     }

@@ -54,6 +54,6 @@
 
   <!-- 版本信息 -->
   <view class="ew-hit-target version-info" bindtap="onVersionTap">
-    <text class="version-text">吃什么 v3.2.0</text>
+    <text class="version-text">吃什么 {{productVersion}} · 本机体验</text>
   </view>
 </view>

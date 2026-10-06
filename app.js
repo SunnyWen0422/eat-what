@@ -4,6 +4,11 @@ const config = require('./utils/config')
 
 App({
   onLaunch() {
+    const environment = config.getApiBaseUrl()
+    if (wx.getStorageSync('apiEnvironment') !== environment) {
+      wx.removeStorageSync('token'); wx.removeStorageSync('userInfo')
+      wx.setStorageSync('apiEnvironment', environment)
+    }
     // 展示本地存储能力
     const logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
@@ -62,6 +67,11 @@ App({
   },
 
   _slowLogin() {
+    if (/^http:\/\/127\.0\.0\.1:/.test(config.getApiBaseUrl())) {
+      return api.login({code:'local-v4'}).then(result => {
+        if(result.success){wx.setStorageSync('token',result.token);wx.setStorageSync('userInfo',result.user);this.globalData.userInfo=result.user;this.globalData.isLoggedIn=true;this.precacheDishes()}
+      }).catch(() => console.warn('local_login_unavailable')).finally(() => this._markLoginReady())
+    }
     this.globalData.isLoggedIn = false
     wx.login({
       success: async (res) => {

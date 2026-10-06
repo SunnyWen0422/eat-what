@@ -3,23 +3,25 @@ const store = require('../../utils/shopping-list')
 const { getUserStorageKey } = require('../../utils/util')
 const { buildPurchaseSummary } = require('../../utils/shopping-ingredients')
 const flow = require('../../utils/meal-workflow')
+const pricing = require('../../utils/shopping-prices')
+const capabilities = require('../../utils/shopping-capabilities')
 const confirm = (title, content, confirmText = '确认') => new Promise(resolve => wx.showModal({ title, content, confirmText, success: r => resolve(r.confirm), fail: () => resolve(false) }))
 const sourceLabel = dish => dish.sourceDate ? `${dish.sourceDate} ${flow.mealNames[dish.sourceMealType] || ''} · ${dish.dishName}` : dish.dishId ? dish.dishName : '手动添加'
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
+  data: { pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
   onShow() { this.loadList() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   current(scope) { return !this._unloaded && scope === getUserStorageKey('shoppingList') },
   async loadList() {
     const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
-    if (this._scope !== scope) { this._signature = null; this._pendingMutation = null; this.setData({ formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
+    if (this._scope !== scope) { this._signature = null; this._pendingMutation = null; this.setData({ expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
     this._scope = scope
     this.applyList(store.loadLocalShoppingList())
     this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
     try {
       const list = await api.getShoppingList('all')
       if (epoch !== this._epoch || !this.current(scope)) return
-      this.applyList(store.saveLocalShoppingList(list)); this.setData({ offline: false })
+      this.applyList(store.saveLocalShoppingList(list)); this.setData({ offline: false });this.loadPrices(scope,epoch)
     } catch (error) {
       if (epoch === this._epoch && this.current(scope)) this.setData({ offline: true, errorMessage: flow.errorMessage(error, '暂时无法读取云端，显示上次清单。新增内容可保存为待确认草稿。') })
     } finally { if (epoch === this._epoch && this.current(scope)) this.setData({ loading: false, refreshing: false }) }
@@ -35,8 +37,24 @@ Page({
     const groups = this._full.dishes.map(group => ({ ...group, sourceLabel: sourceLabel(group), items: (group.items || []).filter(item => filter === 'all' || (filter === 'checked' ? item.checked : !item.checked)) })).filter(group => group.items.length)
     const summary = buildPurchaseSummary(groups)
     const rows = [...summary.mergeableItems, ...summary.separateItems].map((item, index) => ({ ...item, rowKey: `summary-${index}`, itemIds: item.itemIds || [item.id].filter(Boolean), note: !item.sourceDishId ? item.sourceQuantityText || '' : '', sourceLabel: (item.sources || []).map(source => sourceLabel(source)).join('；') || item.sourceDishLabel || '手动添加', checkedState: item.checkedState || (item.checked ? 'all' : 'none') }))
-    this.setData({ dishes: groups, summaryRows: rows })
+    const cost=pricing.buildPricing(this._full,this._quotes||{});this.setData({ dishes: groups, summaryRows: rows, pricingRows:cost.rows,pendingPrice:cost.pendingText,actualSpend:cost.actualText,missingPrices:cost.pendingMissing })
   },
+  async loadPrices(scope,epoch) {
+    const version=this._full.version,config=await capabilities.refresh()
+    if(!this.current(scope)||epoch!==this._epoch||version!==this._full.version)return
+    this.setData({expensesEnabled:config.expensesEnabled,priceNotice:capabilities.notice()})
+    if(!config.pricesEnabled)return
+    try {const rows=pricing.buildPricing(this._full).rows;const quotes=await api.getIngredientPriceQuotes(rows.map(r=>({ingredientKey:r.ingredientKey,canonicalName:r.canonicalName,normalizedVariant:r.normalizedVariant})));if(this.current(scope)&&epoch===this._epoch&&version===this._full.version){this._quotes=quotes;this.renderList()}}
+    catch(error){if(this.current(scope)&&epoch===this._epoch){if(error.statusCode===404)capabilities.markQuotesUnavailable();this.setData({priceNotice:'暂无可用官方参考价，清单和实付记录仍可使用'})}}
+  },
+  onEditExpense(e) {const row=this.data.pricingRows.find(r=>r.ingredientKey===e.currentTarget.dataset.key);if(!row||!this.current(this._scope)||!this.data.expensesEnabled)return;this._expenseKey=row.ingredientKey;this.setData({expenseVisible:true,expenseName:row.displayName,expenseAmount:row.expense?String(row.expense.amount):'',expenseChannel:row.channel||'',formError:''})},
+  onExpenseAmount(e){this.setData({expenseAmount:e.detail.value})},
+  onExpenseChannel(e){this.setData({expenseChannel:pricing.CHANNELS[Number(e.detail.value)]})},
+  closeExpense(){if(!this.data.busy)this.setData({expenseVisible:false})},
+  saveExpense(){try{pricing.amountCents(this.data.expenseAmount)}catch(error){return this.setData({formError:error.message})}return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,amount:String(this.data.expenseAmount).trim(),channel:this.data.expenseChannel}))},
+  removeExpense(){return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,remove:true}))},
+  onCopyList(){wx.setClipboardData({data:pricing.copyPending(this._full)})},
+  onMore(){this.setData({moreVisible:!this.data.moreVisible})},
   onFilterChange(e) { this.setData({ statusFilter: e.currentTarget.dataset.status }); this.renderList() },
   onViewMode(e) { this.setData({ viewMode: e.currentTarget.dataset.mode }) },
   onAddManual() { this.setData({ formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' }) },
@@ -63,7 +81,8 @@ Page({
     this.setData({ busy: true, errorMessage: '', formError: '' })
     try {
       let response
-      if (operation.type === 'manual') response = await api.addManualShoppingItem(operation.payload)
+      if (operation.type === 'expense') response = await api.saveShoppingExpense(operation.payload)
+      else if (operation.type === 'manual') response = await api.addManualShoppingItem(operation.payload)
       else if (operation.type === 'check') response = await api.checkShoppingItems(operation.payload)
       else if (operation.type === 'patch') response = await api.patchShoppingItemConfirmed(operation.itemId, operation.payload)
       else if (operation.type === 'delete') response = await api.deleteShoppingItemConfirmed(operation.itemId, operation.payload)
@@ -72,7 +91,7 @@ Page({
       this.applyList(store.saveLocalShoppingList(response.list || response))
       store.removePendingOperation(null, operation.payload.requestId)
       this._signature = null
-      this.setData({ formVisible: false, offline: false, drafts: store.loadPendingOperations() })
+      this.setData({ expenseVisible:false, formVisible: false, offline: false, drafts: store.loadPendingOperations() })
       wx.showToast({ title: '已保存到云端', icon: 'success' })
     } catch (error) {
       if (!this.current(scope)) return

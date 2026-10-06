@@ -57,7 +57,8 @@ async function flushShoppingOperations() {
   for (const operation of operations) {
     try {
       let result
-      if (operation.type === 'batch-add') result = await api.batchAddShoppingItems(operation.payload)
+      if (operation.type === 'expense') result = await api.saveShoppingExpense(operation.payload)
+      else if (operation.type === 'batch-add') result = await api.batchAddShoppingItems(operation.payload)
       else if (operation.type === 'manual') result = await api.addManualShoppingItem(operation.payload)
       else if (operation.type === 'check') result = await api.checkShoppingItems(operation.payload)
       else if (operation.type === 'patch') result = await api.patchShoppingItemConfirmed(operation.itemId, operation.payload)

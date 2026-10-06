@@ -1,0 +1,192 @@
+{
+  "date": "2026-10-06",
+  "branch": "codex/v4-local-integration-20261006",
+  "api": "http://127.0.0.1:18780/api",
+  "dataset": "isolated synthetic",
+  "cleanSourceVerification": {
+    "exitCode": 0,
+    "exportSourceFiles": 701,
+    "oldTarget": false,
+    "privateRuntime": false
+  },
+  "node": {
+    "passed": 197,
+    "failed": 0
+  },
+  "python": {
+    "passed": 28,
+    "failed": 0
+  },
+  "java": {
+    "tests": 64,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "classMajorVersion": 52,
+  "privateConfigInJar": false,
+  "officialCompiler": [
+    {
+      "compiler": "wcc.exe",
+      "fileCount": 42,
+      "exitCode": 0,
+      "compiledBytes": 332949
+    },
+    {
+      "compiler": "wcsc.exe",
+      "fileCount": 44,
+      "exitCode": 0,
+      "compiledBytes": 11184
+    }
+  ],
+  "model": {
+    "limit": 20,
+    "used": 12,
+    "lastNoEggDinner": "agent draft",
+    "completeQualityEvaluation": false
+  },
+  "voice": {
+    "enabled": false,
+    "message": "抱歉，该功能暂不可用",
+    "realVendorTest": false
+  },
+  "pages": [
+    {
+      "route": "pages/index/index",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/logs/logs",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/result/result",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/dish-detail/dish-detail",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/customize/customize",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/calendar/calendar",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/calendar-detail/calendar-detail",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/profile/profile",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/about/about",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/statistics/statistics",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/sync/sync",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/settings/settings",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/recommend-filter/recommend-filter",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/profile-edit/profile-edit",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/custom-dishes/custom-dishes",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/admin/admin",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/admin-users/admin-users",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/admin-dishes/admin-dishes",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/admin-audit/admin-audit",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/chat/chat",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/shopping-preview/shopping-preview",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/shopping-list/shopping-list",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    },
+    {
+      "route": "pages/meal-cooking/meal-cooking",
+      "sourceContracts": "pass",
+      "nativeInteraction": "pending service port"
+    }
+  ],
+  "http": {
+    "baseCasesPassed": 6,
+    "advancedSessionCreateReadDelete": "pass",
+    "backendRestartLocalLogin": "pass"
+  },
+  "nativeBlocker": "WeChat IDE Service Port disabled; no authorization to change this setting received",
+  "deployed": false
+}

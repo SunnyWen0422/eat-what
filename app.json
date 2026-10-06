@@ -24,7 +24,8 @@
     "pages/admin-audit/admin-audit",
     "pages/chat/chat",
     "pages/shopping-preview/shopping-preview",
-    "pages/shopping-list/shopping-list"
+    "pages/shopping-list/shopping-list",
+    "pages/meal-cooking/meal-cooking"
   ],
   "window": {
     "navigationBarTextStyle": "black",

@@ -166,5 +166,9 @@
   {
     "source": "design/wxss/styles/workspace.tpl",
     "output": "styles/workspace.wxss"
+  },
+  {
+    "source": "design/wxss/pages/meal-cooking/meal-cooking.tpl",
+    "output": "pages/meal-cooking/meal-cooking.wxss"
   }
 ]

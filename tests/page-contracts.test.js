@@ -7,6 +7,9 @@ const ingredients = require('../utils/shopping-ingredients')
 function page(route, api, store = {}) {
   let definition
   const sandbox = { Page: value => { definition = value }, require: name => {
+    if (name.endsWith('/shopping-prices')) return require('../utils/shopping-prices')
+    if (name.endsWith('/shopping-capabilities')) return {refresh:async()=>({pricesEnabled:false,expensesEnabled:false}),notice:()=>''}
+    if (name.endsWith('/product-release')) return require('../utils/product-release')
     if (name.endsWith('/font-scale')) return () => 1
     if (name.endsWith('/ui-tokens')) return require('../utils/ui-tokens')
     if (name.endsWith('/api')) return api
@@ -42,7 +45,7 @@ test('purchase preview preserves two dates for the same dish and separate people
 })
 test('all registered routes have valid event handlers, dark titles and the shared theme', () => {
   const app = JSON.parse(fs.readFileSync('app.json','utf8'))
-  assert.equal(app.pages.length,25)
+  assert.equal(app.pages.length,26)
   assert.deepEqual(app.tabBar.list.map(tab => tab.text), ['今天','菜谱','计划','我的'])
   for (const route of app.pages) {
     const source = fs.readFileSync(route + '.js','utf8') + fs.readFileSync('utils/meal-workspace-page.js','utf8'), template = fs.readFileSync(route + '.wxml','utf8') + (['pages/index/index','pages/result/result','pages/chat/chat'].includes(route) ? fs.readFileSync('templates/meal-workspace.wxml','utf8') : '')
