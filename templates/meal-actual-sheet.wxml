@@ -1,11 +1,13 @@
 <ui-sheet visible="{{actualVisible}}" title="{{actualTitle}} · 实际用餐" busy="{{actualBusy}}" bind:close="closeMealActual">
   <text class="ew-muted">只有确认后才记录吃过；当前安排和历史实际分别保存。</text>
+  <view wx:if="{{actualPlanNames}}" class="ew-muted">当前计划：{{actualPlanNames}}</view>
+  <view wx:if="{{actualPlanChanged}}" class="ew-error">之前显示的计划：{{actualOriginalPlanNames || '原版本'}}。计划已被替换，不能直接按新计划记录。</view>
   <view wx:if="{{actualError}}" class="ew-error">{{actualError}}</view>
   <ui-state wx:if="{{actualLoading}}" kind="loading" title="正在核对本餐" />
   <block wx:elif="{{actualUnknown}}"><ui-button label="重试原保存请求" loading="{{actualBusy}}" bind:action="onActualRetry" /></block>
   <block wx:else>
     <ui-button wx:if="{{actualNeedsReload}}" label="核对最新记录（保留输入）" bind:action="onActualReload" />
-    <ui-button wx:if="{{actualHasPlan && actualCanRecord}}" label="按这份计划吃了" loading="{{actualBusy}}" disabled="{{actualBusy || actualNeedsReload}}" bind:action="onActualByPlan" />
+    <ui-button wx:if="{{actualHasPlan && actualCanRecord}}" label="按这份计划吃了" loading="{{actualBusy}}" disabled="{{actualBusy || actualNeedsReload || actualPlanChanged}}" bind:action="onActualByPlan" />
     <ui-field label="实际菜品 / 外食（每行一道）" value="{{actualText}}" maxlength="2000" disabled="{{actualBusy || !actualCanRecord}}" bind:change="onActualText" />
     <ui-button label="保存实际有变化 / 外食记录" loading="{{actualBusy}}" disabled="{{actualBusy || actualNeedsReload || !actualCanRecord}}" bind:action="onActualChanged" />
     <ui-button label="没按这份计划做" variant="secondary" disabled="{{actualBusy || actualNeedsReload}}" bind:action="onActualSkipped" />

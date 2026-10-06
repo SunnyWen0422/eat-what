@@ -44,6 +44,7 @@ def validate_execution(manifest,budget,max_requests):
 def check_result(case,result,sourced_ids):
  errors=[]
  if not isinstance(result,dict):return {'passed':False,'errors':['invalid JSON object']}
+ if result.get('executionStatus')=='failed' or result.get('failureClass'):return {'passed':False,'errors':['model_execution_failed']}
  if case['expectedOutcomeClass']!='proposal':
   if result.get('needsInput') is not True:errors.append('clarification required')
   if case['expectedOutcomeClass']=='different_target' and result.get('suggestedTarget')!=case['expectedTarget']:errors.append('wrong suggested target')

@@ -3,12 +3,14 @@ const {getUserStorageKey}=require('./util')
 function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>getUserStorageKey('mealActual'),today=flow.today}) {
   const platform=()=>providedWx||wx
   const owns=(page,binding)=>page._actualBinding===binding&&binding.scope===scope()&&page._actualAlive!==false
+  const planNames=meal=>meal.plan?(meal.plan.dishDetails||[]).map(d=>d.name).filter(Boolean).join('、')||meal.plan.recipeName||'':''
+  const planChanged=(b,meal)=>Number.isFinite(b.planRevision)&&b.planRevision!==meal.planRevision
   return {
     async openMealActual(target) {
       if(!target||!/^\d{4}-\d{2}-\d{2}$/.test(target.date)||!flow.mealNames[target.mealType])return
       const binding={...target,scope:scope()},key=binding.scope+`:pending:${target.date}:${target.mealType}`
       this._actualAlive=true;this._actualBinding=binding;binding.key=key
-      this.setData({actualVisible:true,actualLoading:true,actualBusy:false,actualError:'',actualText:'',actualTitle:`${target.date} ${flow.mealNames[target.mealType]}`,actualUnknown:false,actualNeedsReload:false,actualHasPlan:false,actualCanRecord:target.date<=today()})
+      this.setData({actualVisible:true,actualLoading:true,actualBusy:false,actualError:'',actualText:'',actualPlanChanged:false,actualPlanNames:'',actualOriginalPlanNames:target.displayedPlanNames||'',actualTitle:`${target.date} ${flow.mealNames[target.mealType]}`,actualUnknown:false,actualNeedsReload:false,actualHasPlan:false,actualCanRecord:target.date<=today()})
       try {
         const overview=await api.getMealOverview(target.date,target.date)
         if(!owns(this,binding))return
@@ -16,7 +18,8 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
         binding.meal=meal;binding.expectedRevision=meal.actual?meal.actual.revision:0;binding.expectedPlanRevision=meal.planRevision
         const pending=platform().getStorageSync(key)
         binding.pending=pending&&pending.scope===binding.scope?pending:null
-        this.setData({actualHasPlan:!!meal.plan,actualText:binding.pending?binding.pending.text:meal.actualNames||meal.plan&&meal.plan.recipeName||'',actualUnknown:!!binding.pending,actualError:binding.pending?'上次保存结果待确认，请使用原请求重试':''})
+        const changed=planChanged(binding,meal)
+        this.setData({actualHasPlan:!!meal.plan,actualPlanChanged:changed,actualPlanNames:planNames(meal),actualText:binding.pending?binding.pending.text:meal.actualNames||(changed?binding.displayedPlanNames:'')||planNames(meal),actualUnknown:!!binding.pending,actualError:binding.pending?'上次保存结果待确认，请使用原请求重试':changed?'显示过的计划已变化，请返回核对；也可以填写实际做过的菜后保存变化记录':''})
       }catch(error){if(owns(this,binding))this.setData({actualNeedsReload:true,actualError:flow.errorMessage(error,'本餐暂未读取，请重试')})}
       finally{if(owns(this,binding))this.setData({actualLoading:false})}
     },
@@ -36,7 +39,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
         if(!owns(this,b))return
         const meal=flow.mealViews(overview,b.date).find(m=>m.mealType===b.mealType)
         b.meal=meal;b.expectedRevision=meal.actual?meal.actual.revision:0;b.expectedPlanRevision=meal.planRevision
-        this.setData({actualNeedsReload:false,actualHasPlan:!!meal.plan,actualError:'已读取最新记录，输入已保留；请核对后再次确认'})
+        this.setData({actualNeedsReload:false,actualHasPlan:!!meal.plan,actualPlanChanged:planChanged(b,meal),actualPlanNames:planNames(meal),actualError:'已读取最新记录，输入已保留；请核对当前计划后再次确认'})
       }catch(error){if(owns(this,b))this.setData({actualNeedsReload:true,actualError:flow.errorMessage(error,'暂时无法核对本餐，请重试')})}
       finally{if(owns(this,b))this.setData({actualLoading:false})}
     },
@@ -46,6 +49,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
       if(b.pending)return this.setData({actualError:'上次保存结果未知，请先重试原请求'})
       if(status==='eaten'&&b.date>today())return this.setData({actualError:'不能提前记录未来用餐'})
       if(usePlan&&!b.meal.plan)return this.setData({actualError:'本餐没有可确认的安排'})
+      if(usePlan&&planChanged(b,b.meal))return this.setData({actualError:'显示过的计划已被替换，请返回核对最新安排；实际做过的菜可用变化记录保存'})
       let dishes=[]
       if(status==='eaten'&&!usePlan){
         const previous=b.meal.actual&&b.meal.actual.actualDishes||[],used=new Set()

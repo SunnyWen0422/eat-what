@@ -51,7 +51,7 @@ def start_java(state, executable):
     if not jar.is_file():raise RuntimeError('Build backend before starting the local runtime')
     env=os.environ.copy();env['TENCENT_ASR_ENABLED']='false'
     with open(DATA/'backend.log','ab') as log:
-        java=subprocess.Popen([executable,'-jar',str(jar),'--spring.profiles.active=local-v4',f'--spring.config.location={runtime.as_uri()}'],cwd=DATA,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS)
+        java=subprocess.Popen([executable,'-jar',str(jar),'--spring.profiles.active=local-v4',f'--spring.config.location={runtime.as_uri()}','--management.endpoint.health.group.local-ready.include=db,ping'],cwd=DATA,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS)
     state['javaPid']=java.pid;state['javaExecutable']=executable
     (DATA/'runtime.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
 
@@ -120,20 +120,35 @@ def start(args):
             if process.poll() is None:process.terminate()
         raise
 
+def start_optional_model():
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:18781/health',timeout=2) as response:value=json.load(response)
+        if value.get('local') is True and value.get('status')=='ok' and value.get('modelBudget',{}).get('limit')==20:
+            print('Existing local model adapter reused.',flush=True);return True
+    except (OSError,ValueError):pass
+    try:
+        subprocess.run([sys.executable,str(Path(__file__).absolute()),'model'],check=True,capture_output=True,creationflags=FLAGS)
+        return True
+    except (subprocess.CalledProcessError,OSError):
+        print('Model adapter unavailable; basic local API remains available.',flush=True);return False
+
+def wait_for_basic_api():
+    deadline=time.monotonic()+35
+    while True:
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:18780/api/actuator/health/local-ready',timeout=2) as response:
+                if response.status==200:return
+        except OSError:pass
+        if time.monotonic()>deadline:raise RuntimeError('Basic local API did not become ready; see .local-v4/backend.log')
+        time.sleep(.5)
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','status','stop','model','serve']);parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');parser.add_argument('--java',default='D:/Java/bin/java.exe');args=parser.parse_args()
     if args.action=='serve':
         # Keep the command host alive: temporary tool jobs reclaim background children.
         subprocess.run([sys.executable,str(Path(__file__).absolute()),'restart','--mysqld',args.mysqld,'--java',args.java],check=True,creationflags=FLAGS)
-        subprocess.run([sys.executable,str(Path(__file__).absolute()),'model'],check=True,creationflags=FLAGS)
-        deadline=time.monotonic()+35
-        while True:
-            try:
-                with urllib.request.urlopen('http://127.0.0.1:18780/api/actuator/health',timeout=2) as response:
-                    if response.status==200:break
-            except (OSError,urllib.error.URLError):pass
-            if time.monotonic()>deadline:raise RuntimeError('Local API did not become ready; see .local-v4/backend.log')
-            time.sleep(.5)
+        wait_for_basic_api()
+        start_optional_model()
         print('Local V4 ready at http://127.0.0.1:18780/api. Keep this terminal running.',flush=True)
         while True:time.sleep(1)
         return

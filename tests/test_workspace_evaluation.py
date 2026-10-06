@@ -9,6 +9,16 @@ def module():
  s=importlib.util.spec_from_file_location('evaluation',ROOT/'scripts/evaluate_workspace.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
 
 class WorkspaceEvaluationTest(unittest.TestCase):
+ def test_model_failure_is_not_a_successful_clarification(self):
+  m=module();case=next(c for c in m.read_cases(ROOT/'tests/fixtures/workspace-evaluation.jsonl') if c['caseId']=='ambiguity-1')
+  result={'needsInput':True,'executionStatus':'failed','failureClass':'ModelUnavailable','message':'本地模型未完成理解或预算已用完，请使用明确筛选后重试','dishIds':[]}
+  self.assertFalse(m.check_result(case,result,set())['passed'])
+ def test_explicit_other_meals_have_correct_gold_target(self):
+  m=module();cases=m.read_cases(ROOT/'tests/fixtures/workspace-evaluation.jsonl')
+  for case in (c for c in cases if c['caseId'] in ('cuisine-4','cuisine-5')):
+   expected='lunch' if case['caseId']=='cuisine-4' else 'breakfast'
+   self.assertEqual(case['expectedOutcomeClass'],'different_target');self.assertEqual(case['expectedTarget']['mealType'],expected)
+   self.assertTrue(m.check_result(case,{'needsInput':True,'suggestedTarget':{'date':'2026-10-06','mealType':expected}},set())['passed'])
  def test_sixty_valid_fixed_cases_and_dry_run_never_calls_http(self):
   m=module();cases=m.read_cases(ROOT/'tests/fixtures/workspace-evaluation.jsonl');send=Mock(side_effect=AssertionError('HTTP in dry-run'))
   report=m.evaluate(cases,send=send)

@@ -17,3 +17,9 @@ test('conflict reload retains input and requires a fresh explicit save',async()=
 test('skipped is a separate explicit save and closing alone writes nothing',async()=>{
  const f=fixture();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});f.page.closeMealActual();assert.equal(f.sent.length,0);await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});await f.page.onActualSkipped();assert.equal(f.sent[0].body.status,'skipped');assert.equal(f.sent[0].body.expectedPlanRevision,3)
 })
+test('late save response cannot close the next account sheet',async()=>{
+ let finish;const f=fixture(()=>new Promise(resolve=>{finish=resolve}));await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});const save=f.page.onActualByPlan();f.switch();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});finish({status:'eaten'});await save;assert.equal(f.page.data.actualVisible,true);assert.equal(f.page.data.actualBusy,false);assert.equal(f.page._actualBinding.scope,'B')
+})
+test('changed displayed plan cannot be silently recorded as the new plan',async()=>{
+ const f=fixture();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner',planRevision:2,displayedPlanNames:'旧餐菜'});assert.equal(f.page.data.actualPlanChanged,true);await f.page.onActualByPlan();assert.equal(f.sent.length,0);assert.equal(f.page.data.actualOriginalPlanNames,'旧餐菜');assert.match(f.page.data.actualPlanNames,/青菜/)
+})

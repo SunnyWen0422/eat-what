@@ -22,7 +22,7 @@ module.exports = function workspacePage(options = {}) {
     onActualReload() { return actual.onActualReload.call(this) },
     submitMealActual(...args) { return actual.submitMealActual.call(this,...args) },
     sendMealActual(...args) { return actual.sendMealActual.call(this,...args) },
-    onQuickActual() {if(this.current()&&!this.data.busy)return this.openMealActual({date:this.data.context.date,mealType:this.data.context.mealType})},
+    onQuickActual() {if(this.current()&&!this.data.busy){const plan=this.data.linkedPlan;return this.openMealActual({date:this.data.context.date,mealType:this.data.context.mealType,planRevision:plan&&plan.revision,displayedPlanNames:plan?(plan.dishDetails||[]).map(d=>d.name).join('、'):''})}},
     voiceCurrent(run) { return voice.voiceCurrent.call(this,run) },
     onVoiceTap() { return voice.onVoiceTap.call(this) },
     onVoicePrivacyAgree() { return voice.onVoicePrivacyAgree.call(this) },

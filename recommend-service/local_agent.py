@@ -75,7 +75,7 @@ def run(task:Task,x_service_token:str=Header(default='')):
     except Exception as error:
         with lock:
             with budget.with_name('model-summary.jsonl').open('a',encoding='utf-8') as stream:stream.write(json.dumps({'taskFailureClass':type(error).__name__})+'\n')
-        return {'needsInput':True,'message':'本地模型未完成理解或预算已用完，请使用明确筛选后重试','dishIds':[]}
+        return {'needsInput':True,'executionStatus':'failed','failureClass':type(error).__name__,'message':'本地模型未完成理解或预算已用完，请使用明确筛选后重试','dishIds':[]}
 
 # Keep the existing advanced assistant usable in the local project. Only these
 # session routes are mounted; the old direct chat/model transports are excluded.
