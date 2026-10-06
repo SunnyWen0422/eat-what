@@ -23,14 +23,18 @@ def prepare_local_index():
     rag.build_index()
 
 class BudgetedModel:
-    def __init__(self):
+    def __init__(self,max_requests=None):
         from model_client import DeepSeekModelClient
         self.client=DeepSeekModelClient(timeout=10)
         self.timeout=10
+        self.max_requests=max_requests
+        self.requests=0
     def complete(self,*args):
         with lock:
+            if self.max_requests is not None and self.requests>=self.max_requests:raise RuntimeError('Local evaluation request cap exhausted')
             value=json.loads(budget.read_text(encoding='utf-8'))
             if value['used']>=value['limit']:raise RuntimeError('Local model budget exhausted')
+            self.requests+=1
             value['used']+=1;budget.write_text(json.dumps(value),encoding='utf-8')
         self.client.timeout=self.timeout
         try:
@@ -52,6 +56,7 @@ class BudgetedModel:
 class Task(BaseModel):
     workspace:dict
     userId:int
+    maxModelRequests:int | None=None
 
 @app.get('/health')
 def health():
@@ -62,10 +67,11 @@ def health():
 def run(task:Task,x_service_token:str=Header(default='')):
     if not workspace_agent.authorized(x_service_token,os.getenv('MEAL_WORKSPACE_SERVICE_TOKEN','')):raise HTTPException(403)
     if task.userId<=0:raise HTTPException(400)
+    if task.maxModelRequests is not None and not 1<=task.maxModelRequests<=20:raise HTTPException(400)
     try:
         catalog=Path(__file__).resolve().parents[1]/'backend/src/main/resources/recommendation-metadata.json'
         workspace={**task.workspace,'recommendationOptions':json.loads(catalog.read_text(encoding='utf-8'))['groups']}
-        return workspace_agent.run_task(workspace,task.userId,model=BudgetedModel())
+        return workspace_agent.run_task(workspace,task.userId,model=BudgetedModel(task.maxModelRequests))
     except Exception as error:
         with lock:
             with budget.with_name('model-summary.jsonl').open('a',encoding='utf-8') as stream:stream.write(json.dumps({'taskFailureClass':type(error).__name__})+'\n')

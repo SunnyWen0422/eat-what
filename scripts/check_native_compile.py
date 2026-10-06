@@ -16,7 +16,8 @@ def main():
     output.mkdir(parents=True,exist_ok=True)
     results=[]
     for name,extension in [("wcc.exe",".wxml"),("wcsc.exe",".wxss")]:
-        binary=(Path(args.compiler_dir)/name).resolve(strict=True)
+        binary=(Path(args.compiler_dir)/name).absolute()
+        if not binary.is_file():raise RuntimeError('Native compiler is missing: '+name)
         files=[str(p.relative_to(ROOT)).replace("\\","/") for directory in ["pages","components","templates","styles"] for p in (ROOT/directory).rglob("*"+extension)]
         if extension==".wxss":
             files.append("app.wxss")

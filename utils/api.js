@@ -763,6 +763,7 @@ function getAdminAuditLogs(params = {}) {
 // ========================================
 
 module.exports = {
+  getAssistantSessions: ({cursor,limit=20}={}) => assistantRequest('/assistant/sessions?limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''),'GET'),
   createVoiceSession: () => doRequest('/assistant/voice/session','POST',{}, {silent:true,maxRetries:0}),
   getShoppingPurchaseOptions: () => requestSilent('/shopping-list/purchase-options','GET'),
   getIngredientPriceQuotes: items => requestSilent('/ingredient-prices/query','POST',{items}),

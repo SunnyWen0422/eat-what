@@ -33,7 +33,7 @@
         <ui-card wx:if="{{linkedPlan}}" title="已保存安排" description="{{linkedPlan.recipeName}}"><view class="ew-actions"><ui-button label="采购预览" variant="secondary" bind:action="onShoppingPreview" /><ui-button label="查看安排 / 记录实际" variant="secondary" bind:action="onViewPlan" /></view></ui-card>
         <ui-card wx:if="{{actual && actual.status === 'eaten'}}" title="这餐已记录实际用餐"><image class="workspace-success" src="/assets/illustrations/meal-success.png" mode="aspectFit" /><view class="ew-actions"><ui-button label="查看 / 修改记录" variant="secondary" bind:action="onViewPlan" /><ui-button label="饮食回顾" variant="secondary" bind:action="onReview" /></view></ui-card>
         <ui-card wx:if="{{legacyMeals.length}}" title="旧助手中的多餐草稿" description="逐餐导入后，仍需确认保存安排；不会自动采购或记录吃过。"><view wx:for="{{legacyMeals}}" wx:key="index"><view>{{item.date}} {{item.mealName}} · {{item.people}} 人</view><view>{{item.names}}</view><ui-button label="导入这一餐草稿" variant="secondary" data-index="{{index}}" bind:action="onImportLegacyMeal" /></view></ui-card><view wx:if="{{legacyNotice}}" class="ew-notice">{{legacyNotice}}</view>
-        <view class="ew-actions"><ui-button label="自己选菜" variant="secondary" bind:action="onChooseDishes" /><ui-button label="继续说需求" variant="secondary" bind:action="onOpenAssistant" /></view>
+        <view class="ew-actions"><ui-button label="记录这餐实际" variant="secondary" bind:action="onQuickActual" /><ui-button label="自己选菜" variant="secondary" bind:action="onChooseDishes" /><ui-button label="继续说需求" variant="secondary" bind:action="onOpenAssistant" /></view>
       </block>
     </view>
   </scroll-view>
@@ -46,13 +46,14 @@
     <ui-button slot="footer" label="应用这餐要求" disabled="{{voicePhase !== 'idle'}}" bind:action="onApplyRequirements" />
   </ui-sheet>
   <ui-sheet visible="{{settingsVisible}}" title="本餐设置" busy="{{busy}}" bind:close="onCloseMealSettings">
-    <ui-field label="用餐人数（1–50）" value="{{settingsContext.people}}" type="number" bind:change="onPeopleSetting" />
-    <ui-field label="整餐用时上限（分钟，留空不限）" value="{{settingsContext.totalCookMinutes}}" type="number" bind:change="onTimeSetting" />
+    <ui-field label="用餐人数（1–50）" value="{{settingsContext ? '' + settingsContext.people : ''}}" type="number" bind:change="onPeopleSetting" />
+    <ui-field label="整餐用时上限（分钟，留空不限）" value="{{settingsContext && settingsContext.totalCookMinutes != null ? '' + settingsContext.totalCookMinutes : ''}}" type="number" bind:change="onTimeSetting" />
     <ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />
     <view class="ew-actions"><ui-button label="手动菜数" variant="secondary" bind:action="onManualMode" /><ui-button label="恢复自动搭配" variant="secondary" bind:action="onRestoreAuto" /></view>
-    <view wx:if="{{settingsContext.compositionMode === 'manual'}}" wx:for="{{countRows}}" wx:key="type"><ui-field label="{{item.label}}" value="{{item.count}}" type="number" data-type="{{item.type}}" bind:change="onCountSetting" /></view>
+    <view wx:if="{{settingsContext.compositionMode === 'manual'}}" wx:for="{{countRows}}" wx:key="type"><ui-field label="{{item.label}}" value="{{'' + item.count}}" type="number" data-type="{{item.type}}" bind:change="onCountSetting" /></view>
     <view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view>
     <ui-button slot="footer" label="应用本餐设置" bind:action="onApplyMealSettings" />
   </ui-sheet>
+  <include src="meal-actual-sheet.wxml" />
   <ui-confirm visible="{{confirmationVisible}}" title="替换已有安排？" description="{{confirmationText}}" confirm-label="确认替换" busy="{{busy}}" bind:confirm="onApproveReplacement" bind:cancel="onCloseConfirmation" />
 </view>

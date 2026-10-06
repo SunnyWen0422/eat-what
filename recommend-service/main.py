@@ -186,6 +186,13 @@ def get_assistant_session(session_id: str, user_id: Optional[str] = None):
         return _assistant_error(404, "ASSISTANT_SESSION_NOT_FOUND", "助手会话不存在或已过期")
     return {"success": True, "session_id": session_id, **session}
 
+@app.get('/assistant/sessions')
+def list_assistant_sessions(user_id: Optional[str] = None, cursor: Optional[str] = None, limit: int = 20):
+    if not user_id or not str(user_id).isdigit() or int(user_id)<1:
+        return _assistant_error(401,'AUTH_REQUIRED','请先登录查看历史')
+    try:return {'success':True,**assistant_engine.SESSION_STORE.list_sessions(_assistant_scope(user_id),cursor,limit)}
+    except ValueError:return _assistant_error(422,'ASSISTANT_CURSOR_INVALID','历史分页参数无效，请重新读取')
+
 
 @app.post("/assistant/sessions/{session_id}/messages")
 def send_assistant_message(session_id: str, req: AssistantMessageRequest):

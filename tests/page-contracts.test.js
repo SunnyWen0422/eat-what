@@ -7,6 +7,7 @@ const ingredients = require('../utils/shopping-ingredients')
 function page(route, api, store = {}) {
   let definition
   const sandbox = { Page: value => { definition = value }, require: name => {
+    if (name.endsWith('/shopping-list-presentation')) return require('../utils/shopping-list-presentation')
     if (name.endsWith('/shopping-prices')) return require('../utils/shopping-prices')
     if (name.endsWith('/shopping-capabilities')) return {refresh:async()=>({pricesEnabled:false,expensesEnabled:false}),notice:()=>''}
     if (name.endsWith('/product-release')) return require('../utils/product-release')
@@ -24,6 +25,9 @@ function page(route, api, store = {}) {
   definition.setData = update => Object.assign(definition.data, update)
   return definition
 }
+test('calendar deep link retains an explicit meal target',()=>{
+ const view=page('pages/calendar-detail/calendar-detail',{});view.onLoad({date:'2026-10-06',mealType:'dinner'});assert.equal(view.data.focusedMeal,'dinner');view.onLoad({date:'2026-10-06',mealType:'unknown'});assert.equal(view.data.focusedMeal,'')
+});
 test('shopping filters retain the authoritative full list without another request', () => {
   let requests = 0
   const view = page('pages/shopping-list/shopping-list', { getShoppingList: () => { requests++ } })
@@ -45,7 +49,7 @@ test('purchase preview preserves two dates for the same dish and separate people
 })
 test('all registered routes have valid event handlers, dark titles and the shared theme', () => {
   const app = JSON.parse(fs.readFileSync('app.json','utf8'))
-  assert.equal(app.pages.length,26)
+  assert.equal(app.pages.length,27)
   assert.deepEqual(app.tabBar.list.map(tab => tab.text), ['今天','菜谱','计划','我的'])
   for (const route of app.pages) {
     const source = fs.readFileSync(route + '.js','utf8') + fs.readFileSync('utils/meal-workspace-page.js','utf8'), template = fs.readFileSync(route + '.wxml','utf8') + (['pages/index/index','pages/result/result','pages/chat/chat'].includes(route) ? fs.readFileSync('templates/meal-workspace.wxml','utf8') : '')

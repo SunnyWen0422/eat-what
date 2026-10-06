@@ -1,0 +1,4 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
+.history-session { width:100%;margin:16rpx 0;white-space:normal; }
+.history-message { margin:24rpx 0;white-space:pre-wrap;overflow-wrap:anywhere; }

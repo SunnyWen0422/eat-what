@@ -9,13 +9,27 @@ const LABELS = ['早餐', '午餐', '晚餐']
 
 module.exports = function workspacePage(options = {}) {
   const voice = require('./workspace-voice').createVoiceHandlers(api)
+  const actual = require('./meal-actual-entry').createMealActualEntry({api,onSaved:async function(){await this.readWorkspace(this.data.context)}})
   return {
+    openMealActual(target) { return actual.openMealActual.call(this,target) },
+    onActualText(e) { return actual.onActualText.call(this,e) },
+    closeMealActual() { return actual.closeMealActual.call(this) },
+    disposeMealActual() { return actual.disposeMealActual.call(this) },
+    onActualByPlan() { return actual.onActualByPlan.call(this) },
+    onActualChanged() { return actual.onActualChanged.call(this) },
+    onActualSkipped() { return actual.onActualSkipped.call(this) },
+    onActualRetry() { return actual.onActualRetry.call(this) },
+    onActualReload() { return actual.onActualReload.call(this) },
+    submitMealActual(...args) { return actual.submitMealActual.call(this,...args) },
+    sendMealActual(...args) { return actual.sendMealActual.call(this,...args) },
+    onQuickActual() {if(this.current()&&!this.data.busy)return this.openMealActual({date:this.data.context.date,mealType:this.data.context.mealType})},
     voiceCurrent(run) { return voice.voiceCurrent.call(this,run) },
     onVoiceTap() { return voice.onVoiceTap.call(this) },
     onVoicePrivacyAgree() { return voice.onVoicePrivacyAgree.call(this) },
     onVoicePrivacyOpen() { return voice.onVoicePrivacyOpen.call(this) },
     cancelVoiceInput() { return voice.cancelVoiceInput.call(this) },
     data: {
+      actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
       workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
@@ -29,7 +43,7 @@ module.exports = function workspacePage(options = {}) {
       return this.initializeWorkspace(params)
     },
     async initializeWorkspace(params = {}) {
-      if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
+      if(this.disposeMealActual)this.disposeMealActual();this.setData({actualVisible:false,actualBusy:false});if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
       this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
       const target = { ...defaultTarget(), ...(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || {}) }
@@ -48,6 +62,18 @@ module.exports = function workspacePage(options = {}) {
       await this.readWorkspace(target, { people })
       if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return
       if(options.mode==='assistant') await this.loadLegacyMeals()
+      if(params.import==='history') {
+        const key=getUserStorageKey('pendingLegacyMealImport'),handoff=wx.getStorageSync(key),store=this.store
+        if(handoff&&handoff.date===target.date&&handoff.mealType===target.mealType) {
+          try {
+            const session=await api.getAssistantSession(handoff.sessionId)
+            if(!this.current()||initEpoch!==this._initEpoch||initScope!==this._scope||store!==this.store)return
+            const meal=require('./legacy-meal-import').resolveHistoryMeal(session,handoff)
+            wx.removeStorageSync(key);store.edit({...this.data.context,people:meal.people});this.renderWorkspace()
+            await this.runCommand('select',{dishIds:meal.dishIds})
+          } catch(error) {if(this.current()&&initEpoch===this._initEpoch&&store===this.store)this.setData({errorMessage:error.message||'导入未完成，当前方案仍保留'})}
+        }
+      }
       const selected = wx.getStorageSync(getUserStorageKey('workspaceSelectedDishes'))
       if (selected && selected.date === target.date && selected.mealType === target.mealType && this.current()) {
         if(await this.runCommand('select', { dishIds: selected.dishIds })) wx.removeStorageSync(getUserStorageKey('workspaceSelectedDishes'))
@@ -82,7 +108,7 @@ module.exports = function workspacePage(options = {}) {
       if (!this.data.busy) return this.readWorkspace(this.data.context)
     },
     onHide() { this.cancelVoiceInput(); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
-    onUnload() { this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
+    onUnload() { this.disposeMealActual();this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
     stopTimers() { clearTimeout(this._exposureTimer); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
     async readWorkspace(target = this.data.context, defaults = {}) {
       if (!this.store || !this.current()) return
@@ -258,7 +284,7 @@ module.exports = function workspacePage(options = {}) {
     onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType }); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
     onViewRecipes() { const plan=this.data.linkedPlan;if(plan){wx.navigateTo({url:`/pages/meal-cooking/meal-cooking?date=${this.data.context.date}&mealType=${this.data.context.mealType}&planRevision=${plan.revision}`});return}if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
-    onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date }) },
+    onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date + '&mealType=' + this.data.context.mealType }) },
     onShoppingPreview() {
       if (!this.current()) return
       const plan = this.data.linkedPlan; if (!plan) return
@@ -266,7 +292,7 @@ module.exports = function workspacePage(options = {}) {
       wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
     },
     onOpenAssistant() { return this.onOpenRequirements() },
-    onOpenAdvancedAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
+    onOpenAdvancedAssistant() { if(this.current())wx.navigateTo({ url: `/pages/assistant-history/assistant-history?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
     onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
     onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
     onLogin() { wx.showToast({ title: '登录后可跨设备保存本餐', icon: 'none' }); wx.switchTab({ url: '/pages/profile/profile' }) },

@@ -93,7 +93,7 @@ class UiSelfCheckTest(unittest.TestCase):
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 module.build()
-                outputs = ['utils/ui-tokens.js', 'styles/theme.wxss', 'app.json', 'design/asset-manifest.json', *[item['output'] for item in manifest]]
+                outputs = ['utils/ui-tokens.js', 'utils/ui-assets.js', 'styles/theme.wxss', 'app.json', 'design/asset-manifest.json', *[item['output'] for item in manifest]]
                 outputs += [str(file.relative_to(isolated)) for file in (isolated / 'assets').rglob('*') if file.is_file()]
                 return {file: (isolated / file).read_bytes() for file in outputs}
 

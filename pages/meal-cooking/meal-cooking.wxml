@@ -4,6 +4,7 @@
   <ui-state wx:elif="{{errorMessage}}" kind="error" title="{{errorMessage}}" action-label="重新读取" bind:action="onShow" />
   <block wx:else><view class="ew-tabs"><button wx:for="{{dishes}}" wx:key="id" class="ew-hit-target {{dishIndex === index ? 'active' : ''}}" data-index="{{index}}" bindtap="onChooseDish">{{item.name}}</button></view>
     <ui-card title="{{dishName}}"><view wx:if="{{steps.length}}"><text class="ew-muted">步骤 {{stepIndex + 1}} / {{steps.length}}</text><view class="cooking-step">{{steps[stepIndex]}}</view><view class="ew-actions"><ui-button label="上一步" variant="secondary" disabled="{{stepIndex === 0}}" bind:action="onPreviousStep" /><ui-button label="下一步" disabled="{{stepIndex >= steps.length - 1}}" bind:action="onNextStep" /></view></view><text wx:else class="ew-notice">这份历史快照缺少步骤，请核对原菜谱，不能推测做法。</text></ui-card>
-    <ui-button label="做饭结束 · 去记录实际用餐" variant="secondary" bind:action="onRecordActual" /><text class="ew-muted">打开记录页后还需确认吃过什么，查看或完成步骤不会自动计入饮食回顾。</text>
+    <ui-button label="做饭结束 · 记录实际用餐" variant="secondary" bind:action="onRecordActual" /><text class="ew-muted">打开记录页后还需确认吃过什么，查看或完成步骤不会自动计入饮食回顾。</text>
   </block>
+  <include src="../../templates/meal-actual-sheet.wxml" />
 </view>

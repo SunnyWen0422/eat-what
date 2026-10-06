@@ -1,5 +1,18 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
 const root=path.resolve(__dirname,'..');
+test('native icon component loads only JavaScript modules',()=>{
+ const vm=require('node:vm');let component;
+ vm.runInNewContext(fs.readFileSync(path.join(root,'components/ui-icon/ui-icon.js'),'utf8'),{
+  require(id){assert.ok(!id.endsWith('.json'),'native require cannot load JSON as a JS module');return require(path.resolve(root,'components/ui-icon',id))},
+  Component(value){component=value}
+ });
+ const page={setData(value){this.data=value}};component.properties.name.observer.call(page,'chef');assert.equal(page.data.asset,'cooking-pot');
+ assert.deepEqual(require('../utils/ui-assets').icons,require('../design/asset-manifest.json').icons);
+});
+test('IDE scan excludes legacy test temporary directories',()=>{
+ const ignores=require('../project.config.json').packOptions.ignore;
+ assert.ok(ignores.some(x=>x.type==='regexp' && new RegExp(x.value).test('tmppytest-eatwhat-full-40368')));
+});
 test('single token source has readable brand and text contrasts',()=>{
  const t=require('../design/tokens.json');
  function lum(h){const v=h.replace('#','').match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);return v[0]*.2126+v[1]*.7152+v[2]*.0722}
