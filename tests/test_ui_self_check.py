@@ -72,8 +72,8 @@ class UiSelfCheckTest(unittest.TestCase):
 
     def test_all_dimension_tokens_change_every_matching_generated_consumer_and_restore_identically(self):
         # The generator locates ROOT from its file; copying its complete inputs isolates every mutation.
-        temporary_root = ROOT / '.pytest_cache'
-        temporary_root.mkdir(exist_ok=True)
+        temporary_root = ROOT / '.test-artifacts' / 'ui-token'
+        temporary_root.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='ui-token-', dir=temporary_root) as directory:
             isolated = Path(directory)
             shutil.copytree(ROOT / 'design', isolated / 'design')

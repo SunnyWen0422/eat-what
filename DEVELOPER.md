@@ -1,6 +1,6 @@
 # 吃什么小程序 — 开发者手册
 
-> V4 接手入口：[开发者改造说明](docs/eat-what-developer-change-guide.md) / [前后端详细设计](docs/eat-what-agent-fullstack-detailed-design.md) / [实施与验收记录](docs/full-ui-implementation-progress.md)。当前餐工作区源码已实施，默认开关关闭，未发布；以下旧接口说明保留兼容背景，V4 以新详细设计为准。
+> V4 接手入口：[开发者改造说明](docs/eat-what-developer-change-guide.md) / [前后端详细设计](docs/eat-what-agent-fullstack-detailed-design.md) / [本机开发与验证](docs/testing/local-verification.md)。本机体验开关已按用户要求开启，API 为 127.0.0.1:18780；未发布。以下旧接口说明保留兼容背景，V4 以新详细设计及本次实施记录为准。
 
 ## 项目概述
 

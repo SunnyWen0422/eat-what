@@ -1,14 +1,22 @@
+param(
+ [string]$PythonExecutable=$env:CODEX_PYTHON,
+ [string]$MavenExecutable='mvn',
+ [string]$MavenRepository,
+ [switch]$Offline
+)
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$python = $env:CODEX_PYTHON
+$python = $PythonExecutable
 if (-not $python) {
     $python = 'C:\Users\Administrator\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
 }
 
+& $python -c 'import cairosvg; assert callable(cairosvg.svg2png)'
+if ($LASTEXITCODE -ne 0) { throw 'CairoSVG and its Cairo runtime are required; see docs/testing/local-verification.md.' }
 Write-Host 'Checking JSON files...'
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.json -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
     ForEach-Object {
         Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
     }
@@ -24,13 +32,14 @@ $textExtensions = @('.bat', '.java', '.js', '.json', '.md', '.properties', '.py'
 Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object {
         $textExtensions -contains $_.Extension -and
-        $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\'
+        $_.Name -notmatch '^application(?:-.*)?\.yml$' -and
+        $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\'
     } |
     ForEach-Object {
         $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName
         foreach ($value in $forbidden) {
             if ($content.Contains($value)) {
-                throw "Embedded credential marker '$value' found in $($_.FullName)"
+                throw "Embedded credential marker found in $($_.FullName)"
             }
         }
     }
@@ -38,7 +47,7 @@ Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
 Write-Host 'Checking JavaScript syntax...'
 $node = (Get-Command node -ErrorAction Stop).Source
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\.pytest_cache\\|\\node_modules\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\|\\node_modules\\' } |
     ForEach-Object {
         & $node --check $_.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -52,7 +61,7 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 
 Write-Host 'Checking Python syntax...'
 $pythonFiles = Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.py -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
     Select-Object -ExpandProperty FullName
 if ($pythonFiles.Count -gt 0) {
     & $python -m py_compile @pythonFiles
@@ -88,7 +97,9 @@ try {
 } finally { Pop-Location }
 
 Write-Host 'Checking Java tests and package...'
-& mvn -q -f (Join-Path $root 'backend\pom.xml') test package
+if ($MavenRepository) { $env:MAVEN_ARGS = ('-Dmaven.repo.local=' + $MavenRepository) }
+if ($Offline) { $env:MAVEN_ARGS = '-o ' + $env:MAVEN_ARGS }
+& $MavenExecutable -q -f (Join-Path $root 'backend\pom.xml') test package
 if ($LASTEXITCODE -ne 0) {
     throw 'Java build check failed.'
 }

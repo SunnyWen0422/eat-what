@@ -38,7 +38,7 @@ def validate_result(value: dict, context: dict, sourced_ids: set[int]) -> dict:
 
 
 def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[str, Any]:
-    from model_client import DeepSeekModelClient
+    from model_client import DeepSeekModelClient, tool_assistant_message
     import agent_tools
     from agent_schemas import validate_tool_call
 
@@ -50,6 +50,7 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
     messages = [{"role": "system", "content": json.dumps({
         "instruction": "理解本餐自由文本并用只读工具选择真实菜品。明确限制全部转为 criteria 或 totalCookMinutes，不能确定时 needsInput=true。不得编造菜品、营养或用时。日期餐次与工作区不同时返回实际目标并等待用户切换。保留菜品必须包含。只返回 JSON。",
         "context": context, "lockedDishIds": workspace.get("draft", {}).get("lockedDishIds", []),
+        "recommendationOptions": workspace.get("recommendationOptions", {}),
         "contract": {"needsInput": "boolean", "constraintsUnderstood": "boolean", "message": "string",
                      "date": "YYYY-MM-DD", "mealType": "breakfast|lunch|dinner", "dishIds": "integer[]",
                      "criteria": {"cuisineCodes": [], "includeTagCodes": [], "excludeTagCodes": [], "excludedIngredients": [], "maxCookMinutes": None},
@@ -83,7 +84,6 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
                     collect(child)
         collect(records)
         call_id = call.get("id") or f"v4_{round_number}"
-        messages.extend([{"role": "assistant", "tool_calls": [{"id": call_id, "type": "function", "function": {
-            "name": call["name"], "arguments": json.dumps(call["arguments"], ensure_ascii=False)}}]},
+        messages.extend([tool_assistant_message(response, call, call_id),
             {"role": "tool", "tool_call_id": call_id, "content": json.dumps(records, ensure_ascii=False)}])
     return {"needsInput": True, "message": "本次理解超时，请在设置面板明确限制后重试", "dishIds": []}

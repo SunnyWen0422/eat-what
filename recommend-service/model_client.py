@@ -31,6 +31,15 @@ def _json_content(content: str) -> Dict[str, Any]:
     return value
 
 
+def tool_assistant_message(response: dict, call: dict, call_id: str) -> dict:
+    """Carry provider tool metadata only inside the transient model conversation."""
+    message = {"role": "assistant", "content": "", "tool_calls": [{"id": call_id, "type": "function", "function": {
+        "name": call["name"], "arguments": json.dumps(call["arguments"], ensure_ascii=False)}}]}
+    if isinstance(response.get("_reasoning_content"), str):
+        message["reasoning_content"] = response["_reasoning_content"]
+    return message
+
+
 class DeepSeekModelClient:
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None,
                  model: Optional[str] = None, timeout: float = 12.0):
@@ -94,7 +103,10 @@ class DeepSeekModelClient:
                 arguments = json.loads(raw_args) if isinstance(raw_args, str) else raw_args
             except json.JSONDecodeError as error:
                 raise ModelProtocolError("tool arguments are invalid JSON") from error
-            return {"tool_call": {"id": call.get("id"), "name": function.get("name"), "arguments": arguments}}
+            result = {"tool_call": {"id": call.get("id"), "name": function.get("name"), "arguments": arguments}}
+            if isinstance(message.get("reasoning_content"), str):
+                result["_reasoning_content"] = message["reasoning_content"]
+            return result
         return {"final": _json_content(message.get("content", ""))}
 
 

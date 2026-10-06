@@ -763,6 +763,10 @@ function getAdminAuditLogs(params = {}) {
 // ========================================
 
 module.exports = {
+  createVoiceSession: () => doRequest('/assistant/voice/session','POST',{}, {silent:true,maxRetries:0}),
+  getShoppingPurchaseOptions: () => requestSilent('/shopping-list/purchase-options','GET'),
+  getIngredientPriceQuotes: items => requestSilent('/ingredient-prices/query','POST',{items}),
+  saveShoppingExpense: body => doRequest('/shopping-list/expenses','POST',body,{silent:true,maxRetries:0}),
   getMealWorkspace: (date, mealType) => requestSilent(`/meal-workspaces/current?date=${encodeURIComponent(date)}&mealType=${encodeURIComponent(mealType)}`, 'GET'),
   createMealWorkspace: body => doRequest('/meal-workspaces', 'POST', body, { silent: true, maxRetries: 0 }),
   saveWorkspaceContext: (id, body) => doRequest(`/meal-workspaces/${encodeURIComponent(id)}/context`, 'PATCH', body, { silent: true, maxRetries: 0 }),

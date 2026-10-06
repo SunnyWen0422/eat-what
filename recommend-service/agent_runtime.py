@@ -14,7 +14,7 @@ from agent_policy import load_policy, policy_hash
 from agent_schemas import SchemaValidationError, to_runtime_plan, validate_final_output, validate_tool_call
 from assistant_store import AssistantStore
 from plan_commands import next_plan_state, PlanCommandError
-from model_client import ModelProtocolError, ModelUnavailable, default_model_client
+from model_client import ModelProtocolError, ModelUnavailable, default_model_client, tool_assistant_message
 
 
 STAGES = {
@@ -309,7 +309,7 @@ class AgentRuntime:
                         if str(tool_result.get("dish_id")) not in candidates:
                             raise SchemaValidationError("scaling requires a dish returned by a lookup tool")
                         scaled_results[(str(tool_result.get("dish_id")), str(tool_result.get("target_people")))] = copy.deepcopy(tool_result)
-                    tool_messages.append({"role": "assistant", "tool_calls": [{"id": call.get("id") or f"call_{round_number}", "type": "function", "function": {"name": call["name"], "arguments": json.dumps(call["arguments"], ensure_ascii=False)}}]})
+                    tool_messages.append(tool_assistant_message(response, call, call.get("id") or f"call_{round_number}"))
                     tool_messages.append({"role": "tool", "tool_call_id": call.get("id") or f"call_{round_number}", "content": json.dumps(tool_result, ensure_ascii=False)[:12000]})
                     continue
                 payload = response.get("final")

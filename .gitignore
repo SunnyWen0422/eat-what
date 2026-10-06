@@ -1,4 +1,6 @@
 # Windows
+.local-v4/
+.test-artifacts/
 [Dd]esktop.ini
 Thumbs.db
 $RECYCLE.BIN/

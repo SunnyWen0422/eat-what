@@ -36,6 +36,9 @@ import java.util.Set;
 
 @Service
 public class ShoppingListService {
+    private com.eatwhat.mapper.ShoppingExpenseMapper expenses;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setExpenses(com.eatwhat.mapper.ShoppingExpenseMapper expenses) { this.expenses=expenses; }
     private MealBehaviorService behavior;
     @org.springframework.beans.factory.annotation.Autowired
     public void setMealBehaviorService(MealBehaviorService behavior) { this.behavior=behavior; }
@@ -87,6 +90,11 @@ public class ShoppingListService {
         }
         response.setPurchaseSummary(buildSummary(response.getDishes()));
         calculateCounts(response, allItems);
+        if (expenses != null) {
+            java.util.Set<String> keys = new java.util.HashSet<>();
+            for (ShoppingDishDTO d : response.getDishes()) for (ShoppingPreviewItemDTO i : d.getItems()) keys.add(com.eatwhat.util.ShoppingIngredientKey.of(i));
+            for (com.eatwhat.dto.ShoppingExpense e : expenses.find(list.getId())) if(keys.contains(e.getIngredientKey())) response.getExpenses().put(e.getIngredientKey(),e);
+        }
         return response;
     }
 
@@ -380,6 +388,12 @@ public class ShoppingListService {
     }
 
     private void increment(ShoppingList list, Long userId) {
+        if (expenses != null) {
+            ShoppingListResponse remaining=getList(userId,"all");
+            Set<String> keys=new HashSet<>();
+            for(ShoppingDishDTO d:remaining.getDishes())for(ShoppingPreviewItemDTO i:d.getItems())keys.add(com.eatwhat.util.ShoppingIngredientKey.of(i));
+            for(com.eatwhat.dto.ShoppingExpense e:expenses.find(list.getId()))if(!keys.contains(e.getIngredientKey()))expenses.delete(list.getId(),e.getIngredientKey());
+        }
         long version = (list.getVersion() == null ? 0 : list.getVersion()) + 1;
         listMapper.updateVersion(list.getId(), userId, version, list.getMetadataVersion() == null ? 1 : list.getMetadataVersion());
     }

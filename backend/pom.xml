@@ -26,6 +26,7 @@
     </properties>
 
     <dependencies>
+        <dependency><groupId>org.apache.poi</groupId><artifactId>poi</artifactId><version>5.2.5</version></dependency>
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -83,6 +84,9 @@
     </dependencies>
 
     <build>
+        <resources><resource><directory>src/main/resources</directory><excludes>
+            <exclude>application.yml</exclude><exclude>application-prod.yml</exclude><exclude>application-local*.yml</exclude>
+        </excludes></resource></resources>
         <plugins>
             <plugin>
                 <groupId>org.jacoco</groupId>

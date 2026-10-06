@@ -16,6 +16,7 @@ import java.util.Map;
  */
 @Service
 public class UserService {
+    @Autowired(required=false) private LocalV4LoginService localV4Login;
     
     private final UserMapper userMapper;
     private final WeChatUtil weChatUtil;
@@ -34,6 +35,7 @@ public class UserService {
      */
     @Transactional
     public Map<String, Object> loginByCode(String code) {
+        if (localV4Login != null) return localV4Login.login();
         try {
             // 调用微信API获取openid和session_key
             Map<String, String> wechatResult = weChatUtil.code2Session(code);

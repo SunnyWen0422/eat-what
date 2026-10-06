@@ -8,9 +8,15 @@ const MEALS = ['breakfast', 'lunch', 'dinner']
 const LABELS = ['早餐', '午餐', '晚餐']
 
 module.exports = function workspacePage(options = {}) {
+  const voice = require('./workspace-voice').createVoiceHandlers(api)
   return {
+    voiceCurrent(run) { return voice.voiceCurrent.call(this,run) },
+    onVoiceTap() { return voice.onVoiceTap.call(this) },
+    onVoicePrivacyAgree() { return voice.onVoicePrivacyAgree.call(this) },
+    onVoicePrivacyOpen() { return voice.onVoicePrivacyOpen.call(this) },
+    cancelVoiceInput() { return voice.cancelVoiceInput.call(this) },
     data: {
-      workspaceEnabled: true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
@@ -23,6 +29,7 @@ module.exports = function workspacePage(options = {}) {
       return this.initializeWorkspace(params)
     },
     async initializeWorkspace(params = {}) {
+      if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
       this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
       const target = { ...defaultTarget(), ...(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || {}) }
@@ -74,9 +81,9 @@ module.exports = function workspacePage(options = {}) {
       if(filter && this.store) {wx.removeStorageSync(filterKey);this.store.edit({...this.data.context,criteria:filter});this.renderWorkspace();this.scheduleDraftSave()}
       if (!this.data.busy) return this.readWorkspace(this.data.context)
     },
-    onHide() { clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
-    onUnload() { this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
-    stopTimers() { clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
+    onHide() { this.cancelVoiceInput(); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
+    onUnload() { this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
+    stopTimers() { clearTimeout(this._exposureTimer); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
     async readWorkspace(target = this.data.context, defaults = {}) {
       if (!this.store || !this.current()) return
       const store = this.store
@@ -93,14 +100,40 @@ module.exports = function workspacePage(options = {}) {
         status: w && w.status==='planned' && w.confirmation && w.confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
         linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
         canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced' })
+      this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data, busy:this.data.busy}));
       if (w && w.status === 'draft' && state.syncStatus === 'synced') this.expose(w)
     },
     expose(w) {
-      const key = `${w.id}:${w.draft.planVersion}`
+      const key = `${this._scope}:${w.id}:${w.draft.planVersion}`
       if (this._exposed === key) return
-      this._exposed = key; const exposedScope=this._scope
-      api.recordBehaviorEvent({ requestId: requestId(), workspaceId: w.id, expectedWorkspaceRevision: w.revision, planVersion: w.draft.planVersion, eventType: 'exposed' })
-        .catch(error => { if (this.current() && exposedScope===this._scope) this.setData({ feedbackNotice: '本次曝光反馈尚未同步' }); console.warn('workspace_exposure_failed', error.statusCode || 'network') })
+      this._exposed=key; const scope=this._scope
+      const body={requestId:`exposed-${w.id}-${w.draft.planVersion}`,workspaceId:w.id,expectedWorkspaceRevision:w.revision,planVersion:w.draft.planVersion,eventType:'exposed'}
+      const send=attempt=>api.recordBehaviorEvent(body).catch(error=>{
+        if(!this.current() || scope!==this._scope || this._exposed!==key)return
+        console.warn('workspace_exposure_failed',error.statusCode || 'network')
+        if(attempt<2 && (!error.statusCode || error.statusCode>=500))this._exposureTimer=setTimeout(()=>send(attempt+1),attempt?10000:2000)
+      })
+      send(0)
+    },
+    onPrimaryAction() {
+      const allowed=['onGenerate','onRetryWorkspace','onLoadLatest','onCancelTask','onViewPlan','onViewRecipes','onConfirmPlan','onOpenRequirements']
+      if(allowed.includes(this.data.primaryAction))return this[this.data.primaryAction]()
+    },
+    onOpenRequirements() {
+      if(!this.current() || this.data.busy)return
+      const w=this.store && this.store.state().workspace
+      this._requirementsBinding={scope:this._scope,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
+      this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',errorMessage:''})
+    },
+    onRequirementsDraftInput(e) {this.setData({requirementsDraft:e.detail.value})},
+    onCancelRequirements() {this.cancelVoiceInput();this.setData({requirementsVisible:false,requirementsDraft:this.data.context.requirements || ''});this._requirementsBinding=null},
+    async onApplyRequirements() {
+      const binding=this._requirementsBinding,store=this.store,w=store && store.state().workspace
+      if(!binding || !this.current() || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!==(w && w.id))return
+      this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:this.data.requirementsDraft});this.renderWorkspace()
+      const ownsSheet=()=>this.current() && this.store===store && this._requirementsBinding===binding && binding.scope===this._scope && binding.date===this.data.context.date && binding.meal===this.data.context.mealType
+      try {await this.flushDraft();if(!ownsSheet())return;this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace()}
+      catch(error){if(ownsSheet())this.setData({errorMessage:error.message || '文字已保留，请重试同步'})}
     },
     async pollTask() {
       clearTimeout(this._pollTimer)
@@ -224,7 +257,7 @@ module.exports = function workspacePage(options = {}) {
     async switchTarget(target) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), target); this._params = target; return this.initializeWorkspace(target) },
     onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType }); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
-    onViewRecipes() { const plan=this.data.linkedPlan;if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
+    onViewRecipes() { const plan=this.data.linkedPlan;if(plan){wx.navigateTo({url:`/pages/meal-cooking/meal-cooking?date=${this.data.context.date}&mealType=${this.data.context.mealType}&planRevision=${plan.revision}`});return}if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
     onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date }) },
     onShoppingPreview() {
       if (!this.current()) return
@@ -232,7 +265,8 @@ module.exports = function workspacePage(options = {}) {
       beginShoppingSelection({ source: 'workspace', targetPeople: plan.targetPeople, sources: [{ sourceDate: this.data.context.date, sourceMealType: this.data.context.mealType, targetPeople: plan.targetPeople, dishIds: plan.dishIds, dishes: plan.dishDetails || [] }] })
       wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
     },
-    onOpenAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
+    onOpenAssistant() { return this.onOpenRequirements() },
+    onOpenAdvancedAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
     onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
     onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
     onLogin() { wx.showToast({ title: '登录后可跨设备保存本餐', icon: 'none' }); wx.switchTab({ url: '/pages/profile/profile' }) },

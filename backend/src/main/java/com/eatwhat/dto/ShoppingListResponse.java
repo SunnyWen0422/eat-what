@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class ShoppingListResponse {
+    private java.util.Map<String, ShoppingExpense> expenses = new java.util.LinkedHashMap<>();
     private Long listId;
     private Long version = 0L;
     private List<ShoppingDishDTO> dishes = new ArrayList<>();

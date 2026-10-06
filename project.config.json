@@ -78,6 +78,22 @@
       {
         "type": "suffix",
         "value": ".svg"
+      },
+      {
+        "type": "folder",
+        "value": ".local-v4"
+      },
+      {
+        "type": "folder",
+        "value": ".test-artifacts"
+      },
+      {
+        "type": "folder",
+        "value": ".pytest_cache"
+      },
+      {
+        "type": "folder",
+        "value": "__pycache__"
       }
     ],
     "include": []
