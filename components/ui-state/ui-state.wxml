@@ -1,1 +1,7 @@
-<view class="state {{kind}}" role="status" aria-live="polite"><image wx:if="{{illustration || kind === 'loading'}}" class="illustration" src="/assets/illustrations/{{illustration || 'agent-thinking'}}.png" mode="aspectFit" /><view wx:else class="symbol">{{kind === 'error' ? '!' : kind === 'auth' ? '↗' : '○'}}</view><text class="title">{{title}}</text><text class="description">{{description}}</text><button wx:if="{{actionLabel}}" class="ew-hit-target action" bindtap="onAction">{{actionLabel}}</button></view>
+<view class="state {{kind}} {{inline ? 'inline' : ''}}" role="status" aria-live="polite">
+  <image wx:if="{{showIllustration}}" class="illustration" src="/assets/illustrations/{{illustration}}.png" mode="aspectFit" aria-hidden="true" />
+  <view wx:elif="{{kind === 'loading'}}" class="spinner" aria-hidden="true" />
+  <ui-icon wx:elif="{{icon}}" name="{{icon}}" size="24" />
+  <view class="state-content"><text class="title">{{title}}</text><text wx:if="{{description}}" class="description">{{description}}</text></view>
+  <button wx:if="{{actionLabel}}" class="ew-hit-target action" bindtap="onAction">{{actionLabel}}</button>
+</view>

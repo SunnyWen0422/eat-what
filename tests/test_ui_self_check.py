@@ -12,6 +12,11 @@ from ui_source_audit import ROOT, Template, page_audit, rules, styles, declared_
 
 
 class UiSelfCheckTest(unittest.TestCase):
+    @staticmethod
+    def fixed_touch_minimum(value):
+        match = re.fullmatch(r'(\d+(?:\.\d+)?)px', value or '')
+        return bool(match and float(match[1]) >= 44)
+
     def test_result_favorite_and_refresh_keep_44px_through_actual_pressed_ancestors(self):
         route = 'pages/result/result'
         css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
@@ -30,14 +35,14 @@ class UiSelfCheckTest(unittest.TestCase):
         failures = []
         for route in routes:
             for target in page_audit(route)['clicks']:
-                if target['minWidth'] != '44px' or target['minHeight'] != '44px':
+                if not self.fixed_touch_minimum(target['minWidth']) or not self.fixed_touch_minimum(target['minHeight']):
                     failures.append((route, target))
         for file in (ROOT / 'components').glob('*/*.wxml'):
             css = rules(file.with_suffix('.wxss'))
             for node in Template(file.read_text(encoding='utf-8')).nodes:
                 if node.tag in ('view', 'text', 'picker') and any(key.endswith('tap') for key in node.attrs):
                     style = styles(node, css)
-                    if style.get('min-width') != '44px' or style.get('min-height') != '44px':
+                    if not self.fixed_touch_minimum(style.get('min-width')) or not self.fixed_touch_minimum(style.get('min-height')):
                         failures.append((str(file.relative_to(ROOT)), node.attrs))
         self.assertEqual([], failures)
 

@@ -1,0 +1,12 @@
+{
+  "version": "warm-table-line-v2",
+  "source": "Remastered vectors already maintained in this repository",
+  "sourceFile": "scripts/build_ui_assets.py",
+  "thirdPartyAssetsAdded": false,
+  "canvas": 24,
+  "stroke": 2,
+  "safeArea": 2,
+  "tones": ["brand", "muted"],
+  "selection": "Independent soft-surface tab variants; dedicated filled favorite",
+  "note": "Public icon library retrieval was unavailable. No network dependency or unverified license is added."
+}

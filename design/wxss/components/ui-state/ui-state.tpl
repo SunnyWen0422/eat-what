@@ -1,13 +1,2 @@
-.state { text-align:center; padding:{{space.6.rpx}} {{space.3.rpx}}; color:{{muted}}; } .symbol { font-size:{{font.page.em*1.25002}}; color:{{brand}}; margin-bottom:{{space.2.rpx}}; } .title { display:block; color:{{text}}; font-size:{{font.card.em}}; font-weight:600; } .description { display:block; margin:{{space.1.rpx}} 0; font-size:{{font.secondary.em}}; line-height:1.6; } .action { background:{{brandSoft}}; color:{{brand}}; min-height:{{controls.touchSize.px}}; border-radius:{{radius.1.rpx*1.2}}; font-size:{{font.body.em}}; margin-top:{{space.2.rpx}}; } .action::after { border:0; } .error .symbol { color:{{danger}}; }
-
-.illustration{width:160px;height:145px;display:block;margin:0 auto {{space.3.px}}}
-
-/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
-.ew-hit-target, .ew-page .ew-hit-target { min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; box-sizing:border-box; }
-text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
-picker.ew-hit-target { display:block; }
-button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
-
-.ew-placeholder { color:{{muted}}; }
-
-button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+@import "../../styles/theme.wxss";
+.state{display:flex;flex-direction:column;align-items:center;gap:{{space.2.px}};padding:{{space.5.px}} {{space.3.px}};color:{{muted}};text-align:center}.state.inline{flex-direction:row;flex-wrap:wrap;text-align:left;justify-content:flex-start;align-items:center;padding:{{space.3.px}} 0}.state-content{min-width:0}.inline .state-content{flex:1}.title{display:block;font-size:{{font.card.em}};line-height:1.5;font-weight:500;color:{{text}}}.description{display:block;font-size:{{font.secondary.em}};line-height:1.65;margin-top:{{space.0.px}}}.illustration{width:96px;height:88px}.action{background:transparent;color:{{brand}};font-size:{{font.body.em}};min-width:{{controls.touchSize.px}};min-height:{{controls.touchSize.px}};margin:0;padding:{{space.1.px}} {{space.2.px}};border:1px solid {{border}};border-radius:{{radius.1.px}};line-height:1.5}.action::after{border:0}.spinner{height:18px;width:18px;border:2px solid {{border}};border-top-color:{{brand}};border-radius:50%;flex-shrink:0;animation:state-spin 1s linear infinite}@keyframes state-spin{to{transform:rotate(360deg)}}.error .title{color:{{danger}}}

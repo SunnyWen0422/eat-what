@@ -24,8 +24,8 @@ test('runtime PNG assets are included in the mini program package',()=>{
  const config=require('../project.config.json')
  for(const ignore of config.packOptions.ignore) assert.ok(!(ignore.type==='suffix' && ignore.value==='.png'),'PNG assets must not be globally excluded')
 })
-test('formal asset manifest covers 36 icons, tab variants and five illustrations',()=>{
- const m=require('../design/asset-manifest.json');assert.equal(m.icons.length,36);assert.equal(m.illustrations.length,5)
+test('formal asset manifest covers the complete icon set, tab variants and five illustrations',()=>{
+ const m=require('../design/asset-manifest.json');assert.equal(m.icons.length,37);assert.equal(m.illustrations.length,5)
  for(const n of [...m.icons,...m.tabs.map(n=>n+'-selected')]) for(const ext of ['svg','png']) assert.ok(fs.statSync(path.join(root,'assets/icons',n+'.'+ext)).size>100)
  for(const n of m.illustrations) for(const ext of ['svg','png']) assert.ok(fs.statSync(path.join(root,'assets/illustrations',n+'.'+ext)).size>100)
 })

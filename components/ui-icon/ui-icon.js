@@ -1,3 +1,4 @@
 const names = require('../../utils/ui-assets').icons
 const aliases = {chef:'cooking-pot',meat:'recipe',veg:'ingredient',soup:'cooking-pot',dessert:'servings',staple:'servings',cart:'shopping-basket',chart:'statistics',star:'favorite',heart:'favorite',pencil:'edit',meal:'servings',bot:'agent-spark',spark:'agent-spark',sync:'refresh',leaf:'ingredient',pot:'cooking-pot',user:'profile',gear:'settings',book:'recipes',back:'arrow-left'}
-Component({properties:{name:{type:String,value:'info',observer(value){const asset=aliases[value]||value;this.setData({asset:names.includes(asset)?asset:'info'})}},size:{type:Number,value:24},label:String},data:{asset:'info'}})
+function assetFor(name,tone){const base=aliases[name]||name;return (names.includes(base)?base:'info')+(tone==='muted'?'-muted':'')}
+Component({properties:{name:{type:String,value:'info',observer(value){this.setData({asset:assetFor(value,this.properties&&this.properties.tone)})}},tone:{type:String,value:'brand',observer(value){this.setData({asset:assetFor(this.properties&&this.properties.name,value)})}},size:{type:Number,value:24},label:String},data:{asset:'info'}})
