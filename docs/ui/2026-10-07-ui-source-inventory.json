@@ -1,0 +1,1019 @@
+{
+  "date": "2026-10-07",
+  "baseline": "faf3dd77d111b4370272d15df2aac54e60541447",
+  "method": "Static source and asset-reference inventory. Includes inactive compatibility branches. Counts are source occurrences, not rendered instances or native acceptance.",
+  "routes": [
+    "pages/index/index",
+    "pages/logs/logs",
+    "pages/result/result",
+    "pages/dish-detail/dish-detail",
+    "pages/customize/customize",
+    "pages/calendar/calendar",
+    "pages/calendar-detail/calendar-detail",
+    "pages/profile/profile",
+    "pages/about/about",
+    "pages/statistics/statistics",
+    "pages/sync/sync",
+    "pages/favorite-dishes/favorite-dishes",
+    "pages/settings/settings",
+    "pages/recommend-filter/recommend-filter",
+    "pages/profile-edit/profile-edit",
+    "pages/custom-dishes/custom-dishes",
+    "pages/admin/admin",
+    "pages/admin-dashboard/admin-dashboard",
+    "pages/admin-users/admin-users",
+    "pages/admin-user-detail/admin-user-detail",
+    "pages/admin-dishes/admin-dishes",
+    "pages/admin-audit/admin-audit",
+    "pages/chat/chat",
+    "pages/shopping-preview/shopping-preview",
+    "pages/shopping-list/shopping-list",
+    "pages/meal-cooking/meal-cooking",
+    "pages/assistant-history/assistant-history"
+  ],
+  "wxml_count": 44,
+  "visual_reference_count": 52,
+  "visual_references": [
+    {
+      "path": "components/dish-card/dish-card.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<image wx:if=\"{{dish.image && !imageFailed}}\" class=\"image\" src=\"{{dish.image}}\" mode=\"aspectFill\" binderror=\"fail\" />"
+    },
+    {
+      "path": "components/ui-icon/ui-icon.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<image class=\"icon\" src=\"/assets/icons/{{asset}}.png\" style=\"width:{{size}}px;height:{{size}}px\" mode=\"aspectFit\" aria-label=\"{{label}}\" />"
+    },
+    {
+      "path": "components/ui-icon-button/ui-icon-button.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<ui-icon name=\"{{name}}\" label=\"{{label}}\" />"
+    },
+    {
+      "path": "components/ui-list/ui-list.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<ui-icon name=\"{{item.icon}}\" />"
+    },
+    {
+      "path": "components/ui-list/ui-list.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<ui-icon name=\"chevron-right\" />"
+    },
+    {
+      "path": "components/ui-search/ui-search.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<ui-icon name=\"search\" />"
+    },
+    {
+      "path": "components/ui-search/ui-search.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<ui-icon-button wx:if=\"{{value}}\" name=\"close\" label=\"清空搜索\" disabled=\"{{disabled}}\" bind:press=\"clear\" />"
+    },
+    {
+      "path": "components/ui-sheet/ui-sheet.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<ui-icon-button name=\"close\" label=\"关闭面板\" disabled=\"{{busy}}\" bind:press=\"close\" />"
+    },
+    {
+      "path": "components/ui-state/ui-state.wxml",
+      "line": 1,
+      "scope": "shared-component",
+      "markup": "<image wx:if=\"{{illustration || kind === 'loading'}}\" class=\"illustration\" src=\"/assets/illustrations/{{illustration || 'agent-thinking'}}.png\" mode=\"aspectFit\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 9,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-refresh\" name=\"refresh\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 19,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-spark\" name=\"spark\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 25,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-bot\" name=\"bot\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 26,
+      "scope": "legacy-fallback",
+      "markup": "<image wx:if=\"{{item.role === 'user' && userAvatar}}\" class=\"avatar-user\" src=\"{{userAvatar}}\" mode=\"aspectFill\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 27,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-user\" name=\"user\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 32,
+      "scope": "legacy-fallback",
+      "markup": "<image wx:if=\"{{dish.image}}\" class=\"dc-img\" src=\"{{dish.image}}\" mode=\"aspectFill\" lazy-load />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 33,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-meal\" name=\"meal\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 49,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-info\" name=\"info\" />"
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "line": 69,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-bot\" name=\"bot\" />"
+    },
+    {
+      "path": "pages/dish-detail/dish-detail.wxml",
+      "line": 14,
+      "scope": "active-page",
+      "markup": "<ui-icon class=\"line-icon line-icon-meal\" name=\"meal\" />"
+    },
+    {
+      "path": "pages/dish-detail/dish-detail.wxml",
+      "line": 20,
+      "scope": "active-page",
+      "markup": "<ui-icon class=\"line-icon line-icon-heart favorite-icon\" name=\"{{isFavorite ? 'favorite-filled' : 'favorite'}}\" aria-label=\"{{isFavorite ? '取消收藏' : '收藏'}}\" />"
+    },
+    {
+      "path": "pages/dish-detail/dish-detail.wxml",
+      "line": 23,
+      "scope": "active-page",
+      "markup": "<ui-icon class=\"line-icon line-icon-share\" name=\"share\" aria-label=\"分享\" />"
+    },
+    {
+      "path": "pages/favorite-dishes/favorite-dishes.wxml",
+      "line": 1,
+      "scope": "active-page",
+      "markup": "illustration=\"empty-favorites\""
+    },
+    {
+      "path": "pages/favorite-dishes/favorite-dishes.wxml",
+      "line": 1,
+      "scope": "active-page",
+      "markup": "illustration=\"empty-favorites\""
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 8,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-meal\" name=\"meal\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 23,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-meat\" name=\"meat\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 33,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-veg\" name=\"veg\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 43,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-soup\" name=\"soup\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 53,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-dessert\" name=\"dessert\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 63,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-staple\" name=\"staple\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 75,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-spark tip-icon\" name=\"spark\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 110,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-book\" name=\"book\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 149,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-bot\" name=\"bot\" />"
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "line": 151,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-spark\" name=\"spark\" />"
+    },
+    {
+      "path": "pages/profile/profile.wxml",
+      "line": 5,
+      "scope": "active-page",
+      "markup": "<image wx:if=\"{{userInfo.avatar}}\" class=\"avatar\" src=\"{{userInfo.avatar}}\" mode=\"aspectFill\" binderror=\"onAvatarError\" />"
+    },
+    {
+      "path": "pages/profile/profile.wxml",
+      "line": 7,
+      "scope": "active-page",
+      "markup": "<ui-icon class=\"line-icon line-icon-pencil edit-icon\" name=\"pencil\" aria-label=\"编辑资料\" />"
+    },
+    {
+      "path": "pages/profile/profile.wxml",
+      "line": 30,
+      "scope": "active-page",
+      "markup": "<ui-icon class=\"line-icon line-icon-cart\" name=\"cart\" aria-label=\"购物清单\" />"
+    },
+    {
+      "path": "pages/profile/profile.wxml",
+      "line": 44,
+      "scope": "active-page",
+      "markup": "<ui-icon name=\"{{item.icon}}\" label=\"{{item.title}}\" />"
+    },
+    {
+      "path": "pages/profile-edit/profile-edit.wxml",
+      "line": 1,
+      "scope": "active-page",
+      "markup": "<image wx:if=\"{{userInfo.avatar}}\" src=\"{{userInfo.avatar}}\" class=\"avatar-img\" mode=\"aspectFill\" binderror=\"onAvatarError\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 21,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-meal\" name=\"meal\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 44,
+      "scope": "legacy-fallback",
+      "markup": "<image wx:if=\"{{item.image}}\" class=\"dish-img\" src=\"{{item.image}}\" mode=\"aspectFill\" lazy-load binderror=\"onImgError\" data-plan-index=\"{{planIndex}}\" data-dish-index=\"{{dishIndex}}\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 45,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-meal\" name=\"meal\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 53,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-heart\" name=\"{{item.isFavorite ? 'favorite-filled' : 'favorite'}}\" aria-label=\"{{item.isFavorite ? '取消收藏' : '收藏'}}\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 64,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-spark\" name=\"spark\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 65,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-book\" name=\"book\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 66,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-clock\" name=\"clock\" />"
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "line": 71,
+      "scope": "legacy-fallback",
+      "markup": "<ui-icon class=\"line-icon line-icon-refresh\" name=\"refresh\" aria-label=\"换一道\" />"
+    },
+    {
+      "path": "pages/shopping-list/shopping-list.wxml",
+      "line": 11,
+      "scope": "active-page",
+      "markup": "illustration=\"empty-shopping\""
+    },
+    {
+      "path": "templates/meal-workspace.wxml",
+      "line": 4,
+      "scope": "v4-shared",
+      "markup": "<ui-icon name=\"agent-spark\" size=\"32\" />"
+    },
+    {
+      "path": "templates/meal-workspace.wxml",
+      "line": 23,
+      "scope": "v4-shared",
+      "markup": "illustration=\"empty-plan\""
+    },
+    {
+      "path": "templates/meal-workspace.wxml",
+      "line": 26,
+      "scope": "v4-shared",
+      "markup": "<ui-icon name=\"recipe\" />"
+    },
+    {
+      "path": "templates/meal-workspace.wxml",
+      "line": 26,
+      "scope": "v4-shared",
+      "markup": "<ui-icon name=\"chevron-right\" />"
+    },
+    {
+      "path": "templates/meal-workspace.wxml",
+      "line": 34,
+      "scope": "v4-shared",
+      "markup": "<image class=\"workspace-success\" src=\"/assets/illustrations/meal-success.png\" mode=\"aspectFit\" />"
+    }
+  ],
+  "icon_names": [
+    "today",
+    "recipes",
+    "plan",
+    "profile",
+    "arrow-left",
+    "chevron-right",
+    "close",
+    "more",
+    "search",
+    "filter",
+    "add",
+    "edit",
+    "delete",
+    "share",
+    "refresh",
+    "check",
+    "favorite",
+    "favorite-filled",
+    "settings",
+    "info",
+    "history",
+    "calendar",
+    "statistics",
+    "clock",
+    "users",
+    "recipe",
+    "ingredient",
+    "shopping-basket",
+    "nutrition",
+    "servings",
+    "cooking-pot",
+    "agent-spark",
+    "agent-arrange",
+    "agent-regenerate",
+    "agent-replace-dish",
+    "agent-adjust"
+  ],
+  "legacy_pseudo_icon_classes": [
+    ".line-icon-book",
+    ".line-icon-bot",
+    ".line-icon-camera",
+    ".line-icon-cart",
+    ".line-icon-chart",
+    ".line-icon-check",
+    ".line-icon-chef",
+    ".line-icon-clock",
+    ".line-icon-dessert",
+    ".line-icon-heart",
+    ".line-icon-info",
+    ".line-icon-meal",
+    ".line-icon-meat",
+    ".line-icon-moon",
+    ".line-icon-pencil",
+    ".line-icon-refresh",
+    ".line-icon-search",
+    ".line-icon-send",
+    ".line-icon-settings",
+    ".line-icon-share",
+    ".line-icon-soup",
+    ".line-icon-spark",
+    ".line-icon-staple",
+    ".line-icon-sun",
+    ".line-icon-user",
+    ".line-icon-veg"
+  ],
+  "sources": [
+    {
+      "path": "components/dish-card/dish-card.wxml",
+      "sha256": "ae3f83f0973d63047280eff9c5f4c3e67f283bbcbd27eba37c0e49a6ba278812",
+      "handlers": [
+        "fail",
+        "open"
+      ]
+    },
+    {
+      "path": "components/meal-card/meal-card.wxml",
+      "sha256": "be713ba709e9ce42c68c0cac6ca75e858416c55d41966db2202a46324cad76c5",
+      "handlers": [
+        "open"
+      ]
+    },
+    {
+      "path": "components/ui-button/ui-button.wxml",
+      "sha256": "7ed603767dc2d53d46b02fec2be6749bc64d76a1ef83f3a922faba691ebb0aa3",
+      "handlers": [
+        "onTap"
+      ]
+    },
+    {
+      "path": "components/ui-card/ui-card.wxml",
+      "sha256": "2306015e5173fa5caa8ce24cd3286db73f91c38cf115481c99e8c11f1a64be7f",
+      "handlers": []
+    },
+    {
+      "path": "components/ui-checkbox/ui-checkbox.wxml",
+      "sha256": "035f4a5d06fc798ae713da2a8a47e88b52462ac2250725daa921e83d48092a35",
+      "handlers": [
+        "change"
+      ]
+    },
+    {
+      "path": "components/ui-chip/ui-chip.wxml",
+      "sha256": "6af583c739a8be36f2acae52e72a3207bb5c90ff991301abe7f1780bb30634d3",
+      "handlers": [
+        "tap"
+      ]
+    },
+    {
+      "path": "components/ui-confirm/ui-confirm.wxml",
+      "sha256": "bbf77a016c478057b4922d3aa00af879ee62c6fdf52e38d497e10b89b4454e30",
+      "handlers": [
+        "cancel",
+        "confirm",
+        "noop"
+      ]
+    },
+    {
+      "path": "components/ui-field/ui-field.wxml",
+      "sha256": "d4450231cd752ba9fc6ad44949d043178dad1e2a0a087c09ccbc5909ae29b7ae",
+      "handlers": [
+        "input"
+      ]
+    },
+    {
+      "path": "components/ui-icon/ui-icon.wxml",
+      "sha256": "6023c7d7246392ba261a7c5b8fc1f3c92ffc255efba3f24e25204e3b5e9bf399",
+      "handlers": []
+    },
+    {
+      "path": "components/ui-icon-button/ui-icon-button.wxml",
+      "sha256": "31f49f969ab0e86c541d248820dcb726327b6be8d6e50f7f38f8d32e397d5d18",
+      "handlers": [
+        "tap"
+      ]
+    },
+    {
+      "path": "components/ui-list/ui-list.wxml",
+      "sha256": "22bb10e8dd400c5cc147f9c8262ad12c4e518c798501258d374d457adeac4933",
+      "handlers": [
+        "open"
+      ]
+    },
+    {
+      "path": "components/ui-search/ui-search.wxml",
+      "sha256": "735f3e6768108a6f3af4ddf228a193adc1ef02c81a27dda8140d74b906fa1176",
+      "handlers": [
+        "clear",
+        "confirm",
+        "input"
+      ]
+    },
+    {
+      "path": "components/ui-sheet/ui-sheet.wxml",
+      "sha256": "200408957d1f46d91d9f4a07e1ed8aa3103b0dd95f2223d3329c198507e071e4",
+      "handlers": [
+        "close",
+        "stop"
+      ]
+    },
+    {
+      "path": "components/ui-state/ui-state.wxml",
+      "sha256": "0092320d3692cf9e28974cc2bce47ebd384f706ae5e44e33c618a3db551c4936",
+      "handlers": [
+        "onAction"
+      ]
+    },
+    {
+      "path": "components/ui-status/ui-status.wxml",
+      "sha256": "e72477621793b21820c13537a47caf8055d66ee7bb3373ce58b180a1fe595a6b",
+      "handlers": []
+    },
+    {
+      "path": "pages/about/about.wxml",
+      "sha256": "5bad846a39841572afd0ba37f45a6fa609561693b2e0b005beb134ea49697b2d",
+      "handlers": []
+    },
+    {
+      "path": "pages/admin/admin.wxml",
+      "sha256": "ff1faed8c861101f9349938934386b7ee1031b37a75c62ca5b67ba110b1d7838",
+      "handlers": [
+        "onBack",
+        "onCancelAdd",
+        "onClearSearch",
+        "onCuisineChange",
+        "onDeleteDish",
+        "onDishInput",
+        "onLoadMore",
+        "onRetryDetail",
+        "onRetryList",
+        "onSaveDish",
+        "onSearchInput",
+        "onSearchSubmit",
+        "onSelectUser",
+        "onShowAdd",
+        "onTagTap",
+        "onTypeTap"
+      ]
+    },
+    {
+      "path": "pages/admin-audit/admin-audit.wxml",
+      "sha256": "01b8d4ed7a9260d5e242e92583fe4d5b2289552cfa6873890292e7d040352cdf",
+      "handlers": [
+        "more",
+        "onAction",
+        "onFrom",
+        "onTo",
+        "onUser",
+        "reset",
+        "retry",
+        "search"
+      ]
+    },
+    {
+      "path": "pages/admin-dashboard/admin-dashboard.wxml",
+      "sha256": "476880becfe4f13013d905f35f50427024374b5db1cfe01d85f441ec0ee1759d",
+      "handlers": [
+        "load",
+        "openAudit",
+        "openDishes",
+        "openUsers",
+        "retry"
+      ]
+    },
+    {
+      "path": "pages/admin-dishes/admin-dishes.wxml",
+      "sha256": "97f7b039e93841eb61717ad6f47ae766490699d90d14f09c30701001f106830f",
+      "handlers": [
+        "cancel",
+        "more",
+        "onFormType",
+        "onInput",
+        "onKeyword",
+        "onPublished",
+        "onType",
+        "openDish",
+        "retry",
+        "save",
+        "search",
+        "switchScope",
+        "togglePublished"
+      ]
+    },
+    {
+      "path": "pages/admin-user-detail/admin-user-detail.wxml",
+      "sha256": "6a638931fbe2bac23713a8271fd127ce07634cfb335169a293277b3e6f24fab7",
+      "handlers": [
+        "cancelForm",
+        "deleteDish",
+        "onInput",
+        "onType",
+        "retry",
+        "save",
+        "startAdd",
+        "startEdit",
+        "toggleStatus"
+      ]
+    },
+    {
+      "path": "pages/admin-users/admin-users.wxml",
+      "sha256": "372951c8cb6b3126dd375cde0f590af33326d81de3ac414d30f662c5214936ab",
+      "handlers": [
+        "clear",
+        "more",
+        "onInput",
+        "openUser",
+        "retry",
+        "search",
+        "toggleStatus"
+      ]
+    },
+    {
+      "path": "pages/assistant-history/assistant-history.wxml",
+      "sha256": "e9c9a8d0eb6a0a3f15542b2b948eb0c053d1f267851433797de1d1a06b145155",
+      "handlers": [
+        "onImportMeal",
+        "onMore",
+        "onOpenSession",
+        "onShow"
+      ]
+    },
+    {
+      "path": "pages/calendar/calendar.wxml",
+      "sha256": "44c9e6e1f5938946c4954dadd7aaeec4d4df7e342d55b8e84a603c2959e97715",
+      "handlers": [
+        "loadRecipeRecords",
+        "onAssistant",
+        "onLogin",
+        "onModeChange",
+        "onNextMonth",
+        "onOpenMeal",
+        "onPrevMonth",
+        "onPurchaseRange",
+        "onReview",
+        "onSelectDate",
+        "onShoppingList",
+        "onToday"
+      ]
+    },
+    {
+      "path": "pages/calendar-detail/calendar-detail.wxml",
+      "sha256": "ab70ac64fe5eb996b55a4dfaf19b8f4bddc5a27bd4daca2e450e9c97f7b3b2a2",
+      "handlers": [
+        "closeForm",
+        "loadMealRecords",
+        "onActualDifferent",
+        "onActualInput",
+        "onAddMealToShoppingList",
+        "onChooseRecipe",
+        "onCopy",
+        "onCopyDate",
+        "onDeleteMeal",
+        "onEaten",
+        "onEditPlan",
+        "onName",
+        "onPeople",
+        "onSkip",
+        "onUndoActual",
+        "onViewDish",
+        "saveForm"
+      ]
+    },
+    {
+      "path": "pages/chat/chat.wxml",
+      "sha256": "ff421a3ccc80abd22acb8dc9347214f8d21a51f170af1b65e88165ddfc0e2539",
+      "handlers": [
+        "onAction",
+        "onApplySettings",
+        "onClearSession",
+        "onCloseSettings",
+        "onInput",
+        "onKeepDish",
+        "onOpenSettings",
+        "onQuick",
+        "onReplaceDish",
+        "onRetry",
+        "onSend",
+        "onSettingDate",
+        "onSettingMeal",
+        "onSettingPeople",
+        "onStopTask",
+        "onTapDish",
+        "onToggleKeepDish",
+        "onUndoPlan"
+      ]
+    },
+    {
+      "path": "pages/custom-dishes/custom-dishes.wxml",
+      "sha256": "0aae38f7d06145d969aea04a6b6b7ca6343c3447e27bf2cb3c14eb00c9263a5e",
+      "handlers": [
+        "cancelEdit",
+        "loadCustomDishes",
+        "onAdd",
+        "onDelete",
+        "onEdit",
+        "onInput",
+        "onType",
+        "onViewDish",
+        "saveEdit"
+      ]
+    },
+    {
+      "path": "pages/customize/customize.wxml",
+      "sha256": "e5b419ee30b707e8782e71545e7c18a717ffc3a5b05dcc008bb67a0a9cce8aaa",
+      "handlers": [
+        "onAddSelectedToShoppingList",
+        "onBrowseDurationTap",
+        "onBrowseOptionTap",
+        "onCancelCustom",
+        "onClearBrowseFilters",
+        "onClearSelected",
+        "onCustomCuisineChange",
+        "onCustomInput",
+        "onCustomTagTap",
+        "onCustomTypeChange",
+        "onHideSelected",
+        "onQuickSearch",
+        "onRemoveSelected",
+        "onRetryPage",
+        "onSaveCustomDish",
+        "onSaveToCalendar",
+        "onScrollToLower",
+        "onSearchInput",
+        "onShowSelected",
+        "onTabChange",
+        "onTapDish",
+        "onToggleBrowseFilters",
+        "onToggleSelect"
+      ]
+    },
+    {
+      "path": "pages/dish-detail/dish-detail.wxml",
+      "sha256": "f87666f99a41e268177c9689f6612d47eec67bc57494fe78838f582f5e77ce7a",
+      "handlers": [
+        "onAddToShoppingList",
+        "onDishImageError",
+        "onEditCustom",
+        "onRetry",
+        "previewImage",
+        "previewStepImage",
+        "toggleFavorite"
+      ]
+    },
+    {
+      "path": "pages/favorite-dishes/favorite-dishes.wxml",
+      "sha256": "dfa545c752d51055f31117a3d67b961b542d6402c1ad4b0ed26394ff296c08da",
+      "handlers": [
+        "loadFavorites",
+        "onBrowse",
+        "onRemoveFavorite",
+        "onSearchInput",
+        "onViewDish"
+      ]
+    },
+    {
+      "path": "pages/index/index.wxml",
+      "sha256": "25b842aa8a2e9087c50a8b6880baa2fbd8d8eb5bddaf2c2ccaad32eb81e2205e",
+      "handlers": [
+        "onAdvancedToggle",
+        "onClearFilters",
+        "onCustomize",
+        "onDeleteRecipe",
+        "onDessertMinus",
+        "onDessertPlus",
+        "onMealTypeSelect",
+        "onMeatMinus",
+        "onMeatPlus",
+        "onOpenChat",
+        "onOpenRecommendationFilter",
+        "onPeopleChange",
+        "onQuickFilterTap",
+        "onSelectRecipe",
+        "onSoupMinus",
+        "onSoupPlus",
+        "onStapleMinus",
+        "onStaplePlus",
+        "onStart",
+        "onTodayMeal",
+        "onUnselectRecipe",
+        "onUseSavedPreferencesChange",
+        "onVegMinus",
+        "onVegPlus"
+      ]
+    },
+    {
+      "path": "pages/logs/logs.wxml",
+      "sha256": "e6eb34f686626374908319501b51efd3c127caa7222218c2d76b7dceb26d4354",
+      "handlers": [
+        "onClear"
+      ]
+    },
+    {
+      "path": "pages/meal-cooking/meal-cooking.wxml",
+      "sha256": "5b74ffcb7bd25edb7fccfc9ec864d14184e1a08921155e21f536910e97371d6e",
+      "handlers": [
+        "onChooseDish",
+        "onNextStep",
+        "onPreviousStep",
+        "onRecordActual",
+        "onShow"
+      ]
+    },
+    {
+      "path": "pages/profile/profile.wxml",
+      "sha256": "55eef3bc8e8e8b20f10c1748434cf32da23f6717c6e74ecff00e422f1eead049",
+      "handlers": [
+        "onAvatarError",
+        "onCloseLoginModal",
+        "onEditProfile",
+        "onMenuTap",
+        "onShoppingListTap",
+        "onUserInfoTap",
+        "onVersionTap",
+        "onWxLogin"
+      ]
+    },
+    {
+      "path": "pages/profile-edit/profile-edit.wxml",
+      "sha256": "dae57b9bf9bdb192f5a5fea4b9f21d1bc652aff30de6fa46e093ec182c825221",
+      "handlers": [
+        "onAvatarError",
+        "onCancel",
+        "onChooseAvatar",
+        "onNicknameInput",
+        "onSave"
+      ]
+    },
+    {
+      "path": "pages/recommend-filter/recommend-filter.wxml",
+      "sha256": "4c23cd649b6d2e1fe32dae6432e40c6a46ae023ddfdbf41d0b8db23905cc4de1",
+      "handlers": [
+        "onAddIngredient",
+        "onApply",
+        "onClear",
+        "onDurationTap",
+        "onIngredientInput",
+        "onOptionTap",
+        "onRemoveIngredient",
+        "onTagModeChange"
+      ]
+    },
+    {
+      "path": "pages/result/result.wxml",
+      "sha256": "081dd9d85baca4c2503b6c5eee0ceff96de9cf08b0b100cdc976bcca9f06b809",
+      "handlers": [
+        "onAddPlanToShoppingList",
+        "onBack",
+        "onCancelDatePicker",
+        "onCustomDateChange",
+        "onImgError",
+        "onPlanChange",
+        "onRefreshDish",
+        "onRegenerate",
+        "onSelectForMeal",
+        "onTapDish",
+        "onToggleFavorite"
+      ]
+    },
+    {
+      "path": "pages/settings/settings.wxml",
+      "sha256": "457b6ebf74076dbbeb8db04f801e3e319825d98d078e4733b8bb7e4f5102e502",
+      "handlers": [
+        "onAddIngredient",
+        "onCuisineTap",
+        "onDayTap",
+        "onDefaultPeople",
+        "onDurationTap",
+        "onExcludedTagTap",
+        "onIngredientInput",
+        "onPreferredTagTap",
+        "onRemoveIngredient",
+        "onResetMemory",
+        "onSave"
+      ]
+    },
+    {
+      "path": "pages/shopping-list/shopping-list.wxml",
+      "sha256": "333034b2735d211de1c4bca23fbaa1b48fd5391a30a37fcc608d7f521d95970a",
+      "handlers": [
+        "closeExpense",
+        "closeForm",
+        "loadList",
+        "onAddFromRecipe",
+        "onAddManual",
+        "onClearAll",
+        "onClearCompleted",
+        "onCopyList",
+        "onDeleteItem",
+        "onDiscardDraft",
+        "onEditExpense",
+        "onEditItem",
+        "onExpenseAmount",
+        "onExpenseChannel",
+        "onFilterChange",
+        "onMore",
+        "onName",
+        "onNote",
+        "onPriceDetails",
+        "onQuantity",
+        "onRetryDrafts",
+        "onReviewDraft",
+        "onSourceDetails",
+        "onToggleItem",
+        "onToggleSummary",
+        "onViewMode",
+        "removeExpense",
+        "saveExpense",
+        "saveForm"
+      ]
+    },
+    {
+      "path": "pages/shopping-preview/shopping-preview.wxml",
+      "sha256": "6c10f63d019b6913115c47f005b375846390981669341c6c233b190095ba12f8",
+      "handlers": [
+        "closeForm",
+        "loadPreview",
+        "onBack",
+        "onConfirm",
+        "onEditItem",
+        "onPeopleChange",
+        "onQuantity",
+        "onRemoveItem",
+        "onShoppingList",
+        "saveForm"
+      ]
+    },
+    {
+      "path": "pages/statistics/statistics.wxml",
+      "sha256": "01901a19e0c50526d67df4d35fa041e4e008aa46c3208211d9edc31624daa3cb",
+      "handlers": [
+        "loadStatistics",
+        "onMode",
+        "onNextMonth",
+        "onPrevMonth",
+        "onRecord"
+      ]
+    },
+    {
+      "path": "pages/sync/sync.wxml",
+      "sha256": "21ab32339a178114a1cb4d5aca2da137eeac9259af7e3af8371ea877b5ecbb8c",
+      "handlers": [
+        "clearSyncedData",
+        "onShoppingDrafts",
+        "onWorkspaceDraft",
+        "syncData"
+      ]
+    },
+    {
+      "path": "templates/meal-actual-sheet.wxml",
+      "sha256": "e21f501779f01ecfea7f5daa518636f0bf96b60b3c42e8ef16fb80f663d478f0",
+      "handlers": [
+        "closeMealActual",
+        "onActualByPlan",
+        "onActualChanged",
+        "onActualReload",
+        "onActualRetry",
+        "onActualSkipped",
+        "onActualText"
+      ]
+    },
+    {
+      "path": "templates/meal-workspace.wxml",
+      "sha256": "45ca982528ff46cfc5195b166c1f39fb345dbb16873a285b5b9da38c184be213",
+      "handlers": [
+        "cancelVoiceInput",
+        "onApplyMealSettings",
+        "onApplyRequirements",
+        "onApproveReplacement",
+        "onCancelRequirements",
+        "onCancelTask",
+        "onChooseDishes",
+        "onCloseConfirmation",
+        "onCloseMealSettings",
+        "onCountSetting",
+        "onDateTarget",
+        "onDishOpen",
+        "onImportLegacyMeal",
+        "onKeep",
+        "onLoadLatest",
+        "onManualMode",
+        "onMealTarget",
+        "onOpenAdvancedAssistant",
+        "onOpenAssistant",
+        "onOpenFilter",
+        "onOpenMealSettings",
+        "onOpenRequirements",
+        "onOwnedSetting",
+        "onPeopleSetting",
+        "onPrimaryAction",
+        "onQuickActual",
+        "onRegenerate",
+        "onReplace",
+        "onRequirementInput",
+        "onRequirementsDraftInput",
+        "onRestoreAuto",
+        "onRestoreLocalDraft",
+        "onRetryWorkspace",
+        "onReview",
+        "onShoppingPreview",
+        "onSuggestedTarget",
+        "onTimeSetting",
+        "onUndo",
+        "onViewPlan",
+        "onVoicePrivacyAgree",
+        "onVoicePrivacyOpen",
+        "onVoiceTap"
+      ]
+    }
+  ]
+}
