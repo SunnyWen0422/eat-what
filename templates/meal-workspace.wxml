@@ -1,59 +1,51 @@
-<view class="ew-page mobile-screen workspace-screen" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page mobile-screen workspace-screen mode-{{mode}}" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
     <view class="mobile-scroll-content">
-      <view class="ew-between"><view><view class="ew-heading">{{mode === 'assistant' ? '说说这餐的想法' : '把这餐安排好'}}</view><view class="ew-subtitle">决定菜单，准备食材，再记录实际用餐</view></view><ui-icon name="agent-spark" size="32" /></view>
-      <view class="ew-row workspace-context">
-        <picker class="ew-hit-target" mode="date" value="{{context.date}}" bindchange="onDateTarget"><view class="ew-pill">{{context.date}}</view></picker>
-        <picker class="ew-hit-target" range="{{mealLabels}}" value="{{mealIndex}}" bindchange="onMealTarget"><view class="ew-pill">{{mealLabels[mealIndex]}}</view></picker>
-        <button class="ew-hit-target ew-pill" bindtap="onOpenMealSettings">{{context.people}} 人 · 设置</button>
-      </view>
-      <ui-state wx:if="{{loading}}" kind="loading" title="正在恢复当前餐" />
+      <view class="workspace-header"><view class="ew-heading">{{pageTitle}}</view><button class="ew-hit-target ew-link" bindtap="onOpenShoppingList"><ui-icon name="shopping-basket" size="20" /><text>清单</text></button></view>
+      <view class="workspace-target"><view class="workspace-target-date"><picker class="ew-hit-target" mode="date" disabled="{{loading || busy}}" value="{{context.date}}" bindchange="onDateTarget"><view>{{context.date}}</view></picker><picker class="ew-hit-target" range="{{mealLabels}}" disabled="{{loading || busy}}" value="{{mealIndex}}" bindchange="onMealTarget"><view>{{mealName}}<ui-icon name="chevron-right" tone="muted" size="16" /></view></picker></view><button class="ew-hit-target ew-link" disabled="{{loading || busy}}" bindtap="onOpenMealSettings">{{context.people}} 人 · 调整</button></view>
+      <ui-state wx:if="{{loading}}" kind="loading" density="inline" title="正在读取这一餐" />
       <block wx:else>
-        <ui-card wx:if="{{showRequirements}}" title="这一餐有什么要求？" description="可以留空，直接安排。临时忌口只影响本餐。">
-          <textarea placeholder-class="ew-placeholder" class="ew-input workspace-requirements" value="{{context.requirements}}" placeholder="例如：两个人，清淡一点，不吃花生" maxlength="2000" bindinput="onRequirementInput" disabled="{{busy}}" adjust-position cursor-spacing="24" />
-          <view class="ew-between"><text class="ew-muted">{{context.compositionMode === 'auto' ? '按人数自动搭配' : '手动菜数 · 人数只调整份量'}}</text><button class="ew-hit-target ew-link" bindtap="onOpenFilter">更多筛选</button></view>
-        </ui-card>
-        <view wx:if="{{!showRequirements}}" class="ew-between"><text class="ew-muted">{{context.requirements || '按本餐设置安排'}} · {{context.people}} 人</text><ui-button label="修改要求 / 语音" variant="secondary" bind:action="onOpenRequirements" /></view>
-        <view wx:if="{{errorMessage}}" class="ew-error" role="alert">{{errorMessage}}</view>
-        <view wx:if="{{syncStatus !== 'synced' || feedbackNotice}}" class="ew-notice"><text>{{syncLabel || feedbackNotice}}</text><view class="ew-actions"><ui-button wx:if="{{syncStatus === 'conflict'}}" label="查看最新内容" variant="secondary" disabled="{{busy}}" bind:action="onLoadLatest" /><ui-button wx:else label="重试同步" variant="secondary" disabled="{{busy}}" bind:action="onRetryWorkspace" /></view></view>
-        <ui-button wx:if="{{conflictDraftAvailable}}" label="重新应用本机输入" variant="secondary" bind:action="onRestoreLocalDraft" />
-        <ui-state wx:if="{{status === 'generating'}}" kind="loading" title="正在安排这餐" description="{{taskMessage}}" action-label="停止本次安排" bind:action="onCancelTask" />
+        <view wx:if="{{syncStatus !== 'synced' || feedbackNotice}}" class="workspace-feedback"><view class="ew-notice">{{syncLabel || feedbackNotice}}</view><ui-button wx:if="{{syncStatus === 'conflict'}}" label="核对最新内容" variant="tertiary" disabled="{{busy}}" bind:action="onLoadLatest" /></view>
+        <view wx:if="{{errorMessage && !requirementsVisible}}" class="ew-error" role="alert">{{errorMessage}}</view>
+        <ui-button wx:if="{{conflictDraftAvailable}}" label="重新应用保留的输入" variant="secondary" bind:action="onRestoreLocalDraft" />
+        <ui-state wx:if="{{status === 'generating'}}" kind="loading" density="inline" title="正在安排这餐" description="{{taskMessage}}" />
         <ui-button wx:if="{{suggestedTarget}}" label="切换到 {{suggestedTarget.date}} {{suggestedMealLabel}} 并安排" variant="secondary" bind:action="onSuggestedTarget" />
         <view wx:if="{{status === 'needs_input' || status === 'needs_regeneration'}}" class="ew-notice">{{taskMessage}}</view>
-        <ui-state wx:if="{{!draft.dishes.length && status !== 'generating'}}" kind="empty" illustration="empty-plan" title="还没决定这餐吃什么" description="按人数搭一套家常菜，也可以自己选菜。" />
-        <ui-card wx:if="{{draft.dishes.length}}" title="{{status === 'planned' ? '已保存的本餐方案' : '这餐建议这样吃'}}">
-          <view wx:for="{{draft.dishes}}" wx:key="id" class="workspace-dish">
-            <button class="ew-hit-target workspace-dish-title" data-id="{{item.id}}" bindtap="onDishOpen"><ui-icon name="recipe" /><text class="ew-grow">{{item.name}}</text><ui-icon name="chevron-right" /></button>
-            <view class="ew-row"><ui-chip label="{{item.locked ? '已保留 · 解除' : '保留这道'}}" selected="{{item.locked}}" disabled="{{busy || status === 'generating'}}" data-id="{{item.id}}" data-locked="{{item.locked}}" bind:change="onKeep" /><ui-button label="换一道" variant="secondary" disabled="{{busy || item.locked || status === 'generating'}}" data-id="{{item.id}}" bind:action="onReplace" /></view>
+        <view wx:if="{{showRequirements || mode === 'assistant'}}" class="workspace-expression">
+          <view class="workspace-question">{{mode === 'assistant' ? '想怎么调整这一餐？' : '这餐，想吃点什么？'}}</view>
+          <text class="ew-muted">口味、忌口或手边食材都可以说。也可以留空，直接搭配。</text>
+          <textarea placeholder-class="ew-placeholder" class="ew-input workspace-requirements" value="{{context.requirements}}" placeholder="比如：清淡一些，家里还有鸡蛋" maxlength="2000" bindinput="onRequirementInput" disabled="{{busy}}" adjust-position cursor-spacing="24" />
+          <view class="workspace-light-actions"><button class="ew-hit-target ew-link" bindtap="onOpenRequirements">补充要求</button><button class="ew-hit-target ew-link" bindtap="onOpenFilter">本次筛选</button><button class="ew-hit-target ew-link" bindtap="onChooseDishes">自己选菜</button></view>
+        </view>
+        <view wx:elif="{{draft.dishes.length}}" class="workspace-summary"><text class="ew-chip">{{compositionLabel || '本餐搭配'}}</text><text wx:if="{{status === 'planned'}}" class="ew-chip">已安排</text><button class="ew-hit-target ew-link" bindtap="onOpenRequirements">调整这餐</button></view>
+        <view wx:if="{{draft.dishes.length && mode !== 'assistant'}}" class="workspace-menu-section">
+          <view class="ew-section-title">{{status === 'planned' ? '本餐安排' : '这一餐，这样搭。'}}</view>
+          <view class="workspace-menu">
+            <view wx:for="{{draft.dishes}}" wx:key="id" class="workspace-dish">
+              <button class="ew-hit-target workspace-dish-title" data-id="{{item.id}}" bindtap="onDishOpen"><view class="workspace-dish-copy"><text class="workspace-dish-name">{{item.name}}</text><text class="ew-muted">查看食材与做法</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button>
+              <view class="workspace-dish-actions"><ui-chip label="{{item.locked ? '已保留 · 解除' : '保留'}}" selected="{{item.locked}}" disabled="{{busy || status === 'generating'}}" data-id="{{item.id}}" data-locked="{{item.locked}}" bind:change="onKeep" /><ui-button label="换一道" variant="tertiary" disabled="{{busy || item.locked || status === 'generating'}}" data-id="{{item.id}}" bind:action="onReplace" /></view>
+            </view>
           </view>
-          <view class="ew-muted" wx:if="{{draft.totalCookMinutes}}">已知用时合计约 {{draft.totalCookMinutes}} 分钟（依次制作）</view>
-          <view class="ew-muted" wx:for="{{draft.explanations}}" wx:key="*this">{{item}}</view>
-          <view class="ew-actions"><ui-button label="换一套" variant="secondary" disabled="{{busy || status === 'generating'}}" bind:action="onRegenerate" /><ui-button label="撤销调整" variant="secondary" disabled="{{busy || !draft.history.length || status === 'generating'}}" bind:action="onUndo" /></view>
-        </ui-card>
-        <ui-card wx:if="{{linkedPlan}}" title="已保存安排" description="{{linkedPlan.recipeName}}"><view class="ew-actions"><ui-button label="采购预览" variant="secondary" bind:action="onShoppingPreview" /><ui-button label="查看安排 / 记录实际" variant="secondary" bind:action="onViewPlan" /></view></ui-card>
-        <ui-card wx:if="{{actual && actual.status === 'eaten'}}" title="这餐已记录实际用餐"><image class="workspace-success" src="/assets/illustrations/meal-success.png" mode="aspectFit" /><view class="ew-actions"><ui-button label="查看 / 修改记录" variant="secondary" bind:action="onViewPlan" /><ui-button label="饮食回顾" variant="secondary" bind:action="onReview" /></view></ui-card>
-        <ui-card wx:if="{{legacyMeals.length}}" title="旧助手中的多餐草稿" description="逐餐导入后，仍需确认保存安排；不会自动采购或记录吃过。"><view wx:for="{{legacyMeals}}" wx:key="index"><view>{{item.date}} {{item.mealName}} · {{item.people}} 人</view><view>{{item.names}}</view><ui-button label="导入这一餐草稿" variant="secondary" data-index="{{index}}" bind:action="onImportLegacyMeal" /></view></ui-card><view wx:if="{{legacyNotice}}" class="ew-notice">{{legacyNotice}}</view>
-        <view class="ew-actions"><ui-button label="记录这餐实际" variant="secondary" bind:action="onQuickActual" /><ui-button label="自己选菜" variant="secondary" bind:action="onChooseDishes" /><ui-button label="继续说需求" variant="secondary" bind:action="onOpenAssistant" /></view>
+          <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button class="ew-hit-target ew-link" disabled="{{busy || status === 'generating'}}" bindtap="onRegenerate">换一套</button><button class="ew-hit-target ew-link" disabled="{{busy || !draft.history.length || status === 'generating'}}" bindtap="onUndo">撤销</button></view>
+          <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>
+        </view>
+        <view wx:if="{{draft.dishes.length && mode === 'assistant'}}" class="workspace-assistant-menu"><view class="ew-title">当前餐单</view><text wx:for="{{draft.dishes}}" wx:key="id" class="ew-reading">{{item.name}}</text><ui-button label="查看和调整本餐方案" variant="secondary" bind:action="onOpenMealResult" /></view>
+        <view wx:if="{{linkedPlan}}" class="workspace-next"><button class="ew-hit-target workspace-next-row" bindtap="onShoppingPreview"><view><text class="ew-title">准备食材</text><text class="ew-muted">先核对本餐用量，再加入清单</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button><button class="ew-hit-target workspace-next-row" bindtap="onViewPlan"><view><text class="ew-title">查看安排与实际记录</text><text class="ew-muted">{{actual && actual.status === 'eaten' ? '已记录实际用餐，可查看或纠正' : '吃过什么，由你确认后记录'}}</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button></view>
+        <view wx:if="{{!linkedPlan}}" class="workspace-light-actions"><button class="ew-hit-target ew-link" bindtap="onQuickActual">记录实际用餐</button><button wx:if="{{draft.dishes.length}}" class="ew-hit-target ew-link" bindtap="onChooseDishes">自己选菜</button></view>
+        <view class="workspace-light-actions"><button wx:if="{{mode !== 'assistant'}}" class="ew-hit-target ew-link" bindtap="onOpenAssistantView">聊聊这餐</button><button class="ew-hit-target ew-link" bindtap="onOpenAdvancedAssistant">助手历史</button><button wx:if="{{actual && actual.status === 'eaten'}}" class="ew-hit-target ew-link" bindtap="onReview">饮食回顾</button></view>
+        <view wx:if="{{legacyMeals.length}}" class="workspace-legacy"><view class="ew-title">可导入的历史餐单</view><text class="ew-muted">导入后仍需确认本餐安排。</text><view wx:for="{{legacyMeals}}" wx:key="index" class="ew-flat-row"><view>{{item.date}} {{item.mealName}} · {{item.people}} 人</view><text class="ew-muted">{{item.names}}</text><ui-button label="导入这一餐草稿" variant="tertiary" data-index="{{index}}" bind:action="onImportLegacyMeal" /></view></view><view wx:if="{{legacyNotice}}" class="ew-notice">{{legacyNotice}}</view>
       </block>
     </view>
   </scroll-view>
-  <view class="ew-bottom"><ui-button label="{{primaryLabel}}" loading="{{busy}}" disabled="{{busy || loading}}" bind:action="onPrimaryAction" /></view>
-  <ui-sheet visible="{{requirementsVisible}}" title="修改这餐要求" busy="{{voicePhase !== 'idle' || requirementsSaving}}" bind:close="onCancelRequirements">
-    <textarea class="ew-input workspace-requirements" placeholder-class="ew-placeholder" value="{{requirementsDraft}}" maxlength="2000" placeholder="说说想吃什么、时间和这次忌口" bindinput="onRequirementsDraftInput" adjust-position cursor-spacing="24" />
-    <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view>
-    <view class="ew-actions"><ui-button label="{{voicePhase === 'recording' ? '结束录音' : voicePhase === 'idle' ? '语音输入' : '语音连接中'}}" variant="secondary" bind:action="onVoiceTap" /><ui-button wx:if="{{voicePhase !== 'idle'}}" label="取消录音" variant="secondary" bind:action="cancelVoiceInput" /><ui-button label="历史 / 高级助手" variant="secondary" bind:action="onOpenAdvancedAssistant" /></view>
-    <text class="ew-muted">输入后可修改，点击应用才会保存本餐要求。语音暂不可用。</text>
-    <view wx:if="{{voicePrivacyVisible}}"><button class="ew-hit-target ew-link" bindtap="onVoicePrivacyOpen">查看隐私指引</button><button class="ew-hit-target ew-button" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="onVoicePrivacyAgree">同意后使用麦克风</button></view>
-    <ui-button slot="footer" label="应用这餐要求" loading="{{requirementsSaving}}" disabled="{{voicePhase !== 'idle' || requirementsSaving}}" bind:action="onApplyRequirements" />
+  <view class="ew-bottom"><ui-button label="{{primaryLabel}}" loading="{{busy}}" disabled="{{primaryDisabled || loading}}" bind:action="onPrimaryAction" /></view>
+  <ui-sheet visible="{{requirementsVisible}}" title="补充这餐要求" busy="{{voicePhase !== 'idle' || requirementsSaving}}" bind:close="onCancelRequirements">
+    <textarea class="ew-input workspace-requirements" placeholder-class="ew-placeholder" value="{{requirementsDraft}}" maxlength="2000" placeholder="口味、忌口，或你想保留的菜" bindinput="onRequirementsDraftInput" adjust-position cursor-spacing="24" />
+    <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view><view class="workspace-light-actions"><ui-button label="语音输入 · 暂不可用" variant="tertiary" disabled="{{requirementsSaving}}" bind:action="onVoiceTap" /><ui-button label="助手历史" variant="tertiary" bind:action="onOpenAdvancedAssistant" /></view>
+    <text class="ew-muted">只影响这餐。应用后才更新要求。</text><ui-button slot="footer" label="应用这餐要求" loading="{{requirementsSaving}}" disabled="{{voicePhase !== 'idle' || requirementsSaving}}" bind:action="onApplyRequirements" />
   </ui-sheet>
   <ui-sheet visible="{{settingsVisible}}" title="本餐设置" busy="{{busy}}" bind:close="onCloseMealSettings">
-    <ui-field label="用餐人数（1–50）" value="{{settingsContext ? '' + settingsContext.people : ''}}" type="number" bind:change="onPeopleSetting" />
-    <ui-field label="整餐用时上限（分钟，留空不限）" value="{{settingsContext && settingsContext.totalCookMinutes != null ? '' + settingsContext.totalCookMinutes : ''}}" type="number" bind:change="onTimeSetting" />
-    <ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />
-    <view class="ew-actions"><ui-button label="手动菜数" variant="secondary" bind:action="onManualMode" /><ui-button label="恢复自动搭配" variant="secondary" bind:action="onRestoreAuto" /></view>
-    <view wx:if="{{settingsContext.compositionMode === 'manual'}}" wx:for="{{countRows}}" wx:key="type"><ui-field label="{{item.label}}" value="{{'' + item.count}}" type="number" data-type="{{item.type}}" bind:change="onCountSetting" /></view>
-    <view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view>
-    <ui-button slot="footer" label="应用本餐设置" bind:action="onApplyMealSettings" />
+    <ui-field label="用餐人数（1–50）" value="{{settingsContext ? '' + settingsContext.people : ''}}" type="number" bind:change="onPeopleSetting" /><ui-field label="整餐用时上限（分钟，可留空）" value="{{settingsContext && settingsContext.totalCookMinutes != null ? '' + settingsContext.totalCookMinutes : ''}}" type="number" bind:change="onTimeSetting" /><ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />
+    <view class="workspace-light-actions"><ui-button label="手动菜数" variant="secondary" bind:action="onManualMode" /><ui-button label="恢复自动搭配" variant="tertiary" bind:action="onRestoreAuto" /></view><view wx:if="{{settingsContext.compositionMode === 'manual'}}" wx:for="{{countRows}}" wx:key="type"><ui-field label="{{item.label}}" value="{{'' + item.count}}" type="number" data-type="{{item.type}}" bind:change="onCountSetting" /></view><view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view><ui-button slot="footer" label="应用本餐设置" bind:action="onApplyMealSettings" />
   </ui-sheet>
   <include src="meal-actual-sheet.wxml" />
   <ui-confirm visible="{{confirmationVisible}}" title="替换已有安排？" description="{{confirmationText}}" confirm-label="确认替换" busy="{{busy}}" bind:confirm="onApproveReplacement" bind:cancel="onCloseConfirmation" />

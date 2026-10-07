@@ -13,6 +13,8 @@ module.exports = function workspacePage(options = {}) {
   return {
     openMealActual(target) { return actual.openMealActual.call(this,target) },
     onActualText(e) { return actual.onActualText.call(this,e) },
+    onActualMode(e){return actual.onActualMode.call(this,e)},
+    onConfirmActual(){return actual.onConfirmActual.call(this)},
     closeMealActual() { return actual.closeMealActual.call(this) },
     disposeMealActual() { return actual.disposeMealActual.call(this) },
     onActualByPlan() { return actual.onActualByPlan.call(this) },
@@ -30,7 +32,7 @@ module.exports = function workspacePage(options = {}) {
     cancelVoiceInput() { return voice.cancelVoiceInput.call(this) },
     data: {
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
-      workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      pageTitle:options.mode==='assistant'?'这餐的想法':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
@@ -126,6 +128,10 @@ module.exports = function workspacePage(options = {}) {
         status: w && w.status==='planned' && w.confirmation && w.confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
         linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
         canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced' })
+      const context=this.data.context
+      this.setData({pageTitle:this.data.mode==='assistant'?'这餐的想法':this.data.mode==='result'?'本餐方案':'今天',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
+        mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
+        compositionLabel:Object.entries(context.counts || {}).filter(([,n])=>Number(n)>0).map(([type,n])=>`${n}${({meat:'荤',veg:'素',soup:'汤',staple:'主食',dessert:'甜品',side:'配菜'})[type] || type}`).join(' · ')})
       this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data, busy:this.data.busy}));
       if (w && w.status === 'draft' && state.syncStatus === 'synced') this.expose(w)
     },
@@ -283,7 +289,7 @@ module.exports = function workspacePage(options = {}) {
     onDateTarget(e) { return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
     onMealTarget(e) { return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }) },
     async switchTarget(target) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), target); this._params = target; return this.initializeWorkspace(target) },
-    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType }); wx.switchTab({ url: '/pages/customize/customize' }) } },
+    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType });wx.setStorageSync(getUserStorageKey('recipeSelectionIntent'),true); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
     onViewRecipes() { const plan=this.data.linkedPlan;if(plan){wx.navigateTo({url:`/pages/meal-cooking/meal-cooking?date=${this.data.context.date}&mealType=${this.data.context.mealType}&planRevision=${plan.revision}`});return}if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
     onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date + '&mealType=' + this.data.context.mealType }) },
@@ -294,6 +300,15 @@ module.exports = function workspacePage(options = {}) {
       wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
     },
     onOpenAssistant() { return this.onOpenRequirements() },
+    onOpenShoppingList(){if(this.current())wx.navigateTo({url:'/pages/shopping-list/shopping-list'})},
+    async openWorkspaceRoute(route){
+      if(!this.current() || this.data.busy)return
+      const scope=this._scope,store=this.store
+      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}?date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
+      catch(error){if(this.current() && this.store===store)this.setData({errorMessage:error.message || '本餐尚未保存，内容已保留'})}
+    },
+    onOpenMealResult(){return this.openWorkspaceRoute('/pages/result/result')},
+    onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},
     onOpenAdvancedAssistant() { if(this.current())wx.navigateTo({ url: `/pages/assistant-history/assistant-history?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
     onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
     onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
