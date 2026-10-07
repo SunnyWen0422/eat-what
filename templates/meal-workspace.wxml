@@ -38,12 +38,13 @@
     </view>
   </scroll-view>
   <view class="ew-bottom"><ui-button label="{{primaryLabel}}" loading="{{busy}}" disabled="{{busy || loading}}" bind:action="onPrimaryAction" /></view>
-  <ui-sheet visible="{{requirementsVisible}}" title="修改这餐要求" busy="{{voicePhase !== 'idle'}}" bind:close="onCancelRequirements">
+  <ui-sheet visible="{{requirementsVisible}}" title="修改这餐要求" busy="{{voicePhase !== 'idle' || requirementsSaving}}" bind:close="onCancelRequirements">
     <textarea class="ew-input workspace-requirements" placeholder-class="ew-placeholder" value="{{requirementsDraft}}" maxlength="2000" placeholder="说说想吃什么、时间和这次忌口" bindinput="onRequirementsDraftInput" adjust-position cursor-spacing="24" />
+    <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view>
     <view class="ew-actions"><ui-button label="{{voicePhase === 'recording' ? '结束录音' : voicePhase === 'idle' ? '语音输入' : '语音连接中'}}" variant="secondary" bind:action="onVoiceTap" /><ui-button wx:if="{{voicePhase !== 'idle'}}" label="取消录音" variant="secondary" bind:action="cancelVoiceInput" /><ui-button label="历史 / 高级助手" variant="secondary" bind:action="onOpenAdvancedAssistant" /></view>
     <text class="ew-muted">输入后可修改，点击应用才会保存本餐要求。语音暂不可用。</text>
     <view wx:if="{{voicePrivacyVisible}}"><button class="ew-hit-target ew-link" bindtap="onVoicePrivacyOpen">查看隐私指引</button><button class="ew-hit-target ew-button" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="onVoicePrivacyAgree">同意后使用麦克风</button></view>
-    <ui-button slot="footer" label="应用这餐要求" disabled="{{voicePhase !== 'idle'}}" bind:action="onApplyRequirements" />
+    <ui-button slot="footer" label="应用这餐要求" loading="{{requirementsSaving}}" disabled="{{voicePhase !== 'idle' || requirementsSaving}}" bind:action="onApplyRequirements" />
   </ui-sheet>
   <ui-sheet visible="{{settingsVisible}}" title="本餐设置" busy="{{busy}}" bind:close="onCloseMealSettings">
     <ui-field label="用餐人数（1–50）" value="{{settingsContext ? '' + settingsContext.people : ''}}" type="number" bind:change="onPeopleSetting" />

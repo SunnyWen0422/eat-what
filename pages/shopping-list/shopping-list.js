@@ -41,10 +41,11 @@ Page({
     const cost=pricing.buildPricing(this._full,this._quotes||{});this.setData({ dishes: groups, summaryRows:decorateShoppingRows(rows,cost.rows,this._expandedSources||[]), pricingRows:cost.rows,pendingPrice:cost.pendingText,actualSpend:cost.actualText,missingPrices:cost.pendingMissing })
   },
   async loadPrices(scope,epoch) {
-    const version=this._full.version,config=await capabilities.refresh()
-    if(!this.current(scope)||epoch!==this._epoch||version!==this._full.version)return
+    const config=await capabilities.refresh()
+    if(!this.current(scope)||epoch!==this._epoch)return
     this.setData({expensesEnabled:config.expensesEnabled,priceNotice:capabilities.notice()})
     if(!config.pricesEnabled)return
+    const version=this._full.version
     try {const rows=pricing.buildPricing(this._full).rows;const quotes=await api.getIngredientPriceQuotes(rows.map(r=>({ingredientKey:r.ingredientKey,canonicalName:r.canonicalName,normalizedVariant:r.normalizedVariant})));if(this.current(scope)&&epoch===this._epoch&&version===this._full.version){this._quotes=quotes;this.renderList()}}
     catch(error){if(this.current(scope)&&epoch===this._epoch){if(error.statusCode===404)capabilities.markQuotesUnavailable();this.setData({priceNotice:'暂无可用官方参考价，清单和实付记录仍可使用'})}}
   },

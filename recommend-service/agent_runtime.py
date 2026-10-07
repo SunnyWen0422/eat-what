@@ -40,9 +40,10 @@ class TaskCancelled(RuntimeError):
 
 
 class AgentRuntime:
-    def __init__(self, store: Optional[AssistantStore] = None, model_factory=None):
+    def __init__(self, store: Optional[AssistantStore] = None, model_factory=None, allow_fallback_model_reply: bool = True):
         self.store = store or assistant_engine.SESSION_STORE
         self.model_factory = model_factory or default_model_client
+        self.allow_fallback_model_reply = allow_fallback_model_reply
         self.max_rounds = max(1, int(os.getenv("ASSISTANT_MAX_TOOL_ROUNDS", "8")))
         self.max_calls = max(1, int(os.getenv("ASSISTANT_MAX_TOOL_CALLS", "16")))
         self.timeout_seconds = max(1, float(os.getenv("ASSISTANT_TASK_TIMEOUT_SECONDS", "30")))
@@ -84,7 +85,10 @@ class AgentRuntime:
     def _fallback(self, task_id: str, session_id: str, scope: str, message: str, reason: str) -> Dict[str, Any]:
         self._event(task_id, scope, "planning", "正在使用本地菜库和规则整理方案")
         try:
-            result = assistant_engine.handle_message(message, scope, session_id=session_id)
+            options = {"session_id": session_id}
+            if not self.allow_fallback_model_reply:
+                options["allow_model_reply"] = False
+            result = assistant_engine.handle_message(message, scope, **options)
         except PlanCommandError as error:
             return self._plan_constraint_result(task_id, session_id, scope, error)
         result = copy.deepcopy(result or {})

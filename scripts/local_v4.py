@@ -143,18 +143,23 @@ def wait_for_basic_api():
         time.sleep(.5)
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','status','stop','model','serve']);parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');parser.add_argument('--java',default='D:/Java/bin/java.exe');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','status','stop','model','serve']);parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');parser.add_argument('--java');args=parser.parse_args()
     if args.action=='serve':
         # Keep the command host alive: temporary tool jobs reclaim background children.
-        subprocess.run([sys.executable,str(Path(__file__).absolute()),'restart','--mysqld',args.mysqld,'--java',args.java],check=True,creationflags=FLAGS)
+        command=[sys.executable,str(Path(__file__).absolute()),'restart','--mysqld',args.mysqld]
+        if args.java:command.extend(['--java',args.java])
+        subprocess.run(command,check=True,creationflags=FLAGS)
         wait_for_basic_api()
         start_optional_model()
         print('Local V4 ready at http://127.0.0.1:18780/api. Keep this terminal running.',flush=True)
         while True:time.sleep(1)
         return
-    if args.action=='start':start(args)
+    if args.action=='start':
+        args.java=args.java or 'D:/Java/bin/java.exe'
+        start(args)
     elif args.action=='restart':
         state=read_state()
+        java=executable_path(args.java or state.get('javaExecutable') or 'D:/Java/bin/java.exe')
         stop_owned(state['javaPid'],[str(ROOT/'backend/target/eatwhat-backend-1.0.0.jar').replace('\\','/'),'local-v4','application-local.yml'])
         try:
             connection=pymysql.connect(host='127.0.0.1',port=state['dbPort'],user='root',password=state['password']);connection.close()
@@ -170,7 +175,7 @@ def main():
                 except pymysql.OperationalError:
                     if mysql.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Private MySQL restart failed')
                     time.sleep(.25)
-        start_java(state,args.java);print('Private backend restarted; existing data, credentials and model budget retained.')
+        start_java(state,java);print('Private backend restarted; existing data, credentials and model budget retained.')
     elif args.action=='model':
         from dotenv import dotenv_values
         state=read_state();available(18781)

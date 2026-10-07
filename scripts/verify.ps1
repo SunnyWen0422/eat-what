@@ -2,7 +2,8 @@ param(
  [string]$PythonExecutable=$env:CODEX_PYTHON,
  [string]$MavenExecutable='mvn',
  [string]$MavenRepository,
- [switch]$Offline
+ [switch]$Offline,
+ [switch]$SkipModelServiceTests
 )
 $ErrorActionPreference = 'Stop'
 
@@ -92,7 +93,11 @@ try {
     $frontendTests = Get-ChildItem -LiteralPath (Join-Path $root 'tests') -Filter *.test.js -File | Select-Object -ExpandProperty FullName
     & $node --test @frontendTests
     if ($LASTEXITCODE -ne 0) { throw 'Frontend regression tests failed.' }
-    & $python -m unittest discover -s tests -p 'test_*.py' -v
+    if ($SkipModelServiceTests) {
+        & $python (Join-Path $PSScriptRoot 'run_regression_tests.py') --skip-model-service
+    } else {
+        & $python (Join-Path $PSScriptRoot 'run_regression_tests.py')
+    }
     if ($LASTEXITCODE -ne 0) { throw 'Assistant and template regression tests failed.' }
 } finally { Pop-Location }
 
@@ -104,4 +109,5 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Java build check failed.'
 }
 
-Write-Host 'All verification checks passed.'
+if ($SkipModelServiceTests) { Write-Host 'Requested checks passed; model-service tests deferred.' }
+else { Write-Host 'All verification checks passed.' }

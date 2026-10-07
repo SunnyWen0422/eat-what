@@ -30,7 +30,7 @@ module.exports = function workspacePage(options = {}) {
     cancelVoiceInput() { return voice.cancelVoiceInput.call(this) },
     data: {
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
-      workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
@@ -148,18 +148,20 @@ module.exports = function workspacePage(options = {}) {
     onOpenRequirements() {
       if(!this.current() || this.data.busy)return
       const w=this.store && this.store.state().workspace
-      this._requirementsBinding={scope:this._scope,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
-      this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',errorMessage:''})
+      this._requirementsBinding={scope:this._scope,store:this.store,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
+      this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false,errorMessage:''})
     },
     onRequirementsDraftInput(e) {this.setData({requirementsDraft:e.detail.value})},
-    onCancelRequirements() {this.cancelVoiceInput();this.setData({requirementsVisible:false,requirementsDraft:this.data.context.requirements || ''});this._requirementsBinding=null},
+    onCancelRequirements() {this.cancelVoiceInput();this.setData({requirementsVisible:false,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false});this._requirementsBinding=null},
     async onApplyRequirements() {
       const binding=this._requirementsBinding,store=this.store,w=store && store.state().workspace
-      if(!binding || !this.current() || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!==(w && w.id))return
-      this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:this.data.requirementsDraft});this.renderWorkspace()
+      if(!binding || this.data.requirementsSaving || !this.current() || binding.store!==store || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!=null && binding.id!==(w && w.id))return
+      const submitted=this.data.requirementsDraft
+      this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:submitted});this.setData({requirementsSaving:true});this.renderWorkspace()
       const ownsSheet=()=>this.current() && this.store===store && this._requirementsBinding===binding && binding.scope===this._scope && binding.date===this.data.context.date && binding.meal===this.data.context.mealType
-      try {await this.flushDraft();if(!ownsSheet())return;this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace()}
+      try {await this.flushDraft();if(!ownsSheet())return;if(this.data.requirementsDraft!==submitted){this.setData({errorMessage:'先前的内容已保存，新输入仍保留，请再次应用'});this.renderWorkspace();return}this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace()}
       catch(error){if(ownsSheet())this.setData({errorMessage:error.message || '文字已保留，请重试同步'})}
+      finally{if(ownsSheet() || this._requirementsBinding===null && this.store===store && this.current())this.setData({requirementsSaving:false})}
     },
     async pollTask() {
       clearTimeout(this._pollTimer)

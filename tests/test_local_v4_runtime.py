@@ -12,6 +12,19 @@ runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
 
 class LocalRuntimeTest(unittest.TestCase):
+    def test_restart_reuses_saved_java_and_validates_before_stopping(self):
+        state={'javaPid': 123, 'javaExecutable':'C:/custom-jdk/bin/java.exe','dbPort':12345,'password':'synthetic'}
+        order=[]
+        connection=Mock()
+        with patch.object(runtime.sys,'argv',['local_v4.py','restart']),patch.object(runtime,'read_state',return_value=state),patch.object(runtime,'executable_path',side_effect=lambda value:order.append(('validate',value)) or value),patch.object(runtime,'stop_owned',side_effect=lambda *args:order.append(('stop',None))),patch.object(runtime.pymysql,'connect',return_value=connection),patch.object(runtime,'start_java',side_effect=lambda state,value:order.append(('start',value))):
+            runtime.main()
+        self.assertEqual(('validate','C:/custom-jdk/bin/java.exe'),order[0])
+        self.assertEqual(('start','C:/custom-jdk/bin/java.exe'),order[-1])
+
+    def test_invalid_java_override_does_not_stop_existing_backend(self):
+        with patch.object(runtime.sys,'argv',['local_v4.py','restart','--java','C:/missing/java.exe']),patch.object(runtime,'read_state',return_value={'javaPid':123,'dbPort':12345,'password':'synthetic'}),patch.object(runtime.pymysql,'connect',return_value=Mock()),patch.object(runtime,'executable_path',side_effect=RuntimeError('missing')),patch.object(runtime,'stop_owned') as stop,patch.object(runtime,'start_java') as start:
+            with self.assertRaisesRegex(RuntimeError,'missing'):runtime.main()
+        stop.assert_not_called();start.assert_not_called()
     def test_model_can_be_reused_and_provider_failure_keeps_basic_api_available(self):
         response=io.BytesIO(b'{"status":"ok","local":true,"modelBudget":{"limit":20,"used":15}}')
         with patch.object(runtime.urllib.request,'urlopen',return_value=response),patch.object(runtime.subprocess,'run') as run:

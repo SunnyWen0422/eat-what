@@ -5,3 +5,23 @@ test('canceling a requirements sheet does not edit the authoritative draft',()=>
 test('applying requirements after an account change never edits the new account',async()=>{const f=fixture();f.page.onOpenRequirements();f.page.onRequirementsDraftInput({detail:{value:'新要求'}});f.switch();await f.page.onApplyRequirements();assert.equal(f.edits.length,0)})
 test('late apply success cannot close a reopened sheet for the next account',async()=>{const f=fixture();let finish;f.page.flushDraft=()=>new Promise(resolve=>finish=resolve);f.page.onOpenRequirements();const old=f.page.onApplyRequirements();f.switch();f.page._scope='B';f.page.store={state:()=>({workspace:{id:'new'}})};f.page.onOpenRequirements();assert.equal(f.page.data.requirementsVisible,true);finish();await old;assert.equal(f.page.data.requirementsVisible,true)})
 test('late apply failure cannot replace the new sheet feedback',async()=>{const f=fixture();let fail;f.page.flushDraft=()=>new Promise((resolve,reject)=>fail=reject);f.page.onOpenRequirements();const old=f.page.onApplyRequirements();f.page.onCancelRequirements();f.page.onOpenRequirements();f.page.data.errorMessage='新弹层反馈';fail(Error('旧请求错误'));await old;assert.equal(f.page.data.errorMessage,'新弹层反馈')})
+test('typing a new restriction while saving keeps the sheet and newer text for explicit resubmission',async()=>{
+ const f=fixture();let finish;f.page.flushDraft=()=>new Promise(resolve=>finish=resolve)
+ f.page.onOpenRequirements();f.page.onRequirementsDraftInput({detail:{value:'清淡一些'}})
+ const saving=f.page.onApplyRequirements();f.page.onRequirementsDraftInput({detail:{value:'清淡一些，不要花生'}})
+ finish();await saving
+ assert.equal(f.page.data.requirementsVisible,true)
+ assert.equal(f.page.data.requirementsDraft,'清淡一些，不要花生')
+ assert.equal(f.edits.length,1);assert.equal(f.edits[0].requirements,'清淡一些')
+})
+test('a sheet opened before first creation accepts the expected null-to-ID transition in the same store',async()=>{
+ const f=fixture();let workspace=null;f.page.store.state=()=>({workspace})
+ f.page.onOpenRequirements();f.page.onRequirementsDraftInput({detail:{value:'不要花生'}})
+ workspace={id:'created-for-this-meal',revision:1};await f.page.onApplyRequirements()
+ assert.equal(f.edits.length,1);assert.equal(f.edits[0].requirements,'不要花生')
+ assert.equal(f.page.data.requirementsVisible,false)
+})
+test('a replaced store cannot receive a sheet opened against the old store',async()=>{
+ const f=fixture();f.page.onOpenRequirements();f.page.store={state:()=>({workspace:{id:'w'}}),edit:v=>f.edits.push(v)}
+ await f.page.onApplyRequirements();assert.equal(f.edits.length,0)
+})
