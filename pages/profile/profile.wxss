@@ -79,3 +79,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .version-info { background:transparent; padding:16px 0; border:0; text-align:center; color:#56645B; }.version-text { font-size:0.857143em; }
 
 .user-card { flex-direction:row; }.level { opacity:1; }
+
+.user-card, .shopping-shortcut, .menu-item, .admin-entry, .version-info { width:100%; margin-left:0; margin-right:0; }.menu-section { margin:24px 0 0; padding:0; border:0; background:transparent; box-shadow:none; }.user-info { text-align:left; }.nickname, .level { display:block; }

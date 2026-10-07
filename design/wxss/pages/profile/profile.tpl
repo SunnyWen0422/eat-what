@@ -78,3 +78,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .version-info { background:transparent; padding:16px 0; border:0; text-align:center; color:{{muted}}; }.version-text { font-size:{{font.caption.em}}; }
 
 .user-card { flex-direction:row; }.level { opacity:1; }
+
+.user-card, .shopping-shortcut, .menu-item, .admin-entry, .version-info { width:100%; margin-left:0; margin-right:0; }.menu-section { margin:24px 0 0; padding:0; border:0; background:transparent; box-shadow:none; }.user-info { text-align:left; }.nickname, .level { display:block; }

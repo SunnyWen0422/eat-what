@@ -41,3 +41,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .cost-overview > text { font-size:{{font.reading.em}}; line-height:1.6; }
 .shopping-bottom { display:flex; gap:10px; }.shopping-bottom > ui-button:first-child { flex:1; min-width:0; }
 .item-row { flex-wrap:wrap; gap:6px; }.item-row .ew-grow { min-width:110px; }.item-row .ew-link { flex:0 0 auto; }
+
+.shopping-bottom { position:fixed; left:0; right:0; bottom:0; z-index:35; background:{{background}}; border-top:1px solid {{divider}}; }

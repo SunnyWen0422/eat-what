@@ -25,3 +25,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ingredient-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:12px 0; border-bottom:1px solid {{divider}}; }
 .ingredient-row .ew-grow { min-width:110px; }.ingredient-row .ew-link { padding:6px; }
 .preview-bottom { display:flex; gap:10px; }.preview-bottom > ui-button:last-child { flex:1; min-width:0; }
+
+.preview-bottom { position:fixed; left:0; right:0; bottom:0; z-index:35; background:{{background}}; border-top:1px solid {{divider}}; }
