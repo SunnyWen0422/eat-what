@@ -25,3 +25,19 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: one ingredient, one readable row. */
+.shopping-page { padding-bottom:calc(104px + env(safe-area-inset-bottom)); }
+.shopping-row { background:{{card}}; padding:16px 14px; border-bottom:1px solid {{divider}}; }
+.shopping-row .ew-title { font-size:{{font.reading.em}}; }
+.shopping-row .ew-row { align-items:flex-start; gap:10px; }
+.shopping-row .ew-link { justify-content:flex-start; text-align:left; }
+.check, .check.checked { width:44px; min-width:44px; height:44px; min-height:44px; padding:0; background:transparent; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+.check-box { width:24px; height:24px; border:1.5px solid {{controlBorder}}; border-radius:7px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
+.check-box.selected { background:{{brandSoft}}; border-color:{{brand}}; color:{{brand}}; }
+.ingredient-details { background:{{surfaceSoft}}; padding:12px; border-radius:12px; margin-top:8px; }
+.ingredient-details text { display:block; overflow-wrap:anywhere; }
+.cost-overview { background:{{warmSoft}}; border:0; padding:14px 16px; border-radius:16px; margin:12px 0; }
+.cost-overview > text { font-size:{{font.reading.em}}; line-height:1.6; }
+.shopping-bottom { display:flex; gap:10px; }.shopping-bottom > ui-button:first-child { flex:1; min-width:0; }
+.item-row { flex-wrap:wrap; gap:6px; }.item-row .ew-grow { min-width:110px; }.item-row .ew-link { flex:0 0 auto; }

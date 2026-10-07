@@ -15,7 +15,7 @@ Page({
   current(scope) { return !this._unloaded && scope === getUserStorageKey('shoppingList') },
   async loadList() {
     const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
-    if (this._scope !== scope) { this._expandedSources=[];this.setData({detailsExpanded:false});this._signature = null; this._pendingMutation = null; this.setData({ expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
+    if (this._scope !== scope) { this._expandedSources=[];this.setData({detailsExpanded:false,moreVisible:false,addVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
     this._scope = scope
     this.applyList(store.loadLocalShoppingList())
     this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
@@ -61,7 +61,8 @@ Page({
   onSourceDetails(e){const key=e.currentTarget.dataset.key;this._expandedSources=this._expandedSources||[];this._expandedSources=this._expandedSources.includes(key)?this._expandedSources.filter(k=>k!==key):[...this._expandedSources,key];this.renderList()},
   onFilterChange(e) { this.setData({ statusFilter: e.currentTarget.dataset.status }); this.renderList() },
   onViewMode(e) { this.setData({ viewMode: e.currentTarget.dataset.mode }) },
-  onAddManual() { this.setData({ formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' }) },
+  onAddOptions() { if(!this.data.busy)this.setData({addVisible:!this.data.addVisible}) },
+  onAddManual() { this.setData({ addVisible:false, formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' }) },
   onEditItem(e) {
     const item = this.findItem(e.currentTarget.dataset.id)
     if (!item) return
@@ -157,5 +158,5 @@ Page({
     await this.onRetryDrafts()
   },
   async onDiscardDraft(e) { const scope = this._scope; if (await confirm('丢弃本地草稿？', '只移除待确认草稿；云端可能已保存的内容请刷新查看。', '丢弃') && this.current(scope)) { store.removePendingOperation(e.currentTarget.dataset.id); this.setData({ drafts: store.loadPendingOperations() }) } },
-  onAddFromRecipe() { wx.switchTab({ url: '/pages/customize/customize' }) },
+  onAddFromRecipe() { this.setData({addVisible:false}); wx.switchTab({ url: '/pages/customize/customize' }) },
 })
