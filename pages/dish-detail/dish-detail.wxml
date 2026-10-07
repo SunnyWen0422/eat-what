@@ -1,7 +1,7 @@
 <!--pages/dish-detail/dish-detail.wxml-->
 <view class="ew-page container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
   <!-- 菜品图片 -->
-  <view class="dish-image-container">
+  <view class="dish-image-container {{!dish.image ? 'no-image' : ''}}">
     <image
       wx:if="{{dish.image}}"
       class="dish-image"
@@ -10,24 +10,17 @@
       bindtap="previewImage"
       data-url="{{dish.image}}"
     />
-    <view wx:else class="dish-image-placeholder">
-      <ui-icon class="line-icon line-icon-meal" name="meal" />
-      <text class="placeholder-text">菜图稍后补上</text>
-    </view>
-
     <!-- 收藏按钮 -->
     <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
-      <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" aria-label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
+      <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
     </view>
     <button class="share-btn" open-type="share">
-      <ui-icon class="line-icon line-icon-share" name="share" aria-label="分享" />
+      <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
     </button>
   </view>
 
   <!-- 菜品信息 -->
   <view class="dish-info">
-    <button class="ew-hit-target shopping-entry" bindtap="onAddToShoppingList">加入购物清单</button>
-    <button wx:if="{{canEditCustom}}" class="ew-hit-target shopping-entry" bindtap="onEditCustom">编辑我的菜品</button>
     <view class="dish-header">
       <text class="dish-name">{{dish.name}}</text>
       <view class="dish-tags" wx:if="{{dish.tags}}">
@@ -123,6 +116,7 @@
       </view>
     </view>
   </view>
+  <view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><ui-button label="准备这道菜的食材" bind:action="onAddToShoppingList" /></view>
 </view>
 
 <!-- 加载中 -->

@@ -15,7 +15,7 @@
   padding:14px 12px;
   text-align: center;
   font-size:1.142857em;
-  color: #617066;
+  color: #56645B;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
 }
@@ -80,10 +80,10 @@
 .browse-filter-command { gap:8px; color:#25332B; font-size:0.928571em; font-weight: 600; }
 .browse-filter-arrow,
 .browse-filter-clear { color: #28634E; font-size:0.857143em; font-weight: 400; }
-.browse-filter-summary { display: block; margin:6px 0 10px; color:#617066; font-size:0.857143em; line-height: 1.5; word-break: break-word; }
+.browse-filter-summary { display: block; margin:6px 0 10px; color:#56645B; font-size:0.857143em; line-height: 1.5; word-break: break-word; }
 .browse-filter-panel { margin-top:10px; padding-top:8px; border-top: 1px solid #edf0ee; }
 .browse-filter-group { margin-bottom:9px; }
-.browse-filter-label { display: block; margin-bottom:5px; color:#617066; font-size:0.857143em; }
+.browse-filter-label { display: block; margin-bottom:5px; color:#56645B; font-size:0.857143em; }
 .browse-filter-options { width: 100%; white-space: nowrap; }
 .browse-filter-option {
   display: inline-flex;
@@ -94,14 +94,14 @@
   border: 1px solid #d8dfdb;
   border-radius:5px;
   background: #FFFFFF;
-  color: #617066;
+  color: #56645B;
   font-size:0.857143em;
   box-sizing: border-box;
 }
 .browse-filter-option.selected { border-color: #28634E; background: #EDF3ED; color:#28634E; font-weight: 600; }
 .browse-filter-option:first-child { margin-left:2px; }
 .browse-filter-option:last-child { margin-right:16px; }
-.browse-filter-count { margin-left:4px; color:#617066; font-size:0.857143em; }
+.browse-filter-count { margin-left:4px; color:#56645B; font-size:0.857143em; }
 
 /* 菜品列表 */
 .dish-list {
@@ -111,7 +111,7 @@
 
 .tip-text {
   text-align: center;
-  color: #617066;
+  color: #56645B;
   font-size:1em;
   margin:20px 0;
   line-height: 1.6;
@@ -292,7 +292,7 @@
 
 .panel-close {
   font-size:1.714286em;
-  color: #617066;
+  color: #56645B;
   padding:4px 8px;
 }
 
@@ -327,7 +327,7 @@
 
 .panel-empty {
   text-align: center;
-  color: #617066;
+  color: #56645B;
   font-size:1em;
   margin-top:40px;
 }
@@ -380,7 +380,7 @@
 
 .type-label {
   font-size:1em;
-  color: #617066;
+  color: #56645B;
   margin-right:8px;
 }
 
@@ -395,7 +395,7 @@
   border: 1px solid #ddd;
   border-radius:14px;
   font-size:0.928571em;
-  color: #617066;
+  color: #56645B;
 }
 
 .opt-active {
@@ -427,9 +427,9 @@
 .shopping-btn { background: #EDF3ED; color: #28634E; }
 
 .selector-input { color:#25332B; }
-.custom-tag-title { margin:10px 0 8px; color:#617066; font-size:0.928571em; }
+.custom-tag-title { margin:10px 0 8px; color:#56645B; font-size:0.928571em; }
 .custom-tag-grid { display: flex; flex-wrap: wrap; gap:7px; margin-bottom:10px; }
-.custom-tag { padding:7px 9px; border: 1px solid #d8dfdb; border-radius:5px; background: #FFFFFF; color:#617066; font-size:0.857143em; }
+.custom-tag { padding:7px 9px; border: 1px solid #d8dfdb; border-radius:5px; background: #FFFFFF; color:#56645B; font-size:0.857143em; }
 .custom-tag.selected { border-color: #28634E; background: #EDF3ED; color:#28634E; font-weight: 600; }
 
 @media (min-width: 601px) {
@@ -461,3 +461,6 @@ button { min-width:44px; min-height:48px; }
 .ew-page .save-btn.shopping-btn { background:#EDF3ED; color:#28634E; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+/* v2 browsing and explicit selection keep the original search and creation handlers. */
+.page{min-height:0;background:#F8F7F2;padding:16px}.recipe-page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;margin-bottom:12px}.recipe-target{font-size:0.928571em;color:#28634E;line-height:1.6;margin-bottom:8px}.category-scroll{height:auto;min-height:44px;background:transparent;border:0}.sidebar{padding:0;gap:4px}.sidebar-item{min-height:44px;padding:8px 12px;min-width:44px;font-size:1em;border:0;border-radius:10px}.sidebar-active{border:0;background:#EDF3ED;color:#28634E}.content{min-height:0;min-width:0}.search-wrap{padding:12px 0 4px;background:transparent}.search-input{background:#FFFFFF;border:1px solid #7C8E80;border-radius:14px;font-size:1.142857em;min-height:48px;padding:12px}.hot-tags{gap:8px;margin-top:8px}.hot-tag{font-size:0.928571em;background:transparent;min-height:44px;padding:0 8px;border-radius:10px}.browse-filter-header{padding:0;background:transparent}.dish-list-content{padding:8px 0 16px}.recipe-item{margin-bottom:12px}.bottom-bar{background:#F8F7F2;border-top:1px solid #E6EAE1;padding:12px 0 calc(12px + env(safe-area-inset-bottom));gap:8px;flex-wrap:wrap}.selected-wrap{flex:0 1 auto;min-width:44px}.selected-num{font-size:0.928571em}.save-btn{min-height:48px;font-size:1em;border-radius:14px;flex:1;min-width:120px}.shopping-btn{flex:0 1 auto}.selected-panel{background:#F8F7F2;border-radius:24px 24px 0 0}.panel-item{background:transparent;border-bottom:1px solid #E6EAE1}.panel-item-name{font-size:1.142857em}.form-input,.form-textarea{background:#FFFFFF;border:1px solid #7C8E80;font-size:1.142857em;border-radius:14px}.browse-filter-panel{background:#FFFFFF;border:0;border-radius:18px}.browse-filter-option{background:transparent;border:1px solid #D9E1D5;border-radius:10px}.browse-filter-option.selected{background:#EDF3ED;border-color:#28634E}
