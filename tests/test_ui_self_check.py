@@ -17,6 +17,14 @@ class UiSelfCheckTest(unittest.TestCase):
         match = re.fullmatch(r'(\d+(?:\.\d+)?)px', value or '')
         return bool(match and float(match[1]) >= 44)
 
+    def test_recipe_primary_action_can_grow_with_large_text(self):
+        route = 'pages/customize/customize'
+        template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
+        button = next(n for n in template.nodes if n.attrs.get('bindtap') == 'onSaveToCalendar')
+        style = styles(button, rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss')))
+        self.assertIn(style.get('height'), (None, 'auto'))
+        self.assertNotRegex(style.get('line-height', ''), r'^\d+px$')
+
     def test_result_favorite_and_refresh_keep_44px_through_actual_pressed_ancestors(self):
         route = 'pages/result/result'
         css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))

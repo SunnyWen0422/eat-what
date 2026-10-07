@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict')
-function fixture(save){let scope='A';const memory=new Map(),sent=[];const page={data:{},setData(v){Object.assign(this.data,v)}}
+function fixture(save,actual){let scope='A';const memory=new Map(),sent=[];const page={data:{},setData(v){Object.assign(this.data,v)}}
  const wx={getStorageSync:k=>memory.get(k),setStorageSync:(k,v)=>memory.set(k,v),removeStorageSync:k=>memory.delete(k)}
- const api={getMealOverview:async()=>({plans:[{recordDate:'2026-10-06',mealType:'dinner',revision:3,dishIds:[7],dishDetails:[{id:7,name:'青菜'}]}]}),saveMealConsumption:async(d,m,body)=>{sent.push({d,m,body});return save?save(body):{status:body.status}}}
+ const api={getMealOverview:async()=>({plans:[{recordDate:'2026-10-06',mealType:'dinner',revision:3,dishIds:[7],dishDetails:[{id:7,name:'青菜'}]}],consumptions:actual?[{mealDate:'2026-10-06',mealType:'dinner',...actual}]:[]}),saveMealConsumption:async(d,m,body)=>{sent.push({d,m,body});return save?save(body):{status:body.status}}}
  Object.assign(page,require('../utils/meal-actual-entry').createMealActualEntry({api,wx,scope:()=>scope,today:()=> '2026-10-06'}));return {page,sent,memory,switch:()=>scope='B'} }
 test('actual quick entry keeps original payload and key after unknown save',async()=>{
  let first=true;const f=fixture(()=>{if(first){first=false;throw {isNetworkError:true}}return {status:'eaten'}});await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});await f.page.onActualByPlan();assert.equal(f.page.data.actualUnknown,true);await f.page.onActualRetry();assert.equal(f.sent[0].body.requestId,f.sent[1].body.requestId);assert.deepEqual(f.sent[0].body,f.sent[1].body)
@@ -32,4 +32,15 @@ test('late save response cannot close the next account sheet',async()=>{
 })
 test('changed displayed plan cannot be silently recorded as the new plan',async()=>{
  const f=fixture();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner',planRevision:2,displayedPlanNames:'旧餐菜'});assert.equal(f.page.data.actualPlanChanged,true);await f.page.onActualByPlan();assert.equal(f.sent.length,0);assert.equal(f.page.data.actualOriginalPlanNames,'旧餐菜');assert.match(f.page.data.actualPlanNames,/青菜/)
+})
+
+test('reopening a saved actual keeps it visible and confirmation retains the original entries',async()=>{
+ const f=fixture(undefined,{status:'eaten',revision:4,actualDishes:[{name:'外食拉面'}]})
+ await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'})
+ assert.equal(f.page.data.actualMode,'changed');assert.equal(f.page.data.actualText,'外食拉面')
+ await f.page.onConfirmActual();assert.equal(f.sent[0].body.usePlan,false);assert.equal(f.sent[0].body.expectedRevision,4);assert.deepEqual(f.sent[0].body.dishes,[{retainedEntryIndex:0}])
+})
+test('reopening a skipped record does not silently convert it to eaten',async()=>{
+ const f=fixture(undefined,{status:'skipped',revision:4,actualDishes:[]});await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'})
+ assert.equal(f.page.data.actualMode,'skipped');await f.page.onConfirmActual();assert.equal(f.sent[0].body.status,'skipped');assert.equal(f.sent[0].body.usePlan,false)
 })

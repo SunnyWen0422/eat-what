@@ -92,6 +92,5 @@ button::after { border: none; }
 .empty-title { font-size:{{font.card.em}}; font-weight: bold; color: {{text}}; }
 .empty-desc { font-size:{{font.caption.em}}; color: {{muted}}; margin-top:{{space.0.rpx*1.25}}; }
 
-ui-icon.line-icon::before,ui-icon
 page{background:{{background}};color:{{text}};font-size:{{font.body.px}}}
 .mobile-screen{background:{{background}}}

@@ -459,6 +459,12 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 
 .ew-page .save-btn.shopping-btn { background:{{brandSoft}}; color:{{brand}}; }
 
+/* Primary label must fit at 320px and 1.5x text; secondary actions get their own row. */
+.ew-page .bottom-bar .save-btn { order:0; flex:0 0 100%; width:100%; min-width:0; height:auto; min-height:{{controls.primaryHeight.px}}; line-height:1.5; white-space:normal; padding:12px 16px; margin:0; }
+.ew-page .bottom-bar .selected-wrap { order:1; flex:1 1 0; min-width:{{controls.touchSize.px}}; }
+.ew-page .bottom-bar .shopping-btn { order:2; flex:1 1 0; min-width:{{controls.touchSize.px}}; height:auto; line-height:1.5; padding:10px; }
+.recipe-target { flex-shrink:0; }
+
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
 
 /* v2 browsing and explicit selection keep the original search and creation handlers. */

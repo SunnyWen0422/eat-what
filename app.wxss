@@ -93,6 +93,5 @@ button::after { border: none; }
 .empty-title { font-size:1.142857em; font-weight: bold; color: #25332B; }
 .empty-desc { font-size:0.857143em; color: #56645B; margin-top:10rpx; }
 
-ui-icon.line-icon::before,ui-icon
 page{background:#F8F7F2;color:#25332B;font-size:14px}
 .mobile-screen{background:#F8F7F2}
