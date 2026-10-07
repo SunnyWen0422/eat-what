@@ -1,1 +1,1 @@
-Component({ properties: { title: String, name: String, status: String, description: String }, methods: { open() { this.triggerEvent('open') } } })
+Component({ properties: { title: String, name: String, status: String, description: String, clickable: { type: Boolean, value: true } }, methods: { open() { if (this.data.clickable) this.triggerEvent('open') } } })

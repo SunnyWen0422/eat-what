@@ -17,6 +17,16 @@ test('conflict reload retains input and requires a fresh explicit save',async()=
 test('skipped is a separate explicit save and closing alone writes nothing',async()=>{
  const f=fixture();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});f.page.closeMealActual();assert.equal(f.sent.length,0);await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});await f.page.onActualSkipped();assert.equal(f.sent[0].body.status,'skipped');assert.equal(f.sent[0].body.expectedPlanRevision,3)
 })
+test('choosing actual type is read-only and the single confirm saves only that type',async()=>{
+ const f=fixture();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'})
+ f.page.onActualMode({currentTarget:{dataset:{mode:'changed'}}});f.page.onActualText({detail:{value:'外食拉面'}})
+ assert.equal(f.sent.length,0);await f.page.onConfirmActual()
+ assert.equal(f.sent.length,1);assert.equal(f.sent[0].body.usePlan,false);assert.deepEqual(f.sent[0].body.dishes,[{name:'外食拉面'}])
+})
+test('unknown save does not let a different record type replace the original retry intent',async()=>{
+ const f=fixture(()=>{throw {isNetworkError:true}});await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});await f.page.onActualByPlan()
+ f.page.onActualMode({currentTarget:{dataset:{mode:'changed'}}});assert.equal(f.page.data.actualMode,'byPlan')
+})
 test('late save response cannot close the next account sheet',async()=>{
  let finish;const f=fixture(()=>new Promise(resolve=>{finish=resolve}));await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});const save=f.page.onActualByPlan();f.switch();await f.page.openMealActual({date:'2026-10-06',mealType:'dinner'});finish({status:'eaten'});await save;assert.equal(f.page.data.actualVisible,true);assert.equal(f.page.data.actualBusy,false);assert.equal(f.page._actualBinding.scope,'B')
 })

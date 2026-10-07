@@ -6,6 +6,8 @@ const actual=require('../../utils/meal-actual-entry').createMealActualEntry({api
 Page({
  openMealActual(...args){return actual.openMealActual.call(this,...args)},
  onActualText(...args){return actual.onActualText.call(this,...args)},
+ onActualMode(...args){return actual.onActualMode.call(this,...args)},
+ onConfirmActual(...args){return actual.onConfirmActual.call(this,...args)},
  closeMealActual(...args){return actual.closeMealActual.call(this,...args)},
  disposeMealActual(...args){return actual.disposeMealActual.call(this,...args)},
  onActualByPlan(...args){return actual.onActualByPlan.call(this,...args)},
