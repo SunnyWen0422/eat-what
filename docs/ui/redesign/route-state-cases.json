@@ -5612,5 +5612,27 @@
       "evidence": null,
       "evidenceLevel": "native_pending"
     }
-  ]
+  ],
+  "latestSourceSha": "0ed569b6d890b429ef5b162d11b9a005d7449afd",
+  "offlineSourceChecks": {
+    "scope": "source DOM and generated WXSS only; not native event, device or data acceptance",
+    "codeSha": "0ed569b6d890b429ef5b162d11b9a005d7449afd",
+    "routes": 27,
+    "scenarios": 928,
+    "widths": [
+      320,
+      375,
+      390,
+      414
+    ],
+    "fontScales": [
+      1,
+      1.5
+    ],
+    "horizontalOverflow": 0,
+    "smallButtons": 0,
+    "clippedButtons": 0,
+    "expressionErrors": 0,
+    "evidence": "../work/ui-ux-redesign/source-layout/results.json"
+  }
 }
