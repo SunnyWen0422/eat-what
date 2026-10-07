@@ -1,14 +1,14 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
 .settings-page { min-height: 100vh; box-sizing: border-box; padding:16px 16px 32px; background: #f5f7f6; color:#25332B; }
-.sync-row { display: flex; align-items: center; gap:7px; margin-bottom:14px; color:#617066; font-size:0.857143em; }
+.sync-row { display: flex; align-items: center; gap:7px; margin-bottom:14px; color:#56645B; font-size:0.857143em; }
 .sync-dot { width: 7px; height: 7px; border-radius:50%; background:#28634E; }
 .sync-dot.online { background: #28634E; }
 .section { padding:17px 0; border-bottom: 1px solid #dde3e0; }
 .section-title { margin-bottom:5px; font-size:1.142857em; font-weight: 700; }
-.section-desc { margin-bottom:12px; color:#617066; font-size:0.857143em; line-height: 1.5; }
+.section-desc { margin-bottom:12px; color:#56645B; font-size:0.857143em; line-height: 1.5; }
 .chip-grid { display: flex; flex-wrap: wrap; gap:8px; }
-.choice-chip { min-width: 66px; box-sizing: border-box; padding:9px 12px; border: 1px solid #d5dcd8; border-radius:6px; background: #FFFFFF; color: #617066; text-align: center; font-size:0.928571em; }
+.choice-chip { min-width: 66px; box-sizing: border-box; padding:9px 12px; border: 1px solid #d5dcd8; border-radius:6px; background: #FFFFFF; color: #56645B; text-align: center; font-size:0.928571em; }
 .choice-chip.selected { border-color: #28634E; background: #EDF3ED; color:#28634E; font-weight: 600; }
 .choice-chip.danger.selected { border-color: #bd5143; background: #FFF0ED; color:#A93B30; }
 .ingredient-row { display: flex; gap:8px; }
@@ -36,3 +36,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+/* Warm table v2: settings */
+ .settings-page { padding:20px 16px 28px; background:#F8F7F2; }.sync-row { padding:0 0 16px; color:#56645B; font-size:1em; gap:8px; }.section { border:0; background:#FFFFFF; border-radius:18px; padding:18px 16px; margin-bottom:14px; box-shadow:none; }.section-title { font-size:1.285714em; color:#25332B; line-height:1.5; }.section-desc { font-size:1em; line-height:1.7; margin:6px 0 12px; }.chip-grid { display:flex; flex-wrap:wrap; gap:8px; }.choice-chip, .ingredient-chip { min-height:44px; border-radius:12px; padding:10px 12px; background:#F5F6F0; color:#25332B; border:1px solid transparent; box-sizing:border-box; line-height:1.5; font-size:1em; }.choice-chip.selected { background:#EDF3ED; color:#28634E; border-color:#28634E; }.choice-chip.danger.selected { background:#A93B30; color:#FFFFFF; border-color:#A93B30; }.ingredient-row { display:flex; gap:8px; }.ingredient-input { flex:1; min-width:0; background:#FFFFFF; border:1px solid #7C8E80; border-radius:12px; min-height:48px; padding:0 12px; }.add-btn { padding:0 12px; min-height:48px; color:#28634E; background:#EDF3ED; border-radius:12px; }.save-btn { min-height:48px; height:auto; padding:12px 16px; border-radius:14px; background:#28634E; color:#FFFFFF; margin:20px 0; font-size:1.142857em; }.save-btn[disabled] { background:#E8EBE5; color:#25332B; }

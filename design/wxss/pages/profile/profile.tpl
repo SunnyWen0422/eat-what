@@ -67,3 +67,14 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: account, preparation, then personal content. */
+.profile-page { padding:20px 16px 32px; background:{{background}}; }
+.user-card { display:flex; align-items:center; gap:12px; background:transparent; color:{{text}}; padding:20px 0; margin:0; box-shadow:none; border:0; border-radius:0; text-align:left; }
+.user-avatar { width:64px; height:64px; margin:0; flex:0 0 64px; }.avatar, .avatar-fallback { width:64px; height:64px; border:0; border-radius:22px; }.avatar-fallback { background:{{warmSoft}}; color:{{warm}}; display:flex; align-items:center; justify-content:center; font-size:{{font.page.em}}; }
+.user-info { flex:1; min-width:0; }.nickname { color:{{text}}; font-size:{{font.page.em}}; line-height:1.4; overflow-wrap:anywhere; }.level { color:{{muted}}; font-size:{{font.body.em}}; margin-top:4px; }.profile-edit-label { font-size:{{font.secondary.em}}; color:{{brand}}; }
+.shopping-shortcut { display:flex; align-items:center; gap:12px; background:{{warmSoft}}; border:0; border-radius:16px; padding:16px; text-align:left; box-shadow:none; }.shopping-shortcut-body { flex:1; min-width:0; }.shopping-shortcut-title { font-size:{{font.reading.em}}; color:{{text}}; }.shopping-shortcut-sync { color:{{muted}}; line-height:1.6; font-size:{{font.secondary.em}}; }
+.menu-section { margin-top:24px; }.menu-list { background:{{card}}; border:0; border-radius:18px; overflow:hidden; }.menu-item { display:flex; align-items:center; gap:12px; background:{{card}}; text-align:left; padding:14px 16px; border:0; border-radius:0; min-height:60px; border-bottom:1px solid {{divider}}; }.menu-title { flex:1; font-size:{{font.reading.em}}; color:{{text}}; line-height:1.6; }.admin-entry { border-radius:18px; margin-top:16px; }
+.version-info { background:transparent; padding:16px 0; border:0; text-align:center; color:{{muted}}; }.version-text { font-size:{{font.caption.em}}; }
+
+.user-card { flex-direction:row; }.level { opacity:1; }

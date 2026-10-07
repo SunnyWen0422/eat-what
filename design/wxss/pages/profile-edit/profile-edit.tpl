@@ -19,3 +19,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: profile-edit */
+ .avatar-btn { width:88px; height:88px; min-width:88px; min-height:88px; padding:0; margin:0 auto 12px; border-radius:26px; background:{{warmSoft}}; }.avatar-img, .avatar-placeholder { width:88px; height:88px; border-radius:26px; }.avatar-placeholder { display:flex; align-items:center; justify-content:center; font-size:{{font.display.em}}; color:{{warm}}; }.ew-card { border:0; padding:20px 16px; }.ew-field { margin-top:24px; }.ew-actions { gap:12px; margin-top:24px; }

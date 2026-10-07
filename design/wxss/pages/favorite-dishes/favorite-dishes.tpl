@@ -16,3 +16,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: favorite-dishes */
+ .favorite-row { background:{{card}}; padding:0 14px 4px; border-bottom:1px solid {{divider}}; }.favorite-row > button { margin-left:auto; background:transparent; font-size:{{font.body.em}}; color:{{muted}}; }.favorite-row dish-card { display:block; }

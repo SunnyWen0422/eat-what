@@ -20,3 +20,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+/* Warm table v2: profile-edit */
+ .avatar-btn { width:88px; height:88px; min-width:88px; min-height:88px; padding:0; margin:0 auto 12px; border-radius:26px; background:#F4E4D5; }.avatar-img, .avatar-placeholder { width:88px; height:88px; border-radius:26px; }.avatar-placeholder { display:flex; align-items:center; justify-content:center; font-size:2em; color:#854A2F; }.ew-card { border:0; padding:20px 16px; }.ew-field { margin-top:24px; }.ew-actions { gap:12px; margin-top:24px; }

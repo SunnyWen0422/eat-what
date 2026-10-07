@@ -3,8 +3,8 @@
   <view wx:if="{{errorMessage}}" class="ew-error">{{errorMessage}}</view>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取历史" />
   <ui-state wx:if="{{!loading && !sessions.length}}" kind="empty" title="还没有历史会话" description="当前餐要求可以直接在工作区修改。" action-label="重新读取" bind:action="onShow" />
-  <button wx:for="{{sessions}}" wx:key="sessionId" class="ew-hit-target ew-button secondary history-session" data-id="{{item.sessionId}}" bindtap="onOpenSession">会话 · {{item.label}}</button>
+  <button wx:for="{{sessions}}" wx:key="sessionId" class="ew-hit-target history-session {{sessionId === item.sessionId ? 'active' : ''}}" data-id="{{item.sessionId}}" bindtap="onOpenSession"><text>{{item.label}}</text><text wx:if="{{sessionId === item.sessionId}}" class="ew-muted">正在查看</text><ui-icon wx:else name="chevron-right" tone="muted" size="16" /></button>
   <ui-button wx:if="{{nextCursor}}" label="更多历史" variant="secondary" disabled="{{loading}}" bind:action="onMore" />
   <ui-card wx:if="{{sessionId}}" title="会话内容"><view wx:for="{{messages}}" wx:key="index" class="history-message"><text class="ew-muted">{{item.role === 'user' ? '你' : '助手'}}</text><view>{{item.content}}</view></view><text wx:if="{{!loading && !messages.length}}" class="ew-muted">这段会话没有已保存的消息。</text></ui-card>
-  <ui-card wx:for="{{meals}}" wx:key="index" title="{{item.date}} {{item.mealName}} · {{item.people}}人"><text>{{item.names}}</text><ui-button label="导入这一餐草稿" variant="secondary" data-index="{{index}}" disabled="{{loading}}" bind:action="onImportMeal" /></ui-card>
+  <ui-card wx:for="{{meals}}" wx:key="index" title="{{item.date}} {{item.mealName}} · {{item.people}}人"><text>{{item.names}}</text><ui-button label="复核并导入这一餐草稿" variant="secondary" data-index="{{index}}" disabled="{{loading}}" bind:action="onImportMeal" /></ui-card>
 </view>

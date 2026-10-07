@@ -179,3 +179,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: about */
+ .ew-display { display:block; color:{{brand}}; margin:16px 0 8px; }.help-step { padding:16px 0; border-bottom:1px solid {{divider}}; }.help-step .ew-title { font-size:{{font.reading.em}}; }.help-step .ew-subtitle { font-size:{{font.reading.em}}; line-height:1.8; margin-top:6px; }.about-links { background:{{card}}; margin-top:24px; border-radius:16px; padding:4px 16px; }.about-link { display:flex; align-items:center; justify-content:space-between; min-height:56px; font-size:{{font.reading.em}}; color:{{text}}; }

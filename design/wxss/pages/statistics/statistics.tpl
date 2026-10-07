@@ -17,3 +17,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: statistics */
+ .metrics { gap:10px; margin:16px 0; }.metrics .ew-card { padding:16px; margin:0; background:{{warmSoft}}; }.ew-number { font-size:{{font.display.em}}; color:{{text}}; }.metric-label { font-size:{{font.body.em}}; line-height:1.5; }.bar-row { gap:8px; min-height:44px; }.bar-row > text:first-child { flex:0 0 4em; }.bar-track { min-width:0; background:{{surfaceSoft}}; height:8px; border-radius:8px; }.bar-fill { background:{{brand}}; height:8px; border-radius:8px; }.ranking { padding:12px 0; border-bottom:1px solid {{divider}}; gap:12px; }.record { padding:14px 0; border-bottom:1px solid {{divider}}; }.record > text { display:block; line-height:1.7; }.period { gap:8px; }.period > text { flex:1; min-width:0; text-align:center; line-height:1.5; }

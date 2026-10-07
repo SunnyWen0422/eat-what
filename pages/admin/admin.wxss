@@ -42,7 +42,7 @@ button::after {
 .section-count {
   display: block;
   margin-top:4rpx;
-  color:#617066;
+  color:#56645B;
   font-size:0.857143em;
 }
 
@@ -83,7 +83,7 @@ button::after {
   align-items: center;
   justify-content: center;
   background: transparent;
-  color:#617066;
+  color:#56645B;
   font-size:1.285714em;
   line-height: 1;
 }
@@ -116,7 +116,7 @@ button::after {
 
 .result-note {
   margin:4rpx 0 14rpx;
-  color:#617066;
+  color:#56645B;
   font-size:0.857143em;
   word-break: break-word;
 }
@@ -190,7 +190,7 @@ button::after {
 .summary-line {
   display: block;
   margin-top:8rpx;
-  color:#617066;
+  color:#56645B;
   font-size:0.857143em;
   line-height: 1.45;
   word-break: break-word;
@@ -215,7 +215,7 @@ button::after {
 }
 
 .row-arrow {
-  color:#617066;
+  color:#56645B;
   font-size:1.714286em;
 }
 
@@ -227,7 +227,7 @@ button::after {
   align-items: center;
   justify-content: center;
   padding:40rpx 24rpx;
-  color:#617066;
+  color:#56645B;
   text-align: center;
 }
 
@@ -268,7 +268,7 @@ button::after {
 
 .list-end {
   padding:28rpx 0 calc(28rpx + env(safe-area-inset-bottom));
-  color:#617066;
+  color:#56645B;
   font-size:0.857143em;
   text-align: center;
 }
@@ -366,7 +366,7 @@ button::after {
 
 .target-label {
   flex: none;
-  color:#617066;
+  color:#56645B;
   font-size:0.857143em;
 }
 
@@ -471,7 +471,7 @@ button::after {
 
 .number-unit {
   flex: none;
-  color:#617066;
+  color:#56645B;
   font-size:0.857143em;
 }
 
@@ -480,7 +480,7 @@ button::after {
 }
 
 .tag-group-label {
-  color:#617066;
+  color:#56645B;
   font-weight: 500;
 }
 

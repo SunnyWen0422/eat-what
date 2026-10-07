@@ -23,7 +23,7 @@ page {
 }
 .container > view { flex-shrink: 0; min-width: 0; }
 .meal-options { display: flex; gap:8px; margin:0 16px 12px; }
-.meal-option { flex: 1; min-width: 0; padding:12px 0; border-radius:8px; text-align: center; background: #f3f9f7; color:#617066; font-size:1em; }
+.meal-option { flex: 1; min-width: 0; padding:12px 0; border-radius:8px; text-align: center; background: #f3f9f7; color:#56645B; font-size:1em; }
 .meal-option.active { background: #EDF3ED; color: #28634E; font-weight: 600; box-shadow: inset 0 0 0 1px #28634E; }
 
 /* 标题区 */
@@ -45,7 +45,7 @@ page {
 .header-title .line-icon { width: 34rpx; height: 34rpx; color: #28634E; }
 .header-subtitle {
   font-size:0.857143em;
-  color:#617066;
+  color:#56645B;
   margin-top:8px;
   display: block;
 }
@@ -139,7 +139,7 @@ page {
   background: #f5f7f4;
   border-radius:20px;
   font-size:0.928571em;
-  color: #617066;
+  color: #56645B;
   border: 1px solid #e0e8dc;
   transition: all 0.25s;
 }
@@ -185,7 +185,7 @@ page {
 .hint-header { display: flex; align-items: center; margin-bottom:6px; }
 .hint-icon { color: #28634E; font-size:1em; font-weight: bold; margin-right:4px; }
 .hint-title { font-size:0.928571em; font-weight: bold; color:#28634E; flex: 1; }
-.hint-clear { font-size:0.857143em; color: #617066; padding:2px 8px; }
+.hint-clear { font-size:0.857143em; color: #56645B; padding:2px 8px; }
 .selected-tags { display: flex; flex-wrap: wrap; gap:4px; }
 .dish-tag { font-size:0.857143em; padding:2px 6px; border-radius:4px; }
 .meat-tag { color:#28634E; background: #FDE8E8; border: 1px solid #ffbb96; }
@@ -199,7 +199,7 @@ page {
 .section-header-title { font-size:1em; font-weight: bold; color: #25332B; }
 .section-header-title { display: flex; align-items: center; gap:6rpx; }
 .section-header-title .line-icon { width: 28rpx; height: 28rpx; color: #28634E; }
-.section-header-hint { font-size:0.857143em; color:#617066; }
+.section-header-hint { font-size:0.857143em; color:#56645B; }
 .recipe-list { height: auto; }
 .recipe-item { padding:10px; background: #fafbfa; border-radius:8px; border: 1px solid #eee; position: relative; margin-bottom:8px; transition: all 0.2s; }
 .recipe-item.selected { background: #EDF3ED; border-color: #28634E; }
@@ -207,11 +207,11 @@ page {
 .recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size:0.928571em; font-weight: bold; color: #25332B; }
 .delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background:#A93B30; color: #FFFFFF; border-radius:50%; font-size:1em; font-weight: bold; }
 .recipe-info { display: flex; gap:5px; flex-wrap: wrap; }
-.info-tag { font-size:0.857143em; color:#617066; background: #FFFFFF; padding:2px 5px; border-radius:3px; }
+.info-tag { font-size:0.857143em; color:#56645B; background: #FFFFFF; padding:2px 5px; border-radius:3px; }
 .recipe-dishes { display: flex; flex-wrap: wrap; gap:3px; margin-top:5px; }
 .recipe-dishes .dish-tag { font-size:0.857143em; color: #28634E; background: #FFFFFF; padding:1px 4px; border-radius:3px; border: 1px solid #28634E; }
 .selected-badge { position: absolute; top: -6px; right: -6px; background: #28634E; color: #FFFFFF; font-size:0.857143em; padding:1px 6px; border-radius:10px; }
-.unselect-btn { margin-top:10px; text-align: center; padding:6px; background: #F8F7F2; border-radius:4px; color: #617066; font-size:0.857143em; }
+.unselect-btn { margin-top:10px; text-align: center; padding:6px; background: #F8F7F2; border-radius:4px; color: #56645B; font-size:0.857143em; }
 
 /* 数据加载提示 */
 .loading-tip { margin:0 16px 10px; padding:12px 16px; background: #fff9e6; border-radius:10px; border: 1px solid rgba(212,160,23,0.2); }

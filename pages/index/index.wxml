@@ -5,7 +5,7 @@
   <view class="container">
     <!-- 标题区 -->
     <view class="header-area">
-      <view class="header-title"><ui-icon class="line-icon line-icon-meal" name="meal" /><text>今天我们吃什么？</text></view>
+      <view class="header-title"><text>今天我们吃什么？</text></view>
       <text class="header-subtitle">家常菜随手搭，今天吃什么不用想太久</text>
     </view>
 
@@ -20,7 +20,7 @@
     <view class="params-grid" wx:if="{{advancedExpanded}}">
       <!-- 荤菜数量 -->
       <view class="param-card">
-        <view class="card-label"><ui-icon class="line-icon line-icon-meat" name="meat" /><text>荤菜数量</text></view>
+        <view class="card-label"><text>荤菜数量</text></view>
         <view class="card-count">
           <view class="ew-hit-target count-btn minus" bindtap="onMeatMinus">−</view>
           <text class="card-num">{{meat}}</text>
@@ -30,7 +30,7 @@
 
       <!-- 素菜数量 -->
       <view class="param-card">
-        <view class="card-label"><ui-icon class="line-icon line-icon-veg" name="veg" /><text>素菜数量</text></view>
+        <view class="card-label"><text>素菜数量</text></view>
         <view class="card-count">
           <view class="ew-hit-target count-btn minus" bindtap="onVegMinus">−</view>
           <text class="card-num">{{veg}}</text>
@@ -40,7 +40,7 @@
 
       <!-- 汤品数量 -->
       <view class="param-card">
-        <view class="card-label"><ui-icon class="line-icon line-icon-soup" name="soup" /><text>汤品数量</text></view>
+        <view class="card-label"><text>汤品数量</text></view>
         <view class="card-count">
           <view class="ew-hit-target count-btn minus" bindtap="onSoupMinus">−</view>
           <text class="card-num">{{soup}}</text>
@@ -50,7 +50,7 @@
 
       <!-- 甜品数量 -->
       <view class="param-card">
-        <view class="card-label"><ui-icon class="line-icon line-icon-dessert" name="dessert" /><text>甜品数量</text></view>
+        <view class="card-label"><text>甜品数量</text></view>
         <view class="card-count">
           <view class="ew-hit-target count-btn minus" bindtap="onDessertMinus">−</view>
           <text class="card-num">{{dessert}}</text>
@@ -60,7 +60,7 @@
 
       <!-- 主食数量 -->
       <view class="param-card">
-        <view class="card-label"><ui-icon class="line-icon line-icon-staple" name="staple" /><text>主食数量</text></view>
+        <view class="card-label"><text>主食数量</text></view>
         <view class="card-count">
           <view class="ew-hit-target count-btn minus" bindtap="onStapleMinus">−</view>
           <text class="card-num">{{staple}}</text>
@@ -72,7 +72,7 @@
     <view class="ew-section-title">今天的用餐</view><view wx:if="{{todayError}}" class="ew-hit-target ew-notice" bindtap="onTodayMeal">{{todayError}}</view><meal-card wx:for="{{todayMeals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际：' + item.actualNames : '安排和实际用餐分别保存'}}" bind:open="onTodayMeal" />
     <!-- 今日小提示 -->
     <view class="tip-card">
-      <ui-icon class="line-icon line-icon-spark tip-icon" name="spark" />
+      
       <text class="tip-text">今天想吃得清爽一点？荤素搭配，刚刚好。</text>
     </view>
 
@@ -107,7 +107,7 @@
     <!-- 我的菜谱区域 -->
     <view class="my-recipes" wx:if="{{savedRecipes.length > 0}}">
       <view class="section-header-row">
-        <view class="section-header-title"><ui-icon class="line-icon line-icon-book" name="book" /><text>我的菜谱</text></view>
+        <view class="section-header-title"><text>我的菜谱</text></view>
         <text class="section-header-hint">点击应用配置</text>
       </view>
       <view class="recipe-list">
@@ -146,9 +146,9 @@
 
     <!-- 按钮区 -->
     <view class="cta-area">
-      <button class="ew-hit-target chat-btn" bindtap="onOpenChat"><ui-icon class="line-icon line-icon-bot" name="bot" /><text>问问助手</text></button>
+      <button class="ew-hit-target chat-btn" bindtap="onOpenChat"><text>问问助手</text></button>
       <button class="ew-hit-target primary-btn" bindtap="onStart" disabled="{{isDataLoading}}">生成这餐方案</button>
-      <button class="ew-hit-target secondary-btn" bindtap="onCustomize"><ui-icon class="line-icon line-icon-spark" name="spark" /><text>自己选择菜品</text></button>
+      <button class="ew-hit-target secondary-btn" bindtap="onCustomize"><text>自己选择菜品</text></button>
     </view>
   </view>
 </scroll-view>
