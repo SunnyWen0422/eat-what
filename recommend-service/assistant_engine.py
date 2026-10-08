@@ -635,7 +635,7 @@ def _safe_model_reply(message: str, context: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def handle_message(message: str, user_scope: str, session_id: Optional[str] = None, now: Optional[datetime] = None) -> Dict[str, Any]:
+def handle_message(message: str, user_scope: str, session_id: Optional[str] = None, now: Optional[datetime] = None, allow_model_reply: bool = True) -> Dict[str, Any]:
     session = _scope_session(user_scope, session_id)
     request = parse_user_request(message, now=now)
     previous_state = session.get("state") or {}
@@ -699,7 +699,7 @@ def handle_message(message: str, user_scope: str, session_id: Optional[str] = No
     plan = next_plan_state(previous_state, plan).get("plan")
     status = "ready" if any(meal.get("dishes") for meal in plan.get("meals", [])) else "needs_input"
     reply = _friendly_reply(request, plan)
-    model_reply = _safe_model_reply(message, {"reply": reply, "plan": plan})
+    model_reply = _safe_model_reply(message, {"reply": reply, "plan": plan}) if allow_model_reply else None
     if model_reply:
         reply = model_reply
     SESSION_STORE.append_message(session["session_id"], user_scope, "user", message)

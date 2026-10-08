@@ -25,7 +25,8 @@
     "pages/chat/chat",
     "pages/shopping-preview/shopping-preview",
     "pages/shopping-list/shopping-list",
-    "pages/meal-cooking/meal-cooking"
+    "pages/meal-cooking/meal-cooking",
+    "pages/assistant-history/assistant-history"
   ],
   "window": {
     "navigationBarTextStyle": "black",

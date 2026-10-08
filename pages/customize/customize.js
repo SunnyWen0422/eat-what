@@ -30,7 +30,7 @@ function emptyCustomForm() {
 
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    activeTab: 'meat',
+    activeTab: 'meat',selectionMode:false,selectionTargetLabel:'',
     tabs: ['meat', 'veg', 'soup', 'staple', 'dessert'],
     tabNames: {
       'meat': '荤菜',
@@ -78,9 +78,14 @@ Page({
     if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
     this._browseScope = scope
     this._planOwnerScope = getUserStorageKey('mealView')
+    const rules=require('../../utils/meal-workspace'),pending=wx.getStorageSync(getUserStorageKey('pendingRecipeRecord')),intent=wx.getStorageSync(getUserStorageKey('recipeSelectionIntent'))
+    const target=pending || wx.getStorageSync(getUserStorageKey('activeMealTarget')) || rules.defaultTarget()
+    this.setData({selectionMode:this.data.selectionMode || !!pending || !!intent,selectionTargetLabel:`${target.date} ${require('../../utils/meal-workflow').mealNames[target.mealType] || '当前餐'}`})
+    if(intent)wx.removeStorageSync(getUserStorageKey('recipeSelectionIntent'))
     if (wx.getStorageSync(getUserStorageKey('openCustomDishForm'))) { wx.removeStorageSync(getUserStorageKey('openCustomDishForm')); this.setData({ showCustomForm: true, activeTab: 'custom' }) }
   },
   onUnload() { this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
+  onToggleSelectionMode(){if(this.ensureBrowseOwner())this.setData({selectionMode:!this.data.selectionMode})},
   ensureBrowseOwner() {
     if (this._unloaded) return false
     const identity = currentIdentity()
@@ -91,7 +96,7 @@ Page({
     clearTimeout(this.searchTimer)
     this.allDishesMap = {}; this.currentPage = 1; this._pendingPlanWrite = null
     this._planOwnerScope = getUserStorageKey('mealView')
-    this.setData({ activeTab: 'meat', selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
+    this.setData({ activeTab: 'meat', selectionMode:false, selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
       customForm: emptyCustomForm(), customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: false })),
       customError: '', saveError: '', browseError: '', savingCustom: false, savingPlan: false, loading: false, loadingMore: false,
       searchKeyword: '', hasMore: true, browseCriteria: emptyBrowseCriteria(), showBrowseFilters: false })

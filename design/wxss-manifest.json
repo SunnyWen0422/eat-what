@@ -170,5 +170,9 @@
   {
     "source": "design/wxss/pages/meal-cooking/meal-cooking.tpl",
     "output": "pages/meal-cooking/meal-cooking.wxss"
+  },
+  {
+    "source": "design/wxss/pages/assistant-history/assistant-history.tpl",
+    "output": "pages/assistant-history/assistant-history.wxss"
   }
 ]

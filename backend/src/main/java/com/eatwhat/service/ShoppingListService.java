@@ -157,8 +157,8 @@ public class ShoppingListService {
                 }
             }
         }
-        long nextVersion = (list.getVersion() == null ? 0 : list.getVersion()) + 1;
-        listMapper.updateVersion(list.getId(), userId, nextVersion, list.getMetadataVersion() == null ? 1 : list.getMetadataVersion());
+        // The current-list spend lifecycle is the same for batch replacement and individual edits.
+        increment(list, userId);
         ShoppingListResponse response = getList(userId, "all");
         if (behavior!=null) for (ShoppingDishRequest source : request.getDishes()) behavior.domain(userId,source.getSourceDate(),source.getSourceMealType(),request.getRequestId(),"shopping_confirmed");
         try {

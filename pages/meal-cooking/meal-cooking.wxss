@@ -1,3 +1,6 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
 .cooking-step{font-size:1.142857em;line-height:1.8;min-height:120px;padding:20px 0;white-space:pre-wrap;word-break:break-word;color:#25332B}
+
+@import "../../styles/workspace.wxss";
+.ew-page{background:#F8F7F2}.ew-heading{margin-bottom:8px}.ew-tabs{overflow-x:auto;flex-wrap:nowrap;margin:20px 0}.ew-tabs button{flex:0 0 auto;max-width:240px;white-space:normal}.cooking-step{font-size:1.285714em;line-height:1.75;margin:20px 0;min-height:180px;word-break:break-word}.ew-card{padding:20px}.ew-actions{margin-top:20px}

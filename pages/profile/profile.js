@@ -58,6 +58,7 @@ Page({
         url: '/pages/settings/settings'
       },
       { icon: 'refresh', title: '数据同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
+      { icon: 'history', title: '助手历史', desc: '查看以往对话与餐单', url: '/pages/assistant-history/assistant-history' },
       {
         icon: 'info',
         title: '关于',
@@ -87,12 +88,6 @@ Page({
   onShow() {
     this.loadUserInfo()
     this.loadShoppingSummary()
-    // 游客模式：底部弹出登录提示
-    const app = getApp()
-    if (!app.globalData.isLoggedIn && !wx.getStorageSync('token')) {
-      clearTimeout(this.loginModalTimer)
-      this.loginModalTimer = setTimeout(() => this.setData({ showLoginModal: true }), 500)
-    }
   },
 
   onHide() {
@@ -221,6 +216,7 @@ Page({
     if (!wx.getStorageSync('token')) return this.setData({ showLoginModal: true })
     wx.navigateTo({ url: '/pages/profile-edit/profile-edit' })
   },
+  onAdminWorkbench() { if(this.data.isAdmin) wx.navigateTo({url:'/pages/admin-dashboard/admin-dashboard'}) },
 
   // 5击版本文字进入管理后台
   onVersionTap() {
@@ -285,6 +281,6 @@ Page({
   },
 
 
-  onEditProfile() { wx.navigateTo({ url: '/pages/profile-edit/profile-edit' }) },
+  onEditProfile() { this.onUserInfoTap() },
   editNickname() { this.onEditProfile() }, editAvatar() { this.onEditProfile() },
 })

@@ -18,7 +18,7 @@
 
   <!-- 空状态 -->
   <scroll-view wx:elif="{{empty}}" class="empty-state" scroll-y>
-    <view class="empty-illustration"><ui-icon class="line-icon line-icon-meal" name="meal" /></view>
+    
     <text class="empty-title">还没搭出合适的一桌</text>
     <text class="empty-desc" wx:if="{{warnings.length === 0}}">换个数量或口味，我再帮你排一套</text>
     <text class="context-warning empty-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
@@ -42,7 +42,7 @@
             <view class="ew-hit-target dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
                 <view class="dish-media">
                   <image wx:if="{{item.image}}" class="dish-img" src="{{item.image}}" mode="aspectFill" lazy-load binderror="onImgError" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}" />
-                  <view wx:else class="dish-img dish-img-placeholder"><ui-icon class="line-icon line-icon-meal" name="meal" /></view>
+                  
                   <view class="dish-photo-caption" wx:if="{{item.image}}">菜品图片</view>
                 </view>
                 <!-- 信息区 -->
@@ -61,8 +61,8 @@
                   </view>
                   <!-- 属性 -->
                   <view class="dish-meta">
-                    <view class="meta-item" wx:if="{{item.kcal}}"><ui-icon class="line-icon line-icon-spark" name="spark" /><text>{{item.kcal}}千卡</text></view>
-                    <view class="meta-item" wx:if="{{item.difficulty}}"><ui-icon class="line-icon line-icon-book" name="book" /><text>{{item.difficulty}}</text></view>
+                    <view class="meta-item" wx:if="{{item.kcal}}"><text>{{item.kcal}}千卡</text></view>
+                    <view class="meta-item" wx:if="{{item.difficulty}}"><text>{{item.difficulty}}</text></view>
                     <view class="meta-item" wx:if="{{item.cookTime}}"><ui-icon class="line-icon line-icon-clock" name="clock" /><text>{{item.cookTime}}</text></view>
                   </view>
                 </view>

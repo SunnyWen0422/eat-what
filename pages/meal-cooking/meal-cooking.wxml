@@ -1,9 +1,10 @@
 <view class="ew-page" style="font-size:{{fontBase * fontScale}}px">
-  <view class="ew-heading">本餐全部做法</view><text class="ew-muted">按已保存的计划快照查看 · 步骤进度仅在本机保存</text>
+  <view class="ew-heading">一起做这餐</view><text class="ew-muted">按已保存的安排查看，接着上次的步骤做。</text>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取本餐做法" />
   <ui-state wx:elif="{{errorMessage}}" kind="error" title="{{errorMessage}}" action-label="重新读取" bind:action="onShow" />
   <block wx:else><view class="ew-tabs"><button wx:for="{{dishes}}" wx:key="id" class="ew-hit-target {{dishIndex === index ? 'active' : ''}}" data-index="{{index}}" bindtap="onChooseDish">{{item.name}}</button></view>
-    <ui-card title="{{dishName}}"><view wx:if="{{steps.length}}"><text class="ew-muted">步骤 {{stepIndex + 1}} / {{steps.length}}</text><view class="cooking-step">{{steps[stepIndex]}}</view><view class="ew-actions"><ui-button label="上一步" variant="secondary" disabled="{{stepIndex === 0}}" bind:action="onPreviousStep" /><ui-button label="下一步" disabled="{{stepIndex >= steps.length - 1}}" bind:action="onNextStep" /></view></view><text wx:else class="ew-notice">这份历史快照缺少步骤，请核对原菜谱，不能推测做法。</text></ui-card>
-    <ui-button label="做饭结束 · 去记录实际用餐" variant="secondary" bind:action="onRecordActual" /><text class="ew-muted">打开记录页后还需确认吃过什么，查看或完成步骤不会自动计入饮食回顾。</text>
+    <ui-card title="{{dishName}}"><view wx:if="{{steps.length}}"><text class="ew-muted">步骤 {{stepIndex + 1}} / {{steps.length}}</text><view class="cooking-step">{{steps[stepIndex]}}</view><view class="ew-actions"><ui-button label="上一步" variant="secondary" disabled="{{stepIndex === 0}}" bind:action="onPreviousStep" /><ui-button label="下一步" disabled="{{stepIndex >= steps.length - 1}}" bind:action="onNextStep" /></view></view><text wx:else class="ew-notice">这份已保存的安排缺少步骤，请查看原菜谱，不能猜测做法。</text></ui-card>
+    <ui-button label="做饭结束，记录吃过什么" variant="secondary" bind:action="onRecordActual" /><text class="ew-muted">步骤进度保存在本机。实际用餐由你确认后记录。</text>
   </block>
+  <include src="../../templates/meal-actual-sheet.wxml" />
 </view>

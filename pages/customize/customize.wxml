@@ -1,6 +1,8 @@
 <!--pages/customize/customize.wxml-->
 <view class="ew-page page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
 
+  <view class="recipe-page-header"><view class="ew-heading">菜谱</view><button class="ew-hit-target ew-link" bindtap="onToggleSelectionMode">{{selectionMode ? '完成选菜' : '选菜搭一餐'}}</button></view>
+  <view wx:if="{{selectionMode}}" class="recipe-target">正在选菜 · {{selectionTargetLabel}}</view>
   <!-- 分类独立横向滚动，末项始终可以滑到 -->
   <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
   <view class="sidebar">
@@ -20,7 +22,7 @@
       data-tab="custom"
       bindtap="onTabChange"
     >
-      <text>+ 自定义菜品</text>
+      <text>添加私房菜</text>
     </view>
   </view>
   </scroll-view>
@@ -87,41 +89,10 @@
     >
       <view class="dish-list-content">
       <text class="browse-filter-summary" wx:if="{{browseFilterSummary}}">当前：{{browseFilterSummary}}</text>
-      <view class="browse-filter-panel" wx:if="{{showBrowseFilters}}">
-        <view class="browse-filter-group" wx:for="{{browseFilterGroups}}" wx:key="key" wx:for-item="group">
-          <text class="browse-filter-label">{{group.label}}</text>
-          <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
-            <view class="ew-hit-target browse-filter-option {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-group="{{group.key}}" data-code="{{item.code}}" bindtap="onBrowseOptionTap">
-              <text>{{item.label}}</text>
-              <text class="browse-filter-count" wx:if="{{item.count}}">{{item.count}}</text>
-            </view>
-          </scroll-view>
-        </view>
-        <view class="browse-filter-group">
-          <text class="browse-filter-label">时长</text>
-          <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
-            <view class="ew-hit-target browse-filter-option {{browseCriteria.maxCookMinutes === item.value ? 'selected' : ''}}" wx:for="{{browseDurationOptions}}" wx:key="key" data-value="{{item.key}}" bindtap="onBrowseDurationTap">{{item.label}}</view>
-          </scroll-view>
-        </view>
-      </view>
       <ui-state wx:if="{{loading}}" kind="loading" title="正在读取菜品" /><ui-state wx:elif="{{browseError}}" kind="error" title="读取失败" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
 
-      <view
-        wx:for="{{currentDishes}}"
-        wx:key="id"
-        class="dish-row {{item.isSelected ? 'dish-selected' : ''}}"
-      >
-        <!-- 勾选圆圈 -->
-        <view class="ew-hit-target check-wrap" data-dish="{{item}}" bindtap="onToggleSelect">
-          <view class="check-circle {{item.isSelected ? 'checked' : ''}}">
-            <text wx:if="{{item.isSelected}}" class="check-tick">✓</text>
-          </view>
-        </view>
-
-        <!-- 菜名（点击进入详情） -->
-        <view class="ew-hit-target name-wrap" data-dish="{{item}}" bindtap="onTapDish">
-          <text class="dish-name">{{item.name}}</text>
-        </view>
+      <view wx:for="{{currentDishes}}" wx:key="id" class="recipe-item">
+        <dish-card dish="{{item}}" mode="{{selectionMode ? 'select' : 'browse'}}" selected="{{item.isSelected}}" disabled="{{savingPlan}}" data-dish="{{item}}" bind:open="onTapDish" bind:select="onToggleSelect" />
       </view>
 
       <!-- 加载更多 -->
@@ -138,23 +109,42 @@
 
     <view wx:if="{{saveError}}" class="ew-error">{{saveError}}</view>
     <!-- 底部操作栏 -->
-    <view class="bottom-bar" wx:if="{{!showCustomForm}}">
+    <view class="bottom-bar" wx:if="{{!showCustomForm && (selectionMode || selectedTotal)}}">
       <view class="ew-hit-target selected-wrap" bindtap="onShowSelected">
         <text class="selected-num">已选 {{selectedTotal}} 道</text>
-        <text class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}">›</text>
+        <ui-icon class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}" name="chevron-right" tone="muted" size="16" />
       </view>
-      <button class="ew-hit-target save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
-      <button class="ew-hit-target save-btn shopping-btn" bindtap="onAddSelectedToShoppingList">加入清单</button>
+      <button class="ew-hit-target save-btn" loading="{{savingPlan}}" disabled="{{savingPlan || !selectedTotal}}" bindtap="onSaveToCalendar">加入本餐草稿</button>
+      <button class="ew-hit-target ew-link shopping-btn" disabled="{{savingPlan || !selectedTotal}}" bindtap="onAddSelectedToShoppingList">准备食材</button>
     </view>
 
   </view>
 
+  <ui-sheet visible="{{showBrowseFilters}}" title="本次筛选" bind:close="onToggleBrowseFilters">
+      <view class="browse-filter-panel">
+        <view class="browse-filter-group" wx:for="{{browseFilterGroups}}" wx:key="key" wx:for-item="group">
+          <text class="browse-filter-label">{{group.label}}</text>
+          <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
+            <view class="ew-hit-target browse-filter-option {{item.selected ? 'selected' : ''}}" wx:for="{{group.items}}" wx:key="code" data-group="{{group.key}}" data-code="{{item.code}}" bindtap="onBrowseOptionTap">
+              <text>{{item.label}}</text>
+              <text class="browse-filter-count" wx:if="{{item.count}}">{{item.count}}</text>
+            </view>
+          </scroll-view>
+        </view>
+        <view class="browse-filter-group">
+          <text class="browse-filter-label">时长</text>
+          <scroll-view class="browse-filter-options" scroll-x enhanced show-scrollbar="false">
+            <view class="ew-hit-target browse-filter-option {{browseCriteria.maxCookMinutes === item.value ? 'selected' : ''}}" wx:for="{{browseDurationOptions}}" wx:key="key" data-value="{{item.key}}" bindtap="onBrowseDurationTap">{{item.label}}</view>
+          </scroll-view>
+        </view>
+      </view>
+<ui-button label="清除本次筛选" variant="tertiary" bind:action="onClearBrowseFilters" /><ui-button slot="footer" label="查看筛选结果" bind:action="onToggleBrowseFilters" /></ui-sheet>
   <!-- 已选菜品弹出面板（从底部拉出） -->
-  <view class="ew-hit-target panel-mask {{showSelectedPanel ? 'mask-show' : ''}}" bindtap="onHideSelected" />
-  <view class="selected-panel {{showSelectedPanel ? 'panel-show' : ''}}">
+  <view wx:if="{{showSelectedPanel}}" class="ew-hit-target panel-mask {{showSelectedPanel ? 'mask-show' : ''}}" bindtap="onHideSelected" />
+  <view wx:if="{{showSelectedPanel}}" class="selected-panel {{showSelectedPanel ? 'panel-show' : ''}}">
     <view class="panel-header">
       <text class="panel-title">已选菜品（{{selectedTotal}} 道）</text>
-      <text class="ew-hit-target panel-close" bindtap="onHideSelected">✕</text>
+      <ui-icon-button name="close" label="关闭已选菜品" bind:press="onHideSelected" />
     </view>
     <scroll-view class="panel-list mobile-scroll" scroll-y enhanced>
       <view class="panel-list-content">

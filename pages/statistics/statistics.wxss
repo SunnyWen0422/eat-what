@@ -1,6 +1,6 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-.period { gap:8rpx; font-size:0.857143em; color:#617066; margin-bottom:24rpx; } .period-nav { width:88rpx; margin:0; background:#EDF3ED; color:#28634E; font-size:1.285714em; border-radius:20rpx; padding:0; } .metrics .ew-card { margin-bottom:0; } .metric-label { display:block; margin-top:12rpx; color:#617066; font-size:0.928571em; } .metrics { margin:24rpx 0; } .bar-row { display:flex; align-items:center; gap:16rpx; min-height:64rpx; font-size:0.857143em; } .bar-row>text:first-child { width:90rpx; } .bar-track { height:16rpx; border-radius:8rpx; background:#EDF3ED; flex:1; overflow:hidden; } .bar-fill { height:100%; background:#28634E; border-radius:8rpx; } .ranking { padding:20rpx 0; border-bottom:1rpx solid #EDF3ED; } .record { border-bottom:1rpx solid #D9E1D5; padding:24rpx 0; } .record>text { display:block; line-height:1.6; }
+.period { gap:8rpx; font-size:0.857143em; color:#56645B; margin-bottom:24rpx; } .period-nav { width:88rpx; margin:0; background:#EDF3ED; color:#28634E; font-size:1.285714em; border-radius:20rpx; padding:0; } .metrics .ew-card { margin-bottom:0; } .metric-label { display:block; margin-top:12rpx; color:#56645B; font-size:0.928571em; } .metrics { margin:24rpx 0; } .bar-row { display:flex; align-items:center; gap:16rpx; min-height:64rpx; font-size:0.857143em; } .bar-row>text:first-child { width:90rpx; } .bar-track { height:16rpx; border-radius:8rpx; background:#EDF3ED; flex:1; overflow:hidden; } .bar-fill { height:100%; background:#28634E; border-radius:8rpx; } .ranking { padding:20rpx 0; border-bottom:1rpx solid #EDF3ED; } .record { border-bottom:1rpx solid #D9E1D5; padding:24rpx 0; } .record>text { display:block; line-height:1.6; }
 
 /* Shared finish for legacy pages; layout and permission-specific states remain local. */
 .ew-page { background:#F8F7F2; color:#25332B; }
@@ -18,3 +18,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+/* Warm table v2: statistics */
+ .metrics { gap:10px; margin:16px 0; }.metrics .ew-card { padding:16px; margin:0; background:#F4E4D5; }.ew-number { font-size:2em; color:#25332B; }.metric-label { font-size:1em; line-height:1.5; }.bar-row { gap:8px; min-height:44px; }.bar-row > text:first-child { flex:0 0 4em; }.bar-track { min-width:0; background:#F5F6F0; height:8px; border-radius:8px; }.bar-fill { background:#28634E; height:8px; border-radius:8px; }.ranking { padding:12px 0; border-bottom:1px solid #E6EAE1; gap:12px; }.record { padding:14px 0; border-bottom:1px solid #E6EAE1; }.record > text { display:block; line-height:1.7; }.period { gap:8px; }.period > text { flex:1; min-width:0; text-align:center; line-height:1.5; }

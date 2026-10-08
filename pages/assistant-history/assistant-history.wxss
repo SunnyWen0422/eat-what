@@ -1,0 +1,7 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/theme.wxss";
+.history-session { width:100%;margin:16rpx 0;white-space:normal; }
+.history-message { margin:24rpx 0;white-space:pre-wrap;overflow-wrap:anywhere; }
+
+/* Warm table v2: assistant-history */
+ .history-session { display:flex; align-items:center; justify-content:space-between; text-align:left; background:#FFFFFF; color:#25332B; border:0; border-bottom:1px solid #E6EAE1; border-radius:0; padding:16px; margin:0; font-size:1.142857em; line-height:1.6; }.history-session.active { background:#EDF3ED; color:#28634E; }.history-message { padding:14px 0; border-bottom:1px solid #E6EAE1; line-height:1.8; font-size:1.142857em; }.history-message > view { white-space:pre-wrap; overflow-wrap:anywhere; }.history-message .ew-muted { font-size:0.857143em; margin-bottom:6px; }

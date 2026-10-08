@@ -4,17 +4,18 @@ const { beginShoppingSelection } = require('../../utils/shopping-list')
 const flow = require('../../utils/meal-workflow')
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
-  onLoad(options) { this.setData({ selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
+  onLoad(options) { this.setData({ focusedMeal:flow.mealNames[options.mealType]?options.mealType:'', selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
   onShow() { this.loadMealRecords() },
+  onMoreMeal(e) { const type=e.currentTarget.dataset.meal; if(!this.data.mutating && this.meal(type))this.setData({expandedMeal:this.data.expandedMeal===type?'':type}) },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   async loadMealRecords() {
-    const epoch = this._epoch = (this._epoch || 0) + 1, scope = getUserStorageKey('mealView'), current = () => epoch === this._epoch && scope === getUserStorageKey('mealView')
-    if (this._viewScope !== scope) { this._signature = null; this.setData({ meals: [], overview: null, formVisible: false, formName: '', formActual: '', mutating: false }) }
+    const epoch = this._epoch = (this._epoch || 0) + 1, scope = getUserStorageKey('mealView'), current = () => !this._unloaded && epoch === this._epoch && scope === getUserStorageKey('mealView')
+    if (this._viewScope !== scope) { this._signature = null; this.setData({ meals: [], overview: null, formVisible: false, formName: '', formActual: '', mutating: false, expandedMeal: '' }) }
     this._viewScope = scope
     this.setData({ loading: true, errorMessage: '' })
     try {
       const overview = await api.getMealOverview(this.data.selectedDate, this.data.selectedDate)
-      if (current()) this.setData({ meals: flow.mealViews(overview, this.data.selectedDate), overview })
+      if (current()) this.setData({ meals: flow.mealViews(overview, this.data.selectedDate), overview },()=>{if(current()&&this.data.focusedMeal&&wx.pageScrollTo)wx.pageScrollTo({selector:'#meal-'+this.data.focusedMeal,duration:0})})
     } catch (error) { if (current()) this.setData({ errorMessage: flow.errorMessage(error, '读取失败，请重试。实际用餐记录没有被修改。') }) }
     finally { if (current()) this.setData({ loading: false }) }
   },

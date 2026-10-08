@@ -8,7 +8,7 @@ text.ew-hit-target { display:inline-flex; align-items:center; justify-content:ce
 picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
-.ew-placeholder { color:#617066; }
+.ew-placeholder { color:#56645B; }
 
 .check-row { min-width:44px; }
 

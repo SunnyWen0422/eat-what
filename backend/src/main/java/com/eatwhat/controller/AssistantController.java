@@ -55,6 +55,16 @@ public class AssistantController {
         return proxyGet("/assistant/sessions/" + encodePath(sessionId) + userQuery(request));
     }
 
+    @GetMapping("/sessions")
+    public ResponseEntity<?> listSessions(@RequestParam(required=false) String cursor,
+            @RequestParam(defaultValue="20") int limit,HttpServletRequest request) {
+        Long user=currentUserId(request);
+        if(user==null)return ResponseEntity.status(401).body(Collections.singletonMap("message","请先登录查看历史"));
+        if(limit<1||limit>50||cursor!=null&&cursor.length()>512)
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message","历史分页参数无效"));
+        return proxyGet("/assistant/sessions?user_id="+user+"&limit="+limit+(cursor==null||cursor.isEmpty()?"":"&cursor="+encodeQuery(cursor)));
+    }
+
     @PostMapping("/sessions/{sessionId}/messages")
     public ResponseEntity<?> sendMessage(@PathVariable String sessionId,
                                          @RequestBody Map<String, Object> body,

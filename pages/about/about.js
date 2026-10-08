@@ -1,7 +1,7 @@
 // pages/about/about.js
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    version: '3.2.0'
+    version: require('../../utils/product-release').version
   },
 
   onLoad() {
@@ -9,7 +9,7 @@ Page({
     try {
       const accountInfo = wx.getAccountInfoSync()
       this.setData({
-        version: accountInfo.miniProgram.version || '3.2.0'
+        version: accountInfo.miniProgram.version || require('../../utils/product-release').version
       })
     } catch (e) {
       // 开发环境可能无法获取版本号

@@ -17,3 +17,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: custom-dishes */
+ .private-dish-row { padding:16px; border-bottom:1px solid {{divider}}; background:{{card}}; }.private-dish-row .ew-title { line-height:1.5; overflow-wrap:anywhere; }.private-dish-row .ew-actions { margin:4px 0 0; gap:12px; }.private-dish-row .danger { margin-left:auto; }.ew-input { font-size:{{font.reading.em}}; line-height:1.7; }.ew-actions { flex-wrap:wrap; }

@@ -1,12 +1,2 @@
 @import "../../styles/theme.wxss";
-.list-row{display:flex;align-items:center;gap:{{space.2.px}};min-height:56px;text-align:left;background:white;padding:{{space.2.px}} 0;border-radius:0;font-size:{{font.body.em}};border-bottom:1px solid #D9E1D5}
-
-/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
-.ew-hit-target, .ew-page .ew-hit-target { min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; box-sizing:border-box; }
-text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
-picker.ew-hit-target { display:block; }
-button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
-
-.ew-placeholder { color:{{muted}}; }
-
-button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+.list{width:100%}.list-row{display:flex;align-items:center;gap:{{space.2.px}};width:100%;min-height:56px;text-align:left;padding:{{space.2.px}} 0;margin:0;background:transparent;border:0;border-bottom:1px solid {{divider}};border-radius:0;color:{{text}};line-height:1.5}.list-row::after{border:0}.copy{flex:1;min-width:0}.title{display:block;font-size:{{font.reading.em}};font-weight:400}.description{display:block;margin-top:{{space.0.px}};color:{{muted}};font-size:{{font.secondary.em}};line-height:1.6}

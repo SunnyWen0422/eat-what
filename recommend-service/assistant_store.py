@@ -8,6 +8,8 @@ a guessed session id cannot reveal another user's messages or plan drafts.
 from __future__ import annotations
 
 import json
+import base64
+import math
 from contextlib import contextmanager
 import hashlib
 import os
@@ -196,6 +198,31 @@ class AssistantStore:
                 (identifier, scope),
             ).fetchone()
             return self._row_to_session(connection, row) if row else None
+
+    def list_sessions(self, user_scope: str, cursor=None, limit: int = 20) -> dict:
+        scope = self._scope(user_scope)
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+            raise ValueError('limit must be between 1 and 50')
+        scope_hash = hashlib.sha256(scope.encode()).hexdigest()[:24]
+        boundary = None
+        if cursor:
+            try:
+                if not isinstance(cursor,str) or len(cursor)>512 or not re.fullmatch(r'[A-Za-z0-9_-]+',cursor):raise ValueError()
+                value=json.loads(base64.urlsafe_b64decode(cursor+'='*((-len(cursor))%4)))
+                timestamp=value['t'];identifier=value['i']
+                if value['s']!=scope_hash or isinstance(timestamp,bool) or not isinstance(timestamp,(int,float)) or not math.isfinite(timestamp) or not _SESSION_ID_RE.fullmatch(identifier):raise ValueError()
+                boundary=(timestamp,identifier)
+            except (ValueError,TypeError,KeyError):raise ValueError('invalid history cursor')
+        sql='SELECT session_id,updated_at FROM assistant_sessions WHERE user_scope=? AND updated_at>=?'
+        values=[scope,time.time()-self.retention_days*86400]
+        if boundary:
+            sql+=' AND (updated_at<? OR (updated_at=? AND session_id<?))';values.extend([boundary[0],boundary[0],boundary[1]])
+        sql+=' ORDER BY updated_at DESC,session_id DESC LIMIT ?';values.append(limit+1)
+        with self._lock,self._connect() as connection:rows=connection.execute(sql,values).fetchall()
+        selected=rows[:limit];next_cursor=None
+        if len(rows)>limit:
+            last=selected[-1];next_cursor=base64.urlsafe_b64encode(json.dumps({'t':last['updated_at'],'i':last['session_id'],'s':scope_hash},separators=(',',':')).encode()).decode().rstrip('=')
+        return {'sessions':[{'sessionId':r['session_id'],'updatedAt':r['updated_at']} for r in selected],'nextCursor':next_cursor}
 
     def append_message(self, session_id: str, user_scope: str, role: str, content: Optional[str] = None) -> bool:
         scope = self._scope(user_scope)

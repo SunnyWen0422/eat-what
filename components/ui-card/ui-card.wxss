@@ -1,12 +1,3 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-
-/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
-.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
-text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
-picker.ew-hit-target { display:block; }
-button { min-width:44px; min-height:48px; }
-
-.ew-placeholder { color:#617066; }
-
-button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+.ew-card{border:0;background:#FFFFFF;border-radius:18px;padding:16px;margin:16px 0}.ew-title{margin-bottom:8px}.ew-muted{margin-bottom:12px}

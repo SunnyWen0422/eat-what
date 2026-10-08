@@ -66,3 +66,63 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 .ew-placeholder { color:{{muted}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Warm table v2: task containers, continuous lists and restrained controls. */
+.ew-page { color:{{text}}; background:{{background}}; padding:{{space.3.px}}; }
+.ew-heading { font-size:{{font.page.em}}; line-height:1.35; font-weight:600; letter-spacing:0; }
+.ew-title { font-size:{{font.card.em}}; line-height:1.5; font-weight:600; }
+.ew-section-title { font-size:{{font.section.em}}; line-height:1.5; font-weight:600; }
+.ew-subtitle { margin-top:{{space.1.px}}; color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.6; }
+.ew-card { background:{{card}}; border:0; border-radius:{{radius.3.px}}; box-shadow:none; padding:{{space.3.px}}; margin:{{space.3.px}} 0; }
+.ew-reading { font-size:{{font.reading.em}}; line-height:1.65; }
+.ew-row,.ew-between { min-width:0; }
+.ew-link { min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; background:transparent; padding:0 {{space.0.px}}; margin:0; font-size:{{font.secondary.em}}; font-weight:500; line-height:1.5; }
+.ew-button { border-radius:{{radius.2.px}}; min-height:{{controls.primaryHeight.px}}; padding:{{space.2.px}} {{space.3.px}}; flex-shrink:0; }
+.ew-button.secondary { border:1px solid {{border}}; background:{{card}}; min-height:{{controls.secondaryHeight.px}}; }
+.ew-button.tertiary { background:transparent; color:{{brand}}; min-height:{{controls.secondaryHeight.px}}; }
+.ew-tabs { flex-wrap:wrap; gap:{{space.0.px}}; }
+.ew-tabs button { flex:0 1 auto; min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; border-radius:{{radius.1.px}}; background:transparent; color:{{muted}}; padding:{{space.1.px}} {{space.2.px}}; }
+.ew-tabs button.active { background:{{brandSoft}}; color:{{brand}}; font-weight:600; }
+.ew-input { background:{{card}}; border:1px solid {{controlBorder}}; border-radius:{{radius.2.px}}; font-size:{{font.reading.em}}; line-height:1.5; }
+.ew-notice,.ew-error { border-radius:{{radius.1.px}}; }
+.ew-pill { background:transparent; border-radius:{{radius.1.px}}; min-width:{{controls.touchSize.px}}; color:{{brand}}; font-size:{{font.body.em}}; }
+.ew-bottom { flex-shrink:0; padding:{{space.2.px}} {{space.3.px}} calc({{space.2.px}} + env(safe-area-inset-bottom)); border-top:1px solid {{divider}}; }
+.ew-actions { gap:{{space.1.px}}; }
+.ew-actions ui-button { min-width:{{controls.touchSize.px}}; }
+.ew-flat-list { background:transparent; }
+.ew-flat-row { min-height:{{controls.touchSize.px}}; padding:{{space.3.px}} 0; border-bottom:1px solid {{divider}}; }
+.ew-toolbar { display:flex; align-items:center; gap:{{space.1.px}}; flex-wrap:wrap; padding:{{space.1.px}} 0; }
+.ew-actions .ew-link { flex:0 1 auto; min-width:{{controls.touchSize.px}}; }
+.ew-page button[disabled] { background:{{disabled}}; color:{{text}}; }
+.ew-page .ew-link[disabled] { background:transparent; color:{{muted}}; }
+.ew-display { font-size:{{font.display.em}}; line-height:1.35; font-weight:600; }
+
+.rotate-right { display:inline-flex; transform:rotate(180deg); }.picker-chevron { display:inline-flex; transform:rotate(90deg); margin-left:6px; }.ew-page .period > text { flex:1; min-width:0; text-align:center; line-height:1.5; }
+
+/* Shared admin density: preserve permission and destructive-action contracts. */
+.ew-page.admin-workspace { padding:20px 16px 28px; background:{{background}}; }
+.ew-page.admin-workspace .title, .ew-page.admin-workspace .page-title { font-size:{{font.page.em}}; color:{{text}}; line-height:1.4; }
+.ew-page.admin-workspace .heading, .ew-page.admin-workspace .page-heading { gap:12px; align-items:flex-start; margin-bottom:16px; }
+.ew-page.admin-workspace .metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.ew-page.admin-workspace .metric { background:{{warmSoft}}; border:0; border-radius:16px; padding:16px; }
+.ew-page.admin-workspace .metric-value { font-size:{{font.display.em}}; color:{{text}}; line-height:1.4; }
+.ew-page.admin-workspace .list, .ew-page.admin-workspace .user-list, .ew-page.admin-workspace .action-list, .ew-page.admin-workspace .audit-list { gap:0; background:{{card}}; border-radius:16px; overflow:hidden; }
+.ew-page.admin-workspace .user, .ew-page.admin-workspace .user-card, .ew-page.admin-workspace .dish, .ew-page.admin-workspace .dish-card, .ew-page.admin-workspace .action, .ew-page.admin-workspace .log, .ew-page.admin-workspace .audit-row { padding:16px; margin:0; border:0; border-bottom:1px solid {{divider}}; border-radius:0; box-shadow:none; background:{{card}}; gap:12px; }
+.ew-page.admin-workspace .user-main, .ew-page.admin-workspace .main, .ew-page.admin-workspace .dish-main, .ew-page.admin-workspace .dish-content { flex:1; min-width:0; }
+.ew-page.admin-workspace .meta, .ew-page.admin-workspace .user-meta, .ew-page.admin-workspace .ingredients, .ew-page.admin-workspace .detail, .ew-page.admin-workspace .time { font-size:{{font.body.em}}; line-height:1.7; overflow-wrap:anywhere; }
+.ew-page.admin-workspace .action-title, .ew-page.admin-workspace .user-name, .ew-page.admin-workspace .dish-name { font-size:{{font.reading.em}}; line-height:1.5; overflow-wrap:anywhere; }
+.ew-page.admin-workspace .search, .ew-page.admin-workspace .search-bar { display:flex; gap:8px; margin-bottom:14px; }
+.ew-page.admin-workspace .search-field, .ew-page.admin-workspace .search input, .ew-page.admin-workspace .search-bar input { flex:1; min-width:0; }
+.ew-page.admin-workspace .filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
+.ew-page.admin-workspace .filters picker, .ew-page.admin-workspace .filters input { min-width:0; width:100%; box-sizing:border-box; min-height:48px; padding:10px; border:1px solid {{controlBorder}}; border-radius:12px; background:{{card}}; overflow-wrap:anywhere; }
+.ew-page.admin-workspace .types, .ew-page.admin-workspace .type-row { display:flex; flex-wrap:wrap; gap:8px; }
+.ew-page.admin-workspace .types button, .ew-page.admin-workspace .type-row button { padding:10px 14px; min-height:44px; min-width:44px; border-radius:12px; }
+.ew-page.admin-workspace button { font-size:{{font.body.em}}; line-height:1.5; min-width:44px; min-height:44px; border-radius:12px; height:auto; padding:10px 12px; }
+.ew-page.admin-workspace button.primary, .ew-page.admin-workspace .primary-action, .ew-page.admin-workspace .save-button { min-height:48px; background:{{brand}}; color:{{card}}; border-radius:14px; }
+.ew-page.admin-workspace button[disabled] { color:{{text}}; background:{{disabled}}; }
+.ew-page.admin-workspace .form input, .ew-page.admin-workspace .form textarea, .ew-page.admin-workspace .form-page input, .ew-page.admin-workspace .form-page textarea { border:1px solid {{controlBorder}}; border-radius:12px; padding:12px; font-size:{{font.reading.em}}; line-height:1.7; width:100%; box-sizing:border-box; }
+.ew-page.admin-workspace .summary, .ew-page.admin-workspace .user-summary { border:0; background:{{warmSoft}}; border-radius:18px; padding:16px; }
+.ew-page.admin-workspace .badge, .ew-page.admin-workspace .status-badge { white-space:normal; line-height:1.5; flex-shrink:0; }
+.ew-page.admin-workspace .state, .ew-page.admin-workspace .state-block { min-height:160px; border:0; border-radius:16px; line-height:1.7; }
+
+.ew-page.admin-workspace .filters picker, .ew-page.admin-workspace .filters input { min-width:44px; }

@@ -1,4 +1,4 @@
-<view class="ew-page page" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page admin-workspace page" style="font-size:{{fontBase * fontScale}}px">
   <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view wx:if="{{notice}}" class="notice">{{notice}}</view>
   <view wx:if="{{loading && !ready}}" class="state">正在加载用户详情...</view>

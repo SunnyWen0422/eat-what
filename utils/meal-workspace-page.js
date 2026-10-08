@@ -9,14 +9,30 @@ const LABELS = ['早餐', '午餐', '晚餐']
 
 module.exports = function workspacePage(options = {}) {
   const voice = require('./workspace-voice').createVoiceHandlers(api)
+  const actual = require('./meal-actual-entry').createMealActualEntry({api,onSaved:async function(){await this.readWorkspace(this.data.context)}})
   return {
+    openMealActual(target) { return actual.openMealActual.call(this,target) },
+    onActualText(e) { return actual.onActualText.call(this,e) },
+    onActualMode(e){return actual.onActualMode.call(this,e)},
+    onConfirmActual(){return actual.onConfirmActual.call(this)},
+    closeMealActual() { return actual.closeMealActual.call(this) },
+    disposeMealActual() { return actual.disposeMealActual.call(this) },
+    onActualByPlan() { return actual.onActualByPlan.call(this) },
+    onActualChanged() { return actual.onActualChanged.call(this) },
+    onActualSkipped() { return actual.onActualSkipped.call(this) },
+    onActualRetry() { return actual.onActualRetry.call(this) },
+    onActualReload() { return actual.onActualReload.call(this) },
+    submitMealActual(...args) { return actual.submitMealActual.call(this,...args) },
+    sendMealActual(...args) { return actual.sendMealActual.call(this,...args) },
+    onQuickActual() {if(this.current()&&!this.data.busy){const plan=this.data.linkedPlan;return this.openMealActual({date:this.data.context.date,mealType:this.data.context.mealType,planRevision:plan&&plan.revision,displayedPlanNames:plan?(plan.dishDetails||[]).map(d=>d.name).join('、'):''})}},
     voiceCurrent(run) { return voice.voiceCurrent.call(this,run) },
     onVoiceTap() { return voice.onVoiceTap.call(this) },
     onVoicePrivacyAgree() { return voice.onVoicePrivacyAgree.call(this) },
     onVoicePrivacyOpen() { return voice.onVoicePrivacyOpen.call(this) },
     cancelVoiceInput() { return voice.cancelVoiceInput.call(this) },
     data: {
-      workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
+      pageTitle:options.mode==='assistant'?'这餐的想法':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
@@ -29,7 +45,7 @@ module.exports = function workspacePage(options = {}) {
       return this.initializeWorkspace(params)
     },
     async initializeWorkspace(params = {}) {
-      if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
+      if(this.disposeMealActual)this.disposeMealActual();this.setData({actualVisible:false,actualBusy:false});if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
       this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
       const target = { ...defaultTarget(), ...(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || {}) }
@@ -48,6 +64,18 @@ module.exports = function workspacePage(options = {}) {
       await this.readWorkspace(target, { people })
       if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return
       if(options.mode==='assistant') await this.loadLegacyMeals()
+      if(params.import==='history') {
+        const key=getUserStorageKey('pendingLegacyMealImport'),handoff=wx.getStorageSync(key),store=this.store
+        if(handoff&&handoff.date===target.date&&handoff.mealType===target.mealType) {
+          try {
+            const session=await api.getAssistantSession(handoff.sessionId)
+            if(!this.current()||initEpoch!==this._initEpoch||initScope!==this._scope||store!==this.store)return
+            const meal=require('./legacy-meal-import').resolveHistoryMeal(session,handoff)
+            wx.removeStorageSync(key);store.edit({...this.data.context,people:meal.people});this.renderWorkspace()
+            await this.runCommand('select',{dishIds:meal.dishIds})
+          } catch(error) {if(this.current()&&initEpoch===this._initEpoch&&store===this.store)this.setData({errorMessage:error.message||'导入未完成，当前方案仍保留'})}
+        }
+      }
       const selected = wx.getStorageSync(getUserStorageKey('workspaceSelectedDishes'))
       if (selected && selected.date === target.date && selected.mealType === target.mealType && this.current()) {
         if(await this.runCommand('select', { dishIds: selected.dishIds })) wx.removeStorageSync(getUserStorageKey('workspaceSelectedDishes'))
@@ -82,7 +110,7 @@ module.exports = function workspacePage(options = {}) {
       if (!this.data.busy) return this.readWorkspace(this.data.context)
     },
     onHide() { this.cancelVoiceInput(); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
-    onUnload() { this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
+    onUnload() { this.disposeMealActual();this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
     stopTimers() { clearTimeout(this._exposureTimer); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
     async readWorkspace(target = this.data.context, defaults = {}) {
       if (!this.store || !this.current()) return
@@ -100,6 +128,10 @@ module.exports = function workspacePage(options = {}) {
         status: w && w.status==='planned' && w.confirmation && w.confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
         linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
         canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced' })
+      const context=this.data.context
+      this.setData({pageTitle:this.data.mode==='assistant'?'这餐的想法':this.data.mode==='result'?'本餐方案':'今天',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
+        mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
+        compositionLabel:Object.entries(context.counts || {}).filter(([,n])=>Number(n)>0).map(([type,n])=>`${n}${({meat:'荤',veg:'素',soup:'汤',staple:'主食',dessert:'甜品',side:'配菜'})[type] || type}`).join(' · ')})
       this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data, busy:this.data.busy}));
       if (w && w.status === 'draft' && state.syncStatus === 'synced') this.expose(w)
     },
@@ -122,18 +154,20 @@ module.exports = function workspacePage(options = {}) {
     onOpenRequirements() {
       if(!this.current() || this.data.busy)return
       const w=this.store && this.store.state().workspace
-      this._requirementsBinding={scope:this._scope,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
-      this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',errorMessage:''})
+      this._requirementsBinding={scope:this._scope,store:this.store,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
+      this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false,errorMessage:''})
     },
     onRequirementsDraftInput(e) {this.setData({requirementsDraft:e.detail.value})},
-    onCancelRequirements() {this.cancelVoiceInput();this.setData({requirementsVisible:false,requirementsDraft:this.data.context.requirements || ''});this._requirementsBinding=null},
+    onCancelRequirements() {this.cancelVoiceInput();this.setData({requirementsVisible:false,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false});this._requirementsBinding=null},
     async onApplyRequirements() {
       const binding=this._requirementsBinding,store=this.store,w=store && store.state().workspace
-      if(!binding || !this.current() || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!==(w && w.id))return
-      this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:this.data.requirementsDraft});this.renderWorkspace()
+      if(!binding || this.data.requirementsSaving || !this.current() || binding.store!==store || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!=null && binding.id!==(w && w.id))return
+      const submitted=this.data.requirementsDraft
+      this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:submitted});this.setData({requirementsSaving:true});this.renderWorkspace()
       const ownsSheet=()=>this.current() && this.store===store && this._requirementsBinding===binding && binding.scope===this._scope && binding.date===this.data.context.date && binding.meal===this.data.context.mealType
-      try {await this.flushDraft();if(!ownsSheet())return;this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace()}
+      try {await this.flushDraft();if(!ownsSheet())return;if(this.data.requirementsDraft!==submitted){this.setData({errorMessage:'先前的内容已保存，新输入仍保留，请再次应用'});this.renderWorkspace();return}this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace()}
       catch(error){if(ownsSheet())this.setData({errorMessage:error.message || '文字已保留，请重试同步'})}
+      finally{if(ownsSheet() || this._requirementsBinding===null && this.store===store && this.current())this.setData({requirementsSaving:false})}
     },
     async pollTask() {
       clearTimeout(this._pollTimer)
@@ -255,10 +289,10 @@ module.exports = function workspacePage(options = {}) {
     onDateTarget(e) { return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
     onMealTarget(e) { return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }) },
     async switchTarget(target) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), target); this._params = target; return this.initializeWorkspace(target) },
-    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType }); wx.switchTab({ url: '/pages/customize/customize' }) } },
+    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType });wx.setStorageSync(getUserStorageKey('recipeSelectionIntent'),true); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
     onViewRecipes() { const plan=this.data.linkedPlan;if(plan){wx.navigateTo({url:`/pages/meal-cooking/meal-cooking?date=${this.data.context.date}&mealType=${this.data.context.mealType}&planRevision=${plan.revision}`});return}if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
-    onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date }) },
+    onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date + '&mealType=' + this.data.context.mealType }) },
     onShoppingPreview() {
       if (!this.current()) return
       const plan = this.data.linkedPlan; if (!plan) return
@@ -266,7 +300,16 @@ module.exports = function workspacePage(options = {}) {
       wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
     },
     onOpenAssistant() { return this.onOpenRequirements() },
-    onOpenAdvancedAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
+    onOpenShoppingList(){if(this.current())wx.navigateTo({url:'/pages/shopping-list/shopping-list'})},
+    async openWorkspaceRoute(route){
+      if(!this.current() || this.data.busy)return
+      const scope=this._scope,store=this.store
+      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}?date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
+      catch(error){if(this.current() && this.store===store)this.setData({errorMessage:error.message || '本餐尚未保存，内容已保留'})}
+    },
+    onOpenMealResult(){return this.openWorkspaceRoute('/pages/result/result')},
+    onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},
+    onOpenAdvancedAssistant() { if(this.current())wx.navigateTo({ url: `/pages/assistant-history/assistant-history?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
     onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
     onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
     onLogin() { wx.showToast({ title: '登录后可跨设备保存本餐', icon: 'none' }); wx.switchTab({ url: '/pages/profile/profile' }) },

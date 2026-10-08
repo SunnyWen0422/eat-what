@@ -12,6 +12,19 @@ from ui_source_audit import ROOT, Template, page_audit, rules, styles, declared_
 
 
 class UiSelfCheckTest(unittest.TestCase):
+    @staticmethod
+    def fixed_touch_minimum(value):
+        match = re.fullmatch(r'(\d+(?:\.\d+)?)px', value or '')
+        return bool(match and float(match[1]) >= 44)
+
+    def test_recipe_primary_action_can_grow_with_large_text(self):
+        route = 'pages/customize/customize'
+        template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
+        button = next(n for n in template.nodes if n.attrs.get('bindtap') == 'onSaveToCalendar')
+        style = styles(button, rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss')))
+        self.assertIn(style.get('height'), (None, 'auto'))
+        self.assertNotRegex(style.get('line-height', ''), r'^\d+px$')
+
     def test_result_favorite_and_refresh_keep_44px_through_actual_pressed_ancestors(self):
         route = 'pages/result/result'
         css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
@@ -30,14 +43,14 @@ class UiSelfCheckTest(unittest.TestCase):
         failures = []
         for route in routes:
             for target in page_audit(route)['clicks']:
-                if target['minWidth'] != '44px' or target['minHeight'] != '44px':
+                if not self.fixed_touch_minimum(target['minWidth']) or not self.fixed_touch_minimum(target['minHeight']):
                     failures.append((route, target))
         for file in (ROOT / 'components').glob('*/*.wxml'):
             css = rules(file.with_suffix('.wxss'))
             for node in Template(file.read_text(encoding='utf-8')).nodes:
                 if node.tag in ('view', 'text', 'picker') and any(key.endswith('tap') for key in node.attrs):
                     style = styles(node, css)
-                    if style.get('min-width') != '44px' or style.get('min-height') != '44px':
+                    if not self.fixed_touch_minimum(style.get('min-width')) or not self.fixed_touch_minimum(style.get('min-height')):
                         failures.append((str(file.relative_to(ROOT)), node.attrs))
         self.assertEqual([], failures)
 
@@ -93,7 +106,7 @@ class UiSelfCheckTest(unittest.TestCase):
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 module.build()
-                outputs = ['utils/ui-tokens.js', 'styles/theme.wxss', 'app.json', 'design/asset-manifest.json', *[item['output'] for item in manifest]]
+                outputs = ['utils/ui-tokens.js', 'utils/ui-assets.js', 'styles/theme.wxss', 'app.json', 'design/asset-manifest.json', *[item['output'] for item in manifest]]
                 outputs += [str(file.relative_to(isolated)) for file in (isolated / 'assets').rglob('*') if file.is_file()]
                 return {file: (isolated / file).read_bytes() for file in outputs}
 

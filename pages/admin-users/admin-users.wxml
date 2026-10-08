@@ -1,4 +1,4 @@
-<view class="ew-page page" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page admin-workspace page" style="font-size:{{fontBase * fontScale}}px">
   <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view class="heading"><text class="title">用户管理</text><text class="count">{{total}} 位用户</text></view>
   <view class="search"><input placeholder-class="ew-placeholder" value="{{keywordInput}}" placeholder="搜索昵称、手机号或 ID" confirm-type="search" bindinput="onInput" bindconfirm="search"/><button class="ew-hit-target search-btn" bindtap="search" loading="{{loading || refreshing}}">搜索</button></view>

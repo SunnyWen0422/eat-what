@@ -30,7 +30,7 @@ function shoppingPage({ item = unresolved(), patch, drafts = [] } = {}) {
   store.saveLocalShoppingList(listOf(item))
   function createPage() {
     let page
-    const modules = { '../../utils/shopping-prices': require('../utils/shopping-prices'), '../../utils/shopping-capabilities': {refresh:async()=>({}),notice:()=>''}, '../../utils/api': api, '../../utils/shopping-list': store, '../../utils/util': util, '../../utils/shopping-ingredients': ingredients, '../../utils/meal-workflow': flow, '../../utils/font-scale': Object.assign(() => 1, { base: 14 }) }
+    const modules = { '../../utils/shopping-list-presentation': require('../utils/shopping-list-presentation'), '../../utils/shopping-prices': require('../utils/shopping-prices'), '../../utils/shopping-capabilities': {refresh:async()=>({}),notice:()=>''}, '../../utils/api': api, '../../utils/shopping-list': store, '../../utils/util': util, '../../utils/shopping-ingredients': ingredients, '../../utils/meal-workflow': flow, '../../utils/font-scale': Object.assign(() => 1, { base: 14 }) }
     vm.runInNewContext(read('pages/shopping-list/shopping-list.js'), { Page: value => { page = value }, wx, console, require: name => modules[name] })
     page.data = structuredClone(page.data)
     page.setData = values => Object.assign(page.data, values)

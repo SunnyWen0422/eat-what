@@ -5,22 +5,31 @@ module.exports = {
   "background": "#F8F7F2",
   "card": "#FFFFFF",
   "text": "#25332B",
-  "muted": "#617066",
+  "muted": "#56645B",
   "border": "#D9E1D5",
   "danger": "#A93B30",
   "dangerSoft": "#FFF0ED",
   "warning": "#75501A",
   "warningSoft": "#FFF1DB",
   "disabled": "#E8EBE5",
+  "brandPressed": "#20513F",
+  "controlBorder": "#7C8E80",
+  "divider": "#E6EAE1",
+  "surfaceSoft": "#F5F6F0",
+  "warm": "#854A2F",
+  "warmSoft": "#F4E4D5",
   "primaryHeight": 48,
   "touchSize": 44,
+  "secondaryHeight": 44,
   "font": {
     "page": 24,
     "section": 18,
     "card": 16,
     "body": 14,
     "secondary": 13,
-    "caption": 12
+    "caption": 12,
+    "reading": 16,
+    "display": 28
   },
   "space": [
     4,
@@ -40,6 +49,7 @@ module.exports = {
   ],
   "controls": {
     "primaryHeight": 48,
-    "touchSize": 44
+    "touchSize": 44,
+    "secondaryHeight": 44
   }
 }

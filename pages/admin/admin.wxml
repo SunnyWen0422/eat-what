@@ -1,4 +1,4 @@
-<view class="ew-page admin-page" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page admin-workspace admin-page" style="font-size:{{fontBase * fontScale}}px">
   <ui-state wx:if="{{authStatus}}" kind="{{authStatus}}" title="{{authMessage}}" />
   <view wx:if="{{mode === 'list'}}" class="list-page">
     <view class="page-heading">
@@ -18,7 +18,7 @@
           bindinput="onSearchInput"
           bindconfirm="onSearchSubmit"
         />
-        <button wx:if="{{searchInput}}" class="ew-hit-target clear-button" bindtap="onClearSearch" aria-label="清空搜索">×</button>
+        <button wx:if="{{searchInput}}" class="ew-hit-target clear-button" bindtap="onClearSearch" aria-label="清空搜索"><ui-icon name="close" tone="muted" size="18" /></button>
       </view>
       <button class="ew-hit-target search-button" loading="{{loading || refreshing}}" bindtap="onSearchSubmit">搜索</button>
     </view>
@@ -48,7 +48,7 @@
           <text class="user-meta">ID {{item.id}} · {{item.phone || '未绑定手机号'}}</text>
           <text class="user-meta">注册 {{item.registerDate}} · 菜品 {{item.customCount}}</text>
         </view>
-        <text class="row-arrow">›</text>
+        <ui-icon class="row-arrow" name="chevron-right" tone="muted" size="16" />
       </view>
       <button wx:if="{{hasMore}}" class="ew-hit-target load-more" loading="{{loadingMore}}" disabled="{{loadingMore}}" bindtap="onLoadMore">
         {{loadingMore ? '加载中' : '加载更多'}}
@@ -59,7 +59,7 @@
 
   <view wx:elif="{{mode === 'detail'}}" class="detail-page">
     <view class="page-nav">
-      <button class="ew-hit-target nav-icon" bindtap="onBack" aria-label="返回用户列表">‹</button>
+      <button class="ew-hit-target nav-icon" bindtap="onBack" aria-label="返回用户列表"><ui-icon name="arrow-left" tone="muted" size="20" /></button>
       <text class="nav-title">用户详情</text>
       <view class="nav-spacer"></view>
     </view>
@@ -110,7 +110,7 @@
 
   <view wx:elif="{{mode === 'form'}}" class="form-page">
     <view class="page-nav">
-      <button class="ew-hit-target nav-icon" bindtap="onCancelAdd" disabled="{{saving}}" aria-label="返回用户详情">‹</button>
+      <button class="ew-hit-target nav-icon" bindtap="onCancelAdd" disabled="{{saving}}" aria-label="返回用户详情"><ui-icon name="arrow-left" tone="muted" size="20" /></button>
       <text class="nav-title">添加菜品</text>
       <view class="nav-spacer"></view>
     </view>

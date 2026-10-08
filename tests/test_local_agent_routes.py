@@ -28,8 +28,22 @@ try:
  raise AssertionError('Budget limit did not stop the request')
 except RuntimeError as error:
  assert str(error)=='Local model budget exhausted'
+# Unit fixture only: cap is enforced before a second provider call, including failures.
+import json
+local.budget.write_text(json.dumps({'limit':20,'used':0}))
+model=local.BudgetedModel(max_requests=1)
+class Fake:
+ def complete(self,*args):raise ValueError('simulated provider failure')
+model.client=Fake()
+try:model.complete([],[],{})
+except ValueError:pass
+assert json.loads(local.budget.read_text())['used']==1
+try:
+ model.complete([],[],{})
+ raise AssertionError('Run cap did not stop second request')
+except RuntimeError as error:assert str(error)=='Local evaluation request cap exhausted'
 print('PASS')
 """
    result=subprocess.run([sys.executable,'-c',code],env=env,capture_output=True,text=True,timeout=20)
    self.assertEqual(0,result.returncode,result.stderr)
-   self.assertEqual(20,json.loads(budget.read_text())['used'])
+   self.assertEqual(1,json.loads(budget.read_text())['used'])

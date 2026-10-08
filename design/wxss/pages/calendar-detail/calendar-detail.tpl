@@ -17,3 +17,5 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+.ew-page{background:{{background}}}.dish-links{display:flex;gap:{{space.1.px}};flex-wrap:wrap;margin:{{space.2.px}} 0}.dish-links .ew-chip{background:transparent;border:1px solid {{border}};display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;padding:{{space.1.px}};font-size:{{font.secondary.em}}}.ew-actions{margin:{{space.2.px}} 0;gap:{{space.1.px}}}.meal-more{border-top:1px solid {{divider}};padding-top:{{space.1.px}}}.meal-more-toggle{margin-top:{{space.1.px}}}

@@ -108,7 +108,7 @@
 
 .detail-item {
   font-size:1.142857em;
-  color: #617066;
+  color: #56645B;
   line-height: 2;
   display: block;
 }
@@ -142,7 +142,7 @@
 
 .tip-item {
   font-size:1.142857em;
-  color: #617066;
+  color: #56645B;
   line-height: 2.2;
   display: block;
 }
@@ -158,7 +158,7 @@
 
 .footer-text {
   font-size:1em;
-  color: #617066;
+  color: #56645B;
   line-height: 1.8;
 }
 
@@ -180,3 +180,6 @@ picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+/* Warm table v2: about */
+ .ew-display { display:block; color:#28634E; margin:16px 0 8px; }.help-step { padding:16px 0; border-bottom:1px solid #E6EAE1; }.help-step .ew-title { font-size:1.142857em; }.help-step .ew-subtitle { font-size:1.142857em; line-height:1.8; margin-top:6px; }.about-links { background:#FFFFFF; margin-top:24px; border-radius:16px; padding:4px 16px; }.about-link { display:flex; align-items:center; justify-content:space-between; min-height:56px; font-size:1.142857em; color:#25332B; }

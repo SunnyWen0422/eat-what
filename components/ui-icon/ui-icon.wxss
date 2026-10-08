@@ -8,6 +8,6 @@ text.ew-hit-target { display:inline-flex; align-items:center; justify-content:ce
 picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
-.ew-placeholder { color:#617066; }
+.ew-placeholder { color:#56645B; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }

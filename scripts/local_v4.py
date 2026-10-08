@@ -8,11 +8,19 @@ import secrets
 import socket
 import subprocess
 import time
+import sys
+import urllib.request
 import pymysql
 
 ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/'.local-v4'
 FLAGS=getattr(subprocess,'CREATE_NO_WINDOW',0)
+
+def executable_path(value):
+    # Windows can allow executing a file while denying GetFinalPathNameByHandle.
+    path=Path(value).absolute()
+    if not path.is_file():raise RuntimeError('Local executable is missing')
+    return str(path)
 
 def available(port):
     with socket.socket() as sock:
@@ -27,8 +35,11 @@ def read_state():
 
 def stop_owned(pid, markers):
     # PID records alone are unsafe after a restart. Match the recorded command too.
+    probe=f"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $p=Get-Process -Id {int(pid)} -ErrorAction SilentlyContinue; if($p) {{$p.Id}}; exit 0"
+    result=subprocess.run(['powershell','-NoProfile','-Command',probe],capture_output=True,text=True,encoding='utf-8',check=True,creationflags=FLAGS)
+    if not result.stdout.strip():return
     query=f"$p=Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}'; if($p) {{$p.CommandLine}}"
-    result=subprocess.run(['powershell','-NoProfile','-Command',query],capture_output=True,text=True,check=True,creationflags=FLAGS)
+    result=subprocess.run(['powershell','-NoProfile','-Command','[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $ErrorActionPreference="Stop"; '+query],capture_output=True,text=True,encoding='utf-8',check=True,creationflags=FLAGS)
     command=result.stdout.strip()
     if not command:return
     if not all(marker.lower() in command.replace('\\','/').lower() for marker in markers):
@@ -40,7 +51,7 @@ def start_java(state, executable):
     if not jar.is_file():raise RuntimeError('Build backend before starting the local runtime')
     env=os.environ.copy();env['TENCENT_ASR_ENABLED']='false'
     with open(DATA/'backend.log','ab') as log:
-        java=subprocess.Popen([executable,'-jar',str(jar),'--spring.profiles.active=local-v4',f'--spring.config.location={runtime.as_uri()}'],cwd=DATA,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS)
+        java=subprocess.Popen([executable,'-jar',str(jar),'--spring.profiles.active=local-v4',f'--spring.config.location={runtime.as_uri()}','--management.endpoint.health.group.local-ready.include=db,ping'],cwd=DATA,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS)
     state['javaPid']=java.pid;state['javaExecutable']=executable
     (DATA/'runtime.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
 
@@ -57,7 +68,7 @@ def start(args):
     if not validate(config)['safe']: raise RuntimeError('Unsafe local environment')
     mysql_data=DATA/'mysql';mysql_data.mkdir(exist_ok=False)
     mysql_log=DATA/'mysql.log'
-    binary=str(Path(args.mysqld).resolve(strict=True))
+    binary=executable_path(args.mysqld)
     subprocess.run([binary,'--no-defaults','--initialize-insecure',f'--datadir={mysql_data}',f'--log-error={mysql_log}'],check=True,creationflags=FLAGS)
     mysql=subprocess.Popen([binary,'--no-defaults',f'--datadir={mysql_data}','--bind-address=127.0.0.1',f'--port={port}',f'--log-error={mysql_log}','--mysqlx=OFF','--default-time-zone=+08:00'],creationflags=FLAGS)
     processes=[mysql]
@@ -109,17 +120,52 @@ def start(args):
             if process.poll() is None:process.terminate()
         raise
 
+def start_optional_model():
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:18781/health',timeout=2) as response:value=json.load(response)
+        if value.get('local') is True and value.get('status')=='ok' and value.get('modelBudget',{}).get('limit')==20:
+            print('Existing local model adapter reused.',flush=True);return True
+    except (OSError,ValueError):pass
+    try:
+        subprocess.run([sys.executable,str(Path(__file__).absolute()),'model'],check=True,capture_output=True,creationflags=FLAGS)
+        return True
+    except (subprocess.CalledProcessError,OSError):
+        print('Model adapter unavailable; basic local API remains available.',flush=True);return False
+
+def wait_for_basic_api():
+    deadline=time.monotonic()+35
+    while True:
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:18780/api/actuator/health/local-ready',timeout=2) as response:
+                if response.status==200:return
+        except OSError:pass
+        if time.monotonic()>deadline:raise RuntimeError('Basic local API did not become ready; see .local-v4/backend.log')
+        time.sleep(.5)
+
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','status','stop','model']);parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');parser.add_argument('--java',default='D:/Java/bin/java.exe');args=parser.parse_args()
-    if args.action=='start':start(args)
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','status','stop','model','serve']);parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');parser.add_argument('--java');args=parser.parse_args()
+    if args.action=='serve':
+        # Keep the command host alive: temporary tool jobs reclaim background children.
+        command=[sys.executable,str(Path(__file__).absolute()),'restart','--mysqld',args.mysqld]
+        if args.java:command.extend(['--java',args.java])
+        subprocess.run(command,check=True,creationflags=FLAGS)
+        wait_for_basic_api()
+        start_optional_model()
+        print('Local V4 ready at http://127.0.0.1:18780/api. Keep this terminal running.',flush=True)
+        while True:time.sleep(1)
+        return
+    if args.action=='start':
+        args.java=args.java or 'D:/Java/bin/java.exe'
+        start(args)
     elif args.action=='restart':
         state=read_state()
+        java=executable_path(args.java or state.get('javaExecutable') or 'D:/Java/bin/java.exe')
         stop_owned(state['javaPid'],[str(ROOT/'backend/target/eatwhat-backend-1.0.0.jar').replace('\\','/'),'local-v4','application-local.yml'])
         try:
             connection=pymysql.connect(host='127.0.0.1',port=state['dbPort'],user='root',password=state['password']);connection.close()
         except pymysql.OperationalError:
             available(state['dbPort'])
-            binary=str(Path(state.get('mysqlExecutable',args.mysqld)).resolve(strict=True))
+            binary=executable_path(state.get('mysqlExecutable',args.mysqld))
             mysql=subprocess.Popen([binary,'--no-defaults',f'--datadir={DATA/"mysql"}','--bind-address=127.0.0.1',f'--port={state["dbPort"]}',f'--log-error={DATA/"mysql.log"}','--mysqlx=OFF','--default-time-zone=+08:00'],creationflags=FLAGS)
             state['mysqlPid']=mysql.pid
             deadline=time.monotonic()+35
@@ -129,9 +175,8 @@ def main():
                 except pymysql.OperationalError:
                     if mysql.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Private MySQL restart failed')
                     time.sleep(.25)
-        start_java(state,args.java);print('Private backend restarted; existing data, credentials and model budget retained.')
+        start_java(state,java);print('Private backend restarted; existing data, credentials and model budget retained.')
     elif args.action=='model':
-        import sys
         from dotenv import dotenv_values
         state=read_state();available(18781)
         vendor=dotenv_values(ROOT/'recommend-service/.env');env=os.environ.copy()

@@ -1,5 +1,5 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
-.card { background:#FFFFFF; border:1rpx solid #D9E1D5; border-radius:32rpx; padding:28rpx; margin-bottom:24rpx; } .heading { display:flex; align-items:center; justify-content:space-between; font-size:1em; font-weight:600; color:#25332B; } .status { font-size:0.857143em; color:#617066; font-weight:400; } .name { display:block; font-size:1.285714em; font-weight:600; margin:24rpx 0 12rpx; color:#28634E; min-height:48rpx; } .description { display:block; font-size:0.928571em; color:#617066; line-height:1.6; }
+.card { background:#FFFFFF; border:1rpx solid #D9E1D5; border-radius:32rpx; padding:28rpx; margin-bottom:24rpx; } .heading { display:flex; align-items:center; justify-content:space-between; font-size:1em; font-weight:600; color:#25332B; } .status { font-size:0.857143em; color:#56645B; font-weight:400; } .name { display:block; font-size:1.285714em; font-weight:600; margin:24rpx 0 12rpx; color:#28634E; min-height:48rpx; } .description { display:block; font-size:0.928571em; color:#56645B; line-height:1.6; }
 
 /* Fixed CSS pixels protect the actual event node at the 320px baseline. */
 .ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
@@ -7,6 +7,13 @@ text.ew-hit-target { display:inline-flex; align-items:center; justify-content:ce
 picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
-.ew-placeholder { color:#617066; }
+.ew-placeholder { color:#56645B; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+/* Warm table v2: status plus content, one explicit navigation. */
+.card { border:0; border-radius:18px; padding:16px; margin-bottom:12px; }
+.heading { gap:12px; align-items:flex-start; }.heading > text:first-child { flex:1; }
+.status { line-height:1.5; }.name { min-height:0; color:#25332B; margin:12px 0 8px; line-height:1.5; overflow-wrap:anywhere; }
+.meal-link { padding:0; background:transparent; text-align:left; border:0; border-radius:0; }.meal-link::after { border:0; }
+.description { font-size:1em; line-height:1.7; }

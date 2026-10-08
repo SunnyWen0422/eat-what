@@ -16,10 +16,15 @@ function binding(source, data) {
 }
 
 test('login overlay intercepts background when visible and busy cancellation keeps authorization pending', () => {
-  const css = read('pages/profile/profile.wxss')
-  const rule = css.match(/\.login-modal-mask\.mask-show\s*\{([^}]+)\}/)
-  assert.ok(rule && /visibility:\s*visible/.test(rule[1]) && /opacity:\s*1/.test(rule[1]), 'visible login overlay must intercept taps')
-  assert.match(read('pages/profile/profile.wxml'), /class="[^"]*\blogin-modal-mask\b[^>]+catchtap="onCloseLoginModal"/)
+  assert.match(read('pages/profile/profile.wxml'), /<ui-sheet[^>]+visible="\{\{showLoginModal\}\}"[^>]+busy="\{\{loginBusy\}\}"[^>]+bind:close="onCloseLoginModal"/)
+  const sheet = component('ui-sheet'), emitted = []
+  const overlay = { properties: { busy: true }, triggerEvent: v => emitted.push(v) }
+  sheet.methods.close.call(overlay)
+  assert.equal(emitted.length, 0, 'busy authorization must remain open')
+  overlay.properties.busy = false
+  sheet.methods.close.call(overlay)
+  assert.deepEqual(emitted, ['close'])
+  assert.match(read('components/ui-sheet/ui-sheet.wxml'), /class="[^"]*ew-mask"[^>]+bindtap="close"/)
   let page
   const file = path.resolve('pages/profile/profile.js')
   vm.runInNewContext(read(file), { Page: value => { page = value }, getApp: () => ({}), require: name => name.endsWith('/font-scale') ? () => 1 : name.endsWith('/ui-tokens') ? require('../utils/ui-tokens') : {}, console })
