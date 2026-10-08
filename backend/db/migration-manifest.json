@@ -40,6 +40,20 @@
       "description": "V4 ingredient reference quotes and separate actual shopping expenses",
       "checksumSha256": "e633917288cb6aace675583098aeb25165258a56e0da7a70da4d90857c1ab8d0",
       "rollback": "Disable pricing; retain quote and expense tables. Restore a reviewed backup only for database rollback."
+    },
+    {
+      "version": "V6_10__personal_menus",
+      "file": "V6_10__personal_menus.sql",
+      "description": "private reusable menu versions and recipe snapshots",
+      "checksumSha256": "19f375a1d981d4ddc49171a533410b3e5467ad45c94233d4ce23d954bdd6c954",
+      "rollback": "Disable the new UI entry points; keep menu versions, snapshots and task receipts. Restore only a reviewed backup for database rollback; never drop live tables or rewrite historical records."
+    },
+    {
+      "version": "V6_20__controlled_harness",
+      "file": "V6_20__controlled_harness.sql",
+      "description": "Java server-bound tool previews and durable compound task receipts",
+      "checksumSha256": "04b9f632db56804bad32032fe644fb6fd5857db93c385642fbd9abc9184fda35",
+      "rollback": "Disable the new UI entry points; keep menu versions, snapshots and task receipts. Restore only a reviewed backup for database rollback; never drop live tables or rewrite historical records."
     }
   ]
 }

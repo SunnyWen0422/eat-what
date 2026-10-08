@@ -1,6 +1,8 @@
 package com.eatwhat.controller;
 
 import com.eatwhat.service.AssistantGateway;
+import com.eatwhat.service.AssistantActionService;
+import com.eatwhat.service.MealConsumptionService;
 import com.eatwhat.service.AiProtectionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +18,14 @@ import org.springframework.web.client.RestClientException;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Objects;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/assistant")
@@ -144,23 +151,79 @@ public class AssistantController {
     public ResponseEntity<?> confirmAction(@PathVariable String sessionId,
                                            @RequestBody(required = false) Map<String, Object> body,
                                            HttpServletRequest request) {
-        AssistantGateway.GatewayResponse approved = gateway.post("/assistant/sessions/" + encodePath(sessionId) + "/actions/confirm", withUser(body, request));
-        if (!approved.isSuccessful()) return response(approved);
-        if (actionService == null) return response(approved);
-        Object already = approved.getBody().get("already_confirmed");
-        if (Boolean.TRUE.equals(already)) return response(approved);
-        Object action = approved.getBody().get("action");
-        if (!(action instanceof Map)) {
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Collections.singletonMap("errorCode", "ASSISTANT_ACTION_INVALID"));
-        }
+        Long userId = currentUserId(request);
+        if (userId == null) return confirmationError(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED", "请先登录后确认保存");
         try {
-            Long userId = currentUserId(request);
-            return ResponseEntity.ok(actionService.execute(userId, castMap(action)));
+            body = normalizeConfirmation(body);
+            if (actionService == null) return unavailable();
+            AssistantGateway.GatewayResponse approved;
+            try {
+                approved = gateway.post("/assistant/sessions/" + encodePath(sessionId) + "/actions/confirm", withUser(body, request));
+            } catch (RestClientException | IllegalStateException error) {
+                return unavailable();
+            }
+            if (!approved.isSuccessful()) return response(approved);
+            Object action = approved.getBody().get("action");
+            if (!Boolean.TRUE.equals(approved.getBody().get("success")) || !(action instanceof Map)) {
+                return confirmationError(HttpStatus.UNPROCESSABLE_ENTITY, "ASSISTANT_ACTION_INVALID", "确认动作无效，请重新预览");
+            }
+            Map<String, Object> verified = castMap(action);
+            if (!Objects.equals(body.get("action_type"), verified.get("type"))
+                    || !Objects.equals(body.get("idempotency_key"), verified.get("idempotency_key"))
+                    || confirmationVersion(body.get("plan_version")) != confirmationVersion(verified.get("plan_version"))
+                    || (!Boolean.TRUE.equals(approved.getBody().get("already_confirmed"))
+                        && !Objects.equals(body.get("preview_token"), verified.get("preview_token")))) {
+                return confirmationError(HttpStatus.UNPROCESSABLE_ENTITY, "ASSISTANT_ACTION_INVALID", "确认动作与请求不一致，请重新预览");
+            }
+            // Python confirmation is authorization only. A retry must execute or replay Java's durable receipt.
+            Map<String, Object> result = actionService.execute(userId, verified);
+            if (result == null || !Boolean.TRUE.equals(result.get("success")) || !Boolean.TRUE.equals(result.get("executed"))) {
+                return confirmationError(HttpStatus.INTERNAL_SERVER_ERROR, "ASSISTANT_ACTION_FAILED", "保存未完成，请重试");
+            }
+            return ResponseEntity.ok(result);
+        } catch (MealConsumptionService.VersionConflict error) {
+            return confirmationError(HttpStatus.CONFLICT, "ASSISTANT_ACTION_CONFLICT", error.getMessage());
         } catch (IllegalArgumentException error) {
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Collections.singletonMap("message", error.getMessage()));
+            return confirmationError(HttpStatus.UNPROCESSABLE_ENTITY, "ASSISTANT_CONFIRMATION_INVALID", error.getMessage());
         } catch (Exception error) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.singletonMap("errorCode", "ASSISTANT_ACTION_FAILED"));
+            return confirmationError(HttpStatus.INTERNAL_SERVER_ERROR, "ASSISTANT_ACTION_FAILED", "保存未完成，请重试");
         }
+    }
+
+    private Map<String, Object> normalizeConfirmation(Map<String, Object> body) {
+        Set<String> fields = new HashSet<>(Arrays.asList("action_type", "plan_version", "preview_token", "idempotency_key"));
+        if (body == null || !fields.equals(body.keySet())) {
+            throw new IllegalArgumentException("确认仅接受操作类型、方案版本、预览凭证和幂等键；不可覆盖操作内容");
+        }
+        for (String field : Arrays.asList("action_type", "preview_token", "idempotency_key")) {
+            if (!(body.get(field) instanceof String) || ((String) body.get(field)).trim().isEmpty()) {
+                throw new IllegalArgumentException("确认凭证、操作类型和幂等键不能为空");
+            }
+        }
+        int version = confirmationVersion(body.get("plan_version"));
+        AssistantActionService.requireCalendarSave((String) body.get("action_type"));
+        Map<String, Object> normalized = new LinkedHashMap<>(body);
+        // Authorize and compare one integer representation, before Python consumes the preview.
+        normalized.put("plan_version", version);
+        return normalized;
+    }
+
+    private int confirmationVersion(Object value) {
+        if (value instanceof Number) {
+            try {
+                int version = new BigDecimal(value.toString()).intValueExact();
+                if (version > 0) return version;
+            } catch (NumberFormatException | ArithmeticException ignored) {
+                // Reject fractional, non-finite, and out-of-range numbers without rounding.
+            }
+        }
+        throw new IllegalArgumentException("请提供有效的方案版本");
+    }
+
+    private ResponseEntity<Map<String, Object>> confirmationError(HttpStatus status, String code, String message) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("success", false); error.put("errorCode", code); error.put("message", message);
+        return ResponseEntity.status(status).body(error);
     }
 
     private ResponseEntity<?> proxy(String path, Map<String, Object> body) {

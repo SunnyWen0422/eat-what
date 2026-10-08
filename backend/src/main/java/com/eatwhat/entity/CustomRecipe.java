@@ -1,6 +1,7 @@
 package com.eatwhat.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -35,6 +36,22 @@ public class CustomRecipe {
     @JsonProperty("createTime")
     private Date createTime;
     
+    private Long version;
+    @JsonIgnore
+    private Boolean isDeleted;
+    @JsonIgnore
+    private String dishSnapshotsJson;
+
+    public List<Dish> getDishes() {
+        if (dishSnapshotsJson == null || dishSnapshotsJson.trim().isEmpty()) return new ArrayList<>();
+        try { return mapper.readValue(dishSnapshotsJson, new TypeReference<List<Dish>>(){}); }
+        catch (Exception error) { throw new IllegalStateException("菜单快照无法读取，请重新编辑菜单", error); }
+    }
+    public void setDishes(List<Dish> dishes) {
+        try { dishSnapshotsJson = mapper.writeValueAsString(dishes); }
+        catch (Exception error) { throw new IllegalArgumentException("菜单快照无法保存", error); }
+    }
+
     private static final ObjectMapper mapper = new ObjectMapper();
     
     public List<Long> getDishIds() {

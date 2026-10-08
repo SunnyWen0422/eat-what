@@ -82,7 +82,7 @@ function fixture() {
     page.onLoad(target)
     return page
   }
-  return { api, memory, rows, plans, navigation, calls, row, createPage, createHistory, switchAccount: (next = 'B') => { account = next } }
+  return { api, memory, rows, plans, navigation, calls, row, createPage, createHistory, wx, switchAccount: (next = 'B') => { account = next } }
 }
 function deferred() {
   let resolve, reject

@@ -27,6 +27,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                         "/users/**",
                         "/dishes/**",
+                        "/menus/**",
                         "/recommend/**",
                         "/recipe-records/**",
                         "/meal-consumptions/**",

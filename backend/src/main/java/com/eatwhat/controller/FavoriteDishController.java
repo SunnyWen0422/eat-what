@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.List;
@@ -39,9 +40,9 @@ public class FavoriteDishController {
         logger.info("【添加收藏】用户ID: {}", currentUserId);
 
         Long dishId = request.get("dishId");
-        if (dishId == null) {
+        if (dishId == null || dishId <= 0) {
             logger.warn("【添加收藏】dishId为空");
-            return ResponseEntity.badRequest().body(Collections.singletonMap("error", "dishId不能为空"));
+            return ResponseEntity.badRequest().body(Collections.singletonMap("message", "dishId必须是正整数"));
         }
         logger.info("【添加收藏】菜品ID: {}", dishId);
 
@@ -53,6 +54,8 @@ public class FavoriteDishController {
             } else {
                 return ResponseEntity.ok(Collections.singletonMap("success", false));
             }
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatus()).body(Collections.singletonMap("message", e.getReason()));
         } catch (Exception e) {
             logger.error("【添加收藏】操作失败", e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", "添加收藏失败: " + e.getMessage()));
