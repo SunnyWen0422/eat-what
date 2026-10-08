@@ -42,6 +42,7 @@ Page({
       if (!this.current(scope) || epoch !== this._epoch) return
       
       if (dish) {
+        dish.typeLabel = require('../../utils/recipe-quality').dishCategoryLabel(dish.type)
         const minutes = Number(dish.cookMinutes)
         dish.cookTimeDisplay = Number.isInteger(minutes) && minutes >= 1 && minutes <= 240 ? minutes + '分钟' : dish.cookTime || ''
         dish.tagsList = Array.isArray(dish.tags) ? dish.tags : String(dish.tags || '').split(/[,，]/).map(s => s.trim()).filter(Boolean)

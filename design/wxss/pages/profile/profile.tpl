@@ -80,3 +80,11 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .user-card { flex-direction:row; }.level { opacity:1; }
 
 .user-card, .shopping-shortcut, .menu-item, .admin-entry, .version-info { width:100%; margin-left:0; margin-right:0; }.menu-section { margin:24px 0 0; padding:0; border:0; background:transparent; box-shadow:none; }.user-info { text-align:left; }.nickname, .level { display:block; }
+
+.profile-page button.user-card,.profile-page button.shopping-shortcut,.profile-page button.menu-item,.profile-page button.version-info { width:100%; max-width:100%; }
+.profile-page button.user-card { background:{{card}}; border:1px solid {{border}}; border-radius:18px; padding:16px; margin:20px 0 12px; gap:12px; }
+.profile-page .nickname { font-size:{{font.section.em}}; line-height:1.45; }
+.profile-page .profile-edit-label { flex-shrink:0; font-weight:500; }
+.profile-page .user-avatar,.profile-page .avatar,.profile-page .avatar-fallback { width:48px; height:48px; flex-basis:48px; border-radius:16px; }
+.profile-page .menu-title { font-weight:500; }
+.profile-page .shopping-shortcut-title,.profile-page .shopping-shortcut-sync { display:block; }

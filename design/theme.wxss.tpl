@@ -126,3 +126,25 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-page.admin-workspace .state, .ew-page.admin-workspace .state-block { min-height:160px; border:0; border-radius:16px; line-height:1.7; }
 
 .ew-page.admin-workspace .filters picker, .ew-page.admin-workspace .filters input { min-width:44px; }
+
+/* Native v2 button defaults must not impose a fixed width on our controls. */
+.ew-page button.ew-hit-target { width:auto; max-width:100%; margin:0; font-family:inherit; font-weight:500; }
+.ew-page button.ew-link { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 12px; background:{{card}}; border:1px solid {{controlBorder}}; border-radius:10px; color:{{brand}}; font-size:{{font.body.em}}; line-height:1.45; flex-shrink:0; }
+.ew-page button.ew-link.danger { color:{{danger}}; border-color:{{danger}}; background:{{dangerSoft}}; }
+.ew-page button.ew-text-link { background:transparent; border-color:transparent; text-decoration:underline; text-underline-offset:3px; }
+.ew-page button.ew-link[disabled] { background:{{disabled}}; color:{{muted}}; border-color:{{border}}; }
+.ew-page .ew-tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid {{border}}; border-radius:12px; background:{{surfaceSoft}}; }
+.ew-page .ew-tabs button.ew-hit-target { flex:1; min-width:44px; padding:8px 10px; background:transparent; color:{{muted}}; font-size:{{font.body.em}}; border:1px solid transparent; line-height:1.45; }
+.ew-page .ew-tabs button.active { background:{{card}}; border-color:{{controlBorder}}; color:{{brand}}; font-weight:600; }
+.ew-page .ew-heading { font-size:{{font.page.em}}; line-height:1.3; }
+.ew-page .ew-between > view:first-child { min-width:0; flex:1; }
+
+
+.ew-page button.period-nav { width:44px; max-width:44px; flex:0 0 44px; padding:10px; border:1px solid {{border}}; border-radius:10px; background:{{card}}; }
+.ew-page .period { gap:8px; }
+.ew-page .period > text { font-size:{{font.body.em}}; }
+.ew-page text.ew-link { text-decoration:underline; text-underline-offset:3px; }
+.ew-page.admin-workspace .heading > view { flex:1; min-width:0; }
+.ew-page.admin-workspace button.refresh,.ew-page.admin-workspace button.search-btn,.ew-page.admin-workspace .section-head button.add { flex:0 0 auto; width:auto; max-width:88px; padding:10px 16px; }
+.ew-page.admin-workspace .search input { border:1px solid {{controlBorder}}; border-radius:12px; }
+.ew-page.admin-workspace .filters picker > view { border:0; padding:0; }

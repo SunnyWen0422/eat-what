@@ -15,3 +15,9 @@ test('legacy generated allowance is handled honestly even before evidence is ret
  const view=require(file).presentRecipeQuality({fl:'2名成年人总量+15%冗余',ingredientsAmounts:'快手|345|克|主料|处理|2名成年人总量+15%冗余|菜名###糖|55|克|调味|加入|2名成年人总量+15%冗余|步骤'})
  assert.deepEqual(view.ingredientLines,['糖 · 用量待核实']);assert.match(view.notice,/核实/)
 })
+
+test('category labels translate catalog codes without exposing unknown internal values',()=>{
+ const label=require(file).dishCategoryLabel
+ assert.equal(label('meat'),'荤菜');assert.equal(label('veg'),'素菜');assert.equal(label('dessert'),'甜品')
+ assert.equal(label('家常菜'),'家常菜');assert.equal(label('internal_future_code'),'未分类');assert.equal(label(null),'未分类')
+})

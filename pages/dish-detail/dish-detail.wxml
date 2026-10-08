@@ -40,7 +40,7 @@
       </view>
       <view class="attribute-item" wx:if="{{dish.type}}">
         <text class="attribute-label">类型</text>
-        <text class="attribute-value">{{dish.type}}</text>
+        <text class="attribute-value">{{dish.typeLabel}}</text>
       </view>
     </view>
 

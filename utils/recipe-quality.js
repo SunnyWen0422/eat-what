@@ -17,4 +17,9 @@ function presentRecipeQuality(dish={}) {
   nutritionText:q.nutritionStatus==='VERIFIED'&&q.nutritionKcal!=null?`原配方参考 ${q.nutritionKcal} 千卡`:'热量资料待核实',
   sourceLines:facts.map(x=>({name:x.name,text:x.rawText||'',status:x.quantityStatus==='VERIFIED'?'有用量核验记录':'原加工值仅供复核'}))}
 }
-module.exports={presentRecipeQuality}
+function dishCategoryLabel(value) {
+ const type=String(value||'').trim()
+ const labels={meat:'荤菜',veg:'素菜',soup:'汤品',staple:'主食',dessert:'甜品',side:'配菜'}
+ return labels[type] || (/^[\u3400-\u9fff]{1,12}$/.test(type)?type:'未分类')
+}
+module.exports={presentRecipeQuality,dishCategoryLabel}

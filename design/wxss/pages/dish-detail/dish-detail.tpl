@@ -354,3 +354,14 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 @media(max-width:360px){.dish-image-container{height:210px}.dish-image-container.no-image{height:48px}}
 
 .step-number { background-color:{{background}}; }
+
+/* Override native button sizing as well as the legacy left/bottom anchors. */
+button.share-btn { left:auto; bottom:auto; width:{{controls.touchSize.px}}; max-width:{{controls.touchSize.px}}; box-sizing:border-box; }
+
+.container .dish-attributes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:16px 0; }
+.container .attribute-item { width:auto; min-width:0; flex:none; text-align:left; }
+.container .attribute-label,.container .attribute-value { display:block; }
+.container .attribute-label { font-size:{{font.caption.em}}; margin-bottom:6px; }
+.container .section > .ew-muted { display:block; margin-bottom:10px; }
+.container .detail-bottom { display:flex; flex-direction:column; gap:8px; }
+.container { padding-bottom:calc(156px + env(safe-area-inset-bottom)); }

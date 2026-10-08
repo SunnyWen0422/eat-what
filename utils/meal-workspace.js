@@ -1,5 +1,10 @@
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value))
 const canonical = value => JSON.stringify(value, function(key, item) { return item && typeof item === 'object' && !Array.isArray(item) ? Object.keys(item).sort().reduce((out,k)=>(out[k]=item[k],out),{}) : item })
+const canonicalContext = value => {
+  const context = normalizeContext(value)
+  context.criteria = { cuisineCodes: [], includeTagCodes: [], excludeTagCodes: [], excludedIngredients: [], maxCookMinutes: null, ...context.criteria }
+  return canonical(context)
+}
 const requestId = () => `ws-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
 
 function defaultTarget(now = new Date()) {
@@ -66,7 +71,7 @@ function createWorkspaceStore(options = {}) {
       else result = await api.commandMealWorkspace(operation.id, operation.body)
       ensure(); if (ticket !== generation) throw new Error('当前餐已切换')
       workspace = result; pending = null
-      if (operation.type === 'create' && canonical(normalizeContext(result.context)) !== canonical(normalizeContext(operation.body.context))) { dirty=true;syncStatus='conflict';persist();return state() }
+      if (operation.type === 'create' && canonicalContext(result.context) !== canonicalContext(operation.body.context)) { dirty=true;syncStatus='conflict';persist();return state() }
       if (operation.body.context && JSON.stringify(operation.body.context) === JSON.stringify(context)) dirty = false
       syncStatus = dirty ? 'unsynced' : 'synced'; persist(); return state()
     } catch (error) {
