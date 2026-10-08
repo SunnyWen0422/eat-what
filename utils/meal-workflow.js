@@ -14,6 +14,19 @@ function mealViews(overview, day) {
     return { planRevision: plan ? plan.revision : (overview.planRevisions || {})[`${day}|${mealType}`] || 0, mealType, label: mealNames[mealType], plan, actual, status, statusLabel, actualNames: actual && actual.status === 'eaten' ? (actual.actualDishes || []).map(d => d.name).join('、') : '' }
   })
 }
+function buildActualEntries(text, meal, usePlanIdentity = true) {
+  const history = meal.actual && meal.actual.actualDishes || [], retained = new Set()
+  const planned = usePlanIdentity && meal.plan ? meal.plan.dishDetails || [] : []
+  return String(text || '').split(/[\n、，,]/).map(name => name.trim()).filter(Boolean).map(name => {
+    const index = history.findIndex((dish, i) => dish.name === name && !retained.has(i))
+    if (index >= 0) { retained.add(index); return { retainedEntryIndex: index } }
+    const matches = planned.filter(dish => dish.name === name)
+    const ids = matches.map(dish => Number(dish.dishId || dish.id))
+    // A name shared by different dishes is insufficient evidence of identity.
+    if (ids.length && ids.every(id => Number.isSafeInteger(id) && id > 0) && new Set(ids).size === 1) return { dishId: ids[0] }
+    return { name }
+  })
+}
 function requestId(prefix) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}` }
 function errorMessage(error, fallback = '操作失败，请重试') { return error && error.statusCode === 409 ? (error.data && error.data.message || '内容已更新，请重新加载并确认修改') : error && error.data && (error.data.message || error.data.error) || fallback }
-module.exports = { mealNames, parseDay, formatDay, today, shiftDay, monthRange, weekRange, mealViews, requestId, errorMessage }
+module.exports = { mealNames, parseDay, formatDay, today, shiftDay, monthRange, weekRange, mealViews, buildActualEntries, requestId, errorMessage }

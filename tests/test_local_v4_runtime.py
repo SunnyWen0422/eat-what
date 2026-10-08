@@ -12,6 +12,24 @@ runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
 
 class LocalRuntimeTest(unittest.TestCase):
+    def test_powershell_wrapper_only_forwards_explicit_java(self):
+        # Source contract only: native PowerShell execution is a separate check.
+        wrapper=(Path(__file__).resolve().parents[1]/'scripts/start_local_v4.ps1').read_text(encoding='utf-8')
+        self.assertRegex(wrapper, r'\[string\]\$JavaExecutable\s*\n')
+        self.assertIn("$runtimeArgs=@('serve')",wrapper)
+        self.assertIn("if ($JavaExecutable) { $runtimeArgs+=@('--java',$JavaExecutable) }",wrapper)
+        self.assertIn("'local_v4.py') @runtimeArgs",wrapper)
+
+    def test_serve_preserves_omitted_and_explicit_java_override(self):
+        # Stop at the subprocess boundary; do not launch or contact services.
+        for extra in ([], ['--java','C:/custom-jdk/bin/java.exe']):
+            with self.subTest(extra=extra),patch.object(runtime.sys,'argv',['local_v4.py','serve',*extra]),patch.object(runtime.subprocess,'run',side_effect=RuntimeError('stop before restart')) as run:
+                with self.assertRaisesRegex(RuntimeError,'stop before restart'):runtime.main()
+            command=run.call_args.args[0]
+            self.assertEqual('restart',command[2])
+            if extra:self.assertEqual(extra,command[-2:])
+            else:self.assertNotIn('--java',command)
+
     def test_restart_reuses_saved_java_and_validates_before_stopping(self):
         state={'javaPid': 123, 'javaExecutable':'C:/custom-jdk/bin/java.exe','dbPort':12345,'password':'synthetic'}
         order=[]

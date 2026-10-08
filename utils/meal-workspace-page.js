@@ -71,6 +71,8 @@ module.exports = function workspacePage(options = {}) {
             const session=await api.getAssistantSession(handoff.sessionId)
             if(!this.current()||initEpoch!==this._initEpoch||initScope!==this._scope||store!==this.store)return
             const meal=require('./legacy-meal-import').resolveHistoryMeal(session,handoff)
+            const importedTarget={date:meal.date,mealType:meal.mealType}
+            wx.setStorageSync(getUserStorageKey('activeMealTarget'),importedTarget);this._params=importedTarget
             wx.removeStorageSync(key);store.edit({...this.data.context,people:meal.people});this.renderWorkspace()
             await this.runCommand('select',{dishIds:meal.dishIds})
           } catch(error) {if(this.current()&&initEpoch===this._initEpoch&&store===this.store)this.setData({errorMessage:error.message||'导入未完成，当前方案仍保留'})}
@@ -118,6 +120,10 @@ module.exports = function workspacePage(options = {}) {
       try { await store.load(target.date, target.mealType, defaults); if (!this.current() || store !== this.store) return; this.setData({ errorMessage: '' }) }
       catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: error.message || '本餐暂未同步，可重试' }) }
       if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ loading: false }); this.pollTask() }
+    },
+    setWorkspaceBusy(busy) {
+      this.setData({ busy })
+      this.renderWorkspace()
     },
     renderWorkspace() {
       if (!this.current()) return
@@ -207,10 +213,10 @@ module.exports = function workspacePage(options = {}) {
       if (this.data.busy || !this.store || !this.current()) return
       if (getCurrentUserIdentity() === 'guest') return this.onLogin()
       clearTimeout(this._draftTimer); const store = this.store
-      this.setData({ busy: true, errorMessage: '' })
+      this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
       try { await this.flushDraft(); if(!this.current() || store!==this.store)return false; await store.command(command, extra); if (this.current() && store === this.store) { this.renderWorkspace(); this.pollTask(); return true } }
       catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '安排未完成，输入和原方案已保留' }) } }
-      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+      finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onSuggestedTarget() {
       if(!this.current() || !this.data.suggestedTarget || this.data.busy)return
@@ -241,26 +247,26 @@ module.exports = function workspacePage(options = {}) {
     },
     async saveConfirmation(revision) {
       if (this.data.busy || !this.current()) return
-      const store = this.store; this.setData({ busy: true, errorMessage: '' })
+      const store = this.store; this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
       try { await store.confirm(revision); if (this.current() && store === this.store) {
         this.setData({ confirmationVisible: false }); wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord')); wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), Date.now()); await this.readWorkspace(this.data.context)
       } } catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '保存结果待确认，请重试原请求' }) } }
-      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+      finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onRetryWorkspace() {
       if (!this.store || this.data.busy || !this.current()) return
-      const store = this.store; this.setData({ busy: true })
+      const store = this.store; this.setWorkspaceBusy(true)
       try { await store.retry(); if (this.current() && store === this.store) { this.setData({ errorMessage: '' }); await this.readWorkspace(this.data.context) } }
       catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '重试未完成，输入仍保留' }) } }
-      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+      finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onLoadLatest() {
       if (!this.current() || this.data.busy) return
       const store = this.store, localContext = clone(this.data.context)
-      this.setData({ busy: true }); this._preservedContext = localContext
+      this.setWorkspaceBusy(true); this._preservedContext = localContext
       try { await store.reloadLatest(); if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: '', conflictDraftAvailable: true }) } }
       catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: error.message }) }
-      finally { if (this.current() && store === this.store) this.setData({ busy: false }) }
+      finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     onRestoreLocalDraft() { if (this.current() && this._preservedContext) { this.store.edit(this._preservedContext); this.renderWorkspace(); this.setData({ conflictDraftAvailable: false }); this.scheduleDraftSave() } },
     onOpenMealSettings() {

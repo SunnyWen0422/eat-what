@@ -7,3 +7,5 @@
 以后统一验收的内容：V4 与高级助手传输、失败回退与规则模式预算、额度耗尽后任务终结、取消/恢复、固定评测集，以及按届时明确预算进行的真实供应商联调。独立记录离线结果与真实服务结果。
 
 恢复离线预算回归时显式使用：`python -m unittest discover -s tests/deferred -p local_model_budget_review.py -v`。真实请求需使用原计数器，不能重置额度。
+
+2026-10-08 审查 N5：新增 `workspace_exhaustion_review.py`，覆盖工具轮次/时间耗尽不得计入澄清成功，以及合法澄清/跨目标澄清仍可通过。仅准备源码，遵守暂停要求未加载、未执行；恢复统一验收后运行 `python -m unittest discover -s tests/deferred -p workspace_exhaustion_review.py -v`。
