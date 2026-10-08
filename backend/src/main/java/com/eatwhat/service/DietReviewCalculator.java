@@ -13,6 +13,10 @@ public class DietReviewCalculator {
     public DietReviewCalculator(ObjectMapper json) {
         this.json = json;
     }
+    public Map<String,Object> report(Long userId, List<MealConsumption> meals, List<RecipeRecord> plans,
+                                     LocalDate start, LocalDate end, java.time.Instant generatedAt) {
+        return new DietReviewReport(json, this).build(userId, meals, plans, start, end, generatedAt);
+    }
     public Map<String,Object> calculate(List<MealConsumption> meals,List<RecipeRecord> plans,LocalDate today) {
         Set<String> days = new TreeSet<>();
         Map<String,Integer> categories = new LinkedHashMap<>();
@@ -21,7 +25,7 @@ public class DietReviewCalculator {
         int mealCount=0, entries=0, unknown=0, plannedEaten=0, followed=0, skipped=0;
         Set<String> dueSlots = new HashSet<>();
         for (RecipeRecord plan : plans) {
-            if (plan.getRecordDate() == null || !"manual".equals(plan.getRecordOrigin())) continue;
+            if (plan.calendarDay() == null || !"manual".equals(plan.getRecordOrigin())) continue;
             LocalDate day = LocalDate.parse(plan.calendarDay());
             if (day.isBefore(today)) dueSlots.add(day + "|" + plan.getMealType());
         }

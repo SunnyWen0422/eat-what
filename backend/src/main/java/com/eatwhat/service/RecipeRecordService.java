@@ -252,7 +252,7 @@ public class RecipeRecordService {
         stats.setMeatCount(meatCount);
         stats.setVegCount(vegCount);
         stats.setSoupCount(soupCount);
-        stats.setTotalCalories(0);  // 热量由前端计算
+        stats.setTotalCalories(null);  // 计划与菜品配方不能证明实际摄入
 
         dto.setStatistics(stats);
         dto.setDaysWithRecords(recordDates.size());

@@ -58,9 +58,11 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
     }, ensure_ascii=False)}, {"role": "user", "content": str(context.get("requirements") or "")[:2000]}]
     sourced = set()
     started = time.monotonic()
+    failure_class = "ToolLoopExhausted"
     for round_number in range(4):
         remaining = 14 - (time.monotonic() - started)
         if remaining <= 0:
+            failure_class = "TaskDeadlineExceeded"
             break
         if hasattr(model, "timeout"):
             model.timeout = min(10, remaining)
@@ -86,4 +88,5 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
         call_id = call.get("id") or f"v4_{round_number}"
         messages.extend([tool_assistant_message(response, call, call_id),
             {"role": "tool", "tool_call_id": call_id, "content": json.dumps(records, ensure_ascii=False)}])
-    return {"needsInput": True, "message": "本次理解超时，请在设置面板明确限制后重试", "dishIds": []}
+    return {"needsInput": True, "executionStatus": "failed", "failureClass": failure_class,
+            "message": "本次理解超时，请在设置面板明确限制后重试", "dishIds": []}

@@ -1,7 +1,7 @@
 param(
  [string]$PythonExecutable='C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',
  [string]$DependencyDirectory,
- [string]$JavaExecutable='D:/Java/bin/java.exe'
+ [string]$JavaExecutable
 )
 $ErrorActionPreference='Stop'
 $v4Project=Split-Path -Parent $PSScriptRoot
@@ -10,6 +10,8 @@ if (-not (Test-Path -LiteralPath $DependencyDirectory -PathType Container)) { th
 $env:PYTHONPATH=$DependencyDirectory
 Push-Location -LiteralPath $v4Project
 try {
- & $PythonExecutable (Join-Path $PSScriptRoot 'local_v4.py') serve --java $JavaExecutable
+ $runtimeArgs=@('serve')
+ if ($JavaExecutable) { $runtimeArgs+=@('--java',$JavaExecutable) }
+ & $PythonExecutable (Join-Path $PSScriptRoot 'local_v4.py') @runtimeArgs
  if ($LASTEXITCODE -ne 0) { throw 'Local runtime failed; inspect .local-v4/backend.log and .local-v4/agent.log.' }
 } finally { Pop-Location }

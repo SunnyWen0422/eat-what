@@ -32,6 +32,14 @@
         <view wx:if="{{draft.dishes.length && mode === 'assistant'}}" class="workspace-assistant-menu"><view class="ew-title">当前餐单</view><text wx:for="{{draft.dishes}}" wx:key="id" class="ew-reading">{{item.name}}</text><ui-button label="查看和调整本餐方案" variant="secondary" bind:action="onOpenMealResult" /></view>
         <view wx:if="{{linkedPlan}}" class="workspace-next"><button class="ew-hit-target workspace-next-row" bindtap="onShoppingPreview"><view><text class="ew-title">准备食材</text><text class="ew-muted">先核对本餐用量，再加入清单</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button><button class="ew-hit-target workspace-next-row" bindtap="onViewPlan"><view><text class="ew-title">查看安排与实际记录</text><text class="ew-muted">{{actual && actual.status === 'eaten' ? '已记录实际用餐，可查看或纠正' : '吃过什么，由你确认后记录'}}</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button></view>
         <view wx:if="{{!linkedPlan}}" class="workspace-light-actions"><button class="ew-hit-target ew-link" bindtap="onQuickActual">记录实际用餐</button><button wx:if="{{draft.dishes.length}}" class="ew-hit-target ew-link" bindtap="onChooseDishes">自己选菜</button></view>
+        <view wx:if="{{draft.dishes.length || harnessMessage}}" class="workspace-next">
+          <view class="ew-title">保存计划并查看周回顾</view>
+          <text class="ew-muted">保存计划不会算作实际吃过。回顾只使用明确记录的实际用餐。</text>
+          <ui-button wx:if="{{draft.dishes.length}}" label="预览保存和周回顾" variant="secondary" disabled="{{busy || !canConfirm}}" bind:action="onSaveAndReview" />
+          <view wx:if="{{harnessMessage}}" class="ew-notice" role="status">{{harnessTargetLabel}} {{harnessMessage}}</view>
+          <ui-button wx:if="{{harnessRetryable}}" label="查询并恢复原任务" variant="tertiary" disabled="{{busy}}" bind:action="onRecoverControlledTask" />
+          <ui-button wx:if="{{harnessReport}}" label="查看这一周的实际回顾" variant="tertiary" disabled="{{busy}}" bind:action="onControlledReport" />
+        </view>
         <view class="workspace-light-actions"><button wx:if="{{mode !== 'assistant'}}" class="ew-hit-target ew-link" bindtap="onOpenAssistantView">聊聊这餐</button><button class="ew-hit-target ew-link" bindtap="onOpenAdvancedAssistant">助手历史</button><button wx:if="{{actual && actual.status === 'eaten'}}" class="ew-hit-target ew-link" bindtap="onReview">饮食回顾</button></view>
         <view wx:if="{{legacyMeals.length}}" class="workspace-legacy"><view class="ew-title">可导入的历史餐单</view><text class="ew-muted">导入后仍需确认本餐安排。</text><view wx:for="{{legacyMeals}}" wx:key="index" class="ew-flat-row"><view>{{item.date}} {{item.mealName}} · {{item.people}} 人</view><text class="ew-muted">{{item.names}}</text><ui-button label="导入这一餐草稿" variant="tertiary" data-index="{{index}}" bind:action="onImportLegacyMeal" /></view></view><view wx:if="{{legacyNotice}}" class="ew-notice">{{legacyNotice}}</view>
       </block>

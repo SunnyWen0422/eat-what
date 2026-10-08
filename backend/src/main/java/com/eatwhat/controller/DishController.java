@@ -1,6 +1,7 @@
 package com.eatwhat.controller;
 
 import com.eatwhat.entity.Dish;
+import com.eatwhat.dto.DishWriteRequest;
 import com.eatwhat.dto.DishPageDTO;
 import com.eatwhat.dto.RecommendationCriteria;
 import com.eatwhat.service.CustomDishService;
@@ -113,12 +114,12 @@ public class DishController {
      * POST /api/dishes/custom
      */
     @PostMapping("/custom")
-    public ResponseEntity<Dish> createCustomDish(@RequestBody Dish dish, HttpServletRequest request) {
+    public ResponseEntity<Dish> createCustomDish(@RequestBody DishWriteRequest dish, HttpServletRequest request) {
         Object currentUserId = request.getAttribute("currentUserId");
         if (!(currentUserId instanceof Long)) {
             return ResponseEntity.status(401).build();
         }
-        Dish created = customDishService.createDish((Long) currentUserId, dish);
+        Dish created = customDishService.createPersonalDish((Long) currentUserId, dish);
         return ResponseEntity.ok(created);
     }
 
@@ -135,12 +136,12 @@ public class DishController {
     }
 
     @PutMapping("/custom/{id}")
-    public ResponseEntity<?> updateCustomDish(@PathVariable Long id, @RequestBody Dish dish,
+    public ResponseEntity<?> updateCustomDish(@PathVariable Long id, @RequestBody DishWriteRequest dish,
                                               HttpServletRequest request) {
         Object currentUserId = request.getAttribute("currentUserId");
         if (!(currentUserId instanceof Long)) return ResponseEntity.status(401).build();
         try {
-            Dish updated = customDishService.updateDish((Long) currentUserId, id, dish);
+            Dish updated = customDishService.updatePersonalDish((Long) currentUserId, id, dish);
             return updated == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message", e.getMessage()));
@@ -148,14 +149,20 @@ public class DishController {
     }
 
     @DeleteMapping("/custom/{id}")
-    public ResponseEntity<?> deleteCustomDish(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<?> deleteCustomDish(@PathVariable Long id, @RequestBody DishWriteRequest body, HttpServletRequest request) {
         Object currentUserId = request.getAttribute("currentUserId");
         if (!(currentUserId instanceof Long)) return ResponseEntity.status(401).build();
-        return customDishService.removeCustomDish((Long) currentUserId, id)
-                ? ResponseEntity.ok(java.util.Collections.singletonMap("success", true))
-                : ResponseEntity.notFound().build();
+        return ResponseEntity.ok(customDishService.deletePersonalDish((Long) currentUserId, id, body));
     }
     
+    @PostMapping("/{id}/copy")
+    public ResponseEntity<Dish> copyDish(@PathVariable Long id, @RequestBody DishWriteRequest body,
+                                          HttpServletRequest request) {
+        Object user = request.getAttribute("currentUserId");
+        if (!(user instanceof Long)) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(customDishService.copyDish((Long) user, id, body));
+    }
+
     /**
      * 根据ID获取菜品
      * GET /api/dishes/{id}

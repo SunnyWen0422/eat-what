@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const { currentIdentity } = require('../../utils/account-identity')
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], loading: true, errorMessage: '', editing: false, saving: false, form: {}, formError: '', types: ['荤菜','素菜','汤品','主食','甜品'], typeIndex: 0 },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], loading: true, errorMessage: '', editing: false, saving: false, form: {}, formError: '', editPending: false, types: ['荤菜','素菜','汤品','主食','甜品'], typeIndex: 0 },
   onLoad(options = {}) { this._requestedEdit = options.edit; this._identity = currentIdentity(); this._viewScope = getUserStorageKey('customDishesCloud') },
   onShow() {
     this.ensureOwner()
@@ -17,7 +17,7 @@ Page({
     if (this._identity === identity) return true
     this._identity = identity; this._viewScope = getUserStorageKey('customDishesCloud'); this._epoch = (this._epoch || 0) + 1
     this._requestedEdit = null; this._original = null; this._editScope = null
-    this.setData({ editing: false, saving: false, loading: false, dishes: [], form: {}, formError: '', errorMessage: '', typeIndex: 0 })
+    this.setData({ editing: false, saving: false, editPending: false, loading: false, dishes: [], form: {}, formError: '', errorMessage: '', typeIndex: 0 })
     return false
   },
   current(scope, identity = this._identity) { return this.ensureOwner() && identity === this._identity && scope === getUserStorageKey('customDishesCloud') },
@@ -41,9 +41,13 @@ Page({
   edit(dish) {
     if (!this.ensureOwner()) return
     this._editScope = getUserStorageKey('customDishesCloud'); this._original = dish
-    this.setData({ editing: true, formError: '', form: { name: dish.name, ingredients: String(dish.ingredientsAmounts || dish.cl || '').replace(/###|#/g,'\n'), steps: String(dish.step || dish.steps || '').replace(/###|#/g,'\n'), cookMinutes: dish.cookMinutes || '' }, typeIndex: Math.max(0,['meat','veg','soup','staple','dessert'].indexOf(dish.type)) })
+    if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
+    const pending = this._writeJournal.pending('dish:edit:' + dish.id)
+    const source = pending || dish
+    const recipeText = require('../../utils/personal-recipes').editableRecipeText
+    this.setData({ editing: true, editPending: !!pending, formError: pending ? '上次保存结果未确认，重试将使用原内容' : '', form: { name: source.name, ingredients: recipeText(source.ingredientsAmounts || source.cl), steps: recipeText(source.steps || source.step), cookMinutes: source.cookMinutes || '' }, typeIndex: Math.max(0,['meat','veg','soup','staple','dessert'].indexOf(source.type)) })
   },
-  onInput(e) { this.setData({ [`form.${e.currentTarget.dataset.field}`]: e.detail.value }) }, onType(e) { this.setData({ typeIndex: Number(e.detail.value) }) },
+  onInput(e) { if (this.data.saving || this.data.editPending) return; this.setData({ [`form.${e.currentTarget.dataset.field}`]: e.detail.value }) }, onType(e) { if (this.data.saving || this.data.editPending) return; this.setData({ typeIndex: Number(e.detail.value) }) },
   cancelEdit() { if (!this.data.saving) this.setData({ editing: false }) },
   async saveEdit() {
     if (!this.ensureOwner()) return
@@ -55,11 +59,20 @@ Page({
     if (form.cookMinutes !== '' && (!Number.isInteger(minutes) || minutes < 1 || minutes > 240)) return this.setData({ formError: '烹饪时间应为 1 至 240 分钟' })
     this.setData({ saving: true, formError: '' })
     try {
-      await api.updateCustomDish(this._original.id, { ...this._original, name: form.name.trim(), type: ['meat','veg','soup','staple','dessert'][this.data.typeIndex], cl: form.ingredients.trim().replace(/\n/g,'#'), ingredientsAmounts: form.ingredients.trim().replace(/\n/g,'#'), step: form.steps.trim().replace(/\n/g,'#'), cookMinutes: form.cookMinutes === '' ? null : minutes })
+      await this._writeJournal.run('dish:edit:' + this._original.id, { expectedVersion: this._original.contentVersion, name: form.name.trim(), type: ['meat','veg','soup','staple','dessert'][this.data.typeIndex], cl: form.ingredients.trim().replace(/\n/g,'#'), ingredientsAmounts: form.ingredients.trim().replace(/\n/g,'#'), step: form.steps.trim().replace(/\n/g,'#'), cookMinutes: form.cookMinutes === '' ? null : minutes }, body => api.updateCustomDish(this._original.id, body))
       if (!this.current(scope, identity) || epoch !== this._epoch) return
       this.setData({ editing: false }); wx.showToast({ title: '菜品已保存', icon: 'success' }); await this.loadCustomDishes()
     } catch (error) { if (this.current(scope, identity) && epoch === this._epoch) this.setData({ formError: flow.errorMessage(error, '保存失败，输入仍然保留，请重试。') }) }
-    finally { if (this.current(scope, identity)) this.setData({ saving: false }) }
+    finally { if (this.current(scope, identity)) this.setData({ saving: false, editPending: !!this._writeJournal.pending('dish:edit:' + this._original.id) }) }
+  },
+  onReloadEdit() {
+    if (!this.ensureOwner() || this.data.saving || this.data.editPending) return
+    const scope = this._editScope, identity = this._identity
+    wx.showModal({ title: '重新读取菜品？', content: '当前未保存的输入会放弃，显示云端最新内容。', success: result => {
+      if (!result.confirm || !this.current(scope, identity)) return
+      this._requestedEdit = this._original.id
+      this.setData({ editing: false }); this.loadCustomDishes()
+    } })
   },
   onDelete(e) {
     if (!this.ensureOwner()) return
@@ -68,7 +81,11 @@ Page({
     wx.showModal({ title: '删除自定义菜品？', content: '云端菜品会删除，已记录的实际用餐快照会保留。', confirmText: '删除', success: async result => {
       if (!result.confirm || this.data.saving || !this.current(scope, identity) || epoch !== this._epoch) return
       this.setData({ saving: true })
-      try { await api.deleteCustomDish(id); if (this.current(scope, identity)) { wx.showToast({ title: '已删除', icon: 'success' }); await this.loadCustomDishes() } }
+      try {
+        const dish = this.data.dishes.find(item => String(item.id) === String(id))
+        if (!dish) throw new Error('菜品已变化，请重新读取')
+        if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
+        await this._writeJournal.run('dish:delete:' + id, { expectedVersion: dish.contentVersion }, body => api.deleteCustomDish(id, body)); if (this.current(scope, identity)) { wx.showToast({ title: '已删除', icon: 'success' }); await this.loadCustomDishes() } }
       catch (error) { if (this.current(scope, identity)) this.setData({ errorMessage: flow.errorMessage(error, '删除失败，菜品仍然保留') }) }
       finally { if (this.current(scope, identity)) this.setData({ saving: false }) }
     } })

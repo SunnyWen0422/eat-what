@@ -77,7 +77,7 @@ test('actual editor retains historical indexes and sends changed selections thro
     if (name.endsWith('/util')) return { getUserStorageKey: name => `A:${name}` }
     if (name.endsWith('/shopping-list')) return {}
     if (name.endsWith('/font-scale')) return () => 1
-    if (name.endsWith('/meal-workflow')) return { requestId: () => 'actual-edit' }
+    if (name.endsWith('/meal-workflow')) return { ...require('../utils/meal-workflow'), requestId: () => 'actual-edit' }
     throw Error(name)
   } }
   vm.runInNewContext(fs.readFileSync('pages/calendar-detail/calendar-detail.js', 'utf8'), context)

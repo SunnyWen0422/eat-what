@@ -34,9 +34,9 @@
         <text class="attribute-label">难度</text>
         <text class="attribute-value">{{dish.difficulty}}</text>
       </view>
-      <view class="attribute-item" wx:if="{{dish.cookTime}}">
+      <view class="attribute-item" wx:if="{{dish.cookTimeDisplay}}">
         <text class="attribute-label">烹饪时间</text>
-        <text class="attribute-value">{{dish.cookTime}}</text>
+        <text class="attribute-value">{{dish.cookTimeDisplay}}</text>
       </view>
       <view class="attribute-item" wx:if="{{dish.type}}">
         <text class="attribute-label">类型</text>
@@ -116,7 +116,7 @@
       </view>
     </view>
   </view>
-  <view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><ui-button label="准备这道菜的食材" bind:action="onAddToShoppingList" /></view>
+  <view class="section"><button class="ew-hit-target ew-link" loading="{{copyBusy}}" disabled="{{copyBusy}}" bindtap="onCopyPersonal">复制到我的私房菜</button><view wx:if="{{copyError}}" class="ew-error">{{copyError}}<button class="ew-hit-target ew-link" bindtap="onRetry">重新读取菜品</button></view></view><view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><ui-button label="准备这道菜的食材" bind:action="onAddToShoppingList" /></view>
 </view>
 
 <!-- 加载中 -->

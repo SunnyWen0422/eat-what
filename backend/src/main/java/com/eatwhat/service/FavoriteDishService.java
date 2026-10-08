@@ -4,6 +4,8 @@ import com.eatwhat.entity.FavoriteDish;
 import com.eatwhat.mapper.FavoriteDishMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
@@ -19,10 +21,18 @@ public class FavoriteDishService {
      * 添加收藏
      */
     public boolean addFavorite(Long userId, Long dishId) {
+        if (userId == null || userId <= 0 || dishId == null || dishId <= 0) {
+            throw new IllegalArgumentException("用户和菜品 ID 必须是正整数");
+        }
         FavoriteDish favorite = new FavoriteDish();
         favorite.setUserId(userId);
         favorite.setDishId(dishId);
-        return favoriteDishMapper.insert(favorite) > 0;
+        // MySQL can report zero affected rows for an unchanged duplicate in
+        // the same second. Only a currently visible favorite proves success.
+        if (favoriteDishMapper.insert(favorite) > 0 || favoriteDishMapper.isFavorite(userId, dishId) > 0) {
+            return true;
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "菜品不存在或不可访问");
     }
 
     /**

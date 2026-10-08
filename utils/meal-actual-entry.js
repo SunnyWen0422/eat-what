@@ -16,6 +16,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
         if(!owns(this,binding))return
         const meal=flow.mealViews(overview,target.date).find(m=>m.mealType===target.mealType)
         binding.meal=meal;binding.expectedRevision=meal.actual?meal.actual.revision:0;binding.expectedPlanRevision=meal.planRevision
+        if(!Number.isFinite(binding.planRevision))binding.planRevision=meal.planRevision
         const pending=platform().getStorageSync(key)
         binding.pending=pending&&pending.scope===binding.scope?pending:null
         const changed=planChanged(binding,meal)
@@ -51,6 +52,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
         if(!owns(this,b))return
         const meal=flow.mealViews(overview,b.date).find(m=>m.mealType===b.mealType)
         b.meal=meal;b.expectedRevision=meal.actual?meal.actual.revision:0;b.expectedPlanRevision=meal.planRevision
+        if(!Number.isFinite(b.planRevision))b.planRevision=meal.planRevision
         this.setData({actualNeedsReload:false,actualHasPlan:!!meal.plan,actualPlanChanged:planChanged(b,meal),actualPlanNames:planNames(meal),actualError:'已读取最新记录，输入已保留；请核对当前计划后再次确认'})
       }catch(error){if(owns(this,b))this.setData({actualNeedsReload:true,actualError:flow.errorMessage(error,'暂时无法核对本餐，请重试')})}
       finally{if(owns(this,b))this.setData({actualLoading:false})}
@@ -64,12 +66,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
       if(usePlan&&planChanged(b,b.meal))return this.setData({actualError:'显示过的计划已被替换，请返回核对最新安排；实际做过的菜可用变化记录保存'})
       let dishes=[]
       if(status==='eaten'&&!usePlan){
-        const previous=b.meal.actual&&b.meal.actual.actualDishes||[],used=new Set()
-        dishes=String(this.data.actualText||'').split(/[\n、，,]/).map(s=>s.trim()).filter(Boolean).map(name=>{
-          const index=previous.findIndex((dish,i)=>dish.name===name&&!used.has(i))
-          if(index>=0){used.add(index);return {retainedEntryIndex:index}}
-          return {name}
-        })
+        dishes=flow.buildActualEntries(this.data.actualText,b.meal,!planChanged(b,b.meal))
         if(!dishes.length||dishes.length>30)return this.setData({actualError:'请填写1至30道实际菜品，每行一道；外食也可自由记录'})
       }
       const operation={scope:b.scope,date:b.date,mealType:b.mealType,text:this.data.actualText||'',body:{status,usePlan,dishes,expectedRevision:b.expectedRevision,expectedPlanRevision:b.expectedPlanRevision,requestId:flow.requestId('actual')}}
