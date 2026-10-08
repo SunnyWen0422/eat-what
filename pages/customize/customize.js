@@ -31,6 +31,7 @@ function emptyCustomForm() {
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',selectionMode:false,selectionTargetLabel:'',
+    showMenus: false, menus: [], menuLoading: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, menuDate: '', menuMealIndex: 2, menuMealLabels: ['早餐','午餐','晚餐'], customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
     tabs: ['meat', 'veg', 'soup', 'staple', 'dessert'],
     tabNames: {
       'meat': '荤菜',
@@ -74,9 +75,13 @@ Page({
   },
 
   onShow() {
+    this._visible = true
+    if (this._menuApplyWasHidden) { this._menuApplyWasHidden = false; this.setData({ menuBusy: false }) }
     const scope = getUserStorageKey('customBrowse')
     if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
     this._browseScope = scope
+    const pendingCustom = this.writeJournal().pending('dish:create')
+    if (pendingCustom) this.setData({ customPending: true, customForm: { ...emptyCustomForm(), name: pendingCustom.name, type: pendingCustom.type, ingredients: String(pendingCustom.cl || '').replace(/#/g,'\n'), steps: String(pendingCustom.step || '').replace(/#/g,'\n'), cuisineCode: pendingCustom.cuisineCode || '', tagCodes: String(pendingCustom.tagCodes || '').split(',').filter(Boolean), cookMinutes: pendingCustom.cookMinutes || '' } })
     this._planOwnerScope = getUserStorageKey('mealView')
     const rules=require('../../utils/meal-workspace'),pending=wx.getStorageSync(getUserStorageKey('pendingRecipeRecord')),intent=wx.getStorageSync(getUserStorageKey('recipeSelectionIntent'))
     const target=pending || wx.getStorageSync(getUserStorageKey('activeMealTarget')) || rules.defaultTarget()
@@ -84,6 +89,7 @@ Page({
     if(intent)wx.removeStorageSync(getUserStorageKey('recipeSelectionIntent'))
     if (wx.getStorageSync(getUserStorageKey('openCustomDishForm'))) { wx.removeStorageSync(getUserStorageKey('openCustomDishForm')); this.setData({ showCustomForm: true, activeTab: 'custom' }) }
   },
+  onHide() { this._visible = false; this._menuApplyEpoch = (this._menuApplyEpoch || 0) + 1; if (this._menuApplying) { this._menuApplyWasHidden = true; this._menuApplying = false } },
   onUnload() { this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
   onToggleSelectionMode(){if(this.ensureBrowseOwner())this.setData({selectionMode:!this.data.selectionMode})},
   ensureBrowseOwner() {
@@ -99,6 +105,7 @@ Page({
     this.setData({ activeTab: 'meat', selectionMode:false, selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
       customForm: emptyCustomForm(), customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: false })),
       customError: '', saveError: '', browseError: '', savingCustom: false, savingPlan: false, loading: false, loadingMore: false,
+      showMenus: false, menus: [], menuLoading: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
       searchKeyword: '', hasMore: true, browseCriteria: emptyBrowseCriteria(), showBrowseFilters: false })
     this.renderBrowseFilters()
     return false
@@ -235,6 +242,7 @@ Page({
         id: d.id,
         name: d.name,
         type: d.type,
+        contentVersion: d.contentVersion,
         isSelected: selectedIds.includes(d.id)
       }))
 
@@ -278,19 +286,19 @@ Page({
   },
 
   onCustomTypeChange(e) {
-    if (!this.ensureBrowseOwner()) return
+    if (!this.ensureBrowseOwner() || this.data.savingCustom || this.data.customPending) return
     this.setData({ 'customForm.type': e.currentTarget.dataset.type })
   },
 
   onCustomCuisineChange(e) {
-    if (!this.ensureBrowseOwner()) return
+    if (!this.ensureBrowseOwner() || this.data.savingCustom || this.data.customPending) return
     const selected = this.data.cuisineOptions[Number(e.detail.value)]
     if (!selected) return
     this.setData({ 'customForm.cuisineCode': selected.code, 'customForm.cuisineLabel': selected.label })
   },
 
   onCustomTagTap(e) {
-    if (!this.ensureBrowseOwner()) return
+    if (!this.ensureBrowseOwner() || this.data.savingCustom || this.data.customPending) return
     const code = e.currentTarget.dataset.code
     const values = new Set(this.data.customForm.tagCodes)
     if (values.has(code)) values.delete(code)
@@ -303,7 +311,7 @@ Page({
   },
 
   onCustomInput(e) {
-    if (!this.ensureBrowseOwner()) return
+    if (!this.ensureBrowseOwner() || this.data.savingCustom || this.data.customPending) return
     const field = e.currentTarget.dataset.field
     this.setData({ [`customForm.${field}`]: e.detail.value })
   },
@@ -331,11 +339,11 @@ Page({
     const identity = this._browseIdentity, epoch = this._privateEpoch || 0
     this.setData({ savingCustom: true, customError: '' })
     try {
-      await api.createCustomDish({ name: name.trim(), type, cl: ingredients.trim().replace(/\n/g, '#'), step: steps.trim().replace(/\n/g, '#'), cuisineCode: cuisineCode || null, tagCodes: tagCodes.join(','), cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null })
+      await this.writeJournal().run('dish:create', { name: name.trim(), type, cl: ingredients.trim().replace(/\n/g, '#'), step: steps.trim().replace(/\n/g, '#'), cuisineCode: cuisineCode || null, tagCodes: tagCodes.join(','), cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null }, body => api.createCustomDish(body))
       if (!this.isBrowseCurrent(identity, epoch)) return
       wx.showToast({ title: '菜品已保存', icon: 'success' }); this.setData({ 'customForm.name': '', 'customForm.ingredients': '', 'customForm.steps': '' })
     } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ customError: require('../../utils/meal-workflow').errorMessage(error, '保存失败，输入仍保留，请重试。') }) }
-    finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ savingCustom: false }) }
+    finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ savingCustom: false, customPending: !!this.writeJournal().pending('dish:create') }) }
   },
 
   // 搜索输入（防抖）
@@ -388,6 +396,7 @@ Page({
     if (idx >= 0) {
       selectedIds.splice(idx, 1)
     } else {
+      this.addToGlobalCache([dish])
       selectedIds.push(dish.id)
       wx.vibrateShort({ type: 'light' })
     }
@@ -507,6 +516,117 @@ Page({
       wx.showToast({ title: '已保存安排', icon: 'success' }); wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + date })
     } catch (error) { if (this.isBrowseCurrent(identity, epoch) && scope === getUserStorageKey('mealView')) this.setData({ saveError: flow.errorMessage(error, '保存失败，已选菜品仍保留，可重试。') }) }
     finally { if (this.isBrowseCurrent(identity, epoch) && scope === getUserStorageKey('mealView')) this.setData({ savingPlan: false }) }
+  },
+
+  writeJournal() {
+    if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
+    return this._writeJournal
+  },
+  async onOpenMenus() {
+    if (!this.ensureBrowseOwner()) return
+    const rules = require('../../utils/meal-workspace')
+    const target = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord')) || wx.getStorageSync(getUserStorageKey('activeMealTarget')) || rules.defaultTarget()
+    this.setData({ showMenus: true, showSelectedPanel: false, menuDate: target.date, menuMealIndex: Math.max(0,['breakfast','lunch','dinner'].indexOf(target.mealType)) })
+    const pending = this.writeJournal().pending('menu:new')
+    if (pending && !this.data.menuEditingId) this.setData({ menuPending: true, menuName: pending.name, menuPeople: pending.people, selectedIds: pending.dishIds, selectedTotal: pending.dishIds.length, selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: pending.dishIds.includes(d.id) })) })
+    return this.loadMenus()
+  },
+  onCloseMenus() { if (!this.data.menuBusy) this.setData({ showMenus: false }) },
+  onMenuInput(e) { if (this.ensureBrowseOwner() && !this.data.menuBusy && !this.data.menuPending) this.setData({ [e.currentTarget.dataset.field]: e.detail.value }) },
+  onMenuDate(e) { if (!this.data.menuBusy) this.setData({ menuDate: e.detail.value }) },
+  onMenuMeal(e) { if (!this.data.menuBusy) this.setData({ menuMealIndex: Number(e.detail.value) }) },
+  async loadMenus() {
+    if (!this.ensureBrowseOwner()) return
+    const identity = this._browseIdentity, epoch = this._menuEpoch = (this._menuEpoch || 0) + 1
+    this.setData({ menuLoading: true, menuError: '' })
+    try {
+      const menus = await api.getPersonalMenus()
+      if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) this.setData({ menus: Array.isArray(menus) ? menus : [] })
+    } catch (error) { if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单读取失败，请重试') }) }
+    finally { if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) this.setData({ menuLoading: false }) }
+  },
+  async onSaveMenu() {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    const id = this.data.menuEditingId, action = 'menu:' + (id || 'new'), pending = this.writeJournal().pending(action)
+    const ids = this.data.selectedIds.map(Number), people = Number(this.data.menuPeople)
+    if (!pending && (!String(this.data.menuName).trim() || !Number.isInteger(people) || people < 1 || people > 50 || !ids.length || ids.length > 10)) return this.setData({ menuError: '请填写菜单名称、1–50 人，并选择 1–10 道菜' })
+    const dishVersions = {}; ids.forEach(dishId => { const dish = this.allDishesMap[dishId]; if (dish && dish.contentVersion) dishVersions[dishId] = dish.contentVersion })
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
+    this.setData({ menuBusy: true, menuError: '' })
+    try {
+      await this.writeJournal().run(action, { name: String(this.data.menuName).trim(), people, dishIds: ids, dishVersions, expectedVersion: id ? this._menuVersion : 0 }, body => id ? api.updatePersonalMenu(id, body) : api.createPersonalMenu(body))
+      if (!this.isBrowseCurrent(identity, epoch)) return
+      this.setData({ menuName: '', menuPeople: 2, menuEditingId: null, menuPending: false }); this._menuVersion = null
+      wx.showToast({ title: '菜单已保存', icon: 'success' }); await this.loadMenus()
+    } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '保存结果未确认，重试会使用原内容') }) }
+    finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuBusy: false, menuPending: !!this.writeJournal().pending(action) }) }
+  },
+  async onEditMenu(e) {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    const id = Number(e.currentTarget.dataset.id), identity = this._browseIdentity, epoch = this._privateEpoch || 0
+    this.setData({ menuBusy: true, menuError: '' })
+    try {
+      const menu = await api.getPersonalMenu(id)
+      if (!this.isBrowseCurrent(identity, epoch)) return
+      const pending = this.writeJournal().pending('menu:' + id), ids = (pending ? pending.dishIds : menu.dishIds).map(Number)
+      const snapshots = menu.dishes || []
+      const refreshed = pending ? snapshots : await Promise.all(ids.map(async dishId => {
+        const snapshot = snapshots.find(d => Number(d.id) === dishId) || { id: dishId, name: '菜品 ' + dishId }
+        try {
+          const current = await api.getDishById(dishId)
+          return { ...current, changed: current.contentVersion !== snapshot.contentVersion }
+        } catch (error) {
+          if (error.statusCode === 404) return { ...snapshot, unavailable: true }
+          throw error
+        }
+      }))
+      if (!this.isBrowseCurrent(identity, epoch)) return
+      this.addToGlobalCache(refreshed)
+      const recipeText = require('../../utils/personal-recipes').editableRecipeText
+      const menuReviewDishes = refreshed.map(d => ({ ...d, reviewIngredients: recipeText(d.ingredientsAmounts || d.cl), reviewSteps: recipeText(d.steps || d.step) }))
+      const unavailable = refreshed.some(d => d.unavailable), changed = refreshed.some(d => d.changed)
+      const menuReviewNotice = pending ? '上次保存结果未确认，重试会使用原内容。' : unavailable ? '部分菜品已不可用，仍保留在已选中。请移除或替换后再保存。' : changed ? '菜单菜谱内容有变化，以下为最新内容。请核对后点保存菜单，确认更新快照。' : '已读取当前菜谱。保存菜单后才会更新组合和快照。'
+      this._menuVersion = pending ? pending.expectedVersion : menu.version
+      this.setData({ menuEditingId: id, menuName: pending ? pending.name : menu.name, menuPeople: pending ? pending.people : menu.people, menuPending: !!pending, menuReviewDishes, menuReviewNotice, selectedIds: ids, selectedTotal: ids.length, selectedList: this.buildSelectedList(ids), selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: ids.includes(d.id) })) })
+    } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单读取失败') }) }
+    finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuBusy: false }) }
+  },
+  onNewMenu() { if (!this.data.menuBusy && !this.data.menuPending) { this._menuVersion = null; this.setData({ menuEditingId: null, menuName: '', menuPeople: 2, menuReviewDishes: [], menuReviewNotice: '' }) } },
+  async onApplyMenu(e) {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    const menu = this.data.menus.find(item => String(item.id) === String(e.currentTarget.dataset.id))
+    if (!menu) return
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
+    const applyEpoch = this._menuApplyEpoch = (this._menuApplyEpoch || 0) + 1
+    const date = this.data.menuDate, mealType = ['breakfast','lunch','dinner'][this.data.menuMealIndex]
+    const activeTarget = JSON.stringify(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || null)
+    const current = () => this.isBrowseCurrent(identity, epoch) && this._visible !== false && applyEpoch === this._menuApplyEpoch && date === this.data.menuDate && mealType === ['breakfast','lunch','dinner'][this.data.menuMealIndex] && activeTarget === JSON.stringify(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || null)
+    this._menuApplying = true
+    this.setData({ menuBusy: true, menuError: '' })
+    try {
+      const resolved = await api.resolvePersonalMenu(menu.id, { expectedVersion: menu.version, date, mealType })
+      if (!current()) return
+      const handoff = require('../../utils/personal-recipes').menuHandoff(resolved)
+      wx.setStorageSync(getUserStorageKey('workspaceSelectedDishes'), handoff)
+      wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: handoff.date, mealType: handoff.mealType })
+      wx.navigateTo({ url: '/pages/result/result?date=' + handoff.date + '&mealType=' + handoff.mealType })
+    } catch (error) { if (current()) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单未应用，原安排保留，请重试') }) }
+    finally { if (this.isBrowseCurrent(identity, epoch) && applyEpoch === this._menuApplyEpoch && this._visible !== false) { this._menuApplying = false; this.setData({ menuBusy: false }) } }
+  },
+  onDeleteMenu(e) {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    const menu = this.data.menus.find(item => String(item.id) === String(e.currentTarget.dataset.id))
+    if (!menu) return
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
+    wx.showModal({ title: '删除这个菜单？', content: '菜单会删除，已经确认的餐食安排和用餐历史会保留。', confirmText: '删除', success: async result => {
+      if (!result.confirm || !this.isBrowseCurrent(identity, epoch) || this.data.menuBusy) return
+      this.setData({ menuBusy: true, menuError: '' })
+      try {
+        await this.writeJournal().run('menu:delete:' + menu.id, { expectedVersion: menu.version }, body => api.deletePersonalMenu(menu.id, body))
+        if (this.isBrowseCurrent(identity, epoch)) { if (String(this.data.menuEditingId) === String(menu.id)) this.setData({ menuEditingId: null, menuName: '' }); await this.loadMenus() }
+      } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '删除结果未确认，请重试原操作') }) }
+      finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuBusy: false }) }
+    } })
   },
 
   getCurrentUserId() {

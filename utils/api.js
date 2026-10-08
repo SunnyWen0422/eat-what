@@ -22,6 +22,9 @@ const RETRY_CONFIG = {
 // 格式: { "https://...": { etag: "...", data: {...} } }
 const etagCache = {}
 
+// Each report read must observe a new source snapshot after actual-record corrections.
+let dietReviewReadSequence = 0
+
 /**
  * 判断是否为可重试的错误
  */
@@ -385,15 +388,15 @@ function searchDishes(keyword, type = null) {
  * @param {Object} dish - 菜品对象
  */
 function createCustomDish(dish) {
-  return request('/dishes/custom', 'POST', dish)
+  return doRequest('/dishes/custom', 'POST', dish, { silent: true, maxRetries: 0 })
 }
 
 function updateCustomDish(id, dish) {
-  return request(`/dishes/custom/${encodeURIComponent(id)}`, 'PUT', dish)
+  return doRequest(`/dishes/custom/${encodeURIComponent(id)}`, 'PUT', dish, { silent: true, maxRetries: 0 })
 }
 
-function deleteCustomDish(id) {
-  return request(`/dishes/custom/${encodeURIComponent(id)}`, 'DELETE')
+function deleteCustomDish(id, body) {
+  return doRequest(`/dishes/custom/${encodeURIComponent(id)}`, 'DELETE', body, { silent: true, maxRetries: 0 })
 }
 
 /**
@@ -763,6 +766,17 @@ function getAdminAuditLogs(params = {}) {
 // ========================================
 
 module.exports = {
+  previewControlledTask: body => assistantRequest('/assistant/tool-tasks/preview','POST',body),
+  getControlledTask: id => assistantRequest('/assistant/tool-tasks/'+encodeURIComponent(id),'GET'),
+  getControlledTaskByRequest: requestId => assistantRequest('/assistant/tool-tasks/by-request/'+encodeURIComponent(requestId),'GET'),
+  confirmControlledTask: (id,previewToken) => assistantRequest('/assistant/tool-tasks/'+encodeURIComponent(id)+'/confirm','POST',{previewToken}),
+  copyPersonalDish: (id, body) => doRequest(`/dishes/${encodeURIComponent(id)}/copy`, 'POST', body, { silent: true, maxRetries: 0 }),
+  getPersonalMenus: () => requestSilent('/menus', 'GET'),
+  getPersonalMenu: id => requestSilent(`/menus/${encodeURIComponent(id)}`, 'GET'),
+  createPersonalMenu: body => doRequest('/menus', 'POST', body, { silent: true, maxRetries: 0 }),
+  updatePersonalMenu: (id, body) => doRequest(`/menus/${encodeURIComponent(id)}`, 'PUT', body, { silent: true, maxRetries: 0 }),
+  deletePersonalMenu: (id, body) => doRequest(`/menus/${encodeURIComponent(id)}`, 'DELETE', body, { silent: true, maxRetries: 0 }),
+  resolvePersonalMenu: (id, body) => requestSilent(`/menus/${encodeURIComponent(id)}/resolve`, 'POST', body),
   getAssistantSessions: ({cursor,limit=20}={}) => assistantRequest('/assistant/sessions?limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''),'GET'),
   createVoiceSession: () => doRequest('/assistant/voice/session','POST',{}, {silent:true,maxRetries:0}),
   getShoppingPurchaseOptions: () => requestSilent('/shopping-list/purchase-options','GET'),
@@ -778,7 +792,7 @@ module.exports = {
   recordBehaviorEvent: body => doRequest('/behavior-events', 'POST', body, { silent: true, maxRetries: 0 }),
   commandAssistantPlan: (sessionId, body) => assistantRequest(`/assistant/sessions/${encodeURIComponent(sessionId)}/plan-commands`, 'POST', body),
   getMealOverview: (start, end) => requestSilent(`/recipe-records/overview?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`, 'GET'),
-  getDietReview: (start, end) => requestSilent(`/diet-reviews?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`, 'GET'),
+  getDietReview: (start, end) => requestSilent(`/diet-reviews?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}&readSequence=${++dietReviewReadSequence}`, 'GET'),
   saveMealConsumption: (date, meal, body) => doRequest(`/meal-consumptions/${encodeURIComponent(date)}/${encodeURIComponent(meal)}`, 'PUT', body, { silent: true, maxRetries: 0 }),
   saveMealPlan: (date, meal, body) => doRequest(`/meal-plans/${encodeURIComponent(date)}/${encodeURIComponent(meal)}`, 'PUT', body, { silent: true, maxRetries: 0 }),
   removeMealPlan: (date, meal, body) => doRequest(`/meal-plans/${encodeURIComponent(date)}/${encodeURIComponent(meal)}`, 'DELETE', body, { silent: true, maxRetries: 0 }),

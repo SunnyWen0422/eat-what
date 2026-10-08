@@ -10,6 +10,9 @@ import java.util.Date;
 @Data
 public class Dish {
 
+    @JsonProperty(value = "contentVersion", access = JsonProperty.Access.READ_ONLY)
+    public String getContentVersion() { return com.eatwhat.util.DishContentVersion.of(this); }
+
     @JsonProperty("id")
     private Long id;
 

@@ -19,6 +19,8 @@ public class MealWorkspaceTaskRunner {
     private final MealWorkspaceAgentGateway agent;
     private final ObjectMapper json;
     private final boolean enabled;
+    @org.springframework.beans.factory.annotation.Autowired
+    private PersonalMenuService personalMenus;
     private final Set<String> submitted=ConcurrentHashMap.newKeySet();
     private final ThreadPoolExecutor executor=new ThreadPoolExecutor(2,2,0,TimeUnit.SECONDS,new ArrayBlockingQueue<>(8),new ThreadPoolExecutor.AbortPolicy());
     public MealWorkspaceTaskRunner(MealWorkspaceMapper db,MealWorkspaceService service,MealWorkspacePlanner planner,MealWorkspaceAgentGateway agent,ObjectMapper json,@Value("${meal-workspace.enabled:false}") boolean enabled) {
@@ -86,9 +88,18 @@ public class MealWorkspaceTaskRunner {
                 if(!ids.containsAll(w.getDraft().getLockedDishIds()))throw new IllegalArgumentException("智能结果未保留指定菜品，原方案已保留");
                 draft=planner.validateAgent(task.getUserId(),w,ids);draft.setSource("agent");
             } else {draft=planner.generate(task.getUserId(),w,r.getCommand(),r.getDishId(),r.getDishIds());if("select".equals(r.getCommand()))interpreted=w.getContext();}
+            if (r.getMenuId() != null) {
+                if (!"select".equals(r.getCommand())) throw new IllegalArgumentException("菜单只能用于选菜草稿");
+                personalMenus.validateDraft(task.getUserId(), r.getMenuId(), r.getMenuVersion(),
+                    r.getMenuDate(), r.getMenuMealType(), w.getContext(), draft.getDishes());
+            } else if (r.getMenuVersion() != null || r.getMenuDate() != null || r.getMenuMealType() != null) {
+                throw new IllegalArgumentException("菜单交接信息不完整，请重新选择");
+            }
             service.finish(task,interpreted,draft,"方案已准备好，请确认本餐安排","draft");
             LOG.info("workspace_task_finished taskId={} mode={} elapsedMs={}",task.getId(),draft.getSource(),(System.nanoTime()-started)/1000000);
-        } catch(IllegalArgumentException e) {service.finish(task,null,null,e.getMessage(),"needs_input");}
+        } catch(MealConsumptionService.VersionConflict e) {service.finish(task,null,null,e.getMessage(),"needs_input");}
+        catch(org.springframework.web.server.ResponseStatusException e) {service.finish(task,null,null,e.getReason(),"needs_input");}
+        catch(IllegalArgumentException e) {service.finish(task,null,null,e.getMessage(),"needs_input");}
         catch(Exception e) {
             LOG.warn("workspace_task_failed taskId={} kind={}",task.getId(),e.getClass().getSimpleName());
             if(tryRulesFallback(task,w,r))return;

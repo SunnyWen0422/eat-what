@@ -9,12 +9,14 @@ import java.util.List;
  */
 @Mapper
 public interface FavoriteDishMapper {
+    // The same query-time boundary protects both new and historical favorites.
+    String VISIBLE_DISH = "((f.user_id IS NULL AND COALESCE(f.IS_PUBLISHED, 1) = 1) OR f.user_id = #{userId})";
 
     /**
      * 添加收藏
      */
     @Insert("INSERT INTO favorite_dishes (USER_ID, DISH_ID, CREATE_TIME) " +
-            "VALUES (#{userId}, #{dishId}, NOW()) " +
+            "SELECT #{userId}, f.id, NOW() FROM food f WHERE f.id = #{dishId} AND " + VISIBLE_DISH + " " +
             "ON DUPLICATE KEY UPDATE CREATE_TIME = NOW()")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(FavoriteDish favoriteDish);
@@ -28,13 +30,15 @@ public interface FavoriteDishMapper {
     /**
      * 查询用户是否收藏了某道菜
      */
-    @Select("SELECT COUNT(*) FROM favorite_dishes WHERE USER_ID = #{userId} AND DISH_ID = #{dishId}")
+    @Select("SELECT COUNT(*) FROM favorite_dishes fd JOIN food f ON fd.DISH_ID = f.id " +
+            "WHERE fd.USER_ID = #{userId} AND fd.DISH_ID = #{dishId} AND " + VISIBLE_DISH)
     int isFavorite(@Param("userId") Long userId, @Param("dishId") Long dishId);
 
     /**
      * 获取用户的所有收藏菜品ID
      */
-    @Select("SELECT DISH_ID FROM favorite_dishes WHERE USER_ID = #{userId} ORDER BY CREATE_TIME DESC")
+    @Select("SELECT fd.DISH_ID FROM favorite_dishes fd JOIN food f ON fd.DISH_ID = f.id " +
+            "WHERE fd.USER_ID = #{userId} AND " + VISIBLE_DISH + " ORDER BY fd.CREATE_TIME DESC")
     List<Long> selectDishIdsByUser(@Param("userId") Long userId);
 
     /**
@@ -53,7 +57,7 @@ public interface FavoriteDishMapper {
             "fd.CREATE_TIME as createTime " +
             "FROM favorite_dishes fd " +
             "JOIN food f ON fd.DISH_ID = f.id " +
-            "WHERE fd.USER_ID = #{userId} " +
+            "WHERE fd.USER_ID = #{userId} AND " + VISIBLE_DISH + " " +
             "ORDER BY fd.CREATE_TIME DESC")
     @Results({
         @Result(property = "dish.id", column = "id"),

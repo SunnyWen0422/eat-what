@@ -35,13 +35,15 @@ Page({
 
   async loadDishDetail(id) {
     const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
-    this.setData({ dish: null, isFavorite: false, favoriteBusy: false, canEditCustom: false })
+    this.setData({ dish: null, isFavorite: false, favoriteBusy: false, canEditCustom: false, copyBusy: false, copyError: '' })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
       if (!this.current(scope) || epoch !== this._epoch) return
       
       if (dish) {
+        const minutes = Number(dish.cookMinutes)
+        dish.cookTimeDisplay = Number.isInteger(minutes) && minutes >= 1 && minutes <= 240 ? minutes + '分钟' : dish.cookTime || ''
         dish.tagsList = Array.isArray(dish.tags) ? dish.tags : String(dish.tags || '').split(/[,，]/).map(s => s.trim()).filter(Boolean)
         // 处理步骤图片（如果是JSON字符串则解析，再按 # 拆分多张图）
         if (dish.stepImages && typeof dish.stepImages === 'string') {
@@ -65,6 +67,7 @@ Page({
         dish.stepImagesFlat.forEach(arr => arr.forEach(url => dish.allStepImages.push(url)))
 
         // 处理食材与用量（如果是JSON字符串则解析）
+        if (!dish.ingredientsAmounts && dish.cl) dish.ingredientsAmounts = dish.cl
         if (dish.ingredientsAmounts && typeof dish.ingredientsAmounts === 'string') {
           try {
             dish.ingredientsList = JSON.parse(dish.ingredientsAmounts)
@@ -154,6 +157,19 @@ Page({
       console.error('收藏操作失败:', err)
       wx.showToast({ title: '操作失败', icon: 'none' })
     } finally { if(this.current(scope))this.setData({ favoriteBusy: false }) }
+  },
+
+  async onCopyPersonal() {
+    const dish = this.data.dish, scope = this._scope
+    if (!dish || !dish.id || !this.current(scope) || this.data.copyBusy) return
+    if (!this._copyJournal) this._copyJournal = require('../../utils/personal-recipes').createWriteJournal()
+    this.setData({ copyBusy: true, copyError: '' })
+    try {
+      const copy = await this._copyJournal.run('dish:copy:' + dish.id, { expectedVersion: dish.contentVersion }, body => require('../../utils/api').copyPersonalDish(dish.id, body))
+      if (!this.current(scope)) return
+      wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(copy.id) })
+    } catch (error) { if (this.current(scope)) this.setData({ copyError: require('../../utils/meal-workflow').errorMessage(error, '复制结果未确认，请重试原操作') }) }
+    finally { if (this.current(scope)) this.setData({ copyBusy: false }) }
   },
 
   onEditCustom() {

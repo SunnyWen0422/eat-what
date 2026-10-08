@@ -21,3 +21,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Warm table v2: statistics */
  .metrics { gap:10px; margin:16px 0; }.metrics .ew-card { padding:16px; margin:0; background:#F4E4D5; }.ew-number { font-size:2em; color:#25332B; }.metric-label { font-size:1em; line-height:1.5; }.bar-row { gap:8px; min-height:44px; }.bar-row > text:first-child { flex:0 0 4em; }.bar-track { min-width:0; background:#F5F6F0; height:8px; border-radius:8px; }.bar-fill { background:#28634E; height:8px; border-radius:8px; }.ranking { padding:12px 0; border-bottom:1px solid #E6EAE1; gap:12px; }.record { padding:14px 0; border-bottom:1px solid #E6EAE1; }.record > text { display:block; line-height:1.7; }.period { gap:8px; }.period > text { flex:1; min-width:0; text-align:center; line-height:1.5; }
+
+/* Source identifiers remain readable on narrow screens. */
+.report-provenance { word-break:break-all; }

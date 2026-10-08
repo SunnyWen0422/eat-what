@@ -30,7 +30,51 @@ module.exports = function workspacePage(options = {}) {
     onVoicePrivacyAgree() { return voice.onVoicePrivacyAgree.call(this) },
     onVoicePrivacyOpen() { return voice.onVoicePrivacyOpen.call(this) },
     cancelVoiceInput() { return voice.cancelVoiceInput.call(this) },
+    disposeControlledHarness() { if(this._harness)this._harness.dispose();this._harness=null },
+    controlledHarness() {
+      if(this._harness)return this._harness
+      const scope=this._scope,store=this.store,date=this.data.context.date,mealType=this.data.context.mealType
+      this._harness=require('./controlled-harness').createControlledHarness({api,identity:getCurrentUserIdentity,
+        read:key=>wx.getStorageSync(key),write:(key,value)=>wx.setStorageSync(key,value),
+        current:()=>this.current()&&scope===this._scope&&store===this.store&&date===this.data.context.date&&mealType===this.data.context.mealType,
+        confirm:content=>new Promise(resolve=>wx.showModal({title:'保存计划并查看周回顾',content,
+          confirmText:'确认保存',cancelText:'取消',success:result=>resolve(!!result.confirm),fail:()=>resolve(false)}))})
+      return this._harness
+    },
+    showControlledState(state) {
+      const target=state.target
+      this.setData({harnessStatus:state.status,harnessMessage:state.message||'',harnessReport:state.report||null,
+        harnessRetryable:!!state.retryable,harnessTarget:target||null,
+        harnessTargetLabel:target?`${target.date} ${LABELS[MEALS.indexOf(target.mealType)]||''}`:''})
+    },
+    async onSaveAndReview() {
+      if(!this.current()||this.data.busy||!this.data.canConfirm||!this.store)return
+      return this.runControlledFlow(false)
+    },
+    async onRecoverControlledTask() {
+      if(!this.current()||this.data.busy||!this.store)return
+      return this.runControlledFlow(true)
+    },
+    async runControlledFlow(recover) {
+      const store=this.store,harness=this.controlledHarness(),scope=this._scope,target={date:this.data.context.date,mealType:this.data.context.mealType}
+      const current=()=>this.current()&&store===this.store&&scope===this._scope&&this._harness===harness
+      this.setWorkspaceBusy(true)
+      try {
+        const result=recover?await harness.recover():await harness.run({...target,...require('./meal-workflow').weekRange(target.date)})
+        if(!current()||result.status==='account_changed')return
+        this.showControlledState(result)
+        if(['completed','partial_failed'].includes(result.status))wx.setStorageSync(getUserStorageKey('needRefreshCalendar'),Date.now())
+        await this.readWorkspace(this.data.context)
+      } catch(error) {
+        if(current())this.setData({harnessMessage:error.message||'操作结果待查询，请恢复原任务',harnessRetryable:true,harnessStatus:'unknown'})
+      } finally { if(current())this.setWorkspaceBusy(false) }
+    },
+    onControlledReport() {
+      if(!this.current()||!this.data.harnessReport||!this.data.harnessTarget)return
+      wx.navigateTo({url:`/pages/statistics/statistics?period=week&anchor=${encodeURIComponent(this.data.harnessTarget.date)}`})
+    },
     data: {
+      harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:'',
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
       pageTitle:options.mode==='assistant'?'这餐的想法':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
@@ -45,6 +89,7 @@ module.exports = function workspacePage(options = {}) {
       return this.initializeWorkspace(params)
     },
     async initializeWorkspace(params = {}) {
+      this.disposeControlledHarness();this.setData({harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:''})
       if(this.disposeMealActual)this.disposeMealActual();this.setData({actualVisible:false,actualBusy:false});if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
       this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
@@ -80,8 +125,20 @@ module.exports = function workspacePage(options = {}) {
       }
       const selected = wx.getStorageSync(getUserStorageKey('workspaceSelectedDishes'))
       if (selected && selected.date === target.date && selected.mealType === target.mealType && this.current()) {
-        if(await this.runCommand('select', { dishIds: selected.dishIds })) wx.removeStorageSync(getUserStorageKey('workspaceSelectedDishes'))
+        const selection = { dishIds: selected.dishIds }
+        if (selected.menuId != null) {
+          if (selected.menuDate !== target.date || selected.menuMealType !== target.mealType ||
+              !Number.isInteger(selected.people) || selected.people < 1 || selected.people > 50) {
+            this.setData({errorMessage:'菜单应用信息已失效，请返回菜单重新选择日期和餐次'})
+            return
+          }
+          Object.assign(selection, {menuId:selected.menuId,menuVersion:selected.menuVersion,
+            menuDate:selected.menuDate,menuMealType:selected.menuMealType})
+          this.store.edit({...this.data.context,people:selected.people});this.renderWorkspace()
+        }
+        if(await this.runCommand('select', selection)) wx.removeStorageSync(getUserStorageKey('workspaceSelectedDishes'))
       }
+      if(this.current()&&api.previewControlledTask)this.showControlledState(this.controlledHarness().state())
     },
     async loadLegacyMeals() {
       const key=getUserStorageKey('assistantSessionId'),id=wx.getStorageSync(key),scope=this._scope
@@ -112,7 +169,7 @@ module.exports = function workspacePage(options = {}) {
       if (!this.data.busy) return this.readWorkspace(this.data.context)
     },
     onHide() { this.cancelVoiceInput(); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
-    onUnload() { this.disposeMealActual();this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
+    onUnload() { this.disposeControlledHarness();this.disposeMealActual();this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
     stopTimers() { clearTimeout(this._exposureTimer); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
     async readWorkspace(target = this.data.context, defaults = {}) {
       if (!this.store || !this.current()) return

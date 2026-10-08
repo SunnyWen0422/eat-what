@@ -3,6 +3,10 @@ import lombok.Data;
 import java.util.*;
 @Data
 public class WorkspaceRequest {
+    private Long menuId;
+    private Long menuVersion;
+    private String menuDate;
+    private String menuMealType;
     private String requestId;
     private Long expectedWorkspaceRevision;
     private Long planVersion;

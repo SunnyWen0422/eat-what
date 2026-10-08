@@ -206,9 +206,8 @@ public class MealConsumptionService {
     @SuppressWarnings("unchecked")
     public Map<String,Object> review(Long userId,String start,String end) {
         Map<String,Object> overview=overview(userId,start,end);
-        Map<String,Object> result=calculator.calculate((List<MealConsumption>)overview.get("consumptions"),(List<RecipeRecord>)overview.get("plans"),LocalDate.now(ZoneId.of("Asia/Shanghai")));
-        result.put("consumptions",overview.get("consumptions"));
-        return result;
+        return calculator.report(userId, (List<MealConsumption>) overview.get("consumptions"),
+            (List<RecipeRecord>) overview.get("plans"), date(start), date(end), Instant.now());
     }
     public static class VersionConflict extends RuntimeException {
         public VersionConflict(String message) {

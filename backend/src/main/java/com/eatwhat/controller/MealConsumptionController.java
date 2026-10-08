@@ -15,7 +15,7 @@ public class MealConsumptionController {
     @GetMapping("/recipe-records/overview")
     public Object overview(@RequestParam String startDate,@RequestParam String endDate,HttpServletRequest request){return service.overview(user(request),startDate,endDate);}
     @GetMapping("/diet-reviews")
-    public Object review(@RequestParam String startDate,@RequestParam String endDate,HttpServletRequest request){return service.review(user(request),startDate,endDate);}
+    public Object review(@RequestParam String startDate,@RequestParam String endDate,HttpServletRequest request){return ResponseEntity.ok().header("Cache-Control", "no-store").body(service.review(user(request),startDate,endDate));}
     @PutMapping("/meal-consumptions/{date}/{mealType}")
     public Object save(@PathVariable String date,@PathVariable String mealType,@RequestBody MealConsumptionRequest body,HttpServletRequest request){return service.save(user(request),date,mealType,body);}
     @ExceptionHandler(MealConsumptionService.VersionConflict.class)
