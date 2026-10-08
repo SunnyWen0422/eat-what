@@ -8,6 +8,13 @@ function defaultTarget(now = new Date()) {
   return { date: china.toISOString().slice(0, 10), mealType: hour < 10 ? 'breakfast' : hour < 16 ? 'lunch' : 'dinner' }
 }
 
+function resolveActiveTarget(mode, params = {}, stored, now = new Date()) {
+  const current = defaultTarget(now), saved = stored || {}
+  const explicit = /^\d{4}-\d{2}-\d{2}$/.test(params.date || '')
+  const base = mode === 'today' && saved.selectedOn !== current.date ? current : { ...current, ...saved }
+  return { date: explicit ? params.date : base.date, mealType: ['breakfast', 'lunch', 'dinner'].includes(params.mealType) ? params.mealType : base.mealType }
+}
+
 function normalizeContext(input) {
   const c = { people: 2, compositionMode: 'auto', counts: {}, criteria: {}, totalCookMinutes: null, requirements: '', ownedIngredients: [], ...clone(input) }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.date) || !['breakfast', 'lunch', 'dinner'].includes(c.mealType)) throw new Error('请指定有效日期和餐次')
@@ -106,4 +113,4 @@ function createWorkspaceStore(options = {}) {
   return { load, edit, save, command, confirm, retry, reloadLatest, state, dispose }
 }
 
-module.exports = { defaultTarget, normalizeContext, createWorkspaceStore, requestId }
+module.exports = { resolveActiveTarget, defaultTarget, normalizeContext, createWorkspaceStore, requestId }

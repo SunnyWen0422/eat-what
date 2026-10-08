@@ -3,6 +3,7 @@ test('dish detail obtains quantities and procurement for the actual meal people'
  let page,request,selection
  const api={getDishById:async()=>({id:1,name:'菜',tags:'快手,早餐',ingredientsAmounts:'鸡蛋|2|枚|主料|||2人',fl:'2人'}),checkFavoriteDish:async()=>({}),createShoppingPreview:async body=>{request=body;return {dishes:[{items:[{displayName:'鸡蛋',quantityText:'4count',calculationStatus:'CALCULATED'}]}]}}}
  const ctx={Page:p=>page=p,wx:{getStorageSync:()=>null,navigateTo(){}},getApp:()=>({globalData:{loginReady:true}}),console,require:name=>{
+ if(name.endsWith('/recipe-quality'))return require('../utils/recipe-quality')
  if(name.endsWith('/api'))return api
  if(name.endsWith('/font-scale'))return ()=>1
  if(name.endsWith('/util'))return {getUserStorageKey:key=>'A:'+key}

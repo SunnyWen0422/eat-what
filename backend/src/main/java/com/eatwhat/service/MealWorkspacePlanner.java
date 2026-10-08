@@ -11,6 +11,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 @Service
 public class MealWorkspacePlanner {
+    private DishQualityService quality;
+    @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
+    private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
+    private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
     private final DishCandidateQueryService candidates;
     private final DishMapper dishes;
     private final UserPreferenceService preferences;
@@ -97,12 +101,12 @@ public class MealWorkspacePlanner {
         }
         PlanDraft next=new PlanDraft();next.setDishes(result);next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));next.setRequirementsFingerprint(prior.getRequirementsFingerprint());
         next.setSource("select".equals(command)?"manual":"rules");next.setAdjustedBeforeConfirmation(!prior.getDishes().isEmpty() || prior.isAdjustedBeforeConfirmation());next.setLockedDishIds(new LinkedHashSet<>(prior.getLockedDishIds()));
-        next.setExplanations(Arrays.asList("按本餐人数和菜数搭配","已校验明确排除条件", "breakfast".equals(c.getMealType())?"仅使用早餐适用候选":"份量按人数在采购预览中换算"));
+        next.setExplanations(Arrays.asList("按本餐人数和菜数搭配","已校验明确排除条件", "breakfast".equals(c.getMealType())?"仅使用早餐适用候选":"采购前核对份量，有可信依据的材料才按人数换算"));
         return MealWorkspaceRules.advance(prior,next);
     }
     public PlanDraft lockAndValidate(Long user,MealWorkspace w,List<Long> ids) {
         // Compare the locking current read; ordinary reads may use an earlier InnoDB snapshot.
-        Map<Long,Dish> snapshots=dishes.lockReadableDishes(ids,user).stream().collect(Collectors.toMap(Dish::getId,d->d));
+        Map<Long,Dish> snapshots=enrich(dishes.lockReadableDishes(ids,user)).stream().collect(Collectors.toMap(Dish::getId,d->d));
         if(!snapshots.keySet().containsAll(ids))throw new MealConsumptionService.VersionConflict("菜品可用状态已变化，请重新安排");
         for(Dish reviewed:w.getDraft().getDishes()) if(!MealWorkspaceRules.sameRecipe(reviewed,snapshots.get(reviewed.getId())))throw new MealConsumptionService.VersionConflict("菜品信息已更新，请查看新方案后确认");
         return validateAgent(user,w,ids);

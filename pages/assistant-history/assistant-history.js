@@ -7,6 +7,7 @@ Page({
   onUnload() { this._alive=false;this._epoch=(this._epoch||0)+1 },
   current(scope,epoch) { return this._alive && scope===getUserStorageKey('assistantHistory') && epoch===this._epoch },
   async onShow() { return this.readHistory(false) },
+  onCurrentMeal(){if(this._alive)wx.switchTab({url:'/pages/index/index'})},
   onMore() { if(this.data.nextCursor&&!this.data.loading)return this.readHistory(true) },
   async readHistory(more) {
     const scope=getUserStorageKey('assistantHistory'),epoch=this._epoch=(this._epoch||0)+1

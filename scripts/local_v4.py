@@ -60,45 +60,88 @@ def start(args):
     if (DATA/'runtime.json').exists():
         raise RuntimeError('A local runtime already exists. Use status or stop; do not overwrite its data.')
     available(18780)
+    bootstrap=DATA/'bootstrap.json'
+    resumed=json.loads(bootstrap.read_text(encoding='utf-8')) if bootstrap.exists() else None
+    if resumed and not getattr(args,'legacy_backup',None):raise RuntimeError('Only maturity bootstrap supports resume')
     with socket.socket() as sock:
-        sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
-    database='eatwhat_v4_local_'+secrets.token_hex(4)
-    config={'environment':'local','api':'http://127.0.0.1:18780/api','dbHost':'127.0.0.1','database':database,'root':str(ROOT),'dataDir':'.local-v4/mysql'}
+        sock.bind(('127.0.0.1',0));port=resumed['dbPort'] if resumed else sock.getsockname()[1]
+    database=resumed['database'] if resumed else ('eatwhat_maturity_local_' if getattr(args,'legacy_backup',None) else 'eatwhat_v4_local_')+secrets.token_hex(4)
+    config={'environment':'local','api':'http://127.0.0.1:18780/api','dbHost':'127.0.0.1','database':database,'root':str(ROOT),'dataDir':str((DATA/'mysql').relative_to(ROOT)).replace('\\','/')}
     from check_test_environment import validate
     if not validate(config)['safe']: raise RuntimeError('Unsafe local environment')
-    mysql_data=DATA/'mysql';mysql_data.mkdir(exist_ok=False)
+    if resumed:
+        if any(resumed.get(k)!=v for k,v in config.items()):raise RuntimeError('Bootstrap does not belong to this isolated runtime')
+        if resumed['sourceHash']!=args.prepared_source['sourceSha256'] or resumed['qualityHash']!=args.prepared_source['qualityManifestHash']:
+            raise RuntimeError('Bootstrap inputs changed; retain the original inputs for resume')
+    mysql_data=DATA/'mysql'
+    if not resumed:mysql_data.mkdir(exist_ok=False)
     mysql_log=DATA/'mysql.log'
     binary=executable_path(args.mysqld)
-    subprocess.run([binary,'--no-defaults','--initialize-insecure',f'--datadir={mysql_data}',f'--log-error={mysql_log}'],check=True,creationflags=FLAGS)
+    if not resumed:
+        subprocess.run([binary,'--no-defaults','--initialize-insecure',f'--datadir={mysql_data}',f'--log-error={mysql_log}'],check=True,creationflags=FLAGS)
+    password=resumed['password'] if resumed else secrets.token_urlsafe(32)
+    bootstrap_state=resumed or {**config,'dbPort':port,'password':password,'anonymizationSalt':secrets.token_hex(32),'bridgeComplete':False}
+    def save_bootstrap():
+        if not getattr(args,'legacy_backup',None):return
+        bootstrap_state.update(sourceHash=args.prepared_source['sourceSha256'],qualityHash=args.prepared_source['qualityManifestHash'])
+        temporary=DATA/'bootstrap.pending.json'
+        temporary.write_text(json.dumps(bootstrap_state,ensure_ascii=False,indent=2),encoding='utf-8')
+        temporary.replace(bootstrap)
+    save_bootstrap()
+    available(port)
     mysql=subprocess.Popen([binary,'--no-defaults',f'--datadir={mysql_data}','--bind-address=127.0.0.1',f'--port={port}',f'--log-error={mysql_log}','--mysqlx=OFF','--default-time-zone=+08:00'],creationflags=FLAGS)
     processes=[mysql]
     try:
         deadline=time.monotonic()+35;connection=None
         while time.monotonic()<deadline and mysql.poll() is None:
-            try:connection=pymysql.connect(host='127.0.0.1',port=port,user='root',password='',charset='utf8mb4',autocommit=True);break
-            except pymysql.Error:time.sleep(.25)
+            try:
+                try:connection=pymysql.connect(host='127.0.0.1',port=port,user='root',password=password if resumed else '',charset='utf8mb4',autocommit=True,connect_timeout=2)
+                except pymysql.OperationalError as auth_error:
+                    # Interrupted before ALTER USER: only the owned fresh instance may still be empty.
+                    if not resumed or auth_error.args[0]!=1045:raise
+                    connection=pymysql.connect(host='127.0.0.1',port=port,user='root',password='',charset='utf8mb4',autocommit=True,connect_timeout=2)
+                break
+            except pymysql.Error as error:
+                if connection is None and not locals().get('reported_connect_error',False):
+                    import re
+                    code=error.args[0] if error.args else None
+                    win=re.search(r'WinError (\d+)',str(error))
+                    print(json.dumps({'localDbConnectionWaiting':True,'mysqlErrorCode':code,'windowsErrorCode':win.group(1) if win else None}),flush=True)
+                    reported_connect_error=True
+                time.sleep(.25)
         if connection is None:raise RuntimeError('Private MySQL startup failed')
-        password=secrets.token_urlsafe(32)
         spec=importlib.util.spec_from_file_location('isolated_mysql',ROOT/'scripts/run_mysql_integration.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with connection.cursor() as cursor:
             cursor.execute("ALTER USER 'root'@'localhost' IDENTIFIED BY %s",(password,))
-            cursor.execute(f'CREATE DATABASE `{database}` CHARACTER SET utf8mb4');cursor.execute(f'USE `{database}`')
-            cursor.execute('CREATE TABLE food(id INT PRIMARY KEY AUTO_INCREMENT, NAME VARCHAR(255), TYPE VARCHAR(16), CL TEXT, FL TEXT, STEP LONGTEXT)')
-            files=['database_migration.sql','ensure_food_import_schema.sql','create_favorite_dishes_table.sql','shopping_list_schema.sql','recommendation_preferences_schema.sql']
-            files+=['db/migrations/'+v['file'] for v in json.loads((ROOT/'backend/db/migration-manifest.json').read_text(encoding='utf-8'))['migrations']]
-            for file in files:
-                for sql in module.statements((ROOT/'backend'/file).read_text(encoding='utf-8')):
-                    if sql.upper().startswith('USE '):continue
-                    cursor.execute(sql)
-                    while cursor.nextset():pass
-                if file=='database_migration.sql':cursor.execute('ALTER TABLE recipe_records ADD COLUMN DISH_DETAILS TEXT')
-            cursor.execute('ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL')
-            cursor.execute("INSERT INTO users(id,open_id,nickname,status) VALUES(910001,'local-v4-user','本地体验用户',1),(910002,'local-v4-second','本地第二账号',1)")
-            recipes=[('番茄炒蛋','meat','番茄|300克###鸡蛋|2个',15),('香菇鸡丁','meat','鸡肉|300克###香菇|100克',20),('土豆炖肉','meat','猪肉|300克###土豆|200克',30),('清炒青菜','veg','青菜|300克',10),('清炒西兰花','veg','西兰花|300克',10),('醋溜土豆丝','veg','土豆|300克',15),('紫菜蛋汤','soup','紫菜|10克###鸡蛋|1个',10),('番茄豆腐汤','soup','番茄|200克###豆腐|200克',15),('米饭','staple','大米|200克',25),('清粥','staple','大米|100克',25)]
-            for name,kind,ingredients,minutes in recipes:
-                import re
-                structured=re.sub(r'\|(\d+)(克|个)',lambda m:'|'+m.group(1)+'|'+m.group(2),ingredients)
-                cursor.execute("INSERT INTO food(NAME,TYPE,CL,INGREDIENTS_AMOUNTS,STEPS,COOK_MINUTES,COOK_TIME,TAG_CODES,IS_PUBLISHED) VALUES(%s,%s,%s,%s,%s,%s,%s,'HOME_STYLE',1)",(name,kind,ingredients.replace('|','：'),structured,'准备食材###按原菜谱完成烹调###装盘后核对实际记录',minutes,str(minutes)+'分钟'))
+            cursor.execute(f'CREATE DATABASE IF NOT EXISTS `{database}` CHARACTER SET utf8mb4');cursor.execute(f'USE `{database}`')
+            if getattr(args,'legacy_backup',None):
+                from bridge_legacy_local import restore_and_bridge
+                if not bootstrap_state['bridgeComplete']:
+                    bridge_target={**config,'anonymizationSalt':bootstrap_state['anonymizationSalt']}
+                    report=restore_and_bridge(connection,args.legacy_backup,bridge_target,getattr(args,'quality_bundle',None),args.prepared_source)
+                    (DATA/'bridge-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+                    bootstrap_state['bridgeComplete']=True;save_bootstrap()
+                for user_id,open_id,nickname in [(910001,'local-v4-user','本地体验用户'),(910002,'local-v4-second','本地第二账号')]:
+                    cursor.execute('SELECT open_id FROM users WHERE id=%s',(user_id,));existing=cursor.fetchone()
+                    if existing and existing[0]!=open_id:raise RuntimeError('Local fixture ID conflicts with source account')
+                    if not existing:cursor.execute('INSERT INTO users(id,open_id,nickname,status) VALUES(%s,%s,%s,1)',(user_id,open_id,nickname))
+            else:
+                cursor.execute('CREATE TABLE food(id INT PRIMARY KEY AUTO_INCREMENT, NAME VARCHAR(255), TYPE VARCHAR(16), CL TEXT, FL TEXT, STEP LONGTEXT)')
+                files=['database_migration.sql','ensure_food_import_schema.sql','create_favorite_dishes_table.sql','shopping_list_schema.sql','recommendation_preferences_schema.sql']
+                files+=['db/migrations/'+v['file'] for v in json.loads((ROOT/'backend/db/migration-manifest.json').read_text(encoding='utf-8'))['migrations']]
+                for file in files:
+                    for sql in module.statements((ROOT/'backend'/file).read_text(encoding='utf-8')):
+                        if sql.upper().startswith('USE '):continue
+                        cursor.execute(sql)
+                        while cursor.nextset():pass
+                    if file=='database_migration.sql':cursor.execute('ALTER TABLE recipe_records ADD COLUMN DISH_DETAILS TEXT')
+                cursor.execute('ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL')
+                cursor.execute("INSERT INTO users(id,open_id,nickname,status) VALUES(910001,'local-v4-user','本地体验用户',1),(910002,'local-v4-second','本地第二账号',1)")
+                recipes=[('番茄炒蛋','meat','番茄|300克###鸡蛋|2个',15),('香菇鸡丁','meat','鸡肉|300克###香菇|100克',20),('土豆炖肉','meat','猪肉|300克###土豆|200克',30),('清炒青菜','veg','青菜|300克',10),('清炒西兰花','veg','西兰花|300克',10),('醋溜土豆丝','veg','土豆|300克',15),('紫菜蛋汤','soup','紫菜|10克###鸡蛋|1个',10),('番茄豆腐汤','soup','番茄|200克###豆腐|200克',15),('米饭','staple','大米|200克',25),('清粥','staple','大米|100克',25)]
+                for name,kind,ingredients,minutes in recipes:
+                    import re
+                    structured=re.sub(r'\|(\d+)(克|个)',lambda m:'|'+m.group(1)+'|'+m.group(2),ingredients)
+                    cursor.execute("INSERT INTO food(NAME,TYPE,CL,INGREDIENTS_AMOUNTS,STEPS,COOK_MINUTES,COOK_TIME,TAG_CODES,IS_PUBLISHED) VALUES(%s,%s,%s,%s,%s,%s,%s,'HOME_STYLE',1)",(name,kind,ingredients.replace('|','：'),structured,'准备食材###按原菜谱完成烹调###装盘后核对实际记录',minutes,str(minutes)+'分钟'))
         connection.close()
         # No source runtime settings or production secrets are copied into the backend.
         token_secret=secrets.token_urlsafe(40);service_secret=secrets.token_urlsafe(40)
@@ -111,13 +154,14 @@ def start(args):
         jar=ROOT/'backend/target/eatwhat-backend-1.0.0.jar'
         if not jar.is_file():raise RuntimeError('Build backend before starting the local runtime')
         log=open(DATA/'backend.log','ab')
-        java=subprocess.Popen([args.java,'-jar',str(jar),'--spring.profiles.active=local-v4',f'--spring.config.location={runtime.as_uri()}'],cwd=DATA,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS);processes.append(java)
+        java=subprocess.Popen([args.java,'-jar',str(jar),'--spring.profiles.active=local-v4',f'--spring.config.location={runtime.as_uri()}','--management.endpoint.health.group.local-ready.include=db,ping'],cwd=DATA,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS);processes.append(java)
         state={**config,'dbPort':port,'password':password,'tokenSecret':token_secret,'mysqlPid':mysql.pid,'javaPid':java.pid,'javaExecutable':args.java,'mysqlExecutable':binary,'startedAt':time.time(),'asrConfigured':False}
         (DATA/'runtime.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
-        print(json.dumps({'api':config['api'],'database':database,'privateMysqlPort':port,'asrConfigured':state['asrConfigured'],'dataset':'synthetic local recipes; no official prices seeded'},ensure_ascii=False))
+        print(json.dumps({'api':config['api'],'database':database,'privateMysqlPort':port,'asrConfigured':state['asrConfigured'],'dataset':'governed catalog and anonymous legacy history' if getattr(args,'legacy_backup',None) else 'synthetic local recipes; no official prices seeded'},ensure_ascii=False))
     except BaseException:
         for process in reversed(processes):
-            if process.poll() is None:process.terminate()
+            if process.poll() is None:
+                process.terminate();process.wait(timeout=15)
         raise
 
 def start_optional_model():

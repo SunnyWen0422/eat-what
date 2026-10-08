@@ -33,6 +33,7 @@ Page({
     isAdmin: false,
     shoppingSummary: { pendingCount: 0, syncLabel: '已显示本地清单', refreshing: false },
     menuItems: [
+      {icon:'chef',title:'我的菜单',desc:'几道菜的常用组合，随时再用',url:'/pages/customize/customize',tab:true},
       {
         icon: 'chart',
         title: '饮食回顾',
@@ -47,7 +48,7 @@ Page({
       },
       {
         icon: 'chef',
-        title: '自定义菜品',
+        title: '我的私房菜',
         desc: '我的私房菜',
         url: '/pages/custom-dishes/custom-dishes'
       },
@@ -241,6 +242,7 @@ Page({
     const menuItem = this.data.menuItems[index]
 
     if (menuItem.url) {
+      if(menuItem.tab){wx.setStorageSync(getUserStorageKey('openPersonalMenus'),true);wx.switchTab({url:menuItem.url});return}
       // 如果有跳转链接
       wx.navigateTo({
         url: menuItem.url
@@ -268,7 +270,8 @@ Page({
     wx.showLoading({ title: '登录中...', mask: true })
     try {
       const app = getApp()
-      await app.doLogin()
+      const result = await app.doLogin()
+      if (!result || !result.success) throw new Error('login_incomplete')
       wx.hideLoading()
       this.loadUserInfo()
       this.loadShoppingSummary()

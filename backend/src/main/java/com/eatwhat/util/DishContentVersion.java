@@ -15,7 +15,12 @@ public final class DishContentVersion {
                 d.getName(), d.getType(), d.getCl(), d.getFl(), d.getStep(), d.getIngredientsAmounts(),
                 d.getSteps(), d.getStepImages(), d.getTips(), d.getTags(), d.getCuisineCode(), d.getTagCodes(),
                 d.getCookMinutes(), d.getMetadataVersion(), d.getImage(), d.getDifficulty(), d.getCookTime(),
-                d.getMethods(), d.getKcal())));
+                d.getMethods(), d.getKcal(), d.getQuality()==null?null:d.getQuality().getContentHash())));
         } catch (java.io.IOException error) { throw new IllegalStateException("菜品版本无法读取", error); }
+    }
+    public static String rawOf(Dish d) {
+        try {return WorkflowRequestHash.sha256(JSON.writeValueAsString(Arrays.asList(
+            d.getName(),d.getType(),d.getCl(),d.getFl(),d.getStep(),d.getIngredientsAmounts(),d.getSteps(),d.getStepImages(),d.getTips(),d.getTags(),d.getCuisineCode(),d.getTagCodes(),d.getCookMinutes(),d.getMetadataVersion(),d.getImage(),d.getDifficulty(),d.getCookTime(),d.getMethods(),d.getKcal())));
+        }catch(java.io.IOException e){throw new IllegalStateException("原配方指纹无法读取",e);}
     }
 }

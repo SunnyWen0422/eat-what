@@ -2,7 +2,9 @@
   <scroll-view class="mobile-scroll" scroll-y enhanced>
     <view class="mobile-scroll-content">
       <view class="workspace-header"><view class="ew-heading">{{pageTitle}}</view><button class="ew-hit-target ew-link" bindtap="onOpenShoppingList"><ui-icon name="shopping-basket" size="20" /><text>清单</text></button></view>
+      <button wx:if="{{draft.dishes.length}}" class="ew-hit-target ew-link" bindtap="onToggleExtraActions">{{showExtraActions ? '收起更多操作' : '更多餐单操作'}}</button>
       <view class="workspace-target"><view class="workspace-target-date"><picker class="ew-hit-target" mode="date" disabled="{{loading || busy}}" value="{{context.date}}" bindchange="onDateTarget"><view>{{context.date}}</view></picker><picker class="ew-hit-target" range="{{mealLabels}}" disabled="{{loading || busy}}" value="{{mealIndex}}" bindchange="onMealTarget"><view>{{mealName}}<ui-icon name="chevron-right" tone="muted" size="16" /></view></picker></view><button class="ew-hit-target ew-link" disabled="{{loading || busy}}" bindtap="onOpenMealSettings">{{context.people}} 人 · 调整</button></view>
+      <button wx:if="{{context.date !== todayDate}}" class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onReturnToday">回到今天</button>
       <ui-state wx:if="{{loading}}" kind="loading" density="inline" title="正在读取这一餐" />
       <block wx:else>
         <view wx:if="{{syncStatus !== 'synced' || feedbackNotice}}" class="workspace-feedback"><view class="ew-notice">{{syncLabel || feedbackNotice}}</view><ui-button wx:if="{{syncStatus === 'conflict'}}" label="核对最新内容" variant="tertiary" disabled="{{busy}}" bind:action="onLoadLatest" /></view>
@@ -32,7 +34,7 @@
         <view wx:if="{{draft.dishes.length && mode === 'assistant'}}" class="workspace-assistant-menu"><view class="ew-title">当前餐单</view><text wx:for="{{draft.dishes}}" wx:key="id" class="ew-reading">{{item.name}}</text><ui-button label="查看和调整本餐方案" variant="secondary" bind:action="onOpenMealResult" /></view>
         <view wx:if="{{linkedPlan}}" class="workspace-next"><button class="ew-hit-target workspace-next-row" bindtap="onShoppingPreview"><view><text class="ew-title">准备食材</text><text class="ew-muted">先核对本餐用量，再加入清单</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button><button class="ew-hit-target workspace-next-row" bindtap="onViewPlan"><view><text class="ew-title">查看安排与实际记录</text><text class="ew-muted">{{actual && actual.status === 'eaten' ? '已记录实际用餐，可查看或纠正' : '吃过什么，由你确认后记录'}}</text></view><ui-icon name="chevron-right" tone="muted" size="18" /></button></view>
         <view wx:if="{{!linkedPlan}}" class="workspace-light-actions"><button class="ew-hit-target ew-link" bindtap="onQuickActual">记录实际用餐</button><button wx:if="{{draft.dishes.length}}" class="ew-hit-target ew-link" bindtap="onChooseDishes">自己选菜</button></view>
-        <view wx:if="{{draft.dishes.length || harnessMessage}}" class="workspace-next">
+        <view wx:if="{{(showExtraActions && draft.dishes.length) || harnessMessage}}" class="workspace-next">
           <view class="ew-title">保存计划并查看周回顾</view>
           <text class="ew-muted">保存计划不会算作实际吃过。回顾只使用明确记录的实际用餐。</text>
           <ui-button wx:if="{{draft.dishes.length}}" label="预览保存和周回顾" variant="secondary" disabled="{{busy || !canConfirm}}" bind:action="onSaveAndReview" />

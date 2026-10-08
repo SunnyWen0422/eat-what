@@ -362,4 +362,4 @@ def workspace_task(req: WorkspaceTaskRequest, x_service_token: Optional[str] = H
         return workspace_agent.run_task(req.workspace, req.userId)
     except Exception:
         # Raw text and provider errors never enter application logs or the public response.
-        return {"needsInput": True, "message": "智能理解暂不可用，请明确本餐限制后重试", "dishIds": []}
+        return {"needsInput": True, "executionStatus":"failed", "failureClass":"WorkspaceTaskFailed", "message": "智能理解暂不可用，请明确本餐限制后重试", "dishIds": []}

@@ -98,6 +98,10 @@
       {
         "type": "folder",
         "value": "__pycache__"
+      },
+      {
+        "type": "regexp",
+        "value": "(^|/)\\.local-maturity[^/]*(/|$)"
       }
     ],
     "include": []

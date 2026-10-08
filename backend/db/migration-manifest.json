@@ -54,6 +54,13 @@
       "description": "Java server-bound tool previews and durable compound task receipts",
       "checksumSha256": "04b9f632db56804bad32032fe644fb6fd5857db93c385642fbd9abc9184fda35",
       "rollback": "Disable the new UI entry points; keep menu versions, snapshots and task receipts. Restore only a reviewed backup for database rollback; never drop live tables or rewrite historical records."
+    },
+    {
+      "version": "V7__catalog_quality",
+      "file": "V7__catalog_quality.sql",
+      "description": "Independent recipe evidence and immutable quality revisions",
+      "checksumSha256": "dccf21c80c12392dec6cf427f0ca123694274047a52c3a7d173f7b0e8c64f950",
+      "rollback": "Keep quality tables and evidence; restore a reviewed backup only if needed."
     }
   ]
 }

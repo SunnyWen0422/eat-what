@@ -2,12 +2,26 @@ const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 const { beginShoppingSelection } = require('../../utils/shopping-list')
 const flow = require('../../utils/meal-workflow')
+const actual=require('../../utils/meal-actual-entry').createMealActualEntry({api,onSaved:async function(){await this.loadMealRecords();this.refreshFlags()}})
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
+  openMealActual(...args){return actual.openMealActual.call(this,...args)},
+  onActualText(...args){return actual.onActualText.call(this,...args)},
+  onActualMode(...args){return actual.onActualMode.call(this,...args)},
+  onConfirmActual(...args){return actual.onConfirmActual.call(this,...args)},
+  closeMealActual(...args){return actual.closeMealActual.call(this,...args)},
+  disposeMealActual(...args){return actual.disposeMealActual.call(this,...args)},
+  onActualByPlan(...args){return actual.onActualByPlan.call(this,...args)},
+  onActualChanged(...args){return actual.onActualChanged.call(this,...args)},
+  onActualSkipped(...args){return actual.onActualSkipped.call(this,...args)},
+  onActualRetry(...args){return actual.onActualRetry.call(this,...args)},
+  onActualReload(...args){return actual.onActualReload.call(this,...args)},
+  submitMealActual(...args){return actual.submitMealActual.call(this,...args)},
+  sendMealActual(...args){return actual.sendMealActual.call(this,...args)},
+  data: { actualVisible:false,actualBusy:false,actualText:'',actualMode:'changed',fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
   onLoad(options) { this.setData({ focusedMeal:flow.mealNames[options.mealType]?options.mealType:'', selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
   onShow() { this.loadMealRecords() },
   onMoreMeal(e) { const type=e.currentTarget.dataset.meal; if(!this.data.mutating && this.meal(type))this.setData({expandedMeal:this.data.expandedMeal===type?'':type}) },
-  onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
+  onUnload() { this.disposeMealActual(); this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   async loadMealRecords() {
     const epoch = this._epoch = (this._epoch || 0) + 1, scope = getUserStorageKey('mealView'), current = () => !this._unloaded && epoch === this._epoch && scope === getUserStorageKey('mealView')
     if (this._viewScope !== scope) { this._signature = null; this.setData({ meals: [], overview: null, formVisible: false, formName: '', formActual: '', mutating: false, expandedMeal: '' }) }
@@ -24,9 +38,14 @@ Page({
     const type=e.currentTarget.dataset.meal, value=this.meal(type)
     this.setData({ formVisible: true, formMode: 'plan', formMeal: type, formTitle: `${flow.mealNames[type]}安排`, formName: value.plan ? value.plan.recipeName : '', formPeople: String(value.plan && value.plan.targetPeople || 2), formError: '' })
   },
-  onActualDifferent(e) {
-    const type=e.currentTarget.dataset.meal, value=this.meal(type)
-    this.setData({ formVisible: true, formMode: 'actual', formMeal: type, formTitle: `记录实际${flow.mealNames[type]}`, formActual: value.actualNames || '', formError: '' })
+  async onActualDifferent(e) {
+    await this.openActualFor(e,'changed')
+  },
+  async openActualFor(e,mode) {
+    const type=e.currentTarget.dataset.meal,value=this.meal(type)
+    if(!value || this.data.mutating || this.data.actualBusy || this._unloaded || this._viewScope!==getUserStorageKey('mealView'))return
+    await this.openMealActual({date:this.data.selectedDate,mealType:type,planRevision:value.planRevision,displayedPlanNames:value.plan?(value.plan.dishDetails||[]).map(d=>d.name).join('、'):''})
+    if(!this.data.actualUnknown && !this._unloaded && this._viewScope===getUserStorageKey('mealView'))this.setData({actualMode:mode})
   },
   onCopy(e) {
     const type=e.currentTarget.dataset.meal
@@ -53,12 +72,14 @@ Page({
     body.requestId=this.stableRequest(`meal-${type}`,body)
     return api.saveMealConsumption(this.data.selectedDate,type,body)
   },
-  onEaten(e) { const type=e.currentTarget.dataset.meal; return this.run(()=>this.consumption(type,'eaten',true),'已记录实际用餐') },
-  onSkip(e) {
-    const type=e.currentTarget.dataset.meal, scope=this._viewScope
-    wx.showModal({ title:'取消本餐安排？', content:'保留原计划，标记这餐未按安排用餐。不会计入已吃餐次。', confirmText:'确认取消', success:r=>{if(r.confirm && scope===getUserStorageKey('mealView'))this.run(()=>this.consumption(type,'skipped',false),'已取消本餐安排')} })
+  onEaten(e) { return this.openActualFor(e,'byPlan') },
+  onSkip(e) { return this.openActualFor(e,'skipped') },
+  async onUndoActual(e) {
+    await this.openActualFor(e,'undo')
+    if(this.data.actualUnknown || this._unloaded)return
+    const binding=this._actualBinding
+    wx.showModal({title:'撤销实际记录？',content:'原安排会保留，饮食回顾将重新计算。',success:r=>{if(r.confirm && this._actualBinding===binding)this.submitMealActual('unrecorded',false)}})
   },
-  onUndoActual(e) { const type=e.currentTarget.dataset.meal, scope=this._viewScope; wx.showModal({title:'撤销实际记录？',content:'原安排会保留，饮食回顾将重新计算。',success:r=>{if(r.confirm && scope===getUserStorageKey('mealView'))this.run(()=>this.consumption(type,'unrecorded',false),'已撤销实际记录')}}) },
   async saveForm() {
     const type=this.data.formMeal,value=this.meal(type)
     if(this.data.formMode==='actual') {

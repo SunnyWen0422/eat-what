@@ -12,6 +12,10 @@ import java.util.List;
 
 @Service
 public class DishQueryService {
+    private DishQualityService quality;
+    @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
+    private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
+    private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
 
     private final DishMapper dishMapper;
     private final DishCandidateQueryService candidateQueryService;
@@ -34,9 +38,9 @@ public class DishQueryService {
                                          int pageSize) {
         int safePage = Math.max(1, page);
         int safePageSize = Math.max(1, Math.min(100, pageSize));
-        int cap = type == null || type.trim().isEmpty() ? 2000 : 400;
+        int cap = Integer.MAX_VALUE;
         List<Dish> all = candidateQueryService.findForUser(userId, type, keyword, criteria, cap);
-        int from = Math.min(all.size(), (safePage - 1) * safePageSize);
+        int from = (int)Math.min(all.size(), ((long)safePage - 1) * safePageSize);
         int to = Math.min(all.size(), from + safePageSize);
         return new DishPageDTO(new java.util.ArrayList<>(all.subList(from, to)), all.size(), safePage, safePageSize);
     }
@@ -47,9 +51,9 @@ public class DishQueryService {
         }
         if (type != null && !type.isEmpty()) {
             int offset = Math.max(0, page - 1) * pageSize;
-            return dishMapper.selectDishesByTypePage(type, pageSize, offset);
+            return enrich(dishMapper.selectDishesByTypePage(type, pageSize, offset));
         }
-        return dishMapper.selectAllDishes();
+        return enrich(dishMapper.selectAllDishes());
     }
 
     public int getDishesCountByType(String type) {
@@ -58,31 +62,31 @@ public class DishQueryService {
 
     public List<Dish> searchDishes(String keyword, String type) {
         if (type != null && !type.isEmpty()) {
-            return dishMapper.searchDishes(keyword, type);
+            return enrich(dishMapper.searchDishes(keyword, type));
         }
-        return dishMapper.searchDishesByKeyword(keyword);
+        return enrich(dishMapper.searchDishesByKeyword(keyword));
     }
 
     public Dish getDishById(Long id) {
-        return dishMapper.selectById(id);
+        return enrich(dishMapper.selectById(id));
     }
 
     public Dish getDishById(Long id, Long userId) {
-        return dishMapper.selectByIdForUser(id, userId);
+        return enrich(dishMapper.selectByIdForUser(id, userId));
     }
 
     public List<Dish> getDishesByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
-        return dishMapper.selectByIds(ids);
+        return enrich(dishMapper.selectByIds(ids));
     }
 
     public List<Dish> getDishesByIdsForUser(List<Long> ids, Long userId) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
-        return dishMapper.selectByIdsForUser(ids, userId);
+        return enrich(dishMapper.selectByIdsForUser(ids, userId));
     }
 
     public int getDishCount() {

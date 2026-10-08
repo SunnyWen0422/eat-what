@@ -158,5 +158,6 @@ Page({
     await this.onRetryDrafts()
   },
   async onDiscardDraft(e) { const scope = this._scope; if (await confirm('丢弃本地草稿？', '只移除待确认草稿；云端可能已保存的内容请刷新查看。', '丢弃') && this.current(scope)) { store.removePendingOperation(e.currentTarget.dataset.id); this.setData({ drafts: store.loadPendingOperations() }) } },
+  onBackToToday() { wx.switchTab({ url: '/pages/index/index' }) },
   onAddFromRecipe() { this.setData({addVisible:false}); wx.switchTab({ url: '/pages/customize/customize' }) },
 })

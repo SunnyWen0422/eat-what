@@ -13,6 +13,7 @@ function page(route, api, store = {}) {
     if (name.endsWith('/product-release')) return require('../utils/product-release')
     if (name.endsWith('/font-scale')) return () => 1
     if (name.endsWith('/ui-tokens')) return require('../utils/ui-tokens')
+    if (name.endsWith('/meal-actual-entry')) return require('../utils/meal-actual-entry')
     if (name.endsWith('/api')) return api
     if (name.endsWith('/util')) return { getUserStorageKey: key => 'user:1:' + key }
     if (name.endsWith('/meal-workflow')) return flow

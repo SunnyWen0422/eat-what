@@ -23,6 +23,7 @@ class V4RankingContractTest {
             when(candidates.findForUser(eq(3L),isNull(),isNull(),any(),anyInt())).thenAnswer(i->new ArrayList<>(pool)); when(preferences.get(3L)).thenReturn(preference);
             app.registerBean(DishCandidateQueryService.class,()->candidates); app.registerBean(DishMapper.class,()->mock(DishMapper.class)); app.registerBean(UserPreferenceService.class,()->preferences);
             app.registerBean(FavoriteDishMapper.class,()->mock(FavoriteDishMapper.class));
+            app.registerBean(DishQualityService.class,()->new DishQualityService(mock(DishQualityMapper.class),new ObjectMapper()));
             app.registerBean(RecommendationMetadataService.class,()->new RecommendationMetadataService(mock(DishMapper.class))); app.registerBean(FavoriteDishService.class,()->favorites); app.registerBean(MealConsumptionMapper.class,()->actual); app.registerBean(ObjectMapper.class,()->new ObjectMapper()); app.registerBean(MealWorkspacePlanner.class); app.refresh(); planner=app.getBean(MealWorkspacePlanner.class);
         }
         public void close() { app.close(); }

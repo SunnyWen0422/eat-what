@@ -10,7 +10,7 @@ def validate(value):
     api = urlparse(value.get('api', ''))
     if api.scheme != 'http' or api.hostname != '127.0.0.1' or not api.port: blockers.append('API must be explicit loopback HTTP')
     if value.get('dbHost') != '127.0.0.1': blockers.append('database must bind loopback')
-    if not str(value.get('database', '')).startswith('eatwhat_v4_local_'): blockers.append('database must have an isolated local name')
+    if not str(value.get('database', '')).startswith(('eatwhat_v4_local_','eatwhat_maturity_local_')): blockers.append('database must have an isolated local name')
     root = Path(value.get('root', '.')).resolve()
     data = (root / value.get('dataDir', '')).resolve()
     if data == root or not data.is_relative_to(root): blockers.append('data directory must be inside the local workspace')

@@ -9,20 +9,16 @@ import java.util.List;
  */
 @Mapper
 public interface DishMapper {
-    @Select({"<script>", "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step,",
-      "STEPS as steps, STEP_IMAGES as stepImages, INGREDIENTS_AMOUNTS as ingredientsAmounts, TIPS as tips, METHODS as methods,",
-      "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes FROM food WHERE ID IN ",
-      "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
-      "AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId}) FOR UPDATE", "</script>"})
+    @Select({"<script>","SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID IN",
+        "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
+        "AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId}) FOR UPDATE", "</script>"})
     List<Dish> lockReadableDishes(@Param("ids") List<Long> ids,@Param("userId") Long userId);
 
 
     /**
      * 按类型获取菜品（分页）
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, CUISINE_CODE as cuisineCode, " +
-            "TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion " +
-            "FROM food WHERE TYPE = #{type} AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 ORDER BY ID DESC LIMIT #{limit} OFFSET #{offset}")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE TYPE=#{type} AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC LIMIT #{limit} OFFSET #{offset}")
     List<Dish> selectDishesByTypePage(@Param("type") String type,
                                        @Param("limit") int limit,
                                        @Param("offset") int offset);
@@ -36,42 +32,16 @@ public interface DishMapper {
     /**
      * 获取所有菜品（无过滤）
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step, " +
-            "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, " +
-            "COOK_TIME as cookTime, " +
-            "STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
-            "METHODS as methods, KCAL as kcal, " +
-            "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, " +
-            "METADATA_VERSION as metadataVersion, " +
-            "0 as isCustom, NULL as userId, " +
-            "NOW() as createTime " +
-            "FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 ORDER BY ID DESC")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC")
     List<Dish> selectAllDishes();
 
     /**
      * 根据ID查询菜品
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "CL as cl, FL as fl, STEP as step, " +
-            "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, " +
-            "COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, " +
-            "STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
-            "METHODS as methods, KCAL as kcal, " +
-            "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, " +
-            "METADATA_VERSION as metadataVersion, " +
-            "0 as isCustom, NULL as userId, " +
-            "NOW() as createTime " +
-            "FROM food WHERE ID = #{id}")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID=#{id}")
     Dish selectById(@Param("id") Long id);
 
-    @Select("SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, " +
-            "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, " +
-            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
-            "METHODS as methods, KCAL as kcal, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, " +
-            "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
-            "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom, user_id as userId, create_time as createTime " +
-            "FROM food WHERE ID = #{id} AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId})")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID=#{id} AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId})")
     Dish selectByIdForUser(@Param("id") Long id, @Param("userId") Long userId);
 
     /**
@@ -105,59 +75,27 @@ public interface DishMapper {
     /**
      * 搜索菜品（按关键词 + 可选类型）
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "CL as cl, FL as fl, STEP as step, " +
-            "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, " +
-            "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, 0 as isCustom, NULL as userId, " +
-            "NOW() as createTime " +
-            "FROM food " +
-            "WHERE NAME LIKE CONCAT('%', #{keyword}, '%') " +
-            "AND TYPE = #{type} " +
-            "AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 " +
-            "ORDER BY ID DESC")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE NAME LIKE CONCAT('%',#{keyword},'%') AND TYPE=#{type} AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC")
     List<Dish> searchDishes(@Param("keyword") String keyword,
                            @Param("type") String type);
 
     /**
      * 搜索菜品（仅按关键词，不限类型）
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "CL as cl, FL as fl, STEP as step, " +
-            "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, " +
-            "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, 0 as isCustom, NULL as userId, " +
-            "NOW() as createTime " +
-            "FROM food " +
-            "WHERE NAME LIKE CONCAT('%', #{keyword}, '%') " +
-            "AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 " +
-            "ORDER BY ID DESC")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE NAME LIKE CONCAT('%',#{keyword},'%') AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC")
     List<Dish> searchDishesByKeyword(@Param("keyword") String keyword);
 
     /**
      * 根据IDs批量查询（推荐路径，不含image等大字段）
      */
-    @Select({
-        "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, ",
-        "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, ",
-        "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, ",
-        "CL as cl, FL as fl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
-        "FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 AND ID IN ",
-        "<foreach item='id' collection='ids' open='(' separator=',' close=')'>",
-        "#{id}",
-        "</foreach>",
-        "</script>"
-    })
+    @Select({"<script>","SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID IN",
+        "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
+        "AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1", "</script>"})
     List<Dish> selectByIds(@Param("ids") List<Long> ids);
 
-    @Select({
-        "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, TAGS as tags, ",
-        "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, ",
-        "METADATA_VERSION as metadataVersion, CL as cl, FL as fl, INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, METHODS as methods, IMAGE as image, COOK_TIME as cookTime, DIFFICULTY as difficulty ",
-        "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) AND ID IN ",
+    @Select({"<script>","SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID IN",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
-        "</script>"
-    })
+        "AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId})", "</script>"})
     List<Dish> selectByIdsForUser(@Param("ids") List<Long> ids, @Param("userId") Long userId);
 
     /**

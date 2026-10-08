@@ -51,6 +51,22 @@ public class ShoppingPreviewService {
         group.setDishId(dish.getId());
         group.setDishName(dish.getName());
         group.setTargetPeople(targetPeople);
+        if(dish.getQuality()!=null){
+            com.eatwhat.dto.CatalogQuality q=dish.getQuality();
+            BigDecimal base="VERIFIED".equals(q.getServingsStatus())?q.getBasePeople():null;
+            if(base!=null&&base.signum()<=0)base=null;
+            int line=0;
+            for(com.eatwhat.dto.CatalogQuality.Ingredient fact:q.getIngredients()){
+                if("REJECTED".equals(fact.getIdentityStatus()))continue;
+                boolean trusted="VERIFIED".equals(q.getReviewStatus())&&fact.verifiedQuantity();
+                String text=fact.getName()+"|"+(trusted?fact.getQuantityValue().stripTrailingZeros().toPlainString():"未知")+"|"+fact.getUnit()+"|"+(fact.getRole()==null?"":fact.getRole())+"|"+(fact.getPreparation()==null?"":fact.getPreparation());
+                ShoppingPreviewItemDTO item=toItem(parser.parse(text,null),dish,targetPeople,trusted?base:null,line++);
+                if(!trusted){item.setQuantityText("用量待核实");item.setSourceQuantityText(fact.getName()+"：用量待核实");item.getWarnings().clear();item.getWarnings().add("原用量缺少配方依据，请按实际情况填写");}
+                if("unknown".equals(item.getUnitFamily())){item.setQuantityValue(null);item.setQuantityMin(null);item.setQuantityMax(null);item.setCalculationStatus("NEEDS_ADJUSTMENT");item.getWarnings().add("单位无法安全换算");}
+                group.getItems().add(item);
+            }
+            return group;
+        }
         String raw = dish.getIngredientsAmounts();
         if (raw == null || raw.trim().isEmpty()) raw = dish.getCl();
         BigDecimal basePeople = parseBasePeople(dish.getFl());
