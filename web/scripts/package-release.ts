@@ -1,8 +1,7 @@
-import { execFile } from 'node:child_process';
 import { cp, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
+import { runNpm } from './run-npm.ts';
 import { checkBoundaries } from './check-boundaries.ts';
 import { checkOnlineContract } from './check-online-contract.ts';
 import { checkReleaseResources } from './check-release-resources.ts';
@@ -105,6 +104,6 @@ export async function packageRelease(dist: string, releaseId: string): Promise<{
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const releaseId = process.argv[2] ?? 'candidate-20261009'; validateId(releaseId);
   const env: NodeJS.ProcessEnv = { ...process.env, EATWHAT_RELEASE_ID: releaseId }; delete env.npm_config_http_proxy; delete env.NPM_CONFIG_HTTP_PROXY;
-  const build = await promisify(execFile)('npm', ['run', 'build'], { cwd: projectRoot, env }); process.stdout.write(build.stdout); process.stderr.write(build.stderr);
+  const build = await runNpm(['run', 'build'], { cwd: projectRoot, env }); process.stdout.write(build.stdout); process.stderr.write(build.stderr);
   await reviewCandidate(join(projectRoot, 'dist'), releaseId); const result = await packageRelease(join(projectRoot, 'dist'), releaseId); process.stdout.write(json(result));
 }

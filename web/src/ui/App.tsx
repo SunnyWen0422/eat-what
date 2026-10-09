@@ -60,6 +60,10 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
   const [meal, setMeal] = useState<Meal>('dinner');
   const [persisted, setPersisted] = useState(storageStatus.persisted);
   const writable = ready && storageStatus.writable && connectionStatus?.writable === true && !presentationFailure;
+  const storageNotice = !storageStatus.writable || !connectionStatus?.writable
+    ? connectionStatus?.reason === 'NEWER_SCHEMA' ? errorMessage('NEWER_SCHEMA') : storageStatus.error?.code === 'BLOCKED' ? errorMessage('BLOCKED')
+      : connectionStatus?.readable&&['QUOTA','ABORTED'].includes(connectionStatus.reason??'')?'回收站到期清理未完成，当前只读。原记录仍可查看且未删除，重新打开可重试清理。'
+      : '本地存储不可写，本次内容不会保存。可以临时手选菜谱。' : null;
   const requestRef = useRef<{ key: string; id: string } | null>(null);
 
   useEffect(() => {
@@ -401,9 +405,9 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     <nav aria-label="主导航">{tabs.map(label => <button key={label} aria-current={tab === label ? 'page' : undefined} onClick={() => navigate(label)}>{label}</button>)}</nav>
     <main id="main-content" tabIndex={-1}>
       {!ready && <Notice text="正在读取本地记录…" />}
-      {!storageStatus.writable || !connectionStatus?.writable ? <Notice text={connectionStatus?.reason === 'NEWER_SCHEMA' ? errorMessage('NEWER_SCHEMA') : storageStatus.error?.code === 'BLOCKED' ? errorMessage('BLOCKED') : connectionStatus?.readable&&['QUOTA','ABORTED'].includes(connectionStatus.reason??'')?'回收站到期清理未完成，当前只读。原记录仍可查看且未删除，重新打开可重试清理。':'本地存储不可写，本次内容不会保存。可以临时手选菜谱。'} error /> : null}
+      {storageNotice && <><Notice text={storageNotice} error /><button onClick={() => window.location.reload()}>重新打开本地记录</button></>}
       {!(tab === '今天吃什么' && confirming) && recoveryFeedback}
-      {notice && !(tab === '今天吃什么' && confirming) && <Notice text={notice} error={error} />}
+      {notice && notice !== storageNotice && !(tab === '今天吃什么' && confirming) && <Notice text={notice} error={error} />}
       {backupHint&&<Notice text='建议在“我的 → 数据管理”导出备份，记录只保存在当前浏览器。'/>}
 
       {tab==='今天吃什么'&&recording&&<ActualEditor actions={localActions} snapshots={draft?.dishes.map(d=>d.recipe)??[]} onDone={()=>setRecording(false)}/>}

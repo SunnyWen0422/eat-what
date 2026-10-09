@@ -1,10 +1,28 @@
 import { access, mkdir, readdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { runNpm } from '../scripts/run-npm.ts';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+const simulatedLinks = vi.hoisted(() => new Set<string>());
+vi.mock('node:fs/promises', async importOriginal => {
+  const fs = await importOriginal<typeof import('node:fs/promises')>();
+  return { ...fs,
+    lstat: async (path: string) => { const stat = await fs.lstat(path); return simulatedLinks.has(String(path)) ? Object.assign(stat, { isSymbolicLink: () => true }) : stat; },
+    readdir: async (path: string, options: unknown) => {
+      const entries = await fs.readdir(path, options as { withFileTypes: true });
+      if (Array.isArray(entries) && options && typeof options === 'object' && 'withFileTypes' in options)
+        for (const entry of entries) if (simulatedLinks.has(join(String(path), entry.name))) Object.assign(entry, { isSymbolicLink: () => true });
+      return entries;
+    },
+  };
+});
+// Windows may prohibit creating symlinks. Simulate filesystem metadata rather than weakening production checks.
+async function linkFixture(target: string, path: string, directory = false) {
+  if (process.platform !== 'win32') { await symlink(target, path); return; }
+  if (directory) await mkdir(path); else await writeFile(path, 'simulated link');
+  simulatedLinks.add(path);
+}
 const root = fileURLToPath(new URL('..', import.meta.url));
 const script = join(root, 'scripts/package-release.ts');
 const temporary: string[] = []; const releaseId = 'test-candidate';
@@ -23,7 +41,7 @@ async function fixture() {
   await writeFile(join(dist, 'index.html'), `<html lang="zh-CN"><script type="module" src="/web-assets/${releaseId}/index-abc12345.js"></script><link rel="stylesheet" href="/web-assets/${releaseId}/index-def12345.css"></html>`);
   return dist;
 }
-afterEach(async () => { await Promise.all(temporary.splice(0).map(path => rm(path, { recursive: true, force: true }))); });
+afterEach(async () => { simulatedLinks.clear(); await Promise.all(temporary.splice(0).map(path => rm(path, { recursive: true, force: true }))); });
 describe('candidate release integrity and licensing gates', () => {
   it('rejects a candidate without a completed automated static review', async () => {
     const { packageRelease } = await implementation(); await expect(packageRelease(await fixture(), releaseId)).rejects.toThrow(/review/i);
@@ -54,7 +72,7 @@ describe('candidate release integrity and licensing gates', () => {
     const { reviewCandidate, packageRelease } = await implementation(); const dist = await fixture(); await reviewCandidate(dist, releaseId, root); await writeFile(join(dist, '.env'), 'secret'); await expect(packageRelease(dist, releaseId)).rejects.toThrow(/file|integrity/i);
   });
   it('rejects symlinked assets without following them', async () => {
-    const { reviewCandidate } = await implementation(); const dist = await fixture(); await symlink('/etc/passwd', join(dist, 'web-assets', releaseId, 'escape-abc12345.js')); await expect(reviewCandidate(dist, releaseId, root)).rejects.toThrow(/symbolic/i);
+    const { reviewCandidate } = await implementation(); const dist = await fixture(); await linkFixture('/etc/passwd', join(dist, 'web-assets', releaseId, 'escape-abc12345.js')); await expect(reviewCandidate(dist, releaseId, root)).rejects.toThrow(/symbolic/i);
   });
   it('rejects nonversioned and missing entry references', async () => {
     const { reviewCandidate } = await implementation(); const dist = await fixture(); await writeFile(join(dist, 'index.html'), '<script type="module" src="/assets/index-abc12345.js"></script>'); await expect(reviewCandidate(dist, releaseId, root)).rejects.toThrow(/resource|entry/i);
@@ -91,14 +109,14 @@ it('rejects active markup in a built SVG before candidate review', async () => {
 });
 it('rejects a symbolic releases parent instead of writing through it', async () => {
   const { reviewCandidate, packageRelease } = await implementation(); const dist = await fixture(); await reviewCandidate(dist, releaseId, root);
-  const target = await mkdtemp(join(tmpdir(), 'eatwhat-release-target-')); temporary.push(target); await symlink(target, join(dist, '..', 'release'));
+  const target = await mkdtemp(join(tmpdir(), 'eatwhat-release-target-')); temporary.push(target); await linkFixture(target, join(dist, '..', 'release'), true);
   await expect(packageRelease(dist, releaseId)).rejects.toThrow(/symbolic/i);
 });
 it('rejects the actual emitted SVG missing before the first review receipt', async () => {
   const { reviewCandidate } = await implementation(); const directory = await mkdtemp(join(tmpdir(), 'eatwhat-actual-emitted-')); temporary.push(directory);
   const id = 'test-emitted-candidate'; const dist = join(directory, 'dist');
   const env: NodeJS.ProcessEnv = { ...process.env, EATWHAT_RELEASE_ID: id }; delete env.npm_config_http_proxy; delete env.NPM_CONFIG_HTTP_PROXY;
-  await promisify(execFile)('npm', ['run', 'build', '--', '--outDir', dist, '--emptyOutDir'], { cwd: root, env });
+  await runNpm(['run', 'build', '--', '--outDir', dist, '--emptyOutDir'], { cwd: root, env });
   const assets = join(dist, 'web-assets', id); const names = await readdir(assets);
   const icon = names.find(name => /^category-icons-.*\.svg$/.test(name)); const entry = names.find(name => /^index-.*\.js$/.test(name));
   expect(icon).toBeDefined(); expect(entry).toBeDefined(); const js = await readFile(join(assets, entry!), 'utf8'); expect(js).toContain(`/web-assets/${id}/${icon}`); await rm(join(assets, icon!));

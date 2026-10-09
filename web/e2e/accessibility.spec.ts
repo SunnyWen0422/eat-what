@@ -16,7 +16,7 @@ for (const width of [320, 390, 768, 1440]) test(`responsive ${width}px and 200% 
 });
 
 test('keyboard navigation, dialog Tab trap, Escape, focus return and live status', async ({ page }) => {
-  await directory(page); await page.goto('/'); await page.keyboard.press('Tab'); await expect(page.getByRole('link', { name: '跳到主要内容' })).toBeFocused(); await page.keyboard.press('Enter'); await expect(page.locator('#main-content')).toBeFocused();
+  await directory(page); await page.goto('/'); await expect(page.getByRole('navigation', { name: '主导航' })).toBeVisible(); await page.keyboard.press('Tab'); await expect(page.getByRole('link', { name: '跳到主要内容' })).toBeFocused(); await page.keyboard.press('Enter'); await expect(page.locator('#main-content')).toBeFocused();
   const nav = page.getByRole('button', { name: '我的', exact: true }); await nav.focus(); await page.keyboard.press('Enter'); await expect(page).toHaveURL(/#\/my$/);
   const trigger = page.getByRole('button', { name: '新建自定义菜谱', exact: true }); await trigger.focus(); await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: '新建自定义菜谱' }); await expect(dialog.getByLabel('自定义菜名')).toBeFocused();

@@ -1,8 +1,7 @@
-import { execFile } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
+import { runNpm } from '../scripts/run-npm.ts';
 import { expect, it } from 'vitest';
 
 const forbiddenBinding = /\/api\/dishes|\/recommend|Bearer |https:\/\/(?!react\.dev\/errors\/)(?!["'`])|database-password|userId/;
@@ -16,7 +15,7 @@ it('scanner allows an exact quoted HTTPS scheme token and rejects actual externa
 it('production build excludes historical audit recipes, test fixtures and private endpoint or remote-media bindings', async () => {
   const root = fileURLToPath(new URL('..', import.meta.url));
   const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: 'production' }; delete env.npm_config_http_proxy; delete env.NPM_CONFIG_HTTP_PROXY;
-  const output = await promisify(execFile)('npm', ['run', 'build'], { cwd: root, env });
+  const output = await runNpm(['run', 'build'], { cwd: root, env });
   expect(output.stdout).not.toContain('catalog:build');
   const files: string[] = [];
   async function collect(directory: string): Promise<void> {

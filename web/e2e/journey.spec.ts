@@ -8,7 +8,7 @@ test('four routes, local search, detail, plan and independent actual recording',
   await expect(page.getByRole('button', { name: '生成本餐菜单', exact: true })).toHaveClass('primary');
   await page.getByRole('button', { name: '菜谱', exact: true }).click(); await page.getByLabel('搜索名称或食材').fill('原料原文');
   await page.getByRole('button', { name: `查看详情 ${recipeName}`, exact: true }).click();
-  const detail = page.getByRole('dialog', { name: recipeName }); await expect(detail.getByText('原料原文，不推断用量', { exact: true })).toBeVisible(); await expect(detail.getByText(/许可：未知/)).toBeVisible(); await page.keyboard.press('Escape');
+  const detail = page.getByRole('dialog', { name: recipeName }); await expect(detail.getByRole('listitem').filter({ hasText: '原料原文，不推断用量' })).toBeVisible(); await expect(detail.getByText(/许可：未知/)).toBeVisible(); await page.keyboard.press('Escape');
   await choose(page); await expect(page.locator('button.primary')).toHaveCount(1); await page.getByRole('button', { name: '保存到日历', exact: true }).click();
   await page.getByRole('button', { name: '保存计划', exact: true }).click(); await expect(page.getByText('计划已保存', { exact: true })).toBeVisible(); await expect(page.getByText('实际饮食为空', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '记录本餐实际饮食', exact: true }).click(); await page.getByRole('button', { name: '确认记录实际', exact: true }).click(); await expect(page.getByText('实际记录已保存', { exact: true })).toBeVisible();

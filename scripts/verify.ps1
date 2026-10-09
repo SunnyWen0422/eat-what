@@ -16,11 +16,10 @@ if (-not $python) {
 & $python -c 'import cairosvg; assert callable(cairosvg.svg2png)'
 if ($LASTEXITCODE -ne 0) { throw 'CairoSVG and its Cairo runtime are required; see docs/testing/local-verification.md.' }
 Write-Host 'Checking JSON files...'
-Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.json -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
-    ForEach-Object {
-        Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
-    }
+& $python (Join-Path $PSScriptRoot 'check_json_files.py') $root
+if ($LASTEXITCODE -ne 0) { throw 'Source JSON validation failed.' }
+# Apply the same dependency/output/private-runtime boundary to all source scans.
+$excludedTrees = '\\(?:\.git|target|node_modules|dist|release|coverage|playwright-report|test-results|\.mysql-test-data|\.local-v4|\.local-maturity[^\\]*|\.test-artifacts|\.test-venv|__pycache__|\.pytest_cache|tmppytest-[^\\]+)\\'
 
 Write-Host 'Checking for known embedded credentials...'
 $forbidden = @(
@@ -34,7 +33,7 @@ Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object {
         $textExtensions -contains $_.Extension -and
         $_.Name -notmatch '^application(?:-.*)?\.yml$' -and
-        $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\'
+        $_.FullName -notmatch $excludedTrees
     } |
     ForEach-Object {
         $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName
@@ -48,7 +47,7 @@ Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
 Write-Host 'Checking JavaScript syntax...'
 $node = (Get-Command node -ErrorAction Stop).Source
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\|\\node_modules\\' } |
+    Where-Object { $_.FullName -notmatch $excludedTrees } |
     ForEach-Object {
         & $node --check $_.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -62,7 +61,7 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 
 Write-Host 'Checking Python syntax...'
 $pythonFiles = Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.py -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
+    Where-Object { $_.FullName -notmatch $excludedTrees } |
     Select-Object -ExpandProperty FullName
 if ($pythonFiles.Count -gt 0) {
     & $python -m py_compile @pythonFiles
@@ -100,6 +99,15 @@ try {
     }
     if ($LASTEXITCODE -ne 0) { throw 'Assistant and template regression tests failed.' }
 } finally { Pop-Location }
+
+if (Test-Path -LiteralPath (Join-Path $root 'web/package.json')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $root 'web/node_modules/typescript'))) {
+        throw 'Web dependencies are required: run npm ci in web, then retry verification.'
+    }
+    Write-Host 'Checking independent web typecheck, regressions, build and boundaries...'
+    & $node (Join-Path $root 'web/scripts/verify.ts')
+    if ($LASTEXITCODE -ne 0) { throw 'Independent web verification failed.' }
+}
 
 Write-Host 'Checking Java tests and package...'
 if ($MavenRepository) { $env:MAVEN_ARGS = ('-Dmaven.repo.local=' + $MavenRepository) }
