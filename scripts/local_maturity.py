@@ -7,9 +7,10 @@ runtime.DATA=ROOT/'.local-maturity-active'
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','serve','status','stop'])
-    parser.add_argument('--keep-alive',action='store_true');parser.add_argument('--backup-zip');parser.add_argument('--quality-bundle');parser.add_argument('--java',default='D:/Java/bin/java.exe');parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');args=parser.parse_args()
+    parser.add_argument('--keep-alive',action='store_true');parser.add_argument('--backup-zip');parser.add_argument('--quality-bundle');parser.add_argument('--java');parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');args=parser.parse_args()
     if args.action=='start':
         if not args.backup_zip or not args.quality_bundle:raise ValueError('Explicit audited backup and governed bundle required')
+        args.java=args.java or 'D:/Java/bin/java.exe'
         from bridge_legacy_local import prepare_source
         args.prepared_source=prepare_source(args.backup_zip,args.quality_bundle)
         print('Backup, quality bundle and migration preflight passed.',flush=True)
@@ -18,7 +19,7 @@ def main():
             while True:time.sleep(1)
         return
     if args.action in ['restart','serve']:
-        state=runtime.read_state();java=runtime.executable_path(args.java)
+        state=runtime.read_state();java=runtime.executable_path(args.java or state.get('javaExecutable') or 'D:/Java/bin/java.exe')
         runtime.stop_owned(state['javaPid'],[str(ROOT/'backend/target/eatwhat-backend-1.0.0.jar').replace('\\','/'),'local-v4','application-local.yml'])
         try:
             connection=runtime.pymysql.connect(host='127.0.0.1',port=state['dbPort'],user='root',password=state['password']);connection.close()

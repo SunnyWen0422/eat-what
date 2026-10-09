@@ -34,7 +34,8 @@ def package(bundle,out):
     copy(ROOT/'recommend-service/.env.example','config/recommend.env.example')
     for source in (ROOT/'recommend-service').rglob('*.py'):
         if '__pycache__' not in source.parts:copy(source,Path('recommend-service')/source.relative_to(ROOT/'recommend-service'))
-    copy(ROOT/'recommend-service/requirements.txt','recommend-service/requirements.txt')
+    for name in ['requirements.txt','prompts/recommendation.txt']:
+        copy(ROOT/'recommend-service'/name,Path('recommend-service')/name)
     for source in (ROOT/'backend/db').rglob('*.sql'):copy(source,Path('backend/db')/source.relative_to(ROOT/'backend/db'))
     copy(ROOT/'backend/db/migration-manifest.json','backend/db/migration-manifest.json')
     for name in ['catalog_quality.py','catalog-quality-rules.json','build_catalog_quality.py','validate_catalog_reviews.py','legacy_dump.py','bridge_legacy_local.py','run_mysql_integration.py','check_test_environment.py']:

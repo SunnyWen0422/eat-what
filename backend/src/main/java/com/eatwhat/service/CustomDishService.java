@@ -81,6 +81,7 @@ public class CustomDishService {
         Dish copy = copyContent(source);
         copy.setUserId(userId); copy.setIsCustom(1);
         personalDishes.insert(copy);
+        if (quality != null) quality.inheritCopy(source, copy);
         writes.save(userId, request.getRequestId(), hash, copy);
         return copy;
     }
@@ -100,6 +101,7 @@ public class CustomDishService {
         if (!Objects.equals(current.getCookMinutes(), next.getCookMinutes()))
             next.setCookTime(next.getCookMinutes() == null ? null : next.getCookMinutes() + "分钟");
         if (personalDishes.update(next) != 1) throw new MealConsumptionService.VersionConflict("菜品已删除或更新，请重新读取");
+        if (quality != null) quality.reconcileEdit(current, next);
         writes.save(userId, request.getRequestId(), hash, next);
         return next;
     }
@@ -176,18 +178,27 @@ public class CustomDishService {
         return dish;
     }
 
+    @Transactional
     public Dish updateDish(Long userId, Long dishId, Dish dish) {
         if (dishId == null) throw new IllegalArgumentException("dishId is required");
         prepareDish(userId, dish);
         dish.setId(dishId);
-        return dishMapper.updateCustomDish(dish) > 0 ? dish : null;
+        Dish current = quality != null && personalDishes != null ? enrich(personalDishes.lockReadable(dishId, userId)) : null;
+        if (dishMapper.updateCustomDish(dish) <= 0) return null;
+        if (current != null && current.getQuality() != null) {
+            // Legacy admin SQL writes a subset of fields; reconcile against what was actually stored.
+            Dish saved = personalDishes.lockReadable(dishId, userId);
+            quality.reconcileEdit(current, saved);
+            return saved;
+        }
+        return dish;
     }
 
     public List<Dish> getCustomDishes(Long userId) {
         if (userId == null) {
             return Collections.emptyList();
         }
-        return personalDishes == null ? dishMapper.selectCustomByUser(userId) : personalDishes.listOwned(userId);
+        return enrich(personalDishes == null ? dishMapper.selectCustomByUser(userId) : personalDishes.listOwned(userId));
     }
 
     public boolean removeCustomDish(Long userId, Long dishId) {

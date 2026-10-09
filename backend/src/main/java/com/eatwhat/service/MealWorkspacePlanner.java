@@ -30,7 +30,7 @@ public class MealWorkspacePlanner {
     public List<Dish> eligible(Long user,MealContext c) {
         if(!metadata.validateCriteria(c.getCriteria()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
         EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolve(c.getCriteria(),preferences.get(user),true);
-        List<Dish> pool=new ArrayList<>(candidates.findForUser(user,null,null,criteria,10000));
+        List<Dish> pool=new ArrayList<>(candidates.findForUser(user,null,null,criteria,Integer.MAX_VALUE));
         if ("breakfast".equals(c.getMealType())) pool=pool.stream().filter(d->Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE")).collect(Collectors.toList());
         Collections.shuffle(pool);
         final EffectiveRecommendationCriteria effective=criteria;

@@ -10,7 +10,20 @@ MODEL_SERVICE_MODULES = {
     'test_workspace_model_transport.py',
     'test_workspace_agent.py',
     'test_workspace_evaluation.py',
+    'test_authorized_catalog.py',
 }
+MODEL_SERVICE_TESTS = {
+    'test_local_v4_runtime.LocalRuntimeTest.test_model_can_be_reused_and_provider_failure_keeps_basic_api_available',
+}
+
+
+def iter_tests(suite):
+    for test in suite:
+        if isinstance(test, unittest.TestSuite):
+            yield from iter_tests(test)
+        else:
+            yield test
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -24,8 +37,12 @@ def main():
         if args.skip_model_service and source.name in MODEL_SERVICE_MODULES:
             skipped.append(source.name)
             continue
-        suite.addTests(loader.loadTestsFromName(source.stem))
-    print('Deferred model-service modules: ' + (', '.join(skipped) or 'none'), flush=True)
+        for test in iter_tests(loader.loadTestsFromName(source.stem)):
+            if args.skip_model_service and test.id() in MODEL_SERVICE_TESTS:
+                skipped.append(test.id())
+                continue
+            suite.addTest(test)
+    print('Deferred model-service modules/tests: ' + (', '.join(skipped) or 'none'), flush=True)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     return 0 if result.wasSuccessful() else 1
 

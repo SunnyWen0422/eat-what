@@ -69,8 +69,7 @@ Page({
   allDishesMap: {},
 
   onLoad(options={}) {
-    this._openMenusRequested=options.menus==='1' || wx.getStorageSync(getUserStorageKey('openPersonalMenus'))
-    wx.removeStorageSync(getUserStorageKey('openPersonalMenus'))
+    this._openMenusRequested=options.menus==='1'
     this.ensureBrowseOwner()
     this.loadPage('meat', 1)
     this.loadCustomMetadata()
@@ -82,7 +81,8 @@ Page({
     const scope = getUserStorageKey('customBrowse')
     if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
     this._browseScope = scope
-    if(this._openMenusRequested){this._openMenusRequested=false;this.onOpenMenus()}
+    const menuIntentKey=getUserStorageKey('openPersonalMenus')
+    if(this._openMenusRequested || wx.getStorageSync(menuIntentKey)){this._openMenusRequested=false;wx.removeStorageSync(menuIntentKey);this.onOpenMenus()}
     const pendingCustom = this.writeJournal().pending('dish:create')
     if (pendingCustom) this.setData({ customPending: true, customForm: { ...emptyCustomForm(), name: pendingCustom.name, type: pendingCustom.type, ingredients: String(pendingCustom.cl || '').replace(/#/g,'\n'), steps: String(pendingCustom.step || '').replace(/#/g,'\n'), cuisineCode: pendingCustom.cuisineCode || '', tagCodes: String(pendingCustom.tagCodes || '').split(',').filter(Boolean), cookMinutes: pendingCustom.cookMinutes || '' } })
     this._planOwnerScope = getUserStorageKey('mealView')
@@ -534,7 +534,7 @@ Page({
     if (pending && !this.data.menuEditingId) this.setData({ menuPending: true, menuName: pending.name, menuPeople: pending.people, selectedIds: pending.dishIds, selectedTotal: pending.dishIds.length, selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: pending.dishIds.includes(d.id) })) })
     return this.loadMenus()
   },
-  onOpenMenuForm(){if(!this.data.menuBusy)this.setData({menuFormVisible:true})},
+  onOpenMenuForm(){if(this.ensureBrowseOwner())this.onNewMenu()},
   onCloseMenus() { if (!this.data.menuBusy) this.setData({ showMenus: false }) },
   onMenuInput(e) { if (this.ensureBrowseOwner() && !this.data.menuBusy && !this.data.menuPending) this.setData({ [e.currentTarget.dataset.field]: e.detail.value }) },
   onMenuDate(e) { if (!this.data.menuBusy) this.setData({ menuDate: e.detail.value }) },
