@@ -41,3 +41,10 @@
 - 验证日志：`work/local-maturity-ui-accepted-verification.log`。
 - 官方编译：`work/local-maturity-20261008/native-compile-ui-reviewed/native-compile.json`。
 - 前后对照：`work/local-maturity-20261008/ui-review-2026-10-09.html`。
+
+
+## 菜名与操作对齐修正
+
+分享和收藏从图片区绝对定位移入菜名标题行；无图时不再保留48px空图片容器。按钮间距8px，与标题间距12px，各保留44×44px触控范围。长标题允许换行，按钮不压缩。
+
+微信390px实测普通菜名、长菜名和1.3倍字体：标题与按钮垂直中心差小于1px，两个按钮同高，无水平重叠。收藏切换后还原。证据在 `work/local-maturity-20261008/native-title-aligned/`；项目verify及官方模板编译通过。最新详情预览目录为 `work/local-maturity-20261008/wechat-preview-title-aligned`，全页对照中的详情图已更新。

@@ -1,7 +1,7 @@
 <!--pages/dish-detail/dish-detail.wxml-->
 <view class="ew-page container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
   <!-- 菜品图片 -->
-  <view class="dish-image-container {{!dish.image ? 'no-image' : ''}}">
+  <view wx:if="{{dish.image}}" class="dish-image-container">
     <image
       wx:if="{{dish.image}}"
       class="dish-image"
@@ -10,19 +10,22 @@
       bindtap="previewImage"
       data-url="{{dish.image}}"
     />
-    <!-- 收藏按钮 -->
-    <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
-      <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
-    </view>
-    <button class="share-btn" open-type="share">
-      <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
-    </button>
   </view>
 
   <!-- 菜品信息 -->
-  <view class="dish-info">
+  <view class="dish-info {{dish.image ? 'with-hero' : ''}}">
     <view class="dish-header">
-      <text class="dish-name">{{dish.name}}</text>
+      <view class="dish-title-row">
+        <text class="dish-name">{{dish.name}}</text>
+        <view class="dish-title-actions">
+          <button class="share-btn" open-type="share">
+            <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
+          </button>
+          <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
+            <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
+          </view>
+        </view>
+      </view>
       <view class="dish-tags" wx:if="{{dish.tags}}">
         <text class="tag" wx:for="{{dish.tagsList}}" wx:key="*this">{{item}}</text>
       </view>

@@ -366,3 +366,12 @@ button.share-btn { left:auto; bottom:auto; width:44px; max-width:44px; box-sizin
 .container .section > .ew-muted { display:block; margin-bottom:10px; }
 .container .detail-bottom { display:flex; flex-direction:column; gap:8px; }
 .container { padding-bottom:calc(156px + env(safe-area-inset-bottom)); }
+
+/* Recipe actions belong to the title, with or without a successfully loaded hero. */
+.container .dish-info { margin-top:0; padding-top:0; }
+.container .dish-info.with-hero { padding-top:20px; }
+.dish-title-row { display:flex; align-items:center; gap:12px; min-width:0; }
+.dish-title-row .dish-name { flex:1; min-width:0; margin:0; overflow-wrap:break-word; }
+.dish-title-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }
+.dish-title-actions .favorite-btn,.dish-title-actions button.share-btn { position:relative; top:auto; right:auto; bottom:auto; left:auto; flex:0 0 44px; width:44px; height:44px; min-height:44px; max-width:44px; margin:0; }
+.dish-title-actions .favorite-status { position:absolute; top:100%; right:0; white-space:nowrap; background:#FFFFFF; border-radius:6px; padding:2px 4px; }
