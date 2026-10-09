@@ -76,11 +76,12 @@ module.exports = function workspacePage(options = {}) {
     data: {
       harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:'',
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
-      pageTitle:options.mode==='assistant'?'这餐的想法':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'帮我安排这餐', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      pageTitle:options.mode==='assistant'?'这餐的想法':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'生成本餐菜单', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
+      peopleInput:'2',peopleError:'',hardExclusionSummary:'正在读取长期忌口',hasHardExclusions:false,hardExclusionsUnavailable:false,advancedVisible:false,
       context: { ...defaultTarget(), people: 2, requirements: '', compositionMode: 'auto', counts: { meat: 1, veg: 1 }, ownedIngredients: [] },
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
-      confirmationVisible: false, confirmationText: '', canConfirm: false, taskMessage: '', mode: options.mode || 'today', fontBase: theme.font.body, fontScale: 1,
+      confirmationVisible: false, confirmationTitle: '', confirmationLabel: '', confirmationText: '', canConfirm: false, taskMessage: '', mode: options.mode || 'today', fontBase: theme.font.body, fontScale: 1,
     },
     async onLoad(params = {}) {
       this._alive = true; this._params = params
@@ -99,9 +100,17 @@ module.exports = function workspacePage(options = {}) {
       if (params.date) target.date = params.date
       if (MEALS.includes(params.mealType)) target.mealType = params.mealType
       this.setData({loading:true,busy:false,errorMessage:'',syncLabel:'',feedbackNotice:'',legacyMeals:[],legacyNotice:'',conflictDraftAvailable:false,context:normalizeContext({...target,people:2}),draft:{dishes:[],history:[],lockedDishIds:[]},linkedPlan:null,actual:null,status:'empty',settingsContext:null,settingsVisible:false,confirmationVisible:false,canConfirm:false})
+      this.setData({peopleInput:'2',peopleError:'',hardExclusionSummary:'正在读取长期忌口',hasHardExclusions:false,hardExclusionsUnavailable:false,advancedVisible:false})
       let people = 2
-      try { const saved = await api.getUserPreferences(); if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; people = saved.defaultPeople || 2 }
-      catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({ syncLabel: '常用人数暂未读到，本餐默认两人' }) }
+      try {
+        const result = await api.getUserPreferences()
+        if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return
+        const saved = result && result.preferences || result || {}, savedPeople = Number(saved.defaultPeople)
+        people = Number.isInteger(savedPeople) && savedPeople >= 1 && savedPeople <= 50 ? savedPeople : 2
+        const version = wx.getStorageSync('recommendationOptionsCurrentVersion') || 1
+        this.setData({hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
+      }
+      catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({ syncLabel: '常用人数暂未读到，本餐默认两人', hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true }) }
       let fontScale = 1
       if (wx.getAppBaseInfo) { const info = wx.getAppBaseInfo(); fontScale = info.fontSizeScaleFactor || (info.fontSizeSetting ? info.fontSizeSetting / 16 : 1) }
       this.store = createWorkspaceStore()
@@ -164,14 +173,25 @@ module.exports = function workspacePage(options = {}) {
       } catch(error) {if(this.current() && scope===this._scope)this.setData({errorMessage:error.message || '导入未完成，旧草稿仍保留'})}
     },
     current() { return this._alive && this._scope === getCurrentUserIdentity() },
-    onShow() {
+    async onShow() {
       if (!this._scope) return
       if (!this.current()) return this.initializeWorkspace(this._params || {})
       const target = resolveActiveTarget(options.mode || 'today', this._params || {}, wx.getStorageSync(getUserStorageKey('activeMealTarget')))
       if (target && (target.date !== this.data.context.date || target.mealType !== this.data.context.mealType)) return this.switchTarget(target,{followToday:options.mode!=='assistant'&&options.mode!=='result'&&!(this._params||{}).date})
       const filterKey=getUserStorageKey('pendingRecommendationCriteria'), filter=wx.getStorageSync(filterKey)
       if(filter && this.store) {wx.removeStorageSync(filterKey);this.store.edit({...this.data.context,criteria:filter});this.renderWorkspace();this.scheduleDraftSave()}
-      if (!this.data.busy) return this.readWorkspace(this.data.context)
+      if (!this.data.busy) { await this.readWorkspace(this.data.context); await this.refreshHardExclusions() }
+    },
+    async refreshHardExclusions() {
+      const scope=this._scope,store=this.store,epoch=this._initEpoch
+      const ticket=this._exclusionRefreshTicket=(this._exclusionRefreshTicket || 0)+1
+      const owns=()=>this.current() && scope===this._scope && store===this.store && epoch===this._initEpoch && ticket===this._exclusionRefreshTicket
+      try {
+        const result=await api.getUserPreferences()
+        if(!owns())return
+        const saved=result && result.preferences || result || {},version=wx.getStorageSync('recommendationOptionsCurrentVersion') || 1
+        this.setData({hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
+      } catch(error) {if(owns())this.setData({hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true})}
     },
     onHide() { this.cancelVoiceInput(); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
     onUnload() { this.disposeControlledHarness();this.disposeMealActual();this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },
@@ -197,6 +217,7 @@ module.exports = function workspacePage(options = {}) {
         linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
         canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced' })
       const context=this.data.context
+      if(!this.data.peopleError)this.setData({peopleInput:String(context.people)})
       this.setData({todayDate:defaultTarget().date,pageTitle:this.data.mode==='assistant'?'这餐的想法':this.data.mode==='result'?'本餐方案':'今天',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
         mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
         compositionLabel:Object.entries(context.counts || {}).filter(([,n])=>Number(n)>0).map(([type,n])=>`${n}${({meat:'荤',veg:'素',soup:'汤',staple:'主食',dessert:'甜品',side:'配菜'})[type] || type}`).join(' · ')})
@@ -216,25 +237,27 @@ module.exports = function workspacePage(options = {}) {
       send(0)
     },
     onPrimaryAction() {
+      if(this.data.primaryDisabled || this.data.loading)return
       const allowed=['onGenerate','onRetryWorkspace','onLoadLatest','onCancelTask','onViewPlan','onViewRecipes','onConfirmPlan','onOpenRequirements']
       if(allowed.includes(this.data.primaryAction))return this[this.data.primaryAction]()
     },
     onOpenRequirements() {
-      if(!this.current() || this.data.busy)return
+      if(!this.current() || this.data.busy || this.data.contextLocked)return
       const w=this.store && this.store.state().workspace
       this._requirementsBinding={scope:this._scope,store:this.store,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
       this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false,errorMessage:''})
     },
     onRequirementsDraftInput(e) {this.setData({requirementsDraft:e.detail.value})},
+    onClearRequirements() {if(!this.data.requirementsSaving)this.setData({requirementsDraft:''})},
     onCancelRequirements() {this.cancelVoiceInput();this.setData({requirementsVisible:false,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false});this._requirementsBinding=null},
     async onApplyRequirements() {
       const binding=this._requirementsBinding,store=this.store,w=store && store.state().workspace
-      if(!binding || this.data.requirementsSaving || !this.current() || binding.store!==store || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!=null && binding.id!==(w && w.id))return
+      if(!binding || this.data.contextLocked || this.data.requirementsSaving || !this.current() || binding.store!==store || binding.scope!==this._scope || binding.date!==this.data.context.date || binding.meal!==this.data.context.mealType || binding.id!=null && binding.id!==(w && w.id))return
       const submitted=this.data.requirementsDraft
       this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:submitted});this.setData({requirementsSaving:true});this.renderWorkspace()
       const ownsSheet=()=>this.current() && this.store===store && this._requirementsBinding===binding && binding.scope===this._scope && binding.date===this.data.context.date && binding.meal===this.data.context.mealType
       try {await this.flushDraft();if(!ownsSheet())return;if(this.data.requirementsDraft!==submitted){this.setData({errorMessage:'先前的内容已保存，新输入仍保留，请再次应用'});this.renderWorkspace();return}this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace()}
-      catch(error){if(ownsSheet())this.setData({errorMessage:error.message || '文字已保留，请重试同步'})}
+      catch(error){if(ownsSheet()){this.renderWorkspace();this.setData({errorMessage:error.message || '文字已保留，请重试同步'})}}
       finally{if(ownsSheet() || this._requirementsBinding===null && this.store===store && this.current())this.setData({requirementsSaving:false})}
     },
     async pollTask() {
@@ -273,6 +296,7 @@ module.exports = function workspacePage(options = {}) {
     },
     async runCommand(command, extra = {}) {
       if (this.data.busy || !this.store || !this.current()) return
+      if(this.data.peopleError && ['generate','regenerate','select'].includes(command))return
       if (getCurrentUserIdentity() === 'guest') return this.onLogin()
       clearTimeout(this._draftTimer); const store = this.store
       this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
@@ -287,32 +311,32 @@ module.exports = function workspacePage(options = {}) {
       if(!this.current() || scope!==this._scope)return
       this.store.edit({...this.data.context,requirements});this.renderWorkspace();return this.runCommand('generate')
     },
-    onGenerate() { return this.runCommand('generate') },
+    onGenerate() { if(!this.data.peopleError)return this.runCommand('generate') },
     onRegenerate() { return this.runCommand('regenerate') },
     onUndo() { return this.runCommand('undo') },
     onCancelTask() { return this.runCommand('cancel') },
     onReplace(e) { return this.runCommand('replace', { dishId: Number(e.currentTarget.dataset.id) }) },
     onKeep(e) { return this.runCommand(e.currentTarget.dataset.locked ? 'release' : 'keep', { dishId: Number(e.currentTarget.dataset.id) }) },
     onConfirmPlan() {
-      if (!this.data.canConfirm || this.data.busy || !this.current()) return
+      if (!this.data.canConfirm || this.data.peopleError || this.data.busy || !this.current()) return
       const state = this.store.state()
-      if (state.linked.plan) {
-        this._confirmation = { scope: this._scope, id: state.workspace.id, revision: state.workspace.revision, planVersion: state.workspace.draft.planVersion, planRevision: state.linked.planRevision }
-        this.setData({ confirmationVisible: true, confirmationText: `原安排：${state.linked.plan.recipeName}\n新方案：${this.data.draft.dishes.map(d => d.name).join('、')}\n日期：${this.data.context.date} ${LABELS[this.data.mealIndex]}` })
-      } else return this.saveConfirmation(state.linked.planRevision || 0)
+      if (!state.linked.plan) return this.saveConfirmation(state.linked.planRevision || 0)
+      this._confirmation = { scope: this._scope, id: state.workspace.id, revision: state.workspace.revision, planVersion: state.workspace.draft.planVersion, planRevision: state.linked.planRevision || 0 }
+      this.setData({ confirmationVisible: true, confirmationTitle:'替换日历中的菜单？', confirmationLabel:'确认替换',
+        confirmationText: `日期：${this.data.context.date} ${LABELS[this.data.mealIndex]} · ${this.data.context.people} 人\n原安排：${state.linked.plan.recipeName || (state.linked.plan.dishDetails || []).map(d=>d.name).join('、')}\n本餐菜单：${this.data.draft.dishes.map(d => d.name).join('、')}\n保存后不会记录为已吃，实际吃过后再记录饮食。` })
     },
-    onCloseConfirmation() { if (!this.data.busy) this.setData({ confirmationVisible: false }) },
+    onCloseConfirmation() { if (!this.data.busy) {this._confirmation=null;this.setData({ confirmationVisible: false })} },
     onApproveReplacement() {
       const capture = this._confirmation, state = this.store && this.store.state()
-      if (!capture || !this.current() || capture.scope !== this._scope || !state.workspace || capture.id !== state.workspace.id || capture.revision !== state.workspace.revision) return
+      if (!capture || !this.data.confirmationVisible || !this.data.canConfirm || this.data.peopleError || !this.current() || capture.scope !== this._scope || !state.workspace || capture.id !== state.workspace.id || capture.revision !== state.workspace.revision) return
       return this.saveConfirmation(capture.planRevision)
     },
     async saveConfirmation(revision) {
       if (this.data.busy || !this.current()) return
       const store = this.store; this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
       try { await store.confirm(revision); if (this.current() && store === this.store) {
-        this.setData({ confirmationVisible: false }); wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord')); wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), Date.now()); await this.readWorkspace(this.data.context)
-      } } catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '保存结果待确认，请重试原请求' }) } }
+        this._confirmation=null;this.setData({ confirmationVisible: false }); wx.removeStorageSync(getUserStorageKey('pendingRecipeRecord')); wx.setStorageSync(getUserStorageKey('needRefreshCalendar'), Date.now()); await this.readWorkspace(this.data.context)
+      } } catch (error) { if (this.current() && store === this.store) { this._confirmation=null;this.setData({confirmationVisible:false});this.renderWorkspace(); this.setData({ errorMessage: error.message || '保存结果待确认，请重试原请求' }) } }
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onRetryWorkspace() {
@@ -331,12 +355,28 @@ module.exports = function workspacePage(options = {}) {
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     onRestoreLocalDraft() { if (this.current() && this._preservedContext) { this.store.edit(this._preservedContext); this.renderWorkspace(); this.setData({ conflictDraftAvailable: false }); this.scheduleDraftSave() } },
+    onPeopleInput(e) {
+      if(!this.current() || !this.store || this.data.loading || this.data.contextLocked || this.data.busy)return
+      this.onCloseConfirmation()
+      const value=e.detail.value,people=Number(value)
+      if(!String(value).trim() || !Number.isInteger(people) || people<1 || people>50){
+        this.setData({peopleInput:value,peopleError:'人数应为 1 至 50 的整数'})
+        this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation(this.data));return
+      }
+      this.setData({peopleError:''});this.store.edit({...this.data.context,people});this.renderWorkspace();this.scheduleDraftSave()
+    },
+    onPeopleStep(e) {
+      const delta=Number(e.currentTarget.dataset.delta)
+      if(delta!==1 && delta!==-1)return
+      return this.onPeopleInput({detail:{value:String(Math.max(1,Math.min(50,this.data.context.people+delta)))}})
+    },
+    onToggleAdvanced() {if(this.current() && !this.data.busy)this.setData({advancedVisible:!this.data.advancedVisible})},
     onOpenMealSettings() {
-      if (!this.current() || this.data.busy) return
-      const c = this.data.settingsContext || clone(this.data.context)
+      if (!this.current() || this.data.busy || this.data.contextLocked) return
+      const c = clone(this.data.context)
       this.setData({ settingsVisible: true, settingsContext: c, ownedText: c.ownedIngredients.join('、'), settingsError: '' }); this.renderCounts()
     },
-    onCloseMealSettings() { if (!this.data.busy) this.setData({ settingsVisible: false }) },
+    onCloseMealSettings() { if (!this.data.busy) this.setData({ settingsVisible: false,settingsContext:null }) },
     onPeopleSetting(e) { this.setData({ 'settingsContext.people': e.detail.value }) },
     onTimeSetting(e) { this.setData({ 'settingsContext.totalCookMinutes': e.detail.value || null }) },
     onOwnedSetting(e) { this.setData({ ownedText: e.detail.value }) },
@@ -349,7 +389,7 @@ module.exports = function workspacePage(options = {}) {
     },
     onRestoreAuto() { try { const c = normalizeContext({ ...this.data.settingsContext, compositionMode: 'auto' }); this.setData({ settingsContext: c }); this.renderCounts() } catch (error) { this.setData({ settingsError: error.message }) } },
     async onApplyMealSettings() {
-      if (!this.current()) return
+      if (!this.current() || this.data.contextLocked) return
       try { const c = normalizeContext({ ...this.data.settingsContext, totalCookMinutes: this.data.settingsContext.totalCookMinutes ? Number(this.data.settingsContext.totalCookMinutes) : null, ownedIngredients: this.data.ownedText.split(/[、,，\n]/).map(s => s.trim()).filter(Boolean) });
         this.store.edit(c); this.setData({ settingsVisible: false, settingsContext: null }); this.renderWorkspace(); this.scheduleDraftSave()
       } catch (error) { this.setData({ settingsError: error.message }) }

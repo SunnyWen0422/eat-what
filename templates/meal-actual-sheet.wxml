@@ -1,5 +1,6 @@
-<ui-sheet visible="{{actualVisible}}" title="{{actualTitle}}" busy="{{actualBusy}}" bind:close="closeMealActual">
-  <text class="ew-muted">确认吃过什么，再计入饮食回顾。</text>
+<ui-sheet visible="{{actualVisible}}" title="记录饮食" busy="{{actualBusy}}" bind:close="closeMealActual">
+  <text class="ew-label">{{actualTitle}}</text>
+  <text class="ew-muted">只记录实际吃过的内容，用于饮食回顾；保存计划不会计入。</text>
   <view wx:if="{{actualPlanNames}}" class="actual-plan"><text class="ew-label">本餐安排</text><text class="ew-reading">{{actualPlanNames}}</text></view>
   <view wx:if="{{actualPlanChanged}}" class="ew-error">之前显示：{{actualOriginalPlanNames || '原版本'}}。安排已变化，请核对后记录。</view>
   <view wx:if="{{actualError}}" class="ew-notice">{{actualError}}</view>
@@ -15,5 +16,5 @@
     <ui-field wx:if="{{actualMode === 'changed'}}" label="实际吃过的菜品 / 外食" value="{{actualText}}" maxlength="2000" disabled="{{actualBusy || !actualCanRecord}}" bind:change="onActualText" />
     <text wx:if="{{!actualCanRecord}}" class="ew-muted">未来餐次不能提前记录吃过。</text>
   </block>
-  <ui-button wx:if="{{!actualLoading && !actualUnknown}}" slot="footer" label="{{actualMode === 'skipped' ? '确认未按计划' : '确认实际用餐'}}" loading="{{actualBusy}}" disabled="{{actualBusy || actualNeedsReload || (!actualCanRecord && actualMode !== 'skipped') || (actualMode === 'byPlan' && actualPlanChanged)}}" bind:action="onConfirmActual" />
+  <ui-button wx:if="{{!actualLoading && !actualUnknown}}" slot="footer" label="{{actualMode === 'skipped' ? '确认未按计划' : '记录饮食'}}" loading="{{actualBusy}}" disabled="{{actualBusy || actualNeedsReload || (!actualCanRecord && actualMode !== 'skipped') || (actualMode === 'byPlan' && actualPlanChanged)}}" bind:action="onConfirmActual" />
 </ui-sheet>
