@@ -9,6 +9,7 @@ import java.util.Date;
  */
 @Data
 public class Dish {
+    private com.eatwhat.dto.CatalogQuality quality;
 
     @JsonProperty(value = "contentVersion", access = JsonProperty.Access.READ_ONLY)
     public String getContentVersion() { return com.eatwhat.util.DishContentVersion.of(this); }

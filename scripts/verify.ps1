@@ -17,7 +17,7 @@ if (-not $python) {
 if ($LASTEXITCODE -ne 0) { throw 'CairoSVG and its Cairo runtime are required; see docs/testing/local-verification.md.' }
 Write-Host 'Checking JSON files...'
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.json -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
     ForEach-Object {
         Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
     }
@@ -34,7 +34,7 @@ Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object {
         $textExtensions -contains $_.Extension -and
         $_.Name -notmatch '^application(?:-.*)?\.yml$' -and
-        $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\'
+        $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\'
     } |
     ForEach-Object {
         $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $_.FullName
@@ -48,7 +48,7 @@ Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
 Write-Host 'Checking JavaScript syntax...'
 $node = (Get-Command node -ErrorAction Stop).Source
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.js -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\|\\node_modules\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\|\\node_modules\\' } |
     ForEach-Object {
         & $node --check $_.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -62,7 +62,7 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 
 Write-Host 'Checking Python syntax...'
 $pythonFiles = Get-ChildItem -LiteralPath $root -Recurse -File -Filter *.py -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
+    Where-Object { $_.FullName -notmatch '\\.git\\|\\target\\|\\.mysql-test-data\\|\\.local-v4\\|\\.local-maturity[^\\]*\\|\\.test-artifacts\\|\\.test-venv\\|\\__pycache__\\|\\.pytest_cache\\|\\tmppytest-[^\\]+\\' } |
     Select-Object -ExpandProperty FullName
 if ($pythonFiles.Count -gt 0) {
     & $python -m py_compile @pythonFiles

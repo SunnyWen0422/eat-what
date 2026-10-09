@@ -43,3 +43,9 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .item-row { flex-wrap:wrap; gap:6px; }.item-row .ew-grow { min-width:110px; }.item-row .ew-link { flex:0 0 auto; }
 
 .shopping-bottom { position:fixed; left:0; right:0; bottom:0; z-index:35; background:{{background}}; border-top:1px solid {{divider}}; }
+
+.shopping-page button.check { width:44px; max-width:44px; flex:0 0 44px; }
+.shopping-page .ew-tabs { margin:12px 0; }
+.shopping-page .shopping-bottom > ui-button { flex:1; min-width:0; }
+
+.shopping-page button.compact { width:auto; max-width:80px; flex:0 0 auto; }

@@ -61,7 +61,7 @@ public final class MealWorkspaceRules {
         return recipeValues(a).equals(recipeValues(b));
     }
     private static List<Object> recipeValues(Dish d) {
-        List<Object> values=new ArrayList<>(Arrays.asList(d.getId(),d.getName(),d.getType(),d.getCl(),d.getFl(),d.getStep(),d.getSteps(),d.getStepImages(),d.getIngredientsAmounts(),d.getTips(),d.getMethods(),d.getCuisineCode(),d.getTagCodes(),d.getCookMinutes()));
+        List<Object> values=new ArrayList<>(Arrays.asList(d.getId(),d.getName(),d.getType(),d.getCl(),d.getFl(),d.getStep(),d.getSteps(),d.getStepImages(),d.getIngredientsAmounts(),d.getTips(),d.getMethods(),d.getCuisineCode(),d.getTagCodes(),d.getCookMinutes(),d.getQuality()==null?null:d.getQuality().getContentHash()));
         values.replaceAll(v->v==null?"":v);return values;
     }
     public static String requirementsFingerprint(MealContext c) { return com.eatwhat.util.WorkflowRequestHash.sha256(c.getRequirements().trim()); }

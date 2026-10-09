@@ -132,7 +132,7 @@ test('a replaced workspace initialization invalidates a pending history import',
   await page.switchTarget(previous)
   pending.resolve(session)
   await opening
-  assert.deepEqual(f.memory.get('A:activeMealTarget'), previous)
+  assert.deepEqual(f.memory.get('A:activeMealTarget'), {...previous,selectedOn:require('../utils/meal-workspace').defaultTarget().date})
   assert.equal(page.data.context.date, previous.date)
   assert.equal(page.data.context.mealType, previous.mealType)
   assert.equal(f.calls.length, 0)

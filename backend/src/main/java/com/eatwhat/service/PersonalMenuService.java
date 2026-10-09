@@ -16,6 +16,10 @@ import java.util.stream.Collectors;
 
 @Service
 public class PersonalMenuService {
+    private DishQualityService quality;
+    @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
+    private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
+    private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
     private final RecipeMapper menus;
     private final PersonalDishMapper dishes;
     private final MealConsumptionMapper locks;
@@ -90,7 +94,7 @@ public class PersonalMenuService {
         if(ids==null || ids.isEmpty() || ids.size()>10)throw conflict("菜单菜品无效，请重新编辑保存");
         Map<Long,Dish> current=new HashMap<>();
         // Fixed lock order avoids deadlocks for menus containing the same dishes in different orders.
-        for(Long id:new TreeSet<>(ids)) { Dish dish=dishes.lockReadable(id,user);if(dish==null)throw conflict("菜单中的菜品已删除、下架或不可访问，请重新编辑菜单");current.put(id,dish); }
+        for(Long id:new TreeSet<>(ids)) { Dish dish=enrich(dishes.lockReadable(id,user));if(dish==null)throw conflict("菜单中的菜品已删除、下架或不可访问，请重新编辑菜单");current.put(id,dish); }
         return ids.stream().map(current::get).collect(Collectors.toList());
     }
     private void lock(Long user) { if(user==null || locks.lockUser(user)==null)throw new IllegalArgumentException("用户不存在"); }

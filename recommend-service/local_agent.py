@@ -70,7 +70,7 @@ def run(task:Task,x_service_token:str=Header(default='')):
     if task.maxModelRequests is not None and not 1<=task.maxModelRequests<=20:raise HTTPException(400)
     try:
         catalog=Path(__file__).resolve().parents[1]/'backend/src/main/resources/recommendation-metadata.json'
-        workspace={**task.workspace,'recommendationOptions':json.loads(catalog.read_text(encoding='utf-8'))['groups']}
+        workspace={**task.workspace,'recommendationOptions':task.workspace.get('recommendationOptions') or json.loads(catalog.read_text(encoding='utf-8'))['groups']}
         return workspace_agent.run_task(workspace,task.userId,model=BudgetedModel(task.maxModelRequests))
     except Exception as error:
         with lock:

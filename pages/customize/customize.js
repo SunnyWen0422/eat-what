@@ -68,7 +68,9 @@ Page({
   // 全局缓存所有加载过的菜品（按 id），跨分类共享
   allDishesMap: {},
 
-  onLoad() {
+  onLoad(options={}) {
+    this._openMenusRequested=options.menus==='1' || wx.getStorageSync(getUserStorageKey('openPersonalMenus'))
+    wx.removeStorageSync(getUserStorageKey('openPersonalMenus'))
     this.ensureBrowseOwner()
     this.loadPage('meat', 1)
     this.loadCustomMetadata()
@@ -80,6 +82,7 @@ Page({
     const scope = getUserStorageKey('customBrowse')
     if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
     this._browseScope = scope
+    if(this._openMenusRequested){this._openMenusRequested=false;this.onOpenMenus()}
     const pendingCustom = this.writeJournal().pending('dish:create')
     if (pendingCustom) this.setData({ customPending: true, customForm: { ...emptyCustomForm(), name: pendingCustom.name, type: pendingCustom.type, ingredients: String(pendingCustom.cl || '').replace(/#/g,'\n'), steps: String(pendingCustom.step || '').replace(/#/g,'\n'), cuisineCode: pendingCustom.cuisineCode || '', tagCodes: String(pendingCustom.tagCodes || '').split(',').filter(Boolean), cookMinutes: pendingCustom.cookMinutes || '' } })
     this._planOwnerScope = getUserStorageKey('mealView')
@@ -531,6 +534,7 @@ Page({
     if (pending && !this.data.menuEditingId) this.setData({ menuPending: true, menuName: pending.name, menuPeople: pending.people, selectedIds: pending.dishIds, selectedTotal: pending.dishIds.length, selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: pending.dishIds.includes(d.id) })) })
     return this.loadMenus()
   },
+  onOpenMenuForm(){if(!this.data.menuBusy)this.setData({menuFormVisible:true})},
   onCloseMenus() { if (!this.data.menuBusy) this.setData({ showMenus: false }) },
   onMenuInput(e) { if (this.ensureBrowseOwner() && !this.data.menuBusy && !this.data.menuPending) this.setData({ [e.currentTarget.dataset.field]: e.detail.value }) },
   onMenuDate(e) { if (!this.data.menuBusy) this.setData({ menuDate: e.detail.value }) },
@@ -583,7 +587,7 @@ Page({
       if (!this.isBrowseCurrent(identity, epoch)) return
       this.addToGlobalCache(refreshed)
       const recipeText = require('../../utils/personal-recipes').editableRecipeText
-      const menuReviewDishes = refreshed.map(d => ({ ...d, reviewIngredients: recipeText(d.ingredientsAmounts || d.cl), reviewSteps: recipeText(d.steps || d.step) }))
+      const menuReviewDishes = refreshed.map(d => ({ ...d, reviewIngredients: (require('../../utils/recipe-quality').presentRecipeQuality(d) || {}).ingredientLines || recipeText(d.ingredientsAmounts || d.cl), reviewSteps: recipeText(d.steps || d.step) }))
       const unavailable = refreshed.some(d => d.unavailable), changed = refreshed.some(d => d.changed)
       const menuReviewNotice = pending ? '上次保存结果未确认，重试会使用原内容。' : unavailable ? '部分菜品已不可用，仍保留在已选中。请移除或替换后再保存。' : changed ? '菜单菜谱内容有变化，以下为最新内容。请核对后点保存菜单，确认更新快照。' : '已读取当前菜谱。保存菜单后才会更新组合和快照。'
       this._menuVersion = pending ? pending.expectedVersion : menu.version
@@ -591,7 +595,7 @@ Page({
     } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单读取失败') }) }
     finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuBusy: false }) }
   },
-  onNewMenu() { if (!this.data.menuBusy && !this.data.menuPending) { this._menuVersion = null; this.setData({ menuEditingId: null, menuName: '', menuPeople: 2, menuReviewDishes: [], menuReviewNotice: '' }) } },
+  onNewMenu() { if (!this.data.menuBusy && !this.data.menuPending) { this._menuVersion = null; this.setData({ menuFormVisible:true,menuEditingId: null, menuName: '', menuPeople: 2, menuReviewDishes: [], menuReviewNotice: '' }) } },
   async onApplyMenu(e) {
     if (!this.ensureBrowseOwner() || this.data.menuBusy) return
     const menu = this.data.menus.find(item => String(item.id) === String(e.currentTarget.dataset.id))

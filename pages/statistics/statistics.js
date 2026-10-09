@@ -34,6 +34,7 @@ Page({
       }
     } finally { if (current()) this.setData({ loading: false }) }
   },
+  onToggleProvenance(){this.setData({showProvenance:!this.data.showProvenance})},
   onMode(e) { this.setData({ periodMode: e.currentTarget.dataset.mode }); this.loadStatistics() },
   move(amount) { const current = flow.parseDay(this.data.selectedDate); const date = this.data.periodMode === 'week' ? flow.shiftDay(this.data.selectedDate, amount * 7) : flow.formatDay(new Date(current.getFullYear(), current.getMonth() + amount, 1, 12)); if (date > flow.today()) return wx.showToast({ title: '未来用餐尚未记录', icon: 'none' }); this.setData({ selectedDate: date }); this.loadStatistics() },
   onPrevMonth() { this.move(-1) }, onNextMonth() { this.move(1) }, onCurrent() { this.setData({ selectedDate: flow.today() }); this.loadStatistics() },

@@ -9,6 +9,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 @Service
 public class MealWorkspaceAgentGateway {
+    @org.springframework.beans.factory.annotation.Autowired
+    private WorkspaceAgentContextService taskContext;
     private final String baseUrl;
     private final String token;
     private final RestTemplate http;
@@ -25,7 +27,9 @@ public class MealWorkspaceAgentGateway {
         AiProtectionService.Decision decision=protection.acquire(user,"workspace",w.getContext().getRequirements().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
         if(!decision.isAllowed())throw new IllegalStateException("智能理解请求较多，请稍后重试");
         try {
-            Map<String,Object> payload=new LinkedHashMap<>();payload.put("workspace",w);payload.put("userId",user);
+            Map<String,Object> body=json.convertValue(w,Map.class);
+            if(taskContext!=null){Map<String,Object> context=taskContext.build(user,w);body.put("agentContext",context);body.put("recommendationOptions",context.get("recommendationOptions"));}
+            Map<String,Object> payload=new LinkedHashMap<>();payload.put("workspace",body);payload.put("userId",user);
             HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("X-Service-Token",token);
             String response=http.postForObject(baseUrl+"/internal/v4/meal-task",new HttpEntity<>(payload,headers),String.class);
             return json.readValue(response,Map.class);

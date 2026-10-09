@@ -57,3 +57,16 @@ test('a create racing another device retains input and requires explicit conflic
  f.api.createMealWorkspace=async()=>({id:'existing',revision:2,context:normalizeContext({date:'2026-10-03',mealType:'lunch',people:3}),draft:{planVersion:0,dishes:[]}})
  await f.store.save();assert.equal(f.store.state().context.people,4);assert.equal(f.store.state().syncStatus,'conflict');await assert.rejects(f.store.command('generate'),/最新/)
 })
+
+test('server materializing empty criteria does not create a false first-meal conflict',async()=>{
+ const f=fixture();f.api.getMealWorkspace=async()=>({workspace:null});await f.store.load('2026-10-03','lunch')
+ f.api.createMealWorkspace=async(body)=>({id:'new',revision:1,context:{...body.context,criteria:{cuisineCodes:[],includeTagCodes:[],excludeTagCodes:[],excludedIngredients:[],maxCookMinutes:null}},draft:{planVersion:0,dishes:[]}})
+ await f.store.save();assert.equal(f.store.state().syncStatus,'synced')
+ let generated=false;f.api.commandMealWorkspace=async(id,body)=>{generated=body.command==='generate';return {...f.store.state().workspace,revision:2}}
+ await f.store.command('generate');assert.equal(generated,true)
+})
+test('a different server constraint still blocks a racing create',async()=>{
+ const f=fixture();f.api.getMealWorkspace=async()=>({workspace:null});await f.store.load('2026-10-03','lunch')
+ f.api.createMealWorkspace=async(body)=>({id:'other',revision:1,context:{...body.context,criteria:{excludedIngredients:['花生']}},draft:{planVersion:0,dishes:[]}})
+ await f.store.save();assert.equal(f.store.state().syncStatus,'conflict');await assert.rejects(f.store.command('generate'),/最新/)
+})

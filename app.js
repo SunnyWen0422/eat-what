@@ -18,83 +18,46 @@ App({
     this.doLogin()
   },
 
-  // 执行登录
+  // One visible login attempt has one Promise and one identity generation.
   doLogin() {
-    // 存储登录完成状态，供页面等待
-    this._loginResolve = null
-    this._loginPromise = new Promise((resolve) => {
-      this._loginResolve = resolve
-    })
-    // 超时保护：最多等 8 秒
-    this._loginTimer = setTimeout(() => {
-      console.log('⏰ 登录超时，释放等待')
-      this.globalData.loginReady = true
-      if (this._loginResolve) this._loginResolve()
-    }, 8000)
-
-    if (!config.ENABLE_LOGIN) {
-      console.log('登录功能已禁用')
-      this._markLoginReady()
-      this.precacheDishes()
-      return
+    if (this._loginActive && this._loginPromise) return this._loginPromise
+    const epoch = this._loginEpoch = (this._loginEpoch || 0) + 1
+    this._loginActive = true; this.globalData.loginReady = false
+    this._loginPromise = new Promise(resolve => { this._loginResolve = resolve })
+    this._loginTimer = setTimeout(() => this._markLoginReady({ success: false, reason: 'timeout' }, epoch), 8000)
+    if (!config.ENABLE_LOGIN) this._markLoginReady({ success: false, reason: 'disabled' }, epoch)
+    else {
+      const token = wx.getStorageSync('token'), user = wx.getStorageSync('userInfo')
+      if (token && user) {
+        this.globalData.userInfo = user; this.globalData.isLoggedIn = true
+        this._markLoginReady({ success: true, reason: 'cached' }, epoch); this.precacheDishes(); this._verifyTokenLazy(token)
+      } else { this.globalData.isLoggedIn = false; this._slowLogin(epoch) }
     }
-
-    // 快速路径：有缓存 token → 秒开，后台静默验证
-    const cachedToken = wx.getStorageSync('token')
-    const cachedUser = wx.getStorageSync('userInfo')
-    if (cachedToken && cachedUser) {
-      this.globalData.userInfo = cachedUser
-      this.globalData.isLoggedIn = true
-      console.log('⚡ 使用缓存 token，秒开')
-      this._markLoginReady()
-      this.precacheDishes()
-      // 后台验证，失败也不影响当前使用（api.js 的 401 兜底会处理）
-      this._verifyTokenLazy(cachedToken)
-      return
-    }
-
-    // 无缓存 token：游客模式，走完整登录
-    this.globalData.isLoggedIn = false
-    console.log('👤 游客模式，开始登录')
-    this._slowLogin()
+    return this._loginPromise
   },
-
-  // 内部：标记登录就绪
-  _markLoginReady() {
-    this.globalData.loginReady = true
+  _loginCurrent(epoch) { return this._loginActive && epoch === this._loginEpoch },
+  _markLoginReady(result = { success: false, reason: 'failed' }, epoch = this._loginEpoch) {
+    if (!this._loginCurrent(epoch)) return
+    this._loginActive = false; this.globalData.loginReady = true
     clearTimeout(this._loginTimer)
-    if (this._loginResolve) this._loginResolve()
+    if (this._loginResolve) this._loginResolve(result)
+    this._loginResolve = null
   },
-
-  _slowLogin() {
-    if (/^http:\/\/127\.0\.0\.1:/.test(config.getApiBaseUrl())) {
-      return api.login({code:'local-v4'}).then(result => {
-        if(result.success){wx.setStorageSync('token',result.token);wx.setStorageSync('userInfo',result.user);this.globalData.userInfo=result.user;this.globalData.isLoggedIn=true;this.precacheDishes()}
-      }).catch(() => console.warn('local_login_unavailable')).finally(() => this._markLoginReady())
+  _slowLogin(epoch) {
+    const send = async code => {
+      try {
+        const result = await api.login({ code })
+        if (!this._loginCurrent(epoch)) return
+        if (result && result.success && result.token && result.user) {
+          wx.setStorageSync('token', result.token); wx.setStorageSync('userInfo', result.user)
+          this.globalData.userInfo = result.user; this.globalData.isLoggedIn = true
+          this._markLoginReady({ success: true, reason: 'logged_in' }, epoch); this.precacheDishes()
+        } else this._markLoginReady({ success: false, reason: 'rejected' }, epoch)
+      } catch (_) { this._markLoginReady({ success: false, reason: 'unavailable' }, epoch) }
     }
-    this.globalData.isLoggedIn = false
-    wx.login({
-      success: async (res) => {
-        if (res.code) {
-          try {
-            const result = await require('./utils/api').login({ code: res.code })
-            if (result.success) {
-              wx.setStorageSync('token', result.token)
-              wx.setStorageSync('userInfo', result.user)
-              this.globalData.userInfo = result.user
-              this.globalData.isLoggedIn = true
-              console.log('登录成功' + (result.isNewUser ? '(新用户)' : '(老用户)'))
-              this.precacheDishes()
-            }
-          } catch (err) { console.error('登录失败:', err) }
-        }
-        this._markLoginReady()
-      },
-      fail: (err) => {
-        console.error('wx.login失败:', err)
-        this._markLoginReady()
-      }
-    })
+    if (/^http:\/\/127\.0\.0\.1:/.test(config.getApiBaseUrl())) return send('local-v4')
+    wx.login({ success: res => { if (!this._loginCurrent(epoch)) return; if (res.code) return send(res.code); this._markLoginReady({ success: false, reason: 'no_code' }, epoch) },
+      fail: () => this._markLoginReady({ success: false, reason: 'platform_rejected' }, epoch) })
   },
 
   // 后台静默验证 token 有效性
@@ -104,6 +67,7 @@ App({
       console.log('✅ Token 验证有效')
     } catch (e) {
       console.log('⚠️ 缓存 Token 已失效，清除后下次启动重新登录')
+      if (wx.getStorageSync('token') !== token) return
       try {
         wx.removeStorageSync('token')
         wx.removeStorageSync('userInfo')

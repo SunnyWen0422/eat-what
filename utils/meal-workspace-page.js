@@ -1,7 +1,7 @@
 const api = require('./api')
 const theme = require('./ui-tokens')
 const { getCurrentUserIdentity, getUserStorageKey } = require('./util')
-const { createWorkspaceStore, defaultTarget, normalizeContext, requestId } = require('./meal-workspace')
+const { createWorkspaceStore, defaultTarget, resolveActiveTarget, normalizeContext, requestId } = require('./meal-workspace')
 const { beginShoppingSelection } = require('./shopping-list')
 const clone = value => JSON.parse(JSON.stringify(value))
 const MEALS = ['breakfast', 'lunch', 'dinner']
@@ -93,7 +93,7 @@ module.exports = function workspacePage(options = {}) {
       if(this.disposeMealActual)this.disposeMealActual();this.setData({actualVisible:false,actualBusy:false});if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this.setData({requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
       this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
-      const target = { ...defaultTarget(), ...(wx.getStorageSync(getUserStorageKey('activeMealTarget')) || {}) }
+      const target = resolveActiveTarget(options.mode || 'today', params, wx.getStorageSync(getUserStorageKey('activeMealTarget')))
       const pendingPlan = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
       if (pendingPlan) { target.date = pendingPlan.date; target.mealType = pendingPlan.mealType }
       if (params.date) target.date = params.date
@@ -125,6 +125,11 @@ module.exports = function workspacePage(options = {}) {
       }
       const selected = wx.getStorageSync(getUserStorageKey('workspaceSelectedDishes'))
       if (selected && selected.date === target.date && selected.mealType === target.mealType && this.current()) {
+        const latest=this.store.state().workspace
+        if(Object.prototype.hasOwnProperty.call(selected,'expectedWorkspaceId') && ((latest?latest.id:null)!==selected.expectedWorkspaceId || (latest?latest.revision:null)!==selected.expectedWorkspaceRevision)) {
+          this.setData({errorMessage:'本餐已在另一处变化，请核对最新安排后重新加入菜品。原方案和选菜意图都已保留。'})
+          return
+        }
         const selection = { dishIds: selected.dishIds }
         if (selected.menuId != null) {
           if (selected.menuDate !== target.date || selected.menuMealType !== target.mealType ||
@@ -162,8 +167,8 @@ module.exports = function workspacePage(options = {}) {
     onShow() {
       if (!this._scope) return
       if (!this.current()) return this.initializeWorkspace(this._params || {})
-      const target = wx.getStorageSync(getUserStorageKey('activeMealTarget'))
-      if (target && (target.date !== this.data.context.date || target.mealType !== this.data.context.mealType)) return this.switchTarget(target)
+      const target = resolveActiveTarget(options.mode || 'today', this._params || {}, wx.getStorageSync(getUserStorageKey('activeMealTarget')))
+      if (target && (target.date !== this.data.context.date || target.mealType !== this.data.context.mealType)) return this.switchTarget(target,{followToday:options.mode!=='assistant'&&options.mode!=='result'&&!(this._params||{}).date})
       const filterKey=getUserStorageKey('pendingRecommendationCriteria'), filter=wx.getStorageSync(filterKey)
       if(filter && this.store) {wx.removeStorageSync(filterKey);this.store.edit({...this.data.context,criteria:filter});this.renderWorkspace();this.scheduleDraftSave()}
       if (!this.data.busy) return this.readWorkspace(this.data.context)
@@ -192,7 +197,7 @@ module.exports = function workspacePage(options = {}) {
         linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
         canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced' })
       const context=this.data.context
-      this.setData({pageTitle:this.data.mode==='assistant'?'这餐的想法':this.data.mode==='result'?'本餐方案':'今天',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
+      this.setData({todayDate:defaultTarget().date,pageTitle:this.data.mode==='assistant'?'这餐的想法':this.data.mode==='result'?'本餐方案':'今天',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
         mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
         compositionLabel:Object.entries(context.counts || {}).filter(([,n])=>Number(n)>0).map(([type,n])=>`${n}${({meat:'荤',veg:'素',soup:'汤',staple:'主食',dessert:'甜品',side:'配菜'})[type] || type}`).join(' · ')})
       this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data, busy:this.data.busy}));
@@ -349,9 +354,11 @@ module.exports = function workspacePage(options = {}) {
         this.store.edit(c); this.setData({ settingsVisible: false, settingsContext: null }); this.renderWorkspace(); this.scheduleDraftSave()
       } catch (error) { this.setData({ settingsError: error.message }) }
     },
+    onToggleExtraActions(){this.setData({showExtraActions:!this.data.showExtraActions})},
+    onReturnToday() { return this.switchTarget(defaultTarget(),{followToday:true}) },
     onDateTarget(e) { return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
     onMealTarget(e) { return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }) },
-    async switchTarget(target) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), target); this._params = target; return this.initializeWorkspace(target) },
+    async switchTarget(target,options={}) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), {...target,selectedOn:defaultTarget().date}); this._params = options.followToday?{}:{...target,selectedOn:defaultTarget().date}; return this.initializeWorkspace(this._params) },
     onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType });wx.setStorageSync(getUserStorageKey('recipeSelectionIntent'),true); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
     onViewRecipes() { const plan=this.data.linkedPlan;if(plan){wx.navigateTo({url:`/pages/meal-cooking/meal-cooking?date=${this.data.context.date}&mealType=${this.data.context.mealType}&planRevision=${plan.revision}`});return}if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
@@ -374,7 +381,7 @@ module.exports = function workspacePage(options = {}) {
     onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},
     onOpenAdvancedAssistant() { if(this.current())wx.navigateTo({ url: `/pages/assistant-history/assistant-history?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
     onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
-    onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
+    onReview() { if(this.current())wx.navigateTo({ url: '/pages/statistics/statistics?period=week&anchor='+encodeURIComponent(this.data.context.date) }) },
     onLogin() { wx.showToast({ title: '登录后可跨设备保存本餐', icon: 'none' }); wx.switchTab({ url: '/pages/profile/profile' }) },
     onShareAppMessage() { return { title: '把今天这一餐安排好', path: '/pages/index/index' } },
   }

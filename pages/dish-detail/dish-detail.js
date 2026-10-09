@@ -4,7 +4,7 @@ const { getDishById } = require('../../utils/api')
 
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    dish: null, targetPeople: 2, ingredientNotice: '', canEditCustom: false,
+    dish: null, targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
     loading: true,
     error: false,
     isFavorite: false
@@ -42,6 +42,7 @@ Page({
       if (!this.current(scope) || epoch !== this._epoch) return
       
       if (dish) {
+        dish.typeLabel = require('../../utils/recipe-quality').dishCategoryLabel(dish.type)
         const minutes = Number(dish.cookMinutes)
         dish.cookTimeDisplay = Number.isInteger(minutes) && minutes >= 1 && minutes <= 240 ? minutes + '分钟' : dish.cookTime || ''
         dish.tagsList = Array.isArray(dish.tags) ? dish.tags : String(dish.tags || '').split(/[,，]/).map(s => s.trim()).filter(Boolean)
@@ -79,6 +80,9 @@ Page({
           dish.ingredientsList = []
         }
 
+        const qualityView=require('../../utils/recipe-quality').presentRecipeQuality(dish)
+        if(qualityView) {dish.ingredientsList=qualityView.ingredientLines;this.setData({qualityView,ingredientNotice:qualityView.notice})}
+        else this.setData({qualityView:null})
         // 处理步骤（兼容 step/steps 两种字段名）
         var stepsRaw = dish.steps || dish.step
         if (stepsRaw && typeof stepsRaw === 'string') {
@@ -119,7 +123,7 @@ Page({
       if (!this.current(scope) || epoch !== this._epoch) return
       const items = (preview.dishes || []).flatMap(dish => dish.items || [])
       this.setData({ 'dish.ingredientsList': items.map(item => item.displayName + ' ' + (item.quantityText || '需核对')), ingredientNotice: items.every(item => item.calculationStatus === 'CALCULATED') ? `按本餐 ${this.data.targetPeople} 人换算，请按实际情况核对` : `本餐 ${this.data.targetPeople} 人，部分用量需手动核对` })
-    } catch (error) { if (this.current(scope) && epoch === this._epoch) this.setData({ ingredientNotice: '份量换算暂不可用，以下为菜谱原始用量' }) }
+    } catch (error) { if (this.current(scope) && epoch === this._epoch) this.setData({ ingredientNotice: this.data.qualityView?'本餐份量暂未读到，用量仍待核实，请手动核对。':'份量换算暂不可用，以下为用户提供的原始用料' }) }
   },
 
   async checkFavoriteStatus(dishId) {
@@ -178,6 +182,7 @@ Page({
     wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(dish.id) })
   },
   onRetry() { if (this._dishId) this.loadDishDetail(this._dishId) },
+  onToggleQualitySources(){this.setData({qualitySourcesVisible:!this.data.qualitySourcesVisible})},
   onDishImageError() { this.setData({ 'dish.image': '' }) },
   onAddToShoppingList() {
     const dish = this.data.dish
@@ -185,6 +190,14 @@ Page({
     const { beginShoppingSelection } = require('../../utils/shopping-list')
     beginShoppingSelection({ dishIds: [dish.id], targetPeople: this.data.targetPeople, source: 'dish-detail', dishes: [dish] })
     wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+  },
+  async onAddToCurrentMeal() {
+    const dish=this.data.dish,scope=this._scope
+    if(!dish||!this.current(scope)||this.data.addingToMeal)return
+    this.setData({addingToMeal:true,mealAddError:''})
+    try { await require('../../utils/dish-workspace-handoff').addDishToWorkspace(dish.id,{api:require('../../utils/api'),wx,storageKey:getUserStorageKey,current:()=>this.current(scope)}) }
+    catch(error){if(this.current(scope))this.setData({mealAddError:error.message||'暂未加入，菜谱仍保留，请重试'})}
+    finally{if(this.current(scope))this.setData({addingToMeal:false})}
   },
 
   previewImage(e) {

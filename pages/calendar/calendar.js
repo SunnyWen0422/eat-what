@@ -54,7 +54,7 @@ Page({
   onToday() { this.setData({ selectedDate: flow.today() }); this.rebuild(); this.loadRecipeRecords() },
   onOpenMeal(e) { const meal=e && e.currentTarget && e.currentTarget.dataset.meal; wx.navigateTo({ url: `/pages/calendar-detail/calendar-detail?date=${this.data.selectedDate}${flow.mealNames[meal] ? '&mealType='+meal : ''}` }) },
   onShoppingList() { wx.navigateTo({ url: '/pages/shopping-list/shopping-list' }) },
-  onReview() { wx.navigateTo({ url: '/pages/statistics/statistics' }) },
+  onReview() { wx.navigateTo({ url: '/pages/statistics/statistics?period='+this.data.viewMode+'&anchor='+encodeURIComponent(this.data.selectedDate) }) },
   onLogin() { wx.switchTab({ url: '/pages/profile/profile' }) },
   onAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.selectedDate}` }) },
   onPurchaseRange() {

@@ -1,7 +1,7 @@
 <!--pages/dish-detail/dish-detail.wxml-->
 <view class="ew-page container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
   <!-- 菜品图片 -->
-  <view class="dish-image-container {{!dish.image ? 'no-image' : ''}}">
+  <view wx:if="{{dish.image}}" class="dish-image-container">
     <image
       wx:if="{{dish.image}}"
       class="dish-image"
@@ -10,19 +10,22 @@
       bindtap="previewImage"
       data-url="{{dish.image}}"
     />
-    <!-- 收藏按钮 -->
-    <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
-      <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
-    </view>
-    <button class="share-btn" open-type="share">
-      <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
-    </button>
   </view>
 
   <!-- 菜品信息 -->
-  <view class="dish-info">
+  <view class="dish-info {{dish.image ? 'with-hero' : ''}}">
     <view class="dish-header">
-      <text class="dish-name">{{dish.name}}</text>
+      <view class="dish-title-row">
+        <text class="dish-name">{{dish.name}}</text>
+        <view class="dish-title-actions">
+          <button class="share-btn" open-type="share">
+            <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
+          </button>
+          <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
+            <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
+          </view>
+        </view>
+      </view>
       <view class="dish-tags" wx:if="{{dish.tags}}">
         <text class="tag" wx:for="{{dish.tagsList}}" wx:key="*this">{{item}}</text>
       </view>
@@ -35,12 +38,12 @@
         <text class="attribute-value">{{dish.difficulty}}</text>
       </view>
       <view class="attribute-item" wx:if="{{dish.cookTimeDisplay}}">
-        <text class="attribute-label">烹饪时间</text>
+        <text class="attribute-label">单菜参考时间</text>
         <text class="attribute-value">{{dish.cookTimeDisplay}}</text>
       </view>
       <view class="attribute-item" wx:if="{{dish.type}}">
         <text class="attribute-label">类型</text>
-        <text class="attribute-value">{{dish.type}}</text>
+        <text class="attribute-value">{{dish.typeLabel}}</text>
       </view>
     </view>
 
@@ -53,6 +56,7 @@
     </view>
 
     <!-- 食材与用量 -->
+    <view wx:if="{{qualityView}}" class="section"><text class="ew-muted">{{qualityView.statusLabel}} · {{qualityView.nutritionText}}</text><button wx:if="{{qualityView.sourceLines.length}}" class="ew-hit-target ew-link" bindtap="onToggleQualitySources">{{qualitySourcesVisible ? '收起来源记录' : '查看用料来源记录'}}</button><view wx:if="{{qualitySourcesVisible}}"><view wx:for="{{qualityView.sourceLines}}" wx:key="name"><text class="ew-muted">{{item.name}} · {{item.status}}</text><text class="section-content" user-select>{{item.text}}</text></view></view></view>
     <view class="section" wx:if="{{dish.ingredientsList && dish.ingredientsList.length > 0}}">
       <view class="section-title">
         <text class="section-title-text">食材与用量</text>
@@ -116,7 +120,7 @@
       </view>
     </view>
   </view>
-  <view class="section"><button class="ew-hit-target ew-link" loading="{{copyBusy}}" disabled="{{copyBusy}}" bindtap="onCopyPersonal">复制到我的私房菜</button><view wx:if="{{copyError}}" class="ew-error">{{copyError}}<button class="ew-hit-target ew-link" bindtap="onRetry">重新读取菜品</button></view></view><view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><ui-button label="准备这道菜的食材" bind:action="onAddToShoppingList" /></view>
+  <view class="section"><button class="ew-hit-target ew-link" loading="{{copyBusy}}" disabled="{{copyBusy}}" bindtap="onCopyPersonal">复制到我的私房菜</button><view wx:if="{{copyError}}" class="ew-error">{{copyError}}<button class="ew-hit-target ew-link" bindtap="onRetry">重新读取菜品</button></view></view><view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view><view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><ui-button label="加入本餐" loading="{{addingToMeal}}" bind:action="onAddToCurrentMeal" /><ui-button label="准备食材" variant="secondary" bind:action="onAddToShoppingList" /></view>
 </view>
 
 <!-- 加载中 -->

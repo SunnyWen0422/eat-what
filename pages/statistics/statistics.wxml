@@ -58,7 +58,7 @@
       <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有任何实际记录行。</text><text class="ew-muted">记录行包含吃过、明确取消或撤销为未记录的状态。缺失天数不能推断是否用餐。</text></view>
       <view class="record"><text>明确取消 {{reportView.completeness.explicitSkippedMeals}} 餐；明确标记未记录 {{reportView.completeness.explicitUnrecordedMeals}} 餐。</text><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已吃但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
       <text class="ew-muted">没有可靠的实际食用份量，暂不计算热量、营养分数或每日用餐完成率。</text>
-      <view class="record report-provenance"><text>报告编号：{{reportView.metadata.reportId}}</text><text>计算版本：{{reportView.metadata.calculationVersion}}</text><text>生成时间：{{reportView.metadata.generatedAt}}</text><text>日期时区：{{reportView.metadata.timezone}}</text><text selectable="{{true}}">来源指纹：{{reportView.metadata.sourceFingerprint}}</text><text class="ew-muted">这是当前记录的即时回顾。更正来源记录会重新计算；相同编号不代表已保存历史报告。</text></view>
+      <button class="ew-hit-target ew-link" bindtap="onToggleProvenance">{{showProvenance ? '收起计算依据' : '查看计算依据'}}</button><view wx:if="{{showProvenance}}" class="record report-provenance"><text>报告编号：{{reportView.metadata.reportId}}</text><text>计算版本：{{reportView.metadata.calculationVersion}}</text><text>生成时间：{{reportView.metadata.generatedAt}}</text><text>日期时区：{{reportView.metadata.timezone}}</text><text selectable="{{true}}">来源指纹：{{reportView.metadata.sourceFingerprint}}</text><text class="ew-muted">这是当前记录的即时回顾。更正来源记录会重新计算；相同编号不代表已保存历史报告。</text></view>
     </view>
   </block>
 </view>

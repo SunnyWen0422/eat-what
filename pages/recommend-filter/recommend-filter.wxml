@@ -33,7 +33,7 @@
   </view>
 
   <view class="filter-section">
-    <view class="section-title">最长用时</view>
+    <view class="section-title">单菜最长用时</view>
     <view class="option-grid">
       <view
         class="ew-hit-target option-chip {{(item.value === null && !criteria.maxCookMinutes) || item.value === criteria.maxCookMinutes ? 'selected' : ''}}"

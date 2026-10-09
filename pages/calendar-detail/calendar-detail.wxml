@@ -18,4 +18,4 @@
 <block wx:if="{{formMode === 'plan'}}"><ui-field disabled="{{mutating}}" label="安排名称" value="{{formName}}" required bind:change="onName" /><ui-field disabled="{{mutating}}" label="用餐人数" type="number" maxlength="2" value="{{formPeople}}" bind:change="onPeople" /><text class="ew-muted">从菜谱选菜可以生成食材清单；手动文字用于记录安排名称。</text></block>
 <block wx:if="{{formMode === 'actual'}}"><text class="ew-label">实际吃过的菜品</text><textarea placeholder-class="ew-placeholder" disabled="{{mutating}}" adjust-position="{{false}}" class="ew-input" value="{{formActual}}" placeholder="每行一道菜，例如：番茄面" maxlength="3000" bindinput="onActualInput" /><text class="ew-muted">自由填写计入餐次和记录天数，不会推测营养或菜品分类。</text></block>
 <block wx:if="{{formMode === 'copy'}}"><text class="ew-label">复制到哪一天</text><picker class="ew-hit-target" disabled="{{mutating}}" mode="date" value="{{copyDate}}" bindchange="onCopyDate"><view class="ew-input">{{copyDate}}</view></picker></block><text wx:if="{{formError}}" class="ew-error">{{formError}}</text>
-</ui-confirm></view>
+</ui-confirm><include src="../../templates/meal-actual-sheet.wxml" /></view>

@@ -43,14 +43,21 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
     from agent_schemas import validate_tool_call
 
     context = workspace.get("context") or {}
+    authorized_context=workspace.get('agentContext')
+    if not isinstance(authorized_context,dict) or authorized_context.get('ownerUserId')!=user_id:
+        return {'needsInput':True,'executionStatus':'failed','failureClass':'AuthorizedContextMissing','message':'当前授权菜库暂未准备好，请使用手动选菜或明确筛选','dishIds':[]}
+    if execute is None:
+        from authorized_catalog import execute_read_tool
+        execute=lambda name,args,scope:execute_read_tool(authorized_context,user_id,name,args)
     model = model or DeepSeekModelClient(timeout=10)
-    execute = execute or agent_tools.execute_tool
     tools = [t for t in agent_tools.model_catalog()["tools"] if t["name"] in {
         "search_dishes", "search_by_ingredients", "get_dish_details", "get_dish_methods"}]
     messages = [{"role": "system", "content": json.dumps({
         "instruction": "理解本餐自由文本并用只读工具选择真实菜品。明确限制全部转为 criteria 或 totalCookMinutes，不能确定时 needsInput=true。不得编造菜品、营养或用时。日期餐次与工作区不同时返回实际目标并等待用户切换。保留菜品必须包含。只返回 JSON。",
         "context": context, "lockedDishIds": workspace.get("draft", {}).get("lockedDishIds", []),
         "recommendationOptions": workspace.get("recommendationOptions", {}),
+        "userContext":{k:v for k,v in authorized_context.items() if k not in ['ownerUserId','catalog']},
+        "toolFilterKeys":['type','cuisine_codes','include_tag_codes','exclude_tag_codes','excluded_ingredients','max_cook_minutes'],
         "contract": {"needsInput": "boolean", "constraintsUnderstood": "boolean", "message": "string",
                      "date": "YYYY-MM-DD", "mealType": "breakfast|lunch|dinner", "dishIds": "integer[]",
                      "criteria": {"cuisineCodes": [], "includeTagCodes": [], "excludeTagCodes": [], "excludedIngredients": [], "maxCookMinutes": None},

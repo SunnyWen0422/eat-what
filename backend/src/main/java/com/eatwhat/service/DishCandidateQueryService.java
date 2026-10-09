@@ -13,6 +13,8 @@ import java.util.Set;
 
 @Service
 public class DishCandidateQueryService {
+    private DishQualityService quality;
+    @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
 
     private final DishMapper dishMapper;
 
@@ -34,6 +36,7 @@ public class DishCandidateQueryService {
                 safe(value.getIncludeTagCodes()),
                 value.getMaxCookMinutes());
         if (source == null || source.isEmpty()) return Collections.emptyList();
+        if(quality!=null)quality.enrich(source);
 
         int limit = Math.max(1, maxResults);
         List<Dish> result = new ArrayList<>();

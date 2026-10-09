@@ -12,3 +12,5 @@ button.icon-button { min-height:{{controls.touchSize.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
 button.icon-button.ew-hit-target { min-height:{{controls.touchSize.px}}; }
+
+button.icon-button.ew-hit-target { width:44px; max-width:44px; background:{{card}}; border:1px solid {{controlBorder}}; }

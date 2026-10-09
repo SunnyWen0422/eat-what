@@ -172,7 +172,19 @@
 
   <ui-sheet visible="{{showMenus}}" title="我的菜单" bind:close="onCloseMenus">
     <view class="ew-subtitle">把几道菜存成常用组合，使用时先进入本餐草稿，再确认安排。</view>
-    <view class="ew-card">
+    <view class="ew-label">使用菜单的日期和餐次</view>
+    <picker class="ew-hit-target" mode="date" value="{{menuDate}}" disabled="{{menuBusy}}" bindchange="onMenuDate"><view class="ew-input ew-hit-target">{{menuDate}}</view></picker>
+    <picker class="ew-hit-target" range="{{menuMealLabels}}" value="{{menuMealIndex}}" disabled="{{menuBusy}}" bindchange="onMenuMeal"><view class="ew-input ew-hit-target">{{menuMealLabels[menuMealIndex]}}</view></picker>
+    <view wx:if="{{menuError}}" class="ew-error">{{menuError}}<button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="loadMenus">重新读取菜单</button></view>
+    <ui-state wx:if="{{menuLoading}}" kind="loading" title="正在读取菜单" />
+    <view wx:for="{{menus}}" wx:key="id" class="ew-card">
+      <view class="ew-title">{{item.name}}</view><view class="ew-subtitle">{{item.people}} 人 · {{item.dishIds.length}} 道菜</view>
+      <view wx:for="{{item.dishes}}" wx:for-item="menuDish" wx:key="id" class="ew-subtitle">{{menuDish.name}}</view>
+      <view class="ew-actions"><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onApplyMenu">加入目标餐草稿</button><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy || menuPending}}" bindtap="onEditMenu">编辑组合</button><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onDeleteMenu">删除</button></view>
+    </view>
+    <ui-state wx:if="{{!menuLoading && !menus.length && !menuError}}" kind="empty" title="还没有常用菜单" description="在菜谱里选择几道菜，再保存成一个组合。" />
+    <button class="ew-hit-target ew-link" bindtap="onOpenMenuForm">把已选菜品存为新菜单</button>
+    <view wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-card">
       <view class="ew-title">{{menuEditingId ? '编辑菜单' : '把已选菜品存为菜单'}}</view>
       <view class="ew-label">菜单名称</view><input placeholder-class="ew-placeholder" class="ew-input" value="{{menuName}}" maxlength="100" data-field="menuName" disabled="{{menuBusy || menuPending}}" bindinput="onMenuInput" placeholder="例如：工作日晚餐" />
       <view class="ew-label">默认人数</view><input placeholder-class="ew-placeholder" class="ew-input" type="number" value="{{menuPeople}}" data-field="menuPeople" disabled="{{menuBusy || menuPending}}" bindinput="onMenuInput" />
@@ -186,16 +198,5 @@
       <view wx:if="{{menuPending}}" class="ew-notice">上次保存结果未确认，重试将使用原菜单内容。</view>
       <view class="ew-actions"><ui-button label="{{menuPending ? '重试原保存' : '保存菜单'}}" loading="{{menuBusy}}" bind:action="onSaveMenu" /><ui-button wx:if="{{menuEditingId}}" label="另存新菜单" variant="secondary" disabled="{{menuBusy || menuPending}}" bind:action="onNewMenu" /></view>
     </view>
-    <view class="ew-label">使用菜单的日期和餐次</view>
-    <picker class="ew-hit-target" mode="date" value="{{menuDate}}" disabled="{{menuBusy}}" bindchange="onMenuDate"><view class="ew-input ew-hit-target">{{menuDate}}</view></picker>
-    <picker class="ew-hit-target" range="{{menuMealLabels}}" value="{{menuMealIndex}}" disabled="{{menuBusy}}" bindchange="onMenuMeal"><view class="ew-input ew-hit-target">{{menuMealLabels[menuMealIndex]}}</view></picker>
-    <view wx:if="{{menuError}}" class="ew-error">{{menuError}}<button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="loadMenus">重新读取菜单</button></view>
-    <ui-state wx:if="{{menuLoading}}" kind="loading" title="正在读取菜单" />
-    <view wx:for="{{menus}}" wx:key="id" class="ew-card">
-      <view class="ew-title">{{item.name}}</view><view class="ew-subtitle">{{item.people}} 人 · {{item.dishIds.length}} 道菜</view>
-      <view wx:for="{{item.dishes}}" wx:for-item="menuDish" wx:key="id" class="ew-subtitle">{{menuDish.name}}</view>
-      <view class="ew-actions"><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onApplyMenu">加入目标餐草稿</button><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy || menuPending}}" bindtap="onEditMenu">编辑组合</button><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onDeleteMenu">删除</button></view>
-    </view>
-    <ui-state wx:if="{{!menuLoading && !menus.length && !menuError}}" kind="empty" title="还没有常用菜单" description="在菜谱里选择几道菜，再保存成一个组合。" />
   </ui-sheet>
 </view>

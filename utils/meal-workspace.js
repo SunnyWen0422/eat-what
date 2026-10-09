@@ -1,11 +1,23 @@
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value))
 const canonical = value => JSON.stringify(value, function(key, item) { return item && typeof item === 'object' && !Array.isArray(item) ? Object.keys(item).sort().reduce((out,k)=>(out[k]=item[k],out),{}) : item })
+const canonicalContext = value => {
+  const context = normalizeContext(value)
+  context.criteria = { cuisineCodes: [], includeTagCodes: [], excludeTagCodes: [], excludedIngredients: [], maxCookMinutes: null, ...context.criteria }
+  return canonical(context)
+}
 const requestId = () => `ws-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
 
 function defaultTarget(now = new Date()) {
   const china = new Date(now.getTime() + 8 * 3600000)
   const hour = china.getUTCHours()
   return { date: china.toISOString().slice(0, 10), mealType: hour < 10 ? 'breakfast' : hour < 16 ? 'lunch' : 'dinner' }
+}
+
+function resolveActiveTarget(mode, params = {}, stored, now = new Date()) {
+  const current = defaultTarget(now), saved = stored || {}
+  const explicit = /^\d{4}-\d{2}-\d{2}$/.test(params.date || '')
+  const base = mode === 'today' && saved.selectedOn !== current.date ? current : { ...current, ...saved }
+  return { date: explicit ? params.date : base.date, mealType: ['breakfast', 'lunch', 'dinner'].includes(params.mealType) ? params.mealType : base.mealType }
 }
 
 function normalizeContext(input) {
@@ -59,7 +71,7 @@ function createWorkspaceStore(options = {}) {
       else result = await api.commandMealWorkspace(operation.id, operation.body)
       ensure(); if (ticket !== generation) throw new Error('当前餐已切换')
       workspace = result; pending = null
-      if (operation.type === 'create' && canonical(normalizeContext(result.context)) !== canonical(normalizeContext(operation.body.context))) { dirty=true;syncStatus='conflict';persist();return state() }
+      if (operation.type === 'create' && canonicalContext(result.context) !== canonicalContext(operation.body.context)) { dirty=true;syncStatus='conflict';persist();return state() }
       if (operation.body.context && JSON.stringify(operation.body.context) === JSON.stringify(context)) dirty = false
       syncStatus = dirty ? 'unsynced' : 'synced'; persist(); return state()
     } catch (error) {
@@ -106,4 +118,4 @@ function createWorkspaceStore(options = {}) {
   return { load, edit, save, command, confirm, retry, reloadLatest, state, dispose }
 }
 
-module.exports = { defaultTarget, normalizeContext, createWorkspaceStore, requestId }
+module.exports = { resolveActiveTarget, defaultTarget, normalizeContext, createWorkspaceStore, requestId }

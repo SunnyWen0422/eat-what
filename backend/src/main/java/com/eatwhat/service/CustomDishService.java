@@ -24,6 +24,10 @@ import java.util.Locale;
 
 @Service
 public class CustomDishService {
+    private DishQualityService quality;
+    @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
+    private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
+    private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
 
     private static final Set<String> ALLOWED_TYPES = new HashSet<>(
             Arrays.asList("meat", "veg", "soup", "staple", "dessert"));
@@ -112,7 +116,7 @@ public class CustomDishService {
     }
 
     private Dish readable(Long dishId, Long userId) {
-        Dish dish = personalDishes.lockReadable(dishId, userId);
+        Dish dish = enrich(personalDishes.lockReadable(dishId, userId));
         if (dish == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "菜品不存在或不可访问");
         return dish;
     }

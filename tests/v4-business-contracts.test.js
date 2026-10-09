@@ -73,6 +73,7 @@ test('actual editor retains historical indexes and sends changed selections thro
   let page, body
   const api = { saveMealConsumption: async (date, meal, value) => { body = value } }
   const context = { Page: value => { page = value }, console, wx: {}, require: name => {
+    if (name.endsWith('/meal-actual-entry')) return require('../utils/meal-actual-entry')
     if (name.endsWith('/api')) return api
     if (name.endsWith('/util')) return { getUserStorageKey: name => `A:${name}` }
     if (name.endsWith('/shopping-list')) return {}

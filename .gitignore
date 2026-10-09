@@ -65,3 +65,8 @@ backend/src/main/resources/application-prod.yml
 
 # Isolated workflow test databases
 tests/.tmp/
+
+# Private governed catalog runtime and anonymized migration rehearsal
+.local-maturity/
+.local-maturity-failed-*/
+.local-maturity-active/

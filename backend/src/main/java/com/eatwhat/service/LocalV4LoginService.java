@@ -11,7 +11,7 @@ import java.util.*;
 public class LocalV4LoginService {
  private final UserMapper users; private final TokenService tokens;
  public LocalV4LoginService(UserMapper users,TokenService tokens,@Value("${server.address:}") String address,@Value("${spring.datasource.url:}") String jdbc) {
-  if(!"127.0.0.1".equals(address) || !jdbc.matches("^jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/eatwhat_v4_local_[A-Za-z0-9_]+\\?.*$")) throw new IllegalArgumentException("Local login requires a private loopback database and HTTP binding");
+  if(!"127.0.0.1".equals(address) || !jdbc.matches("^jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/eatwhat_(?:v4|maturity)_local_[A-Za-z0-9_]+\\?.*$")) throw new IllegalArgumentException("Local login requires a private loopback database and HTTP binding");
   this.users=users;this.tokens=tokens;
  }
  public Map<String,Object> login() {

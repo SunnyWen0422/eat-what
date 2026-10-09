@@ -6,7 +6,7 @@ Page({
     favorites: [],
     filtered: [],
     loading: true,
-    searchKeyword: '', errorMessage: '', removingId: null
+    searchKeyword: '', errorMessage: '', removingId: null, addingId: null, mealAddError: ''
   },
 
   onShow() {
@@ -15,7 +15,7 @@ Page({
 
   async loadFavorites() {
     const epoch = this._epoch = (this._epoch || 0) + 1, scope = getUserStorageKey('favoriteView')
-    if(this._viewScope !== scope)this.setData({ favorites: [], filtered: [], removingId: null, searchKeyword: '' })
+    if(this._viewScope !== scope)this.setData({ favorites: [], filtered: [], removingId: null, addingId: null, mealAddError: '', searchKeyword: '' })
     this._viewScope = scope
     this.setData({ loading: true, errorMessage: '' })
     try {
@@ -52,6 +52,16 @@ Page({
     const dish = e.currentTarget.dataset.dish
     if (!dish || !dish.id) return
     wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${dish.id}` })
+  },
+
+  async onAddToMeal(e) {
+    const id=Number(e.currentTarget.dataset.id),scope=this._viewScope,epoch=this._epoch
+    const current=()=>scope===getUserStorageKey('favoriteView')&&scope===this._viewScope&&epoch===this._epoch
+    if(!Number.isSafeInteger(id)||id<1||this.data.addingId||!current())return
+    this.setData({addingId:id,mealAddError:''})
+    try{await require('../../utils/dish-workspace-handoff').addDishToWorkspace(id,{api:require('../../utils/api'),wx,storageKey:getUserStorageKey,current})}
+    catch(error){if(current())this.setData({mealAddError:error.message||'暂未加入，请重试'})}
+    finally{if(current())this.setData({addingId:null})}
   },
 
   async onRemoveFavorite(e) {

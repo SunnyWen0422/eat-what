@@ -355,3 +355,23 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 @media(max-width:360px){.dish-image-container{height:210px}.dish-image-container.no-image{height:48px}}
 
 .step-number { background-color:#F8F7F2; }
+
+/* Override native button sizing as well as the legacy left/bottom anchors. */
+button.share-btn { left:auto; bottom:auto; width:44px; max-width:44px; box-sizing:border-box; }
+
+.container .dish-attributes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:16px 0; }
+.container .attribute-item { width:auto; min-width:0; flex:none; text-align:left; }
+.container .attribute-label,.container .attribute-value { display:block; }
+.container .attribute-label { font-size:0.857143em; margin-bottom:6px; }
+.container .section > .ew-muted { display:block; margin-bottom:10px; }
+.container .detail-bottom { display:flex; flex-direction:column; gap:8px; }
+.container { padding-bottom:calc(156px + env(safe-area-inset-bottom)); }
+
+/* Recipe actions belong to the title, with or without a successfully loaded hero. */
+.container .dish-info { margin-top:0; padding-top:0; }
+.container .dish-info.with-hero { padding-top:20px; }
+.dish-title-row { display:flex; align-items:center; gap:12px; min-width:0; }
+.dish-title-row .dish-name { flex:1; min-width:0; margin:0; overflow-wrap:break-word; }
+.dish-title-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }
+.dish-title-actions .favorite-btn,.dish-title-actions button.share-btn { position:relative; top:auto; right:auto; bottom:auto; left:auto; flex:0 0 44px; width:44px; height:44px; min-height:44px; max-width:44px; margin:0; }
+.dish-title-actions .favorite-status { position:absolute; top:100%; right:0; white-space:nowrap; background:#FFFFFF; border-radius:6px; padding:2px 4px; }

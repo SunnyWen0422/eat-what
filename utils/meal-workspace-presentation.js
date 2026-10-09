@@ -3,7 +3,7 @@ function deriveWorkspacePresentation(value) {
   const { status, syncStatus, actual, linkedPlan, context = {}, canConfirm, busy } = value
   let primaryAction = 'onGenerate', primaryLabel = '帮我安排这餐'
   if (syncStatus === 'unknown' || syncStatus === 'offline') { primaryAction = 'onRetryWorkspace'; primaryLabel = '核对并重试同步' }
-  else if (syncStatus === 'conflict') { primaryAction = 'onLoadLatest'; primaryLabel = '查看最新与本次差异' }
+  else if (syncStatus === 'conflict') { primaryAction = 'onLoadLatest'; primaryLabel = '读取最新安排' }
   else if (status === 'generating') { primaryAction = 'onCancelTask'; primaryLabel = '停止本次安排' }
   else if (status === 'plan_changed') { primaryAction = 'onViewPlan'; primaryLabel = '查看最新安排' }
   else if (actual && actual.status === 'eaten') { primaryAction = 'onViewPlan'; primaryLabel = '查看 / 修改实际记录' }

@@ -14,6 +14,10 @@ import java.util.stream.Collectors;
  */
 @Service
 public class RecipeRecordService {
+    private DishQualityService quality;
+    @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
+    private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
+    private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
 
     private final RecipeRecordMapper recipeRecordMapper;
     private final DishQueryService dishQueryService;
