@@ -91,11 +91,12 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     for name in ['catalog_quality.py','catalog-quality-rules.json','build_catalog_quality.py','validate_catalog_reviews.py','legacy_dump.py','bridge_legacy_local.py','run_mysql_integration.py','check_test_environment.py','prepare_legacy_v4_release.py','quality_sidecar.py','build_assistant_index.py']:
         copy(ROOT/'scripts'/name,Path('scripts')/name)
     for name in allowed:copy(bundle/name,Path('catalog')/name)
-    for source in [ROOT/'docs/release/local-maturity-cutover.md',ROOT/'docs/testing/2026-10-08-local-maturity-results.md',ROOT/'docs/testing/local-maturity-page-matrix.md',ROOT/'docs/database/legacy-to-v4-local-bridge.md',ROOT/'docs/database/legacy-v4-release-preflight.md']:
-        copy(source,Path('docs')/source.name)
+    copy(ROOT/'DEVELOPER.md','DEVELOPER.md')
+    for source in [ROOT/'docs/release/local-maturity-cutover.md',ROOT/'docs/testing/local-verification.md',ROOT/'docs/testing/2026-10-08-local-maturity-results.md',ROOT/'docs/testing/local-maturity-page-matrix.md',ROOT/'docs/database/legacy-to-v4-local-bridge.md',ROOT/'docs/database/legacy-v4-release-preflight.md']:
+        copy(source,source.relative_to(ROOT))
     for name in ('2026-10-10-local-merged-readiness.md',):
         source=ROOT/'docs/release'/name
-        if source.is_file():copy(source,Path('docs')/name)
+        if source.is_file():copy(source,source.relative_to(ROOT))
     if web_release:
         for source in sorted(web_release.rglob('*')):
             if source.is_file():copy(source,Path('web')/source.relative_to(web_release))
