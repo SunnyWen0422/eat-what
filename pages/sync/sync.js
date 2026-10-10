@@ -14,8 +14,7 @@ Page({
       const record = records[date][mealType]
       if (record && !record.synced) pending.push({ date, mealType, record, mealName: flow.mealNames[mealType] || mealType })
     }
-    const identity=require('../../utils/util').getCurrentUserIdentity()
-    const prefix=`user:${identity}:meal-workspace:`
+    const prefix=getUserStorageKey('meal-workspace:')
     const workspaceDrafts=[]
     if(wx.getStorageInfoSync) for(const key of wx.getStorageInfoSync().keys || []) {
       if(!key.startsWith(prefix))continue
@@ -63,3 +62,4 @@ Page({
     } })
   },
 })
+
