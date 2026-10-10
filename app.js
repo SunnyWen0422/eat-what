@@ -5,7 +5,12 @@ const config = require('./utils/config')
 App({
   onLaunch() {
     const environment = config.getApiBaseUrl()
-    if (wx.getStorageSync('apiEnvironment') !== environment) {
+    const previousEnvironment = wx.getStorageSync('apiEnvironment')
+    // Retain existing local work under its original service; never replay it into an online account.
+    try { require('./utils/util').preserveLegacyUserStorage(previousEnvironment) } catch (_) {
+      console.warn('旧环境记录保留在原缓存中，本次未复制')
+    }
+    if (previousEnvironment !== environment) {
       wx.removeStorageSync('token'); wx.removeStorageSync('userInfo')
       wx.setStorageSync('apiEnvironment', environment)
     }

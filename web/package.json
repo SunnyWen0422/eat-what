@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:online": "node scripts/dev-online.ts",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",

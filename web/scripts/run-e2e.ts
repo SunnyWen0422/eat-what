@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const cwd = fileURLToPath(new URL('..', import.meta.url));
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, EATWHAT_CATALOG_PROXY: 'off' }, detached: process.platform !== 'win32' });
 process.stdout.write(`Isolated test server PID: ${server.pid ?? 'spawn failed'}\n`);
 let spawnError: Error | null = null;
 let ready = false; let startupOutput = '';
