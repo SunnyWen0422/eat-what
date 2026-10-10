@@ -8,6 +8,8 @@
 
 2026-10-10 凌晨重新核对：实例为 Running，但云助手 `CloudAssistantStatus=false`，最后心跳为北京时间 2026-10-09 21:11:06；本次数据库检查在执行 SQL 前返回 `ClientNotRunning`。本机 SSH 22 和 MySQL 3306 未完成协议握手，HTTPS 请求超时；这不能证明 MySQL 进程停止或密码失效。控制台截图为 Ubuntu 登录界面，没有完成操作系统内登录。当前访问恢复步骤及边界见 [恢复说明](docs/operations/2026-10-10-online-access-recovery.md)。
 
+同日 08:33 再次读取云状态仍为 false，最新心跳更新至北京时间 03:17:39；访问未恢复，以上凌晨网络结果仅代表原检查时间。
+
 ### SSH
 ```bash
 # 22 是 2026-10-08 的实测有效端口；当前仍须先恢复访问并核对。
