@@ -8,11 +8,12 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:online": "node scripts/dev-online.ts",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "e2e": "playwright test",
+    "e2e": "node scripts/run-e2e.ts",
     "boundaries": "node scripts/check-boundaries.ts",
     "online:check": "node scripts/check-online-contract.ts",
     "package:release": "node scripts/package-release.ts",

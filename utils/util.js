@@ -14,14 +14,18 @@ const formatNumber = n => {
   return n[1] ? n : `0${n}`
 }
 
+function environmentIdentity() {
+  return encodeURIComponent(require('./config').getApiBaseUrl())
+}
+
 /**
  * 获取当前登录用户的唯一标识，用于本地缓存分用户隔离
  * 优先使用 userInfo.id，其次 openId，无有效身份时返回 guest 兜底
  */
 function getCurrentUserIdentity() {
   const userInfo = wx.getStorageSync('userInfo') || {}
-  if (userInfo.id) return `id_${userInfo.id}`
-  if (userInfo.openId) return `open_${userInfo.openId}`
+  if (userInfo.id) return `api_${environmentIdentity()}:id_${userInfo.id}`
+  if (userInfo.openId) return `api_${environmentIdentity()}:open_${userInfo.openId}`
 
   // 未登录时返回 guest，避免本地功能完全不可用
   console.log('⚠️ 用户未登录，使用 guest 身份')
@@ -30,16 +34,34 @@ function getCurrentUserIdentity() {
 
 /**
  * 生成带用户前缀的本地缓存 key
- * 例如 baseKey='recipeRecords' → 'user:id_123:recipeRecords'
+ * 账户相同但 API 环境不同的缓存、待确认请求和工作区必须隔离。
  */
 function getUserStorageKey(baseKey) {
   const identity = getCurrentUserIdentity()
-  return `user:${identity}:${baseKey}`
+  return `user:${identity === 'guest' ? 'api_' + environmentIdentity() + ':guest' : identity}:${baseKey}`
+}
+
+/** Copy old keys only into their recorded API environment; retain originals and newer values. */
+function preserveLegacyUserStorage(environment, runtime = wx) {
+  if (typeof environment !== 'string' || !/^https?:\/\//.test(environment)) return 0
+  const keys = runtime.getStorageInfoSync().keys || []
+  const existing = new Set(keys)
+  let copied = 0
+  for (const key of keys) {
+    const match = /^user:(id_[^:]+|open_[^:]+|guest):(.*)$/.exec(key)
+    if (!match) continue
+    const destination = `user:api_${encodeURIComponent(environment)}:${match[1]}:${match[2]}`
+    if (existing.has(destination)) continue
+    runtime.setStorageSync(destination, runtime.getStorageSync(key))
+    existing.add(destination); copied += 1
+  }
+  return copied
 }
 
 module.exports = {
   formatTime,
   getCurrentUserIdentity,
-  getUserStorageKey
+  getUserStorageKey,
+  preserveLegacyUserStorage
 }
 
