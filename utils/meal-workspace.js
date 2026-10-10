@@ -35,7 +35,11 @@ function normalizeContext(input) {
 /** An instance is permanently bound to one account; pages recreate it on account switch. */
 function createWorkspaceStore(options = {}) {
   const api = options.api || require('./api')
-  const identity = options.identity || require('./util').getCurrentUserIdentity
+  const accountIdentity = options.identity || require('./util').getCurrentUserIdentity
+  const identity = () => {
+    const account = accountIdentity()
+    return account === 'guest' ? `api_v2_${encodeURIComponent(require('./config').getApiBaseUrl())}:guest` : account
+  }
   const read = options.read || (key => wx.getStorageSync(key))
   const write = options.write || ((key, value) => wx.setStorageSync(key, value))
   const scope = identity()

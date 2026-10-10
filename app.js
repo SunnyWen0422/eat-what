@@ -6,12 +6,17 @@ App({
   onLaunch() {
     const environment = config.getApiBaseUrl()
     const previousEnvironment = wx.getStorageSync('apiEnvironment')
-    // Retain existing local work under its original service; never replay it into an online account.
-    try { require('./utils/util').preserveLegacyUserStorage(previousEnvironment) } catch (_) {
-      console.warn('旧环境记录保留在原缓存中，本次未复制')
-    }
+    // Pages may load even when migration cannot finish. Never let them reuse
+    // the previous service's credentials against the newly configured API.
     if (previousEnvironment !== environment) {
       wx.removeStorageSync('token'); wx.removeStorageSync('userInfo')
+    }
+    // Retain existing local work under its original service; never replay it into an online account.
+    try { require('./utils/util').preserveLegacyUserStorage(previousEnvironment) } catch (_) {
+      console.warn('旧环境记录保留在原缓存中，迁移未完成，请重新启动重试')
+      return
+    }
+    if (previousEnvironment !== environment) {
       wx.setStorageSync('apiEnvironment', environment)
     }
     // 展示本地存储能力

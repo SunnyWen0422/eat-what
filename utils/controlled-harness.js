@@ -7,7 +7,11 @@ const empty = () => ({ status:'idle', taskId:null, requestId:null, task:null, re
 /** One account-bound, durable operation. Recovery always queries the original task first. */
 function createControlledHarness(options = {}) {
   const api = options.api || require('./api')
-  const identity = options.identity || defaultIdentity
+  const accountIdentity = options.identity || defaultIdentity
+  const identity = () => {
+    const account = accountIdentity()
+    return account === 'guest' ? `api_v2_${encodeURIComponent(require('./config').getApiBaseUrl())}:guest` : account
+  }
   const read = options.read || (key => wx.getStorageSync(key))
   const write = options.write || ((key, value) => wx.setStorageSync(key, value))
   const confirm = options.confirm || (content => new Promise(resolve => wx.showModal({
