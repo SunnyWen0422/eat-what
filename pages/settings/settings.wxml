@@ -1,4 +1,5 @@
 <view class="ew-page settings-page" style="font-size:{{fontBase * fontScale}}px">
+  <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">关闭菜单、操作反馈和底部面板的过渡动画。这是当前账号的本机设置。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><view class="sync-row">
     <text class="sync-dot {{synced ? 'online' : 'offline'}}"></text>
     <text>{{statusText}}</text>
@@ -15,7 +16,7 @@
     <view class="section-title">偏好菜系</view>
     <view class="section-desc">这是推荐加分项，不会排除其他菜系。</view>
     <view class="chip-grid">
-      <view class="ew-hit-target choice-chip {{item.selected ? 'selected' : ''}}" wx:for="{{cuisineOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCuisineTap">{{item.label}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip {{item.selected ? 'selected' : ''}}" wx:for="{{cuisineOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCuisineTap">{{item.label}}</view>
     </view>
   </view>
 
@@ -23,7 +24,7 @@
     <view class="section-title">喜欢的标签</view>
     <view class="section-desc">选中的口味、场景和做法会优先出现。</view>
     <view class="chip-grid">
-      <view class="ew-hit-target choice-chip {{item.preferred ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onPreferredTagTap">{{item.label}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip {{item.preferred ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onPreferredTagTap">{{item.label}}</view>
     </view>
   </view>
 
@@ -31,7 +32,7 @@
     <view class="section-title">不想看到的标签</view>
     <view class="section-desc">这里是硬性排除，会覆盖上面的喜欢设置。</view>
     <view class="chip-grid">
-      <view class="ew-hit-target choice-chip danger {{item.excluded ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onExcludedTagTap">{{item.label}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip danger {{item.excluded ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onExcludedTagTap">{{item.label}}</view>
     </view>
   </view>
 
@@ -42,14 +43,14 @@
       <button class="ew-hit-target add-btn" bindtap="onAddIngredient">添加</button>
     </view>
     <view class="chip-grid top-gap" wx:if="{{preferences.excludedIngredients.length}}">
-      <view class="ew-hit-target ingredient-chip" wx:for="{{preferences.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
+      <view aria-role="button" class="ew-hit-target ingredient-chip" wx:for="{{preferences.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
     </view>
   </view>
 
   <view class="section">
     <view class="section-title">避免近期重复</view>
     <view class="chip-grid">
-      <view class="ew-hit-target choice-chip {{preferences.avoidRecentDays === item ? 'selected' : ''}}" wx:for="{{dayOptions}}" wx:key="*this" data-value="{{item}}" bindtap="onDayTap">{{item === 0 ? '关闭' : item + '天'}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip {{preferences.avoidRecentDays === item ? 'selected' : ''}}" wx:for="{{dayOptions}}" wx:key="*this" data-value="{{item}}" bindtap="onDayTap">{{item === 0 ? '关闭' : item + '天'}}</view>
     </view>
   </view>
 
@@ -57,7 +58,7 @@
     <view class="section-title">默认单菜最长用时</view>
     <view class="section-desc">作为长期限制，即使临时关闭偏好加权也会保留。</view>
     <view class="chip-grid">
-      <view class="ew-hit-target choice-chip {{(item === null && !preferences.maxCookMinutes) || preferences.maxCookMinutes === item ? 'selected' : ''}}" wx:for="{{durationOptions}}" wx:key="*this" data-value="{{item === null ? 'none' : item}}" bindtap="onDurationTap">{{item === null ? '不限' : item + '分钟'}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip {{(item === null && !preferences.maxCookMinutes) || preferences.maxCookMinutes === item ? 'selected' : ''}}" wx:for="{{durationOptions}}" wx:key="*this" data-value="{{item === null ? 'none' : item}}" bindtap="onDurationTap">{{item === null ? '不限' : item + '分钟'}}</view>
     </view>
   </view>
 

@@ -1,9 +1,9 @@
 <view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px"><text class="ew-display">吃什么</text><text class="ew-subtitle">把每天的一餐，安排得轻松一些 · {{version}}</text>
 <view class="ew-section-title">从决定吃什么，到回顾吃过什么</view>
-<view class="help-step"><text class="ew-title">1 · 今天决定</text><text class="ew-subtitle">设置人数、餐次和偏好，浏览推荐或与助手一起搭配。方案中的菜可以换一换、保留和撤销修改。</text></view>
-<view class="help-step"><text class="ew-title">2 · 计划安排</text><text class="ew-subtitle">按周或按月查看。选一天编辑餐次、复制到别的日期，或从菜谱选择菜品。同一餐已有安排时会提示确认更新。</text></view>
+<view class="help-step"><text class="ew-title">1 · 今天决定</text><text class="ew-subtitle">确认日期、餐次和人数；本餐要求可留空。点击“生成本餐菜单”，之后可以换菜和撤销修改。旧菜单如有锁定菜品，会显示提示，可确认解除后再调整。</text></view>
+<view class="help-step"><text class="ew-title">2 · 保存到日历</text><text class="ew-subtitle">选好日期和餐次，把满意的方案保存到日历，再按周或按月查看、调整。保存到日历只保存计划，不会记作实际吃过。同一餐已有安排时会提示确认更新。</text></view>
 <view class="help-step"><text class="ew-title">3 · 准备食材</text><text class="ew-subtitle">先预览份量，移除家里已有的食材，再确认加入购物清单。清单支持食材汇总、餐次来源、数量修改、手动项和已购勾选。</text></view>
-<view class="help-step"><text class="ew-title">4 · 确认实际用餐</text><text class="ew-subtitle">吃完后，在当天餐次选择“按计划吃了”或填写“实际吃了别的”。也可以取消安排、纠正或撤销实际记录。修改计划不会删除吃过的记录。</text></view>
+<view class="help-step"><text class="ew-title">4 · 记录饮食</text><text class="ew-subtitle">吃完后，打开“记录饮食”，确认按计划吃了什么，或填写实际吃过的菜品、外食。实际吃过的内容才计入饮食回顾。也可以取消安排、纠正或撤销记录；修改计划不会删除吃过的记录。</text></view>
 <view class="help-step"><text class="ew-title">5 · 饮食回顾</text><text class="ew-subtitle">在“我的”查看周/月回顾、常吃菜品、记录分布和计划执行情况。历史安排不会自动被算成吃过，菜品类别次数也不代表营养摄入。</text></view>
 <view class="ew-notice">未连接时会标明缓存或待确认草稿。云端保存失败保留输入；清单冲突会展示最新版本，重新确认后才会提交。</view>
 <view class="help-step"><text class="ew-title">管理自己的偏好</text><text class="ew-subtitle">在“我的 → 偏好设置”编辑喜欢的菜系、标签、忌口食材和用时限制，也可重置偏好记忆。在助手内清空会话可删除该会话草稿。</text></view>

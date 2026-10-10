@@ -1,91 +1,28 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-page { background: #FFFFFF; }
-.profile-page { min-height:100vh; box-sizing:border-box; padding:16rpx 0 calc(28rpx + env(safe-area-inset-bottom)); overflow-x:hidden; background:linear-gradient(180deg,#EDF3ED 0,#F8F7F2 240rpx,#FFFFFF 520rpx); }
-.user-card { margin:0 20rpx 16rpx; padding:30rpx 24rpx 26rpx; border-radius:22rpx; display:flex; flex-direction:column; align-items:center; background:#28634E; color:#FFFFFF; }
-.user-avatar { position:relative; margin-bottom:12rpx; }
-.avatar { width:112rpx; height:112rpx; border-radius:50%; border:4rpx solid rgba(255,255,255,.86); }
-.edit-btn { position:absolute; right:-4rpx; bottom:-4rpx; width:38rpx; height:38rpx; display:flex; align-items:center; justify-content:center; border:2rpx solid #EDF3ED; border-radius:50%; background:#FFFFFF; }
-.edit-icon { width:28rpx; height:28rpx; color:#28634E; }
-.user-info { text-align:center; }
-.nickname { display:block; max-width:100%; font-size:1.285714em; font-weight:700; word-break:break-word; }
-.level { display:block; margin-top:6rpx; font-size:0.857143em; opacity:.85; }
-.shopping-shortcut { margin:0 20rpx 18rpx; padding:18rpx; display:flex; align-items:center; gap:14rpx; border:1rpx solid #cce8df; border-radius:16rpx; background:#FFFFFF; }
-.shopping-shortcut-icon { width:68rpx; height:68rpx; flex:0 0 auto; display:flex; align-items:center; justify-content:center; border-radius:16rpx; background:#EDF3ED; color:#28634E; }
-.shopping-shortcut-body { min-width:0; flex:1; }
-.shopping-shortcut-title,.shopping-shortcut-count,.shopping-shortcut-sync { display:block; word-break:break-word; }
-.shopping-shortcut-title { color:#25332B; font-size:1em; font-weight:700; }
-.shopping-shortcut-count { margin-top:5rpx; color:#28634E; font-size:0.857143em; }
-.shopping-shortcut-sync { margin-top:4rpx; color:#56645B; font-size:0.857143em; }
-.shopping-shortcut-open { flex:0 0 auto; min-width:132rpx; margin:0; padding:0; background:transparent; color:#28634E; font-size:0.857143em; }
-.shopping-shortcut-open::after { border:0; }
-.menu-section { margin:0 20rpx; overflow:hidden; border:1rpx solid #D9E1D5; border-radius:16rpx; background:#FFFFFF; }
-.menu-list { padding:0; }
-.menu-item { min-height:94rpx; box-sizing:border-box; display:flex; align-items:center; gap:12rpx; padding:16rpx 20rpx; border-bottom:1rpx solid #eef4f1; }
-.menu-item:last-child { border-bottom:0; }
-.menu-item:active { background:#f4fbf9; }
-.menu-icon { width:44rpx; display:flex; align-items:center; justify-content:center; color:#28634E; }
-.menu-icon .line-icon { width:34rpx; height:34rpx; }
-.menu-content { min-width:0; flex:1; }
-.menu-title,.menu-desc { display:block; word-break:break-word; }
-.menu-title { color:#25332B; font-size:1em; }
-.menu-desc { margin-top:4rpx; color:#56645B; font-size:0.857143em; }
-.menu-arrow { flex:0 0 auto; color:#56645B; font-size:1.285714em; }
-.version-info { margin-top:34rpx; padding:0 20rpx; text-align:center; }
-.version-text { color:#56645B; font-size:0.857143em; }
-.login-modal-mask { position:fixed; inset:0; background:rgba(20,44,37,.42); z-index:200; opacity:0; visibility:hidden; transition:all .3s; }
-.login-modal { position:fixed; left:0; right:0; bottom:0; z-index:201; box-sizing:border-box; padding:24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); border-radius:22rpx 22rpx 0 0; background:#FFFFFF; transform:translateY(100%); transition:transform .3s; }
-.modal-show { transform:translateY(0); }
-.login-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8rpx; }
-.login-modal-title { color:#25332B; font-size:1.285714em; font-weight:700; }
-.login-modal-close { padding:4rpx 8rpx; color:#56645B; font-size:1.285714em; }
-.login-modal-desc { margin-bottom:20rpx; color:#56645B; font-size:0.857143em; }
-.wx-login-btn { height:88rpx; line-height:88rpx; margin-bottom:12rpx; border-radius:14rpx; background:#28634E; color:#FFFFFF; font-size:1em; }
-.login-skip { padding:10rpx; text-align:center; color:#56645B; font-size:0.857143em; }
-@media (max-width:360px) { .shopping-shortcut { gap:8rpx; padding:14rpx; } .shopping-shortcut-open { min-width:110rpx; font-size:0.857143em; } .menu-item { padding-left:14rpx; padding-right:14rpx; } }
-
-/* 页面共享主题，适用于本页详情、表单和弹层。 */
-
-.avatar-fallback { width:120rpx;height:120rpx;border-radius:60rpx;background:#EDF3ED;color:#28634E;display:flex;align-items:center;justify-content:center;font-size:1.714286em; }
-
-/* Shared finish for legacy pages; layout and permission-specific states remain local. */
-.ew-page { background:#F8F7F2; color:#25332B; }
-.ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
-.ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
-
-.login-modal-close, .login-skip, .edit-btn { min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; }
-
-/* Input and touch minima remain fixed under small screens/font changes. */
-.ew-page button,.ew-page input,.ew-page .count-btn,.ew-page .choice-chip,.ew-page .filter-chip,.ew-page .date-picker{min-height:44px;box-sizing:border-box}
-.ew-page .primary-btn,.ew-page .save-btn,.ew-page .primary-action,.ew-page .wx-login-btn{min-height:48px}
-
-.login-modal-mask.mask-show { visibility:visible; opacity:1; }
-
-/* Fixed CSS pixels protect the actual event node at the 320px baseline. */
-.ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
-text.ew-hit-target { display:inline-flex; align-items:center; justify-content:center; }
-picker.ew-hit-target { display:block; }
-button { min-width:44px; min-height:48px; }
-
-button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
-
-/* Warm table v2: account, preparation, then personal content. */
-.profile-page { padding:20px 16px 32px; background:#F8F7F2; }
-.user-card { display:flex; align-items:center; gap:12px; background:transparent; color:#25332B; padding:20px 0; margin:0; box-shadow:none; border:0; border-radius:0; text-align:left; }
-.user-avatar { width:64px; height:64px; margin:0; flex:0 0 64px; }.avatar, .avatar-fallback { width:64px; height:64px; border:0; border-radius:22px; }.avatar-fallback { background:#F4E4D5; color:#854A2F; display:flex; align-items:center; justify-content:center; font-size:1.714286em; }
-.user-info { flex:1; min-width:0; }.nickname { color:#25332B; font-size:1.714286em; line-height:1.4; overflow-wrap:anywhere; }.level { color:#56645B; font-size:1em; margin-top:4px; }.profile-edit-label { font-size:0.928571em; color:#28634E; }
-.shopping-shortcut { display:flex; align-items:center; gap:12px; background:#F4E4D5; border:0; border-radius:16px; padding:16px; text-align:left; box-shadow:none; }.shopping-shortcut-body { flex:1; min-width:0; }.shopping-shortcut-title { font-size:1.142857em; color:#25332B; }.shopping-shortcut-sync { color:#56645B; line-height:1.6; font-size:0.928571em; }
-.menu-section { margin-top:24px; }.menu-list { background:#FFFFFF; border:0; border-radius:18px; overflow:hidden; }.menu-item { display:flex; align-items:center; gap:12px; background:#FFFFFF; text-align:left; padding:14px 16px; border:0; border-radius:0; min-height:60px; border-bottom:1px solid #E6EAE1; }.menu-title { flex:1; font-size:1.142857em; color:#25332B; line-height:1.6; }.admin-entry { border-radius:18px; margin-top:16px; }
-.version-info { background:transparent; padding:16px 0; border:0; text-align:center; color:#56645B; }.version-text { font-size:0.857143em; }
-
-.user-card { flex-direction:row; }.level { opacity:1; }
-
-.user-card, .shopping-shortcut, .menu-item, .admin-entry, .version-info { width:100%; margin-left:0; margin-right:0; }.menu-section { margin:24px 0 0; padding:0; border:0; background:transparent; box-shadow:none; }.user-info { text-align:left; }.nickname, .level { display:block; }
-
-.profile-page button.user-card,.profile-page button.shopping-shortcut,.profile-page button.menu-item,.profile-page button.version-info { width:100%; max-width:100%; }
-.profile-page button.user-card { background:#FFFFFF; border:1px solid #D9E1D5; border-radius:18px; padding:16px; margin:20px 0 12px; gap:12px; }
-.profile-page .nickname { font-size:1.285714em; line-height:1.45; }
-.profile-page .profile-edit-label { flex-shrink:0; font-weight:500; }
-.profile-page .user-avatar,.profile-page .avatar,.profile-page .avatar-fallback { width:48px; height:48px; flex-basis:48px; border-radius:16px; }
-.profile-page .menu-title { font-weight:500; }
-.profile-page .shopping-shortcut-title,.profile-page .shopping-shortcut-sync { display:block; }
+page { background:#F8F7F2; }
+.profile-page { min-height:100vh; box-sizing:border-box; padding:16px 16px calc(20px + env(safe-area-inset-bottom)); background:#F8F7F2; }
+.profile-page .ew-heading { margin-bottom:8px; }
+.profile-page button { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:1em; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
+.profile-page button::after { border:0; }
+.user-card { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 0; background:transparent; color:#25332B; border-bottom:1px solid #E6EAE1; border-radius:0; }
+.user-avatar { width:48px; height:48px; flex:0 0 48px; }
+.avatar, .avatar-fallback { width:48px; height:48px; border-radius:14px; }
+.avatar-fallback { display:flex; align-items:center; justify-content:center; background:#F4E4D5; color:#854A2F; font-size:1.5em; }
+.user-info { flex:1; min-width:0; text-align:left; }
+.nickname, .level { display:block; overflow-wrap:anywhere; }
+.nickname { font-size:1.125em; font-weight:600; color:#25332B; }
+.level { margin-top:2px; color:#56645B; font-size:0.8125em; }
+.profile-edit-label { color:#28634E; font-size:0.8125em; overflow-wrap:anywhere; }
+.shopping-shortcut { display:flex; align-items:center; gap:12px; margin:12px 0 !important; padding:12px; background:#EDF3ED; border-radius:14px; }
+.shopping-shortcut-body { flex:1; min-width:0; }
+.shopping-shortcut-title, .shopping-shortcut-sync { display:block; overflow-wrap:anywhere; }
+.shopping-shortcut-title { color:#25332B; font-weight:600; font-size:1em; }
+.shopping-shortcut-sync { color:#56645B; font-size:0.8125em; margin-top:2px; }
+.menu-section { margin:12px 0; padding:0; }
+.menu-list { background:transparent; }
+.menu-item { display:flex; align-items:center; gap:12px; padding:12px 0; min-height:52px; border-bottom:1px solid #E6EAE1 !important; border-radius:0; background:transparent; }
+.menu-title { flex:1; min-width:0; color:#25332B; font-size:1em; overflow-wrap:anywhere; }
+.admin-entry { margin-top:12px !important; }
+.version-info { text-align:center !important; padding:12px 0; background:transparent; }
+.version-text { display:block; color:#56645B; font-size:0.75em; overflow-wrap:anywhere; }

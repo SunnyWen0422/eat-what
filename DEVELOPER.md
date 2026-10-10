@@ -2,6 +2,8 @@
 
 当前分支 `codex/v4-meal-workspace-green-20261003` 已实际合并独立网页，合并基线 `c5bfe61`。本轮只在本地整理、修复与验收，不升级线上。接手入口：[交付记录](docs/release/2026-10-10-local-merged-readiness.md)、[启动与验证](docs/testing/local-verification.md)、[前后端设计](docs/eat-what-agent-fullstack-detailed-design.md)。旧计划保留背景，不作为现行生产授权。
 
+后续已整合环境/npm 修复 `4ab3d1f` 与小程序体验 `7fd7243`，冲突处理、额外修复和当前验证范围见 [优化分支合并验收](docs/testing/2026-10-10-optimization-branches-merge.md)。前轮 `7b70efe` 的冻结交付包不包含这次改动。
+
 ## 工程结构
 
 小程序围绕当前餐完成选菜、安排、计划确认、采购和实际用餐记录。一级导航为“今天｜菜谱｜计划｜我的”，`app.json` 注册 27 页。网页版共享仓库和公开菜库，独立构建；个人计划、收藏、采购和备份在浏览器 IndexedDB，目前不与微信账号云同步。

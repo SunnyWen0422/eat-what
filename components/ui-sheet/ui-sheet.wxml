@@ -1,1 +1,12 @@
-<view wx:if="{{visible}}" class="ew-hit-target ew-mask" style="bottom:{{keyboardHeight}}px" bindtap="close"><view class="ew-hit-target ew-sheet" style="max-height:{{sheetHeight}}px" catchtap="stop" role="dialog" aria-modal="true" aria-label="{{title}}"><view class="ew-between"><text class="ew-title">{{title}}</text><ui-icon-button name="close" label="关闭面板" disabled="{{busy}}" bind:press="close" /></view><scroll-view scroll-y class="sheet-body" style="max-height:{{bodyHeight}}px"><slot /></scroll-view><slot name="footer" /></view></view>
+<view wx:if="{{visible}}" class="ew-hit-target ew-mask" style="bottom:{{keyboardHeight}}px;animation-duration:{{motionDuration}}ms" bindtap="close">
+  <view class="ew-hit-target ew-sheet" style="max-height:{{sheetHeight}}px;min-height:{{sheetHeight < 44 ? sheetHeight : 44}}px;animation-duration:{{motionDuration}}ms" catchtap="stop" aria-role="dialog" aria-modal="true" aria-label="{{title}}">
+    <scroll-view class="sheet-scroll" scroll-y="{{overflowChrome}}" style="max-height:{{sheetHeight}}px;height:{{overflowChrome ? sheetHeight + 'px' : 'auto'}}">
+      <view class="sheet-layout {{overflowChrome ? 'overflow-chrome' : ''}}" style="max-height:{{overflowChrome ? 'none' : sheetHeight + 'px'}};padding-bottom:{{keyboardHeight ? 16 : 16 + safeInset}}px">
+        <view class="sheet-handle" aria-hidden="true"></view>
+        <view class="ew-between sheet-header"><text class="ew-title">{{title}}</text><ui-icon-button name="close" label="关闭面板" disabled="{{busy}}" bind:press="close" /></view>
+        <scroll-view class="sheet-body" scroll-y="{{!overflowChrome}}" style="max-height:{{overflowChrome ? 'none' : bodyHeight + 'px'}}"><slot /></scroll-view>
+        <view class="sheet-footer"><slot name="footer" /></view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

@@ -1,6 +1,7 @@
 const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
+const {calendarMealPresentation}=require('../../utils/calendar-meal-presentation')
 const { beginShoppingSelection } = require('../../utils/shopping-list')
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), weekdays: ['一','二','三','四','五','六','日'], selectedDate: flow.today(), viewMode: 'week', rangeLabel: '', days: [], mealCards: [], overview: { plans: [], consumptions: [] }, loading: true, errorMessage: '', selectMode: false, authenticated: true },
@@ -16,7 +17,7 @@ Page({
       const d = flow.parseDay(date)
       days.push({ key: date, fullDate: date, day: d.getDate(), weekLabel: ['日','一','二','三','四','五','六'][d.getDay()], selected: date === current, isToday: date === flow.today(), hasPlan: plans.some(p => String(p.recordDate).slice(0,10) === date), eaten: actual.some(p => p.mealDate === date && p.status === 'eaten') })
     }
-    this.setData({ days, rangeLabel: `${range.startDate} — ${range.endDate}`, mealCards: flow.mealViews(this.data.overview, current) })
+    this.setData({ days, rangeLabel: `${range.startDate} — ${range.endDate}`, mealCards: flow.mealViews(this.data.overview, current).map(meal=>({...meal,presentation:calendarMealPresentation({...meal,date:current,today:flow.today()}),dishSummary:calendarMealPresentation({...meal,date:current,today:flow.today()}).dishes.map(d=>d.name).join('、'),statusLabel:meal.status==='eaten'?'已吃':meal.status==='skipped'?'这餐没吃':meal.plan?'已安排 · 未记录':'未记录'})) })
   },
   async loadRecipeRecords() {
     const epoch = this._epoch = (this._epoch || 0) + 1, identity = getUserStorageKey('mealView'), range = this.period()

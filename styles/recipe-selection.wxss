@@ -1,0 +1,8 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+/* Shared current-meal projection, never a second menu editor. */
+.recipe-selected-row { display:flex; align-items:center; gap:12px; min-height:72px; border-bottom:1px solid #D9E1D5; }
+.recipe-selected-row button { font-size:1em; line-height:1.5; white-space:normal; margin:0; }
+.recipe-selected-name { flex:1; min-width:0; text-align:left; overflow-wrap:break-word; }
+.recipe-selected-row > button:last-child { flex:0 0 auto; }
+.favorite-selected-summary { margin-top:20px; padding-bottom:env(safe-area-inset-bottom); }
+.favorite-selected-summary > text { display:block; margin-bottom:12px; }

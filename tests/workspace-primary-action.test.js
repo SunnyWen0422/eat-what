@@ -13,6 +13,9 @@ for (const command of ['select', 'keep', 'cancel']) {
     assert.equal(page.data.primaryDisabled, false)
     assert.equal(page.data.primaryAction, 'onConfirmPlan')
     await page.onPrimaryAction()
+    assert.equal(page.data.confirmationVisible, true)
+    assert.equal(f.calls.filter(c => c.type === 'confirm').length, 0)
+    await page.onApproveReplacement()
     assert.equal(f.calls.filter(c => c.type === 'confirm').length, 1)
   })
 }
@@ -22,6 +25,7 @@ test('confirmed plan enables the cooking action after its refresh finishes', asy
   t.after(() => page.onUnload())
   await page.initializeWorkspace(target)
   await page.onConfirmPlan()
+  await page.onApproveReplacement()
   assert.equal(page.data.busy, false)
   assert.equal(page.data.primaryDisabled, false)
   assert.equal(page.data.primaryAction, 'onViewRecipes')
@@ -51,6 +55,7 @@ test('failed confirmation can be retried without leaving its next action disable
   await page.initializeWorkspace(target)
   f.api.confirmMealWorkspace = async () => { throw { statusCode: 503 } }
   await page.onConfirmPlan()
+  await page.onApproveReplacement()
   assert.equal(page.data.primaryAction, 'onRetryWorkspace')
   assert.equal(page.data.primaryDisabled, false)
   f.api.confirmMealWorkspace = original

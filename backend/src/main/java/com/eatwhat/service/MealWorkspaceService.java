@@ -76,8 +76,9 @@ public class MealWorkspaceService {
                 if("confirm".equals(operation)) confirm(user,w,request);
                 else if("cancel".equals(command)) {db.cancel(id);w.setTaskId(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("已停止，原方案已保留");}
                 else if(Arrays.asList("keep","release","undo").contains(command)) {
-                    db.cancel(id);w.setTaskId(null);w.setDraft(MealWorkspaceRules.command(w.getDraft(),command,request.getDishId(),null));w.setStatus(MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("条件已变化时需要重新安排");
+                    db.cancel(id);w.setTaskId(null);w.setDraft(MealWorkspaceRules.command(w.getDraft(),command,request.getDishId(),null,request.getReleaseLegacyLocks()));w.setStatus(MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("条件已变化时需要重新安排");
                 } else if(Arrays.asList("generate","regenerate","replace","select").contains(command)) {
+                    w.setDraft(MealWorkspaceRules.prepareInteraction(w.getDraft(),command,request.getReleaseLegacyLocks()));
                     db.cancel(id);WorkspaceTask task=new WorkspaceTask();task.setId(UUID.randomUUID().toString());task.setWorkspaceId(id);task.setUserId(user);task.setBaseRevision(before+1);
                     Map<String,Object> input=new LinkedHashMap<>();input.put("workspace",w);input.put("request",request);task.setInputJson(encode(input));db.task(task);
                     w.setTaskId(task.getId());w.setStatus("generating");w.setMessage("正在安排本餐");
@@ -93,15 +94,22 @@ public class MealWorkspaceService {
         if("generating".equals(w.getStatus()))throw conflict("请等待当前安排完成");
         if(request.getExpectedPlanRevision()==null||request.getExpectedPlanRevision()<0)throw new IllegalArgumentException("请提供目标安排版本");
         if(w.getDraft().getDishes().isEmpty())throw new IllegalArgumentException("请先生成方案");
-        RecipeRecord slot=plans.findSlot(user,w.getContext().getDate(),w.getContext().getMealType());long current=slot==null?0:slot.getRevision();
+        String targetDate=w.getContext().getDate(),targetMeal=w.getContext().getMealType();
+        if(request.getTargetDate()!=null || request.getTargetMealType()!=null) {
+            if(request.getTargetDate()==null || request.getTargetMealType()==null)throw new IllegalArgumentException("请同时指定目标日期和餐次");
+            targetDate=request.getTargetDate();targetMeal=request.getTargetMealType();
+            if(!targetDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}") || MealConsumptionService.date(targetDate).getYear()<1)throw new IllegalArgumentException("请指定有效目标日期");
+            if(!Arrays.asList("breakfast","lunch","dinner").contains(targetMeal))throw new IllegalArgumentException("目标餐次无效");
+        }
+        RecipeRecord slot=plans.findSlot(user,targetDate,targetMeal);long current=slot==null?0:slot.getRevision();
         if(current!=request.getExpectedPlanRevision())throw conflict("原安排已更新，请重新查看替换内容");
         // Validate current ownership and hard restrictions again at the authoritative write boundary.
         List<Long> ids=w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList());
         planner.lockAndValidate(user,w,ids);
-        RecipeRecord plan=new RecipeRecord();plan.setUserId(user);plan.setRecordDateString(w.getContext().getDate());plan.setMealType(w.getContext().getMealType());plan.setTargetPeople(w.getContext().getPeople());
+        RecipeRecord plan=new RecipeRecord();plan.setUserId(user);plan.setRecordDateString(targetDate);plan.setMealType(targetMeal);plan.setTargetPeople(w.getContext().getPeople());
         plan.setRecipeName(w.getDraft().getDishes().stream().map(Dish::getName).collect(Collectors.joining("、")));plan.setDishIds(ids);plan.setIsManual(0);plan.setExpectedRevision(current);
         planService.saveWorkspaceRecipeRecord(plan,w.getDraft().getDishes());
-        Map<String,Object> receipt=new LinkedHashMap<>();receipt.put("requestId",request.getRequestId());receipt.put("planVersion",w.getDraft().getPlanVersion());receipt.put("planRevision",current+1);receipt.put("date",w.getContext().getDate());receipt.put("mealType",w.getContext().getMealType());
+        Map<String,Object> receipt=new LinkedHashMap<>();receipt.put("requestId",request.getRequestId());receipt.put("planVersion",w.getDraft().getPlanVersion());receipt.put("planRevision",current+1);receipt.put("date",targetDate);receipt.put("mealType",targetMeal);
         if(w.getConfirmation()==null&&!w.getDraft().isAdjustedBeforeConfirmation())db.event(WorkflowRequestHash.sha256(user+"|first_accept|"+request.getRequestId()),user,w.getId(),w.getDraft().getPlanVersion(),"first_accepted",w.getDraft().getSource());
         w.setConfirmation(receipt);w.setStatus("planned");w.setMessage("已保存安排，可以查看做法或准备采购");
         db.event(WorkflowRequestHash.sha256(user+"|accepted|"+request.getRequestId()),user,w.getId(),w.getDraft().getPlanVersion(),"accepted",w.getDraft().getSource());

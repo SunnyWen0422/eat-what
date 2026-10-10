@@ -1,0 +1,32 @@
+✖ first use through tomorrow, shopping undo, own recipe and next menu application (35.580743ms)
+✔ registered ordinary pages have accessible root scaling, including the startup log (0.920469ms)
+✔ ordinary tappable views and text expose button semantics to assistive technology (1.578601ms)
+✔ bounded acceptance verifier exists without model/default suite runners (0.225385ms)
+✔ calendar and reusable menus use readable image-fallback rows without replacement actions (5.040161ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 128.783423
+
+✖ failing tests:
+
+test at tests/experience-journeys.test.js:57:1
+✖ first use through tomorrow, shopping undo, own recipe and next menu application (35.580743ms)
+  AssertionError [ERR_ASSERTION]: foreground return must reread the original workspace
+
+  1 !== 2
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-journeys.test.js:71:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,5 +1,5 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
-.status { font-size:0.857143em; border-radius:12rpx; padding:8rpx 14rpx; background:#EDF3ED; color:#56645B; display:inline-block; } .success { background:#EDF3ED; color:#28634E; } .warning { background:#FFF1DB; color:#75501A; } .danger { background:#FFF0ED; color:#A93B30; }
+.status { font-size:0.75em; border-radius:12rpx; padding:8rpx 14rpx; background:#EDF3ED; color:#56645B; display:inline-block; } .success { background:#EDF3ED; color:#28634E; } .warning { background:#FFF1DB; color:#75501A; } .danger { background:#FFF0ED; color:#A93B30; }
 
 /* Fixed CSS pixels protect the actual event node at the 320px baseline. */
 .ew-hit-target, .ew-page .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }

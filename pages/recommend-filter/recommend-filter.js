@@ -129,7 +129,7 @@ Page({
   onApply() {
     if (this._scope !== getUserStorageKey('filterPage')) { this.onLoad(); return }
     wx.setStorageSync(getUserStorageKey('pendingRecommendationCriteria'), normalizeCriteria(this.data.criteria))
-    wx.showToast({ title: '筛选已应用', icon: 'success' })
+    wx.showToast({ title: '筛选已带回本餐', icon: 'success' })
     wx.navigateBack()
   },
 })

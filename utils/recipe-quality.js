@@ -22,4 +22,12 @@ function dishCategoryLabel(value) {
  const labels={meat:'荤菜',veg:'素菜',soup:'汤品',staple:'主食',dessert:'甜品',side:'配菜'}
  return labels[type] || (/^[\u3400-\u9fff]{1,12}$/.test(type)?type:'未分类')
 }
-module.exports={presentRecipeQuality,dishCategoryLabel}
+function editRecipeQualityNotice(dish, form) {
+ const { editableRecipeText } = require('./personal-recipes')
+ const changed = String(form.ingredients || '').trim() !== editableRecipeText(dish.ingredientsAmounts || dish.cl).trim() ||
+  String(form.steps || '').trim() !== editableRecipeText(dish.steps || dish.step).trim() || String(form.servingDescription || '') !== String(dish.fl || '')
+ if (changed) return '配方已修改，来源和用量需重新核实；保存后不会沿用原配方已核验状态。'
+ const view = presentRecipeQuality(dish)
+ return view ? view.statusLabel + '。' + view.notice : '用户提供的配方，请按实际情况核对。'
+}
+module.exports={presentRecipeQuality,dishCategoryLabel,editRecipeQualityNotice}

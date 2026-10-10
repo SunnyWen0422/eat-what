@@ -374,3 +374,9 @@ button.share-btn { left:auto; bottom:auto; width:{{controls.touchSize.px}}; max-
 .dish-title-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }
 .dish-title-actions .favorite-btn,.dish-title-actions button.share-btn { position:relative; top:auto; right:auto; bottom:auto; left:auto; flex:0 0 44px; width:44px; height:44px; min-height:44px; max-width:44px; margin:0; }
 .dish-title-actions .favorite-status { position:absolute; top:100%; right:0; white-space:nowrap; background:{{card}}; border-radius:6px; padding:2px 4px; }
+
+@import "../../styles/recipe-selection.wxss";
+
+/* An in-flow action section stays reachable at 200% text without covering steps. */
+.container .detail-bottom { position:static; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); }
+.container { padding-bottom:16px; }

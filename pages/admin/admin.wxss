@@ -33,7 +33,7 @@ button::after {
 
 .page-title {
   display: block;
-  font-size:1.285714em;
+  font-size:1.125em;
   font-weight: 700;
   color:#25332B;
 }
@@ -43,7 +43,7 @@ button::after {
   display: block;
   margin-top:4rpx;
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 
 .search-bar {
@@ -84,7 +84,7 @@ button::after {
   justify-content: center;
   background: transparent;
   color:#56645B;
-  font-size:1.285714em;
+  font-size:1.125em;
   line-height: 1;
 }
 
@@ -117,7 +117,7 @@ button::after {
 .result-note {
   margin:4rpx 0 14rpx;
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
   word-break: break-word;
 }
 
@@ -129,7 +129,7 @@ button::after {
   margin:0 0 14rpx;
   padding:12rpx 18rpx;
   border-radius:8rpx;
-  font-size:0.857143em;
+  font-size:0.75em;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -191,7 +191,7 @@ button::after {
   display: block;
   margin-top:8rpx;
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
   line-height: 1.45;
   word-break: break-word;
 }
@@ -201,7 +201,7 @@ button::after {
   margin-left:12rpx;
   padding:6rpx 12rpx;
   border-radius:8rpx;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 
 .status-badge.active {
@@ -216,7 +216,7 @@ button::after {
 
 .row-arrow {
   color:#56645B;
-  font-size:1.714286em;
+  font-size:1.5em;
 }
 
 .state-block {
@@ -269,7 +269,7 @@ button::after {
 .list-end {
   padding:28rpx 0 calc(28rpx + env(safe-area-inset-bottom));
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
   text-align: center;
 }
 
@@ -283,11 +283,11 @@ button::after {
   min-height: 88rpx;
   margin-left:-16rpx;
   color:#28634E;
-  font-size:1.857103em;
+  font-size:1.624965em;
 }
 
 .nav-title {
-  font-size:1.142857em;
+  font-size:1em;
   font-weight: 650;
 }
 
@@ -331,7 +331,7 @@ button::after {
   color:#A93B30;
   background: #fff2f3;
   border-radius:10rpx;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 
 .action-bar {
@@ -367,7 +367,7 @@ button::after {
 .target-label {
   flex: none;
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 
 .target-name {
@@ -390,7 +390,7 @@ button::after {
   display: block;
   margin-bottom:14rpx;
   color:#25332B;
-  font-size:0.928571em;
+  font-size:0.8125em;
   font-weight: 600;
 }
 
@@ -472,7 +472,7 @@ button::after {
 .number-unit {
   flex: none;
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 
 .tag-group + .tag-group {
@@ -493,7 +493,7 @@ button::after {
 .tag-chip {
   min-width: 0;
   min-height: 72rpx;
-  font-size:0.857143em;
+  font-size:0.75em;
   white-space: normal;
   word-break: break-word;
 }

@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const { presentDietReport, recordUrl } = require('../../utils/diet-report')
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), periodMode: 'week', selectedDate: flow.today(), rangeLabel: '', loading: true, errorMessage: '', report: null, reportView: null, categoryRows: [], dailyRows: [], recordRows: [] },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), periodMode: 'week', selectedDate: flow.today(), rangeLabel: '', loading: true, errorMessage: '', report: null, reportView: null, categoryRows: [], dailyRows: [], recordRows: [], coverageNotice: '', review: null, recordUrl: '', showReviewDetails: false, showProvenance: false },
   onLoad(options = {}) {
     const anchor = options.anchor
     if (typeof anchor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(anchor) && flow.formatDay(flow.parseDay(anchor)) === anchor) {
@@ -13,7 +13,7 @@ Page({
   onShow() { this._unloaded = false; this.loadStatistics() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   range() { const date = flow.parseDay(this.data.selectedDate); return this.data.periodMode === 'week' ? flow.weekRange(this.data.selectedDate) : flow.monthRange(date.getFullYear(), date.getMonth() + 1) },
-  clearReport() { this.setData({ report: null, reportView: null, categoryRows: [], dailyRows: [], recordRows: [] }) },
+  clearReport() { this.setData({ report: null, reportView: null, categoryRows: [], dailyRows: [], recordRows: [], coverageNotice: '', review: null, recordUrl: '', showReviewDetails: false, showProvenance: false }) },
   async loadStatistics() {
     const epoch = this._epoch = (this._epoch || 0) + 1
     const scope = getUserStorageKey('dietReview'), range = this.range()
@@ -34,6 +34,7 @@ Page({
       }
     } finally { if (current()) this.setData({ loading: false }) }
   },
+  onToggleReviewDetails(){this.setData({showReviewDetails:!this.data.showReviewDetails})},
   onToggleProvenance(){this.setData({showProvenance:!this.data.showProvenance})},
   onMode(e) { this.setData({ periodMode: e.currentTarget.dataset.mode }); this.loadStatistics() },
   move(amount) { const current = flow.parseDay(this.data.selectedDate); const date = this.data.periodMode === 'week' ? flow.shiftDay(this.data.selectedDate, amount * 7) : flow.formatDay(new Date(current.getFullYear(), current.getMonth() + amount, 1, 12)); if (date > flow.today()) return wx.showToast({ title: '未来用餐尚未记录', icon: 'none' }); this.setData({ selectedDate: date }); this.loadStatistics() },

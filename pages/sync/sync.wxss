@@ -19,4 +19,4 @@ button { min-width:44px; min-height:48px; }
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Warm table v2: sync */
- .sync-draft { background:#FFFFFF; border-bottom:1px solid #E6EAE1; padding:16px; }.sync-draft .ew-title { font-size:1.142857em; }.sync-draft ui-button { display:block; margin-top:12px; }.ew-section-title { margin-top:24px; }.ew-muted { line-height:1.7; }
+ .sync-draft { background:#FFFFFF; border-bottom:1px solid #E6EAE1; padding:16px; }.sync-draft .ew-title { font-size:1em; }.sync-draft ui-button { display:block; margin-top:12px; }.ew-section-title { margin-top:24px; }.ew-muted { line-height:1.7; }

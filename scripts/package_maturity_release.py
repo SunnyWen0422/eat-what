@@ -32,7 +32,11 @@ def python_inputs(root):
     for source in sorted(service.rglob('*.py')):
         if '__pycache__' not in source.parts:yield source,source.relative_to(root)
     yield service/'requirements.txt',Path('recommend-service/requirements.txt')
-    for source in sorted((service/'prompts').rglob('*.txt')):yield source,source.relative_to(root)
+    # Only the runtime prompt is a release input; local prompt drafts stay private.
+    for name in ('recommendation.txt',):
+        source=service/'prompts'/name
+        if not source.is_file():raise ValueError('Missing runtime recommendation prompt: '+name)
+        yield source,source.relative_to(root)
     for name in ('agent-policy.json','agent.md','spec.md','data-policy.md'):
         source=root/'docs/assistant'/name
         if not source.is_file():raise ValueError('Missing runtime assistant policy: '+name)

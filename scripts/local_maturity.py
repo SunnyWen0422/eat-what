@@ -18,6 +18,7 @@ def main():
         print(json.dumps(runtime.prepare_java_jar(state,args.jar)));return
     if args.action=='start':
         if not args.backup_zip or not args.quality_bundle:raise ValueError('Explicit audited backup and governed bundle required')
+        args.java=args.java or 'D:/Java/bin/java.exe'
         from bridge_legacy_local import prepare_source
         args.prepared_source=prepare_source(args.backup_zip,args.quality_bundle)
         print('Backup, quality bundle and migration preflight passed.',flush=True)

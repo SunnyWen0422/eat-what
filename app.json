@@ -53,7 +53,7 @@
       },
       {
         "pagePath": "pages/calendar/calendar",
-        "text": "计划",
+        "text": "日历",
         "iconPath": "assets/icons/plan.png",
         "selectedIconPath": "assets/icons/plan-selected.png"
       },
@@ -84,6 +84,10 @@
     "ui-list": "/components/ui-list/ui-list",
     "ui-search": "/components/ui-search/ui-search",
     "ui-checkbox": "/components/ui-checkbox/ui-checkbox",
-    "ui-sheet": "/components/ui-sheet/ui-sheet"
+    "ui-sheet": "/components/ui-sheet/ui-sheet",
+    "compact-dish-row": "/components/compact-dish-row/index",
+    "compact-ingredient-row": "/components/compact-ingredient-row/index",
+    "meal-composition-summary": "/components/meal-composition-summary/index",
+    "action-feedback": "/components/action-feedback/index"
   }
 }

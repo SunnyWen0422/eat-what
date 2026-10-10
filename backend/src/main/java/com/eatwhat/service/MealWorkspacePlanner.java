@@ -35,7 +35,7 @@ public class MealWorkspacePlanner {
     private List<Dish> eligible(Long user,MealContext c,SelectionOrigin origin) {
         if(!metadata.validateCriteria(c.getCriteria()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
         EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolve(c.getCriteria(),preferences.get(user),true);
-        List<Dish> pool=new ArrayList<>(candidates.findRawForUser(user,null,null,criteria,10000));
+        List<Dish> pool=new ArrayList<>(candidates.findRawForUser(user,null,null,criteria,Integer.MAX_VALUE));
         if (origin==SelectionOrigin.AUTOMATIC&&"breakfast".equals(c.getMealType())) pool=pool.stream().filter(d->Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE")).collect(Collectors.toList());
         Collections.shuffle(pool);
         final EffectiveRecommendationCriteria effective=criteria;
@@ -54,10 +54,7 @@ public class MealWorkspacePlanner {
             if (!"eaten".equals(meal.getStatus())) continue;
             try {
                 List<Map<String,Object>> entries=json.readValue(meal.getActualDishesJson(),new TypeReference<List<Map<String,Object>>>(){});
-                for (Map<String,Object> entry:entries) {
-                    Object id=entry.get("dishId");
-                    if (id != null && String.valueOf(id).matches("[1-9][0-9]*")) ids.add(Long.valueOf(String.valueOf(id)));
-                }
+                ids.addAll(new RecommendationScorer().recentActualIds(meal.getStatus(),entries));
             } catch (Exception error) { throw new IllegalStateException("近期实际用餐快照无法读取",error); }
         }
         return ids;
@@ -133,6 +130,6 @@ public class MealWorkspacePlanner {
         if(!expected.equals(actualCounts))throw new IllegalArgumentException("方案菜数与本餐设置不一致，请调整菜数或重新安排");
         validated.setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));return validated;
     }
-    private String category(Dish d,MealContext c) {return "breakfast".equals(c.getMealType())&&!"staple".equals(d.getType())?"side":d.getType();}
+    private String category(Dish d,MealContext c) {return MealWorkspaceRules.category(d,c);}
     private boolean fitsTime(List<Dish> list,MealContext c) {Integer total=MealWorkspaceRules.totalMinutes(list);return c.getTotalCookMinutes()==null||(total!=null&&total<=c.getTotalCookMinutes());}
 }

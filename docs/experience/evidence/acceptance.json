@@ -1,0 +1,131 @@
+[
+  {
+    "check": "G1 syntax",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "files": 202,
+      "roots": [
+        "app",
+        "pages",
+        "utils",
+        "components",
+        "templates",
+        "design",
+        "explicit tests"
+      ]
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 template registration, handler references and nested taps",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "templates": 49,
+      "handlerScope": "page and imported utility source; not dynamic execution"
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 ordinary reachable copy (both feature branches)",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "templates": 24
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 asset references and density tokens",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "body": 16,
+      "touch": 44,
+      "button": 48
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 UI contract regression",
+    "kind": "automated",
+    "status": "passed",
+    "evidence": "node.log: 756/756, 60 explicit files, 0 failures/skips",
+    "limitation": "Literal API receipts and controlled platform; generation/model/voice transport not run."
+  },
+  {
+    "check": "G2 structural checks",
+    "kind": "automated",
+    "status": "passed",
+    "evidence": "python.log: 13 tests and 83 subtests passed",
+    "limitation": "Only three files; generated assets tested in isolated temporary copies, not native rendering."
+  },
+  {
+    "check": "G3 Java whitelist",
+    "kind": "automated",
+    "status": "passed",
+    "evidence": "test-audit.json and java.log: 99 tests, 17 classes, zero errors/failures/skips; offline Maven exit 0",
+    "limitation": "Mapper/transaction stubs and pure logic; no model, network, database or migration execution."
+  },
+  {
+    "check": "G3 package",
+    "kind": "automated",
+    "status": "passed",
+    "evidence": "Maven -o -Dmaven.repo.local=$PWD/.superpowers/m2 -f backend/pom.xml -DskipTests package exited 0; package.log",
+    "limitation": "Compilation/package only; tests skipped in this separate command, not a runtime deployment."
+  },
+  {
+    "check": "G4 v2 visual/source comparison",
+    "kind": "static",
+    "status": "passed",
+    "evidence": "All six v2_review pages and v2 delivery notes inspected; twelve-screen mapping in acceptance.md",
+    "limitation": "Design-to-source mapping only. No native screenshot/pixel equivalence claim. Source target deliberately retained after cross-date save."
+  },
+  {
+    "check": "G4 native compiler",
+    "kind": "devtools",
+    "status": "not-run",
+    "evidence": "check_native_compile.py --help inspected; wcc/wcsc/wechat-devtools absent on PATH; no compiler directory supplied",
+    "limitation": "WXML parser and Java packaging do not prove WeChat compilation."
+  },
+  {
+    "check": "G4 iOS/Android, narrow/390x844, 200%, keyboard, screen reader, all images failed",
+    "kind": "device",
+    "status": "not-run",
+    "evidence": "No authorized device/experience package/runtime available in this task",
+    "limitation": "Native focus, density, screen-reader operation and keyboard completion need actual testing."
+  },
+  {
+    "check": "G4 first-use usability",
+    "kind": "user-study",
+    "status": "not-run",
+    "evidence": "No uninvolved users recruited or tested",
+    "limitation": "Five-user, four-unprompted-completions and ten-second discovery are targets, not measured results."
+  },
+  {
+    "check": "G5 independent whole-branch review",
+    "kind": "static",
+    "status": "not-run",
+    "evidence": "Controller-owned next gate; Task11 self-review is not independent approval",
+    "limitation": "Review actual changes and integration evidence; repair and rerun any findings."
+  },
+  {
+    "check": "G5 remote SHA/tree/PR/CI",
+    "kind": "static",
+    "status": "not-run",
+    "evidence": "No push/PR creation/remote mutation performed by this task",
+    "limitation": "Preserve all untouched blobs/modes and 12 absent local outputs; record remote exact SHA and CI only after publication."
+  },
+  {
+    "check": "T11-R1 actual recipe-return lifecycle",
+    "kind": "automated",
+    "status": "passed",
+    "evidence": "fix1-red.log: missing return refresh fails 1 != 2; fix1-targeted.log: 84/84; refreshed node.log: 756/756",
+    "limitation": "Actual Page lifecycles with fixed VM time and API receipts; no native/device navigation claim. Independent re-review remains pending."
+  }
+]

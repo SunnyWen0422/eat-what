@@ -475,3 +475,16 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .sidebar-item { border:1px solid {{border}}; background:{{card}}; }
 .sidebar-item.sidebar-active { border-color:{{brand}}; background:{{brandSoft}}; color:{{brand}}; }
 .hot-tag { border-color:{{controlBorder}}; background:{{card}}; }
+
+@import "../../styles/recipe-selection.wxss";
+
+.recipe-sources { display:flex; flex-wrap:wrap; gap:8px; flex-shrink:0; margin-bottom:8px; }
+.recipe-sources button { flex:1 1 80px; margin:0; min-width:44px; min-height:48px; font-size:1em; line-height:1.5; white-space:normal; padding:8px; background:{{card}}; color:{{text}}; }
+.recipe-sources button.active { background:{{brandSoft}}; color:{{brand}}; }
+.recipe-target,.selected-status { font-size:1em; line-height:1.5; }
+.page { flex-direction:column; }
+.category-scroll { width:100%; }
+.sidebar { flex-direction:row; }
+.sidebar-item { width:auto; }
+
+.personal-recipe-extras { padding:12px 0; border-top:1px solid #E6EAE1; }.personal-recipe-extras input { min-height:48px; }.ew-error { overflow-wrap:anywhere; }

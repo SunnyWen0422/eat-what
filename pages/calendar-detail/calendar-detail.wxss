@@ -19,4 +19,11 @@ button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
-.ew-page{background:#F8F7F2}.dish-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.dish-links .ew-chip{background:transparent;border:1px solid #D9E1D5;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;padding:8px;font-size:0.928571em}.ew-actions{margin:12px 0;gap:8px}.meal-more{border-top:1px solid #E6EAE1;padding-top:8px}.meal-more-toggle{margin-top:8px}
+.ew-page{background:#F8F7F2}.dish-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.dish-links .ew-chip{background:transparent;border:1px solid #D9E1D5;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;padding:8px;font-size:0.8125em}.ew-actions{margin:12px 0;gap:8px}.meal-more{border-top:1px solid #E6EAE1;padding-top:8px}.meal-more-toggle{margin-top:8px}
+
+/* Read-first meal rows expand for long names and larger text. */
+.calendar-dish-row { min-height:80px; display:flex; align-items:center; border-bottom:1px solid #E6EAE1; padding:8px 0; box-sizing:border-box; }
+.dish-recipe-link { width:100%; min-height:64px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:8px; text-align:left; white-space:normal; word-break:break-word; background:transparent; font-size:1em; color:#25332B; }
+.dish-recipe-link::after { border:0; }
+.original-plan .ew-reading { display:block; }
+.meal-more-panel { padding:12px; background:#FFFFFF; border-radius:14px; }

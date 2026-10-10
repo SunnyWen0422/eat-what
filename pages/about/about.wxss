@@ -19,13 +19,13 @@
 }
 
 .app-name {
-  font-size:2.285691em;
+  font-size:1.99998em;
   font-weight: bold;
   margin-bottom:8px;
 }
 
 .app-slogan {
-  font-size:1.285714em;
+  font-size:1.125em;
   opacity: 0.9;
   margin-bottom:12px;
 }
@@ -40,7 +40,7 @@
 
 /*  section标题 */
 .section-title {
-  font-size:1.285714em;
+  font-size:1.125em;
   font-weight: bold;
   color: #25332B;
   padding:20px 20px 12px;
@@ -74,14 +74,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size:1.285714em;
+  font-size:1.125em;
   font-weight: bold;
   margin-right:12px;
   flex-shrink: 0;
 }
 
 .step-title {
-  font-size:1.285714em;
+  font-size:1.125em;
   font-weight: bold;
   color: #25332B;
 }
@@ -91,7 +91,7 @@
 }
 
 .step-text {
-  font-size:1.142857em;
+  font-size:1em;
   color:#25332B;
   line-height: 1.8;
   display: block;
@@ -107,7 +107,7 @@
 }
 
 .detail-item {
-  font-size:1.142857em;
+  font-size:1em;
   color: #56645B;
   line-height: 2;
   display: block;
@@ -141,7 +141,7 @@
 }
 
 .tip-item {
-  font-size:1.142857em;
+  font-size:1em;
   color: #56645B;
   line-height: 2.2;
   display: block;
@@ -182,4 +182,4 @@ button { min-width:44px; min-height:48px; }
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Warm table v2: about */
- .ew-display { display:block; color:#28634E; margin:16px 0 8px; }.help-step { padding:16px 0; border-bottom:1px solid #E6EAE1; }.help-step .ew-title { font-size:1.142857em; }.help-step .ew-subtitle { font-size:1.142857em; line-height:1.8; margin-top:6px; }.about-links { background:#FFFFFF; margin-top:24px; border-radius:16px; padding:4px 16px; }.about-link { display:flex; align-items:center; justify-content:space-between; min-height:56px; font-size:1.142857em; color:#25332B; }
+ .ew-display { display:block; color:#28634E; margin:16px 0 8px; }.help-step { padding:16px 0; border-bottom:1px solid #E6EAE1; }.help-step .ew-title { font-size:1em; }.help-step .ew-subtitle { font-size:1em; line-height:1.8; margin-top:6px; }.about-links { background:#FFFFFF; margin-top:24px; border-radius:16px; padding:4px 16px; }.about-link { display:flex; align-items:center; justify-content:space-between; min-height:56px; font-size:1em; color:#25332B; }

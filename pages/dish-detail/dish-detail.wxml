@@ -14,6 +14,7 @@
 
   <!-- 菜品信息 -->
   <view class="dish-info {{dish.image ? 'with-hero' : ''}}">
+    <text class="ew-subtitle">查看食材用量和烹饪做法。</text>
     <view class="dish-header">
       <view class="dish-title-row">
         <text class="dish-name">{{dish.name}}</text>
@@ -21,7 +22,7 @@
           <button class="share-btn" open-type="share">
             <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
           </button>
-          <view class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
+          <view aria-role="button" class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
             <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
           </view>
         </view>
@@ -110,6 +111,8 @@
       </view>
     </view>
 
+    <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤，不能猜测做法。</view>
+    <button class="ew-hit-target ew-link" bindtap="onOpenCooking">大字做法，接着上次步骤看</button>
     <!-- 小贴士 -->
     <view class="section" wx:if="{{dish.tips}}">
       <view class="section-title">
@@ -120,7 +123,8 @@
       </view>
     </view>
   </view>
-  <view class="section"><button class="ew-hit-target ew-link" loading="{{copyBusy}}" disabled="{{copyBusy}}" bindtap="onCopyPersonal">复制到我的私房菜</button><view wx:if="{{copyError}}" class="ew-error">{{copyError}}<button class="ew-hit-target ew-link" bindtap="onRetry">重新读取菜品</button></view></view><view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view><view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><ui-button label="加入本餐" loading="{{addingToMeal}}" bind:action="onAddToCurrentMeal" /><ui-button label="准备食材" variant="secondary" bind:action="onAddToShoppingList" /></view>
+  <view class="section"><button class="ew-hit-target ew-link" loading="{{copyBusy}}" disabled="{{copyBusy}}" bindtap="onCopyPersonal">复制到我的私房菜</button><view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view><view wx:if="{{copyError}}" class="ew-error">{{copyError}}<button class="ew-hit-target ew-link" bindtap="onRetry">重新读取菜品</button></view></view><view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view><view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><button class="ew-hit-target ew-link" bindtap="onShowSelected">{{selectedMeal.targetLabel}} · 已选 {{selectedMeal.count}} 道</button><text class="ew-muted">{{selectedMeal.message}}</text><action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" /><ui-button label="{{mealPrimaryLabel}}" loading="{{selectionBusy}}" disabled="{{selectionLoading || (!isAddedToMeal && selectionBlocked)}}" bind:action="onAddToCurrentMeal" /><ui-button label="准备食材" variant="secondary" bind:action="onAddToShoppingList" /></view>
+  <include src="../../templates/recipe-selected-sheet.wxml" />
 </view>
 
 <!-- 加载中 -->
@@ -131,6 +135,6 @@
 
 <!-- 错误提示 -->
 <view class="error-container" wx:if="{{!loading && error}}">
-  <text class="error-text">加载失败，请重试</text>
+  <text class="error-text">{{detailError || '加载失败，请重试'}}</text>
   <button class="ew-hit-target retry-btn" bindtap="onRetry">重试</button>
 </view>

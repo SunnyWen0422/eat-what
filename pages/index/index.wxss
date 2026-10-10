@@ -32,7 +32,7 @@ page {
   text-align: center;
 }
 .header-title {
-  font-size:1.714286em;
+  font-size:1.5em;
   font-weight: bold;
   color: #28634E;
   letter-spacing:1px;
@@ -44,7 +44,7 @@ page {
 }
 .header-title .line-icon { width: 34rpx; height: 34rpx; color: #28634E; }
 .header-subtitle {
-  font-size:0.857143em;
+  font-size:0.75em;
   color:#56645B;
   margin-top:8px;
   display: block;
@@ -83,7 +83,7 @@ page {
   flex-shrink: 0;
 }
 .card-num {
-  font-size:1.285714em;
+  font-size:1.125em;
   font-weight: bold;
   color: #28634E;
   min-width: 56rpx;
@@ -95,7 +95,7 @@ page {
   border-radius:50%;
   background: #28634E;
   color: #FFFFFF;
-  font-size:1.285714em;
+  font-size:1.125em;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -120,12 +120,12 @@ page {
   gap:8px;
 }
 .tip-icon { width: 28rpx; height: 28rpx; color: #28634E; flex-shrink: 0; }
-.tip-text { font-size:0.857143em; color:#28634E; line-height: 1.4; }
+.tip-text { font-size:0.75em; color:#28634E; line-height: 1.4; }
 
 /* 热门搭配标签组 */
 .tags-area { margin:0 16px 10px; }
 .tags-label {
-  font-size:0.928571em;
+  font-size:0.8125em;
   font-weight: bold;
   color:#25332B;
   margin-bottom:10px;
@@ -138,7 +138,7 @@ page {
   padding:8px 16px;
   background: #f5f7f4;
   border-radius:20px;
-  font-size:0.928571em;
+  font-size:0.8125em;
   color: #56645B;
   border: 1px solid #e0e8dc;
   transition: all 0.25s;
@@ -160,17 +160,17 @@ page {
   gap:8px;
 }
 .filter-more,
-.filter-clear { color: #28634E; font-size:0.928571em; }
-.selected-mark { margin-left:4px; font-size:0.857143em; font-weight: 600; }
+.filter-clear { color: #28634E; font-size:0.8125em; }
+.selected-mark { margin-left:4px; font-size:0.75em; font-weight: 600; }
 .filter-feedback { margin-top:9px; padding-top:8px; border-top: 1px solid #D9E1D5; }
-.filter-summary { min-width: 0; flex: 1; color:#25332B; font-size:0.857143em; line-height: 1.5; }
+.filter-summary { min-width: 0; flex: 1; color:#25332B; font-size:0.75em; line-height: 1.5; }
 .preference-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top:10px;
   color:#25332B;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 .preference-toggle-row switch { transform: scale(0.8); transform-origin: right center; }
 
@@ -184,10 +184,10 @@ page {
 }
 .hint-header { display: flex; align-items: center; margin-bottom:6px; }
 .hint-icon { color: #28634E; font-size:1em; font-weight: bold; margin-right:4px; }
-.hint-title { font-size:0.928571em; font-weight: bold; color:#28634E; flex: 1; }
-.hint-clear { font-size:0.857143em; color: #56645B; padding:2px 8px; }
+.hint-title { font-size:0.8125em; font-weight: bold; color:#28634E; flex: 1; }
+.hint-clear { font-size:0.75em; color: #56645B; padding:2px 8px; }
 .selected-tags { display: flex; flex-wrap: wrap; gap:4px; }
-.dish-tag { font-size:0.857143em; padding:2px 6px; border-radius:4px; }
+.dish-tag { font-size:0.75em; padding:2px 6px; border-radius:4px; }
 .meat-tag { color:#28634E; background: #FDE8E8; border: 1px solid #ffbb96; }
 .veg-tag { color: #28634E; background: #EDF3ED; border: 1px solid #b7e1b0; }
 .soup-tag { color: #28634E; background: #E3F2FD; border: 1px solid #91d5ff; }
@@ -199,19 +199,19 @@ page {
 .section-header-title { font-size:1em; font-weight: bold; color: #25332B; }
 .section-header-title { display: flex; align-items: center; gap:6rpx; }
 .section-header-title .line-icon { width: 28rpx; height: 28rpx; color: #28634E; }
-.section-header-hint { font-size:0.857143em; color:#56645B; }
+.section-header-hint { font-size:0.75em; color:#56645B; }
 .recipe-list { height: auto; }
 .recipe-item { padding:10px; background: #fafbfa; border-radius:8px; border: 1px solid #eee; position: relative; margin-bottom:8px; transition: all 0.2s; }
 .recipe-item.selected { background: #EDF3ED; border-color: #28634E; }
 .recipe-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:6px; }
-.recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size:0.928571em; font-weight: bold; color: #25332B; }
+.recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size:0.8125em; font-weight: bold; color: #25332B; }
 .delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background:#A93B30; color: #FFFFFF; border-radius:50%; font-size:1em; font-weight: bold; }
 .recipe-info { display: flex; gap:5px; flex-wrap: wrap; }
-.info-tag { font-size:0.857143em; color:#56645B; background: #FFFFFF; padding:2px 5px; border-radius:3px; }
+.info-tag { font-size:0.75em; color:#56645B; background: #FFFFFF; padding:2px 5px; border-radius:3px; }
 .recipe-dishes { display: flex; flex-wrap: wrap; gap:3px; margin-top:5px; }
-.recipe-dishes .dish-tag { font-size:0.857143em; color: #28634E; background: #FFFFFF; padding:1px 4px; border-radius:3px; border: 1px solid #28634E; }
-.selected-badge { position: absolute; top: -6px; right: -6px; background: #28634E; color: #FFFFFF; font-size:0.857143em; padding:1px 6px; border-radius:10px; }
-.unselect-btn { margin-top:10px; text-align: center; padding:6px; background: #F8F7F2; border-radius:4px; color: #56645B; font-size:0.857143em; }
+.recipe-dishes .dish-tag { font-size:0.75em; color: #28634E; background: #FFFFFF; padding:1px 4px; border-radius:3px; border: 1px solid #28634E; }
+.selected-badge { position: absolute; top: -6px; right: -6px; background: #28634E; color: #FFFFFF; font-size:0.75em; padding:1px 6px; border-radius:10px; }
+.unselect-btn { margin-top:10px; text-align: center; padding:6px; background: #F8F7F2; border-radius:4px; color: #56645B; font-size:0.75em; }
 
 /* 数据加载提示 */
 .loading-tip { margin:0 16px 10px; padding:12px 16px; background: #fff9e6; border-radius:10px; border: 1px solid rgba(212,160,23,0.2); }
@@ -230,7 +230,7 @@ page {
 .primary-btn {
   width: 80%; height: 48px;
   background: #28634E;
-  color: #FFFFFF; font-size:1.285714em; font-weight: bold;
+  color: #FFFFFF; font-size:1.125em; font-weight: bold;
   border-radius:28rpx; border: none;
   box-shadow: none;
   letter-spacing:2rpx;

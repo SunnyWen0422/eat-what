@@ -6,6 +6,8 @@ import com.eatwhat.entity.Dish;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 public class RecommendationScorer {
     static final int CUISINE_WEIGHT = 30;
@@ -37,6 +39,17 @@ public class RecommendationScorer {
             score += RECENT_WEIGHT;
         }
         return score;
+    }
+
+    /** Explicit actual snapshot identities only; never resolve arbitrary food names. */
+    public Set<Long> recentActualIds(String status, List<? extends Map<String, ?>> entries) {
+        Set<Long> ids = new HashSet<>();
+        if (!"eaten".equals(status)) return ids;
+        for (Map<String, ?> entry : entries) {
+            Object id = entry.get("dishId");
+            if (id != null && String.valueOf(id).matches("[1-9][0-9]*")) ids.add(Long.valueOf(String.valueOf(id)));
+        }
+        return ids;
     }
 
     private Set<String> tags(String value) {

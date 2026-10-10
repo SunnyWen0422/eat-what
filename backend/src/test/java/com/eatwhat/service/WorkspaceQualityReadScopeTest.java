@@ -117,6 +117,15 @@ class WorkspaceQualityReadScopeTest {
         assertThrows(MealConsumptionService.VersionConflict.class, () -> f.planner.lockAndValidate(7L, w, selected));
         assertEquals(new HashSet<>(selected), new HashSet<>(f.onlyQualityRead())); assertEquals(reviewed, w.getDraft());
     }
+    @Test void namedRawCandidateIsRetrievedBeforeTheBoundWithoutEnrichingTheWholePool() {
+        Fixture f = new Fixture(1000); MealWorkspace w = f.workspace();
+        w.getContext().setRequirements("今晚想吃菜999"); w.getDraft().getLockedDishIds().add(1000L);
+        WorkspaceAgentContextService context = new WorkspaceAgentContextService(f.planner, f.preferences, f.favorites, f.actual, f.menus, f.metadata);
+        @SuppressWarnings("unchecked") List<Map<String, Object>> catalog = (List<Map<String, Object>>) context.build(7L, w).get("catalog");
+        assertEquals(200, catalog.size()); assertEquals(1000L, catalog.get(0).get("id")); assertEquals(999L, catalog.get(1).get("id"));
+        List<Long> enriched = f.onlyQualityRead(); assertEquals(200, enriched.size());
+        assertEquals(catalog.stream().map(row -> (Long) row.get("id")).collect(Collectors.toList()), enriched);
+    }
     @Test void impossibleWholeMealTimeDoesNotReadQualityOrMutateDraft() {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace(); w.getContext().setTotalCookMinutes(9);
         assertThrows(IllegalArgumentException.class, () -> f.planner.generate(7L, w, "generate", null, null));

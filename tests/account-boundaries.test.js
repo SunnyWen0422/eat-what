@@ -8,6 +8,8 @@ function load(route, api, extras = {}) {
   const wx = { getStorageSync: key => key === 'userInfo' ? { id: scope, nickname: scope } : null, setStorageSync() {}, removeStorageSync() {}, showToast() {}, ...extras.wx }
   vm.runInNewContext(fs.readFileSync(route + '.js','utf8'), { Page: value => {view=value}, getApp: () => ({globalData:{}}), wx, console, require: key => {
     if (key.endsWith('/diet-report')) return require('../utils/diet-report')
+    if (key.endsWith('/shopping-view')) return require('../utils/shopping-view')
+    if (key.endsWith('/experience-preferences')) return () => ({get:()=>({reducedMotion:false})})
     if (key.endsWith('/shopping-list-presentation')) return require('../utils/shopping-list-presentation')
     if (key.endsWith('/shopping-prices')) return require('../utils/shopping-prices')
     if (key.endsWith('/shopping-capabilities')) return {refresh:async()=>({pricesEnabled:false,expensesEnabled:false}),notice:()=>''}
@@ -22,6 +24,7 @@ function load(route, api, extras = {}) {
     if(key.endsWith('/shopping-ingredients')) return {buildPurchaseSummary: () => ({mergeableItems:[],separateItems:[]})}
     if(key.endsWith('/shopping-list')) return {loadLocalShoppingList: () => ({dishes:[]}),loadPendingOperations: () => [],...extras}
     if (extras.modules && extras.modules[key]) return extras.modules[key]
+    if (key.endsWith('/calendar-meal-presentation')) return require('../utils/calendar-meal-presentation')
     throw Error(key)
   } })
   view.data=structuredClone(view.data); view.setData = values => Object.assign(view.data,values)

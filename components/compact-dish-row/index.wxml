@@ -1,0 +1,10 @@
+<view class="dish-row" style="animation-duration:{{motionDuration}}ms;transition-duration:{{motionDuration ? 100 : 0}}ms">
+  <button class="dish-main" bindtap="onView" aria-label="查看{{dishView.name}}的做法">
+    <view class="dish-thumbnail" style="animation-duration:{{motionDuration}}ms">
+      <image wx:if="{{dishView.image && !imageFailed}}" src="{{dishView.image}}" mode="aspectFill" binderror="onImageError" lazy-load />
+      <view wx:else class="dish-placeholder" aria-label="{{dishView.meta}}类别占位图"><ui-icon name="{{dishView.placeholderIcon}}" size="28" /></view>
+    </view>
+    <view class="dish-copy"><text class="dish-name">{{dishView.name}}</text><text class="dish-meta">{{dishView.meta}}</text><text wx:if="{{feedback}}" class="dish-feedback" aria-live="polite">{{feedback}}</text></view>
+  </button>
+  <button wx:if="{{mode !== 'read'}}" class="dish-replace" disabled="{{busy || disabled}}" loading="{{busy}}" catchtap="onReplace" aria-label="{{mode === 'select' ? (selected ? '查看本餐中的' : '加入本餐') : '换一道'}}{{dishView.name}}">{{mode === 'select' ? (selected ? '已加入' : '加入') : '换一道'}}</button>
+</view>

@@ -30,12 +30,17 @@ function presentDietReport(report, range) {
   const peak = Math.max(0, ...dailyRows.map(row => row.count))
   dailyRows.forEach(row => { row.width = peak ? Math.round(row.count / peak * 100) : 0 })
   const order = { breakfast: 0, lunch: 1, dinner: 2 }
-  const recordRows = (blocks.actualDetails.records || []).filter(row => row.status === 'eaten').map(row => ({
+  const through = blocks.completeness.observedDays === 0 ? '' : blocks.completeness.observedThroughDate || range.endDate
+  const recordRows = (blocks.actualDetails.records || []).filter(row => row.status === 'eaten' && row.mealDate >= range.startDate && row.mealDate <= range.endDate && row.mealDate <= through).map(row => ({
     ...row, key: `${row.mealDate}|${row.mealType}`, label: flow.mealNames[row.mealType] || row.mealType,
     names: (row.actualDishes || []).map(dish => dish.name).join('、') || '这餐已标记吃过，菜品明细缺失',
-    sourceUrl: recordUrl(row.mealDate, row.mealType)
+    sourceUrl: recordUrl(row.mealDate, row.mealType), recordUrl: recordUrl(row.mealDate, row.mealType)
   })).sort((a, b) => b.mealDate.localeCompare(a.mealDate) || order[a.mealType] - order[b.mealType])
-  return { reportView: { metadata, ...blocks }, categoryRows, dailyRows, recordRows }
+  const review = { eatenCount: recordRows.length, recordedDays: new Set(recordRows.map(row => row.mealDate)).size }
+  const missing = blocks.completeness.daysWithoutActualRecord || 0
+  const skipped = blocks.completeness.explicitSkippedMeals || 0
+  const coverageNotice = `${blocks.completeness.observedDays === 0 ? '这一周期尚未到观察日期。' : missing ? `记录覆盖不足：${missing} 天没有实际记录。` : '仅回顾已记录的用餐。'}明确取消 ${skipped} 餐，单独说明，不计入吃过；未记录不能推断是否用餐。`
+  return { review, coverageNotice, recordUrl: recordUrl(range.startDate), reportView: { metadata, ...blocks }, categoryRows, dailyRows, recordRows }
 }
 
 module.exports = { presentDietReport, recordUrl }

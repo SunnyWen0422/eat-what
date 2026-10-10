@@ -26,4 +26,17 @@ class AuthorizedCatalogTest(unittest.TestCase):
         query['filters']['exclude_tag_codes']=['HOME_STYLE']
         self.assertEqual([row['id'] for row in m.execute_read_tool(context,7,'search_dishes',query)],[1])
         self.assertEqual(m.execute_read_tool(context,7,'search_dishes',{'filters':{'include_tag_codes':['SPICY']}}),[])
+    def test_included_tags_match_any_selected_tag_and_exclusions_still_apply(self):
+        m=self.engine();context={'ownerUserId':7,'catalog':[
+            {'id':1,'name':'家常菜','tagCodes':'HOME_STYLE'},
+            {'id':2,'name':'少油菜','tagCodes':'LOW_OIL'},
+            {'id':3,'name':'其他菜','tagCodes':'OTHER'},
+            {'id':4,'name':'少油家常菜','tagCodes':'HOME_STYLE,LOW_OIL'},
+        ]}
+        for tool in ['search_dishes','search_by_ingredients']:
+            with self.subTest(tool=tool):
+                filters={'include_tag_codes':['HOME_STYLE','LOW_OIL']}
+                self.assertEqual([r['id'] for r in m.execute_read_tool(context,7,tool,{'filters':filters})],[1,2,4])
+                filters['exclude_tag_codes']=['LOW_OIL']
+                self.assertEqual([r['id'] for r in m.execute_read_tool(context,7,tool,{'filters':filters})],[1])
 if __name__=='__main__':unittest.main()

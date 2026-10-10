@@ -1,18 +1,18 @@
 /* Generated from design/tokens.json and theme.wxss.tpl. */
 /* 家庭厨房主题；使用普通 WXSS 声明保持微信基础库兼容。 */
-page { background: #F8F7F2; color: #25332B; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size:14px; }
+page { background: #F8F7F2; color: #25332B; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size:16px; }
 .ew-page { box-sizing: border-box; min-width: 0; color: #25332B; }
 .ew-screen { padding:32rpx; padding-bottom:calc(40rpx + env(safe-area-inset-bottom)); min-height: 100%; box-sizing: border-box; }
-.ew-heading { font-size:1.714303em; font-weight: 700; line-height: 1.3; letter-spacing:1rpx; }
-.ew-title { font-size:1.142857em; font-weight: 600; line-height: 1.5; }
-.ew-subtitle { display: block; font-size:0.928571em; line-height: 1.6; color: #56645B; margin-top:12rpx; }
-.ew-section-title { font-size:1.285714em; font-weight: 600; margin:32rpx 0 20rpx; }
+.ew-heading { font-size:1.500015em; font-weight: 700; line-height: 1.3; letter-spacing:1rpx; }
+.ew-title { font-size:1em; font-weight: 600; line-height: 1.5; }
+.ew-subtitle { display: block; font-size:0.8125em; line-height: 1.6; color: #56645B; margin-top:12rpx; }
+.ew-section-title { font-size:1.125em; font-weight: 600; margin:32rpx 0 20rpx; }
 .ew-card { padding:28rpx; border: 1rpx solid #D9E1D5; border-radius:32rpx; background: #FFFFFF; margin-bottom:24rpx; box-sizing: border-box; }
 .ew-row { display: flex; align-items: center; gap:16rpx; }
 .ew-between { display: flex; align-items: center; gap:16rpx; justify-content: space-between; }
 .ew-wrap { flex-wrap: wrap; }
 .ew-grow { flex: 1; min-width: 0; }
-.ew-muted { color: #56645B; font-size:0.928571em; line-height: 1.6; }
+.ew-muted { color: #56645B; font-size:0.8125em; line-height: 1.6; }
 .ew-link { color: #28634E; min-height: 44px; display: inline-flex; align-items: center; font-weight: 600; }
 .ew-button { min-height: 48px; border-radius:24rpx; padding:20rpx 28rpx; font-size:1em; font-weight: 600; line-height: 1.4; background: #28634E; color: #FFFFFF; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
 .ew-button::after { border: 0; }
@@ -31,14 +31,14 @@ page { background: #F8F7F2; color: #25332B; font-family: -apple-system, BlinkMac
 .ew-label { display: block; font-size:1em; font-weight: 600; margin-bottom:12rpx; }
 .ew-input { background: #f5f6f0; border: 1rpx solid #D9E1D5; border-radius:20rpx; padding:20rpx 24rpx; min-height: 44px; box-sizing: border-box; font-size:1em; color: #25332B; width: 100%; }
 textarea.ew-input { min-height: 200rpx; }
-.ew-error { color: #A93B30; background: #FFF0ED; padding:20rpx 24rpx; border-radius:20rpx; font-size:0.928571em; line-height: 1.6; margin:16rpx 0; }
-.ew-notice { background: #FFF1DB; color: #75501A; padding:20rpx 24rpx; border-radius:20rpx; font-size:0.928571em; line-height: 1.6; margin:16rpx 0; }
-.ew-chip { background: #EDF3ED; color: #28634E; border-radius:12rpx; padding:8rpx 14rpx; font-size:0.857143em; display: inline-block; }
-.ew-small { font-size:0.857143em; }
+.ew-error { color: #A93B30; background: #FFF0ED; padding:20rpx 24rpx; border-radius:20rpx; font-size:0.8125em; line-height: 1.6; margin:16rpx 0; }
+.ew-notice { background: #FFF1DB; color: #75501A; padding:20rpx 24rpx; border-radius:20rpx; font-size:0.8125em; line-height: 1.6; margin:16rpx 0; }
+.ew-chip { background: #EDF3ED; color: #28634E; border-radius:12rpx; padding:8rpx 14rpx; font-size:0.75em; display: inline-block; }
+.ew-small { font-size:0.75em; }
 .ew-divider { height: 1rpx; background: #D9E1D5; margin:24rpx 0; }
 .ew-bottom { padding:20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); background: #F8F7F2; border-top: 1rpx solid #D9E1D5; box-sizing: border-box; }
 .ew-grid { display: grid; grid-template-columns: 1fr 1fr; gap:20rpx; }
-.ew-number { font-size:1.714303em; font-weight: 700; color: #28634E; }
+.ew-number { font-size:1.500015em; font-weight: 700; color: #28634E; }
 .ew-mask { position: fixed; inset: 0; background: rgba(25,40,30,.45); z-index: 100; display: flex; align-items: flex-end; }
 .ew-sheet { background: #FFFFFF; border-radius:36rpx 36rpx 0 0; width: 100%; padding:36rpx 32rpx calc(32rpx + env(safe-area-inset-bottom)); box-sizing: border-box; max-height: 85vh; overflow-y: auto; }
 .ew-image { width: 100%; height: 240rpx; background: #edf1e9; border-radius:24rpx; }
@@ -70,21 +70,21 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Warm table v2: task containers, continuous lists and restrained controls. */
 .ew-page { color:#25332B; background:#F8F7F2; padding:16px; }
-.ew-heading { font-size:1.714286em; line-height:1.35; font-weight:600; letter-spacing:0; }
-.ew-title { font-size:1.142857em; line-height:1.5; font-weight:600; }
-.ew-section-title { font-size:1.285714em; line-height:1.5; font-weight:600; }
-.ew-subtitle { margin-top:8px; color:#56645B; font-size:0.928571em; line-height:1.6; }
+.ew-heading { font-size:1.5em; line-height:1.35; font-weight:600; letter-spacing:0; }
+.ew-title { font-size:1em; line-height:1.5; font-weight:600; }
+.ew-section-title { font-size:1.125em; line-height:1.5; font-weight:600; }
+.ew-subtitle { margin-top:8px; color:#56645B; font-size:0.8125em; line-height:1.6; }
 .ew-card { background:#FFFFFF; border:0; border-radius:18px; box-shadow:none; padding:16px; margin:16px 0; }
-.ew-reading { font-size:1.142857em; line-height:1.65; }
+.ew-reading { font-size:1em; line-height:1.65; }
 .ew-row,.ew-between { min-width:0; }
-.ew-link { min-width:44px; min-height:44px; background:transparent; padding:0 4px; margin:0; font-size:0.928571em; font-weight:500; line-height:1.5; }
+.ew-link { min-width:44px; min-height:44px; background:transparent; padding:0 4px; margin:0; font-size:0.8125em; font-weight:500; line-height:1.5; }
 .ew-button { border-radius:14px; min-height:48px; padding:12px 16px; flex-shrink:0; }
 .ew-button.secondary { border:1px solid #D9E1D5; background:#FFFFFF; min-height:44px; }
 .ew-button.tertiary { background:transparent; color:#28634E; min-height:44px; }
 .ew-tabs { flex-wrap:wrap; gap:4px; }
 .ew-tabs button { flex:0 1 auto; min-width:44px; min-height:44px; border-radius:10px; background:transparent; color:#56645B; padding:8px 12px; }
 .ew-tabs button.active { background:#EDF3ED; color:#28634E; font-weight:600; }
-.ew-input { background:#FFFFFF; border:1px solid #7C8E80; border-radius:14px; font-size:1.142857em; line-height:1.5; }
+.ew-input { background:#FFFFFF; border:1px solid #7C8E80; border-radius:14px; font-size:1em; line-height:1.5; }
 .ew-notice,.ew-error { border-radius:10px; }
 .ew-pill { background:transparent; border-radius:10px; min-width:44px; color:#28634E; font-size:1em; }
 .ew-bottom { flex-shrink:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid #E6EAE1; }
@@ -96,22 +96,22 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .ew-actions .ew-link { flex:0 1 auto; min-width:44px; }
 .ew-page button[disabled] { background:#E8EBE5; color:#25332B; }
 .ew-page .ew-link[disabled] { background:transparent; color:#56645B; }
-.ew-display { font-size:2em; line-height:1.35; font-weight:600; }
+.ew-display { font-size:1.75em; line-height:1.35; font-weight:600; }
 
 .rotate-right { display:inline-flex; transform:rotate(180deg); }.picker-chevron { display:inline-flex; transform:rotate(90deg); margin-left:6px; }.ew-page .period > text { flex:1; min-width:0; text-align:center; line-height:1.5; }
 
 /* Shared admin density: preserve permission and destructive-action contracts. */
 .ew-page.admin-workspace { padding:20px 16px 28px; background:#F8F7F2; }
-.ew-page.admin-workspace .title, .ew-page.admin-workspace .page-title { font-size:1.714286em; color:#25332B; line-height:1.4; }
+.ew-page.admin-workspace .title, .ew-page.admin-workspace .page-title { font-size:1.5em; color:#25332B; line-height:1.4; }
 .ew-page.admin-workspace .heading, .ew-page.admin-workspace .page-heading { gap:12px; align-items:flex-start; margin-bottom:16px; }
 .ew-page.admin-workspace .metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
 .ew-page.admin-workspace .metric { background:#F4E4D5; border:0; border-radius:16px; padding:16px; }
-.ew-page.admin-workspace .metric-value { font-size:2em; color:#25332B; line-height:1.4; }
+.ew-page.admin-workspace .metric-value { font-size:1.75em; color:#25332B; line-height:1.4; }
 .ew-page.admin-workspace .list, .ew-page.admin-workspace .user-list, .ew-page.admin-workspace .action-list, .ew-page.admin-workspace .audit-list { gap:0; background:#FFFFFF; border-radius:16px; overflow:hidden; }
 .ew-page.admin-workspace .user, .ew-page.admin-workspace .user-card, .ew-page.admin-workspace .dish, .ew-page.admin-workspace .dish-card, .ew-page.admin-workspace .action, .ew-page.admin-workspace .log, .ew-page.admin-workspace .audit-row { padding:16px; margin:0; border:0; border-bottom:1px solid #E6EAE1; border-radius:0; box-shadow:none; background:#FFFFFF; gap:12px; }
 .ew-page.admin-workspace .user-main, .ew-page.admin-workspace .main, .ew-page.admin-workspace .dish-main, .ew-page.admin-workspace .dish-content { flex:1; min-width:0; }
 .ew-page.admin-workspace .meta, .ew-page.admin-workspace .user-meta, .ew-page.admin-workspace .ingredients, .ew-page.admin-workspace .detail, .ew-page.admin-workspace .time { font-size:1em; line-height:1.7; overflow-wrap:anywhere; }
-.ew-page.admin-workspace .action-title, .ew-page.admin-workspace .user-name, .ew-page.admin-workspace .dish-name { font-size:1.142857em; line-height:1.5; overflow-wrap:anywhere; }
+.ew-page.admin-workspace .action-title, .ew-page.admin-workspace .user-name, .ew-page.admin-workspace .dish-name { font-size:1em; line-height:1.5; overflow-wrap:anywhere; }
 .ew-page.admin-workspace .search, .ew-page.admin-workspace .search-bar { display:flex; gap:8px; margin-bottom:14px; }
 .ew-page.admin-workspace .search-field, .ew-page.admin-workspace .search input, .ew-page.admin-workspace .search-bar input { flex:1; min-width:0; }
 .ew-page.admin-workspace .filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
@@ -121,7 +121,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .ew-page.admin-workspace button { font-size:1em; line-height:1.5; min-width:44px; min-height:44px; border-radius:12px; height:auto; padding:10px 12px; }
 .ew-page.admin-workspace button.primary, .ew-page.admin-workspace .primary-action, .ew-page.admin-workspace .save-button { min-height:48px; background:#28634E; color:#FFFFFF; border-radius:14px; }
 .ew-page.admin-workspace button[disabled] { color:#25332B; background:#E8EBE5; }
-.ew-page.admin-workspace .form input, .ew-page.admin-workspace .form textarea, .ew-page.admin-workspace .form-page input, .ew-page.admin-workspace .form-page textarea { border:1px solid #7C8E80; border-radius:12px; padding:12px; font-size:1.142857em; line-height:1.7; width:100%; box-sizing:border-box; }
+.ew-page.admin-workspace .form input, .ew-page.admin-workspace .form textarea, .ew-page.admin-workspace .form-page input, .ew-page.admin-workspace .form-page textarea { border:1px solid #7C8E80; border-radius:12px; padding:12px; font-size:1em; line-height:1.7; width:100%; box-sizing:border-box; }
 .ew-page.admin-workspace .summary, .ew-page.admin-workspace .user-summary { border:0; background:#F4E4D5; border-radius:18px; padding:16px; }
 .ew-page.admin-workspace .badge, .ew-page.admin-workspace .status-badge { white-space:normal; line-height:1.5; flex-shrink:0; }
 .ew-page.admin-workspace .state, .ew-page.admin-workspace .state-block { min-height:160px; border:0; border-radius:16px; line-height:1.7; }
@@ -137,7 +137,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .ew-page .ew-tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid #D9E1D5; border-radius:12px; background:#F5F6F0; }
 .ew-page .ew-tabs button.ew-hit-target { flex:1; min-width:44px; padding:8px 10px; background:transparent; color:#56645B; font-size:1em; border:1px solid transparent; line-height:1.45; }
 .ew-page .ew-tabs button.active { background:#FFFFFF; border-color:#7C8E80; color:#28634E; font-weight:600; }
-.ew-page .ew-heading { font-size:1.714286em; line-height:1.3; }
+.ew-page .ew-heading { font-size:1.5em; line-height:1.3; }
 .ew-page .ew-between > view:first-child { min-width:0; flex:1; }
 
 

@@ -1,0 +1,53 @@
+✔ first use through tomorrow, shopping undo, own recipe and next menu application (64.749494ms)
+✔ registered ordinary pages have accessible root scaling, including the startup log (1.374543ms)
+✖ ordinary tappable views expose button semantics to assistive technology (1.003402ms)
+✖ bounded acceptance verifier exists without model/default suite runners (2.878762ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 2
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 166.574802
+
+✖ failing tests:
+
+test at tests/experience-journeys.test.js:92:1
+✖ ordinary tappable views expose button semantics to assistive technology (1.003402ms)
+  AssertionError [ERR_ASSERTION]: pages/index/index.wxml: <view class="ew-hit-target meal-option {{mealType === 'breakfast' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="breakfast">
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-journeys.test.js:96:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: `<view class="ew-hit-target meal-option {{mealType === 'breakfast' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="breakfast">`,
+    expected: /aria-role="(?:button|checkbox|tab)"/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/experience-journeys.test.js:99:1
+✖ bounded acceptance verifier exists without model/default suite runners (2.878762ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-journeys.test.js:100:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

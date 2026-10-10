@@ -17,6 +17,11 @@ public class WorkspaceAgentContextService {
         Set<Long> locked=workspace.getDraft().getLockedDishIds();List<Dish> selected=new ArrayList<>();Set<Long> added=new HashSet<>();
         for(Dish d:eligible){if(d.getUserId()!=null&&!Objects.equals(d.getUserId(),user))throw new IllegalArgumentException("候选菜品归属无效");if(locked.contains(d.getId())){selected.add(d);added.add(d.getId());}}
         if(!added.containsAll(locked))throw new IllegalArgumentException("保留菜品已不可用，请核对本餐");
+        // Search only the authorized, hard-filtered pool, before bounding the tool-readable catalog.
+        // Stable sorting preserves preference ordering for ties; locked dishes remain first.
+        String request=searchText(c.getRequirements());
+        eligible=new ArrayList<>(eligible);
+        eligible.sort(Comparator.comparingInt((Dish d)->requestRelevance(d,request)).reversed());
         for(Dish d:eligible)if(selected.size()<200&&added.add(d.getId()))selected.add(d);
         List<Map<String,Object>> catalog=new ArrayList<>();
         for(Dish d:planner.attachQuality(selected))catalog.add(readable(d));
@@ -27,6 +32,25 @@ public class WorkspaceAgentContextService {
         for(CustomRecipe menu:menus.list(user)){if(savedMenus.size()>=30)break;Map<String,Object> item=new LinkedHashMap<>();item.put("id",menu.getId());item.put("name",menu.getName());item.put("people",menu.getPeople());item.put("dishIds",menu.getDishIds());item.put("version",menu.getVersion());savedMenus.add(item);}
         result.put("menus",savedMenus);result.put("recommendationOptions",metadata.getOptions().getGroups());result.put("metadataVersion",metadata.getMetadataVersion());return result;
     }
+    private int requestRelevance(Dish dish,String request){
+        if(request.isEmpty())return 0;
+        String name=searchText(dish.getName());
+        if(!name.isEmpty()&&request.contains(name))return 10000+name.length();
+        // Ingredient matches are weaker than an explicitly named recipe and never widen eligibility.
+        if(dish.getQuality()!=null){
+            for(CatalogQuality.Ingredient fact:dish.getQuality().getIngredients()){
+                String ingredient=searchText(fact.getName());
+                if(!"REJECTED".equals(fact.getIdentityStatus())&&!ingredient.isEmpty()&&request.contains(ingredient))return 1;
+            }
+        }else if(dish.getCl()!=null){
+            for(String raw:dish.getCl().split("###|#|[,，;；\\n]")){
+                String ingredient=searchText(raw.split("\\|",2)[0]);
+                if(!ingredient.isEmpty()&&request.contains(ingredient))return 1;
+            }
+        }
+        return 0;
+    }
+    private String searchText(String value){return value==null?"":value.toLowerCase(Locale.ROOT).replaceAll("[\\s\\p{P}]+","");}
     private Map<String,Object> readable(Dish d){
         Map<String,Object> value=new LinkedHashMap<>();value.put("id",d.getId());value.put("name",d.getName());value.put("type",d.getType());value.put("cuisineCode",d.getCuisineCode());value.put("tagCodes",d.getTagCodes());value.put("cookMinutes",d.getCookMinutes());value.put("steps",d.getSteps()==null?d.getStep():d.getSteps());value.put("methods",d.getMethods());value.put("contentVersion",d.getContentVersion());
         List<Map<String,Object>> facts=new ArrayList<>();List<String> names=new ArrayList<>();

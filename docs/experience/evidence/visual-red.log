@@ -1,0 +1,45 @@
+✔ first use through tomorrow, shopping undo, own recipe and next menu application (161.659242ms)
+✔ registered ordinary pages have accessible root scaling, including the startup log (2.102776ms)
+✔ ordinary tappable views and text expose button semantics to assistive technology (1.47414ms)
+✔ bounded acceptance verifier exists without model/default suite runners (0.363072ms)
+✖ calendar and reusable menus use readable image-fallback rows without replacement actions (7.58267ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 350.503781
+
+✖ failing tests:
+
+test at tests/experience-journeys.test.js:105:1
+✖ calendar and reusable menus use readable image-fallback rows without replacement actions (7.58267ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + []
+  - [
+  -   {
+  -     detail: {
+  -       id: 7
+  -     },
+  -     name: 'view'
+  -   }
+  - ]
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-journeys.test.js:108:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ { name: 'view', detail: [Object] } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

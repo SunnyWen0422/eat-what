@@ -39,7 +39,7 @@
               <text class="context-warning" wx:for="{{warnings}}" wx:key="*this">{{item}}</text>
             </view>
             <view class="plan-label">方案 {{planIndex + 1}} / {{plans.length}}</view>
-            <view class="ew-hit-target dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
+            <view aria-role="button" class="ew-hit-target dish-card {{item.type}}" wx:for="{{item.dishes}}" wx:key="name" wx:for-index="dishIndex" bindtap="onTapDish" data-dish="{{item}}">
                 <view class="dish-media">
                   <image wx:if="{{item.image}}" class="dish-img" src="{{item.image}}" mode="aspectFill" lazy-load binderror="onImgError" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}" />
                   
@@ -49,7 +49,7 @@
                 <view class="dish-body">
                   <view class="dish-top">
                     <text class="dish-name">{{item.name}}</text>
-                    <view class="ew-hit-target star-btn {{item.isFavorite ? 'on' : ''}}" catchtap="onToggleFavorite" data-dish="{{item}}" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
+                    <view aria-role="button" class="ew-hit-target star-btn {{item.isFavorite ? 'on' : ''}}" catchtap="onToggleFavorite" data-dish="{{item}}" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
                       <ui-icon class="line-icon line-icon-heart" name="{{item.isFavorite ? 'favorite-filled' : 'favorite'}}" aria-label="{{item.isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusyKey === planIndex + ':' + dishIndex}}" class="ew-small">处理中</text>
                     </view>
                   </view>
@@ -67,7 +67,7 @@
                   </view>
                 </view>
                 <!-- 换一个 -->
-                <view class="ew-hit-target refresh-btn" catchtap="onRefreshDish" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
+                <view aria-role="button" class="ew-hit-target refresh-btn" catchtap="onRefreshDish" data-plan-index="{{planIndex}}" data-dish-index="{{dishIndex}}">
                   <ui-icon class="line-icon line-icon-refresh" name="refresh" aria-label="换一道" />
                 </view>
               </view>
@@ -87,13 +87,13 @@
   </view>
 
   <!-- 日期选择器 -->
-  <view class="ew-hit-target date-overlay" wx:if="{{showDatePicker}}" bindtap="onCancelDatePicker">
+  <view aria-role="button" class="ew-hit-target date-overlay" wx:if="{{showDatePicker}}" bindtap="onCancelDatePicker">
     <view class="ew-hit-target date-box" catchtap="">
       <text class="date-title">选择保存日期</text>
       <picker class="ew-hit-target" mode="date" value="{{customDate}}" start="2025-01-01" end="2027-12-31" bindchange="onCustomDateChange">
         <view class="date-btn">点击选择</view>
       </picker>
-      <view class="ew-hit-target date-cancel" bindtap="onCancelDatePicker">取消</view>
+      <view aria-role="button" class="ew-hit-target date-cancel" bindtap="onCancelDatePicker">取消</view>
     </view>
   </view>
 </view>

@@ -1,0 +1,4 @@
+<view class="composition-summary">
+  <button class="summary-row" disabled="{{busy}}" bindtap="onPeople" aria-label="调整用餐人数，当前{{people}}人"><ui-icon name="profile" tone="muted" size="20" /><text class="summary-label">人数</text><text class="summary-value">{{people}} 人</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
+  <button class="summary-row" disabled="{{busy}}" bindtap="onComposition" aria-label="调整本餐搭配，当前{{summary}}"><text class="summary-label">本餐搭配</text><text class="summary-value composition-value">{{summary}}</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
+</view>

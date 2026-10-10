@@ -1,0 +1,2 @@
+WARN c.e.c.FavoriteDishController - 【添加收藏】用户未登录
+WARN c.e.c.FavoriteDishController - 【添加收藏】dishId为空

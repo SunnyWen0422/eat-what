@@ -79,6 +79,7 @@ test('actual editor retains historical indexes and sends changed selections thro
     if (name.endsWith('/shopping-list')) return {}
     if (name.endsWith('/font-scale')) return () => 1
     if (name.endsWith('/meal-workflow')) return { ...require('../utils/meal-workflow'), requestId: () => 'actual-edit' }
+    if (name.endsWith('/calendar-meal-presentation')) return require('../utils/calendar-meal-presentation')
     throw Error(name)
   } }
   vm.runInNewContext(fs.readFileSync('pages/calendar-detail/calendar-detail.js', 'utf8'), context)

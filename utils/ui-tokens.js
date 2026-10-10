@@ -25,7 +25,7 @@ module.exports = {
     "page": 24,
     "section": 18,
     "card": 16,
-    "body": 14,
+    "body": 16,
     "secondary": 13,
     "caption": 12,
     "reading": 16,
@@ -51,5 +51,10 @@ module.exports = {
     "primaryHeight": 48,
     "touchSize": 44,
     "secondaryHeight": 44
+  },
+  "motion": {
+    "press": 100,
+    "row": 180,
+    "sheet": 200
   }
 }
