@@ -98,6 +98,10 @@ module.exports = function workspacePage(options = {}) {
       if (pendingPlan) { target.date = pendingPlan.date; target.mealType = pendingPlan.mealType }
       if (params.date) target.date = params.date
       if (MEALS.includes(params.mealType)) target.mealType = params.mealType
+      // Keep following-Today handoffs current without committing explicit/history-import targets early.
+      if ((options.mode || 'today') === 'today' && !params.date && !pendingPlan) {
+        wx.setStorageSync(getUserStorageKey('activeMealTarget'), {...target,selectedOn:defaultTarget().date})
+      }
       this.setData({loading:true,busy:false,errorMessage:'',syncLabel:'',feedbackNotice:'',legacyMeals:[],legacyNotice:'',conflictDraftAvailable:false,context:normalizeContext({...target,people:2}),draft:{dishes:[],history:[],lockedDishIds:[]},linkedPlan:null,actual:null,status:'empty',settingsContext:null,settingsVisible:false,confirmationVisible:false,canConfirm:false})
       let people = 2
       try { const saved = await api.getUserPreferences(); if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; people = saved.defaultPeople || 2 }
@@ -357,7 +361,11 @@ module.exports = function workspacePage(options = {}) {
     onToggleExtraActions(){this.setData({showExtraActions:!this.data.showExtraActions})},
     onReturnToday() { return this.switchTarget(defaultTarget(),{followToday:true}) },
     onDateTarget(e) { return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
-    onMealTarget(e) { return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }) },
+    onMealTarget(e) {
+      const followToday = (options.mode || 'today') === 'today' && !(this._params || {}).date &&
+        this.data.context.date === defaultTarget().date && !wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }, { followToday })
+    },
     async switchTarget(target,options={}) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), {...target,selectedOn:defaultTarget().date}); this._params = options.followToday?{}:{...target,selectedOn:defaultTarget().date}; return this.initializeWorkspace(this._params) },
     onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType });wx.setStorageSync(getUserStorageKey('recipeSelectionIntent'),true); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
