@@ -8,6 +8,13 @@ spec=importlib.util.spec_from_file_location('maturity_release',ROOT/'scripts/pac
 release=importlib.util.module_from_spec(spec);spec.loader.exec_module(release)
 
 class ReleaseInputsTest(unittest.TestCase):
+    def test_project_relative_output_normalizes_parent_segments(self):
+        source=ROOT/'..'/'work'/'independent-web-fixes-20261010'/'release-local-final'
+        result=release.release_path(source)
+        self.assertNotIn('..',result.parts)
+        self.assertEqual(result,ROOT.parent/'work/independent-web-fixes-20261010/release-local-final')
+        self.assertFalse(result.is_relative_to(ROOT))
+
     def test_receipt_reads_actual_api_and_rejects_ambiguous_or_private_urls(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);(root/'utils').mkdir();config=root/'utils/config.js'

@@ -1,5 +1,5 @@
 """Create an immutable local DRAFT package from allowlisted public/runtime files."""
-import argparse,hashlib,json,re,shutil,subprocess,zipfile
+import argparse,hashlib,json,os,re,shutil,subprocess,zipfile
 from pathlib import Path
 from urllib.parse import urlsplit
 from export_local_miniprogram import export
@@ -8,6 +8,12 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def release_path(value):
+    # Normalize '..' lexically first: Windows sandbox realpath may preserve it
+    # for a not-yet-created path when native handle lookup is unavailable.
+    return Path(os.path.abspath(value)).resolve()
 
 
 def frontend_api(root):
@@ -49,7 +55,7 @@ def check_prepared_migration(directory):
 
 
 def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
-    bundle=Path(bundle).resolve();out=Path(out).resolve()
+    bundle=release_path(bundle);out=release_path(out)
     if out.exists() or out.is_relative_to(ROOT):raise ValueError('Choose a new output directory outside the source repository')
     manifest=json.loads((bundle/'manifest.json').read_text(encoding='utf-8'))
     allowed={'manifest.json','recipes.csv','quality.jsonl','issues.csv','changes.jsonl','source-recipes.jsonl','review-candidates.csv','profile.json','audit.md'}
@@ -57,13 +63,13 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     for name,expected in manifest['files'].items():
         if digest(bundle/name)!=expected:raise ValueError('Quality package has changed')
     api=frontend_api(ROOT)
-    web_release=Path(web_release).resolve() if web_release else None
-    migration_bundle=Path(migration_bundle).resolve() if migration_bundle else None
+    web_release=release_path(web_release) if web_release else None
+    migration_bundle=release_path(migration_bundle) if migration_bundle else None
     if migration_bundle:check_prepared_migration(migration_bundle)
     if web_release:
         subprocess.run([shutil.which('node') or 'node','--input-type=module','-e',
             "import {verifyRelease} from '"+(ROOT/'web/scripts/release-files.ts').as_uri()+"'; await verifyRelease(process.argv[1]);",str(web_release)],check=True)
-    jar=Path(jar_path).resolve() if jar_path else ROOT/'backend/target/eatwhat-backend-1.0.0.jar'
+    jar=release_path(jar_path) if jar_path else ROOT/'backend/target/eatwhat-backend-1.0.0.jar'
     with zipfile.ZipFile(jar) as archive:
         if any(name.startswith('BOOT-INF/classes/application') and name.endswith(('.yml','.yaml','.properties')) for name in archive.namelist()):
             raise ValueError('JAR includes application configuration; rebuild without local secrets')
