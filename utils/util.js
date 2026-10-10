@@ -24,8 +24,8 @@ function environmentIdentity() {
  */
 function getCurrentUserIdentity() {
   const userInfo = wx.getStorageSync('userInfo') || {}
-  if (userInfo.id) return `api_${environmentIdentity()}:id_${userInfo.id}`
-  if (userInfo.openId) return `api_${environmentIdentity()}:open_${userInfo.openId}`
+  if (userInfo.id) return `api_v2_${environmentIdentity()}:id_${userInfo.id}`
+  if (userInfo.openId) return `api_v2_${environmentIdentity()}:open_${userInfo.openId}`
 
   // 未登录时返回 guest，避免本地功能完全不可用
   console.log('⚠️ 用户未登录，使用 guest 身份')
@@ -38,19 +38,29 @@ function getCurrentUserIdentity() {
  */
 function getUserStorageKey(baseKey) {
   const identity = getCurrentUserIdentity()
-  return `user:${identity === 'guest' ? 'api_' + environmentIdentity() + ':guest' : identity}:${baseKey}`
+  return `user:${identity === 'guest' ? 'api_v2_' + environmentIdentity() + ':guest' : identity}:${baseKey}`
 }
 
 /** Copy old keys only into their recorded API environment; retain originals and newer values. */
 function preserveLegacyUserStorage(environment, runtime = wx) {
   if (typeof environment !== 'string' || !/^https?:\/\//.test(environment)) return 0
+  const bindingKey = 'legacyUserStorageEnvironmentV1'
+  let sourceEnvironment = runtime.getStorageSync(bindingKey)
+  if (!sourceEnvironment) {
+    // Retained unscoped keys can include former local operations. Never activate them
+    // automatically in an online account when their original environment is uncertain.
+    if (!/^http:\/\/127\.0\.0\.1:[0-9]+\/api$/.test(environment)) return 0
+    sourceEnvironment = environment
+    runtime.setStorageSync(bindingKey, sourceEnvironment)
+  }
+  if (typeof sourceEnvironment !== 'string' || !/^http:\/\/127\.0\.0\.1:[0-9]+\/api$/.test(sourceEnvironment)) return 0
   const keys = runtime.getStorageInfoSync().keys || []
   const existing = new Set(keys)
   let copied = 0
   for (const key of keys) {
     const match = /^user:(id_[^:]+|open_[^:]+|guest):(.*)$/.exec(key)
     if (!match) continue
-    const destination = `user:api_${encodeURIComponent(environment)}:${match[1]}:${match[2]}`
+    const destination = `user:api_v2_${encodeURIComponent(sourceEnvironment)}:${match[1]}:${match[2]}`
     if (existing.has(destination)) continue
     runtime.setStorageSync(destination, runtime.getStorageSync(key))
     existing.add(destination); copied += 1
