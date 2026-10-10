@@ -4,6 +4,10 @@
   "packOptions": {
     "ignore": [
       {
+        "type": "folder",
+        "value": "web"
+      },
+      {
         "type": "regexp",
         "value": "(^|/)tmppytest-[^/]+(/|$)"
       },
