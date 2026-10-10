@@ -45,17 +45,32 @@ test('legacy local records are retained in their known original environment with
   const util = require('../utils/util')
   const oldEnvironment = 'http://127.0.0.1:18780/api'
   const oldKey = 'user:id_7:pendingRecipeRecord'
-  const newOldKey = `user:api_${encodeURIComponent(oldEnvironment)}:id_7:pendingRecipeRecord`
+  const newOldKey = `user:api_v2_${encodeURIComponent(oldEnvironment)}:id_7:pendingRecipeRecord`
   const storage = new Map([[oldKey, { local: true }], ['user:id_7:shoppingList', { old: true }],
-    [`user:api_${encodeURIComponent(oldEnvironment)}:id_7:shoppingList`, { newer: true }]])
+    [`user:api_v2_${encodeURIComponent(oldEnvironment)}:id_7:shoppingList`, { newer: true }]])
   const runtime = { getStorageInfoSync: () => ({ keys: [...storage.keys()] }), getStorageSync: key => storage.get(key),
     setStorageSync: (key, value) => storage.set(key, value) }
   util.preserveLegacyUserStorage(oldEnvironment, runtime)
   assert.deepEqual(storage.get(newOldKey), { local: true })
   assert.deepEqual(storage.get(oldKey), { local: true })
-  assert.deepEqual(storage.get(`user:api_${encodeURIComponent(oldEnvironment)}:id_7:shoppingList`), { newer: true })
-  assert.equal(storage.has(`user:api_${encodeURIComponent(config.getApiBaseUrl())}:id_7:pendingRecipeRecord`), false)
+  assert.deepEqual(storage.get(`user:api_v2_${encodeURIComponent(oldEnvironment)}:id_7:shoppingList`), { newer: true })
+  assert.equal(storage.has(`user:api_v2_${encodeURIComponent(config.getApiBaseUrl())}:id_7:pendingRecipeRecord`), false)
+  util.preserveLegacyUserStorage(config.getApiBaseUrl(), runtime)
+  assert.equal(storage.has(`user:api_v2_${encodeURIComponent(config.getApiBaseUrl())}:id_7:pendingRecipeRecord`), false,
+    'A second online launch must not reassign retained local legacy keys into the online environment')
   const count = storage.size
   util.preserveLegacyUserStorage(undefined, runtime)
   assert.equal(storage.size, count)
+})
+
+test('unscoped or earlier cached operations of uncertain origin are never activated online', () => {
+  const config = require('../utils/config'), util = require('../utils/util')
+  const storage = new Map([['user:id_7:pendingRecipeRecord', { local: true }],
+    [`user:api_${encodeURIComponent(config.getApiBaseUrl())}:id_7:pendingRecipeRecord`, { originUncertain: true }]])
+  const runtime = { getStorageInfoSync: () => ({ keys: [...storage.keys()] }), getStorageSync: key => storage.get(key),
+    setStorageSync: (key, value) => storage.set(key, value) }
+  assert.equal(util.preserveLegacyUserStorage(config.getApiBaseUrl(), runtime), 0)
+  const current = utility(); current.online()
+  assert.equal(storage.get(current.util.getUserStorageKey('pendingRecipeRecord')), undefined)
+  assert.equal(storage.size, 2)
 })
