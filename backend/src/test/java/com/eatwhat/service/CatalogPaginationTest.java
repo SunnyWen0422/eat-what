@@ -18,7 +18,7 @@ class CatalogPaginationTest {
     }
     @Test void completePublicCatalogIsNotTruncatedToFourHundredOrTwoThousand(){
         DishCandidateQueryService candidates=mock(DishCandidateQueryService.class);List<Dish> all=new ArrayList<>();for(long i=1;i<=3200;i++){Dish d=new Dish();d.setId(i);all.add(d);}
-        when(candidates.findForUser(anyLong(),any(),any(),any(),anyInt())).thenAnswer(inv->new ArrayList<>(all.subList(0,Math.min(all.size(),inv.getArgument(4)))));
+        when(candidates.findRawForUser(anyLong(),any(),any(),any(),anyInt())).thenAnswer(inv->new ArrayList<>(all.subList(0,Math.min(all.size(),inv.getArgument(4)))));
         DishQueryService query=new DishQueryService(mock(DishMapper.class),candidates);DishPageDTO result=query.getFilteredDishes(7L,"meat",null,new RecommendationCriteria(),32,100);
         assertEquals(3200,result.getTotal());assertEquals(100,result.getList().size());
         assertEquals(0,query.getFilteredDishes(7L,"meat",null,new RecommendationCriteria(),Integer.MAX_VALUE,100).getList().size());

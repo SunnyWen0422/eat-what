@@ -81,9 +81,20 @@ export const isInteger = integer;
 export function isUuid(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
+// A history read validates the same small set of zones thousands of times.
+// Bound both entry count and key length, including invalid imported zone names.
+const timeZoneValidity = new Map<string, boolean>();
 export function isTimeZone(value: unknown): boolean {
   if (!isText(value)) return false;
-  try { new Intl.DateTimeFormat('en-US', { timeZone: value }); return true; } catch { return false; }
+  const cached = timeZoneValidity.get(value);
+  if (cached !== undefined) return cached;
+  let valid: boolean;
+  try { new Intl.DateTimeFormat('en-US', { timeZone: value }); valid = true; } catch { valid = false; }
+  if (value.length <= 128) {
+    if (timeZoneValidity.size >= 128) timeZoneValidity.delete(timeZoneValidity.keys().next().value!);
+    timeZoneValidity.set(value, valid);
+  }
+  return valid;
 }
 function withRequest(value: unknown, keys: string[]): value is Record<string, unknown> {
   return exactKeys(value, [...keys, ...(isObject(value) && Object.hasOwn(value, 'requestId') ? ['requestId'] : [])])

@@ -20,7 +20,7 @@ class V4RankingContractTest {
         final MealConsumptionMapper actual=mock(MealConsumptionMapper.class);
         final MealWorkspacePlanner planner;
         Fixture(List<Dish> pool) {
-            when(candidates.findForUser(eq(3L),isNull(),isNull(),any(),anyInt())).thenAnswer(i->new ArrayList<>(pool)); when(preferences.get(3L)).thenReturn(preference);
+            when(candidates.findRawForUser(eq(3L),isNull(),isNull(),any(),anyInt())).thenAnswer(i->new ArrayList<>(pool)); when(preferences.get(3L)).thenReturn(preference);
             app.registerBean(DishCandidateQueryService.class,()->candidates); app.registerBean(DishMapper.class,()->mock(DishMapper.class)); app.registerBean(UserPreferenceService.class,()->preferences);
             app.registerBean(FavoriteDishMapper.class,()->mock(FavoriteDishMapper.class));
             app.registerBean(DishQualityService.class,()->new DishQualityService(mock(DishQualityMapper.class),new ObjectMapper()));

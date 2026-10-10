@@ -12,6 +12,7 @@ import java.util.List;
 
 @Service
 public class DishQueryService {
+    public static final int MAX_LITE_LIMIT = 1000;
     private DishQualityService quality;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
     private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
@@ -39,10 +40,11 @@ public class DishQueryService {
         int safePage = Math.max(1, page);
         int safePageSize = Math.max(1, Math.min(100, pageSize));
         int cap = Integer.MAX_VALUE;
-        List<Dish> all = candidateQueryService.findForUser(userId, type, keyword, criteria, cap);
+        List<Dish> all = candidateQueryService.findRawForUser(userId, type, keyword, criteria, cap);
         int from = (int)Math.min(all.size(), ((long)safePage - 1) * safePageSize);
         int to = Math.min(all.size(), from + safePageSize);
-        return new DishPageDTO(new java.util.ArrayList<>(all.subList(from, to)), all.size(), safePage, safePageSize);
+        List<Dish> returned = new java.util.ArrayList<>(all.subList(from, to));
+        return new DishPageDTO(enrich(returned), all.size(), safePage, safePageSize);
     }
 
     public List<Dish> getDishes(String type, String keyword, int page, int pageSize) {
@@ -94,9 +96,9 @@ public class DishQueryService {
     }
 
     public List<Dish> getDishesLite(String type, String keyword, int limit) {
-        if (type != null && !type.isEmpty()) {
-            return dishMapper.selectDishesLiteByType(type, limit);
-        }
-        return dishMapper.selectAllDishesLite();
+        int safeLimit = Math.max(1, Math.min(MAX_LITE_LIMIT, limit));
+        String safeType = type == null || type.trim().isEmpty() ? null : type.trim();
+        String safeKeyword = keyword == null || keyword.trim().isEmpty() ? null : keyword.trim();
+        return dishMapper.selectDishesLite(safeType, safeKeyword, safeLimit);
     }
 }

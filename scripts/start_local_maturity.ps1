@@ -1,4 +1,4 @@
-param([string]$PythonExecutable='C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',[string]$DependencyDirectory,[string]$BackupZip,[string]$QualityBundle)
+param([string]$PythonExecutable='C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',[string]$DependencyDirectory,[string]$BackupZip,[string]$QualityBundle,[string]$JavaExecutable,[string]$JarPath)
 $ErrorActionPreference='Stop'
 $maturityProject=Split-Path -Parent $PSScriptRoot
 if(-not $DependencyDirectory){$DependencyDirectory=Join-Path (Split-Path -Parent $maturityProject) 'work/assistant-chain-venv/Lib/site-packages'}
@@ -6,7 +6,11 @@ $env:PYTHONPATH=$DependencyDirectory
 Push-Location -LiteralPath $maturityProject
 try{
  $maturityData=Join-Path $maturityProject '.local-maturity-active'
- if(Test-Path -LiteralPath (Join-Path $maturityData 'runtime.json')) {& $PythonExecutable (Join-Path $PSScriptRoot 'local_maturity.py') serve}
+ $runtimeArgs=@();if($JavaExecutable){$runtimeArgs+=@('--java',$JavaExecutable)};if($JarPath){$runtimeArgs+=@('--jar',$JarPath)}
+ # Validate/pin a build before any interrupted-bootstrap process is stopped.
+ & $PythonExecutable (Join-Path $PSScriptRoot 'local_maturity.py') check-jar @runtimeArgs
+ if($LASTEXITCODE -ne 0){throw 'Local JAR preflight failed; existing services and data were retained.'}
+ if(Test-Path -LiteralPath (Join-Path $maturityData 'runtime.json')) {& $PythonExecutable (Join-Path $PSScriptRoot 'local_maturity.py') serve @runtimeArgs}
  else {
   # Previous .local-maturity initialization is retained in place. No renaming,
   # deletion or permission changes are required to initialize this owned runtime.
@@ -27,7 +31,7 @@ try{
    if(-not $BackupZip){$BackupZip=$localInput.backupZip};if(-not $QualityBundle){$QualityBundle=$localInput.qualityBundle}
   }
   if(-not $BackupZip -or -not $QualityBundle){throw 'First startup requires -BackupZip and -QualityBundle.'}
-  & $PythonExecutable (Join-Path $PSScriptRoot 'local_maturity.py') start --backup-zip $BackupZip --quality-bundle $QualityBundle --keep-alive
+  & $PythonExecutable (Join-Path $PSScriptRoot 'local_maturity.py') start --backup-zip $BackupZip --quality-bundle $QualityBundle --keep-alive @runtimeArgs
  }
  if($LASTEXITCODE -ne 0){throw 'Local maturity runtime failed; inspect .local-maturity-active logs.'}
 }finally{Pop-Location}

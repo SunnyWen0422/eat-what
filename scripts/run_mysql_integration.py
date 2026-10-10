@@ -59,7 +59,11 @@ def main():
     parser.add_argument("--maven", default="mvn")
     parser.add_argument("--restart-probe", action="store_true", help="Probe two real JVM processes; build the backend jar first")
     args = parser.parse_args()
-    binary = Path(args.mysqld).resolve(strict=True)
+    # Windows execution isolation may permit the installed binary while denying
+    # GetFinalPathNameByHandle. The explicit executable still must be a real file.
+    binary = Path(args.mysqld).absolute()
+    if not binary.is_file() or binary.is_symlink():
+        raise ValueError('MySQL executable must be an explicit regular file')
     data = ROOT / ".mysql-test-data" / ("v4-" + secrets.token_hex(5))
     data.mkdir(parents=True)
     # Each run has a new directory and port; no recursive deletion or service stop.

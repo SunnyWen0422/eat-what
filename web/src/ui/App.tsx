@@ -27,6 +27,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
   const [metadataKnown,setMetadataKnown] = useState(false);
   const [draft, setDraft] = useState<MealDraft | null>(null);
   const [preferences, setPreferences] = useState(initialPersonalData().preferences);
+  const [settingsResetEpoch, setSettingsResetEpoch] = useState(0);
   const [generation, setGeneration] = useState<GenerationResult | null>(null);
   const seedRef = useRef(0);
   const preferencesDirtyRef = useRef(false);
@@ -159,6 +160,8 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     if (choice === 'adoptLatest') {
       setDraft(reviewedData.draft);
       setPreferences(reviewedData.preferences);
+      // Only this explicit discard resets unapplied numeric inputs in Today.
+      setSettingsResetEpoch(value => value + 1);
       setGeneration(null);
       preferencesDirtyRef.current = false;
       draftDirtyRef.current = false;
@@ -251,7 +254,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     const vegetarian = change.vegetarian ?? preferences.softPreferences.includes('vegetarian');
     let slots = change.slots ?? current.slots;
     if (change.vegetarian !== undefined) slots = slots.map((slot) => ({ ...slot, type: vegetarian && slot.type === 'meat' ? 'vegetable' : slot.type }));
-    else if (change.servings !== undefined || change.meal !== undefined) {
+    else if (change.slots === undefined && (change.servings !== undefined || change.meal !== undefined)) {
       const defaults = defaultSlots(servings, meal, vegetarian);
       if (!defaults.ok) { setNotice(defaults.error.message); setError(true); return; }
       if (!defaults.value.requiresConfirmation) slots = defaults.value.slots;
@@ -415,7 +418,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
       {tab==='菜谱'&&favoriting&&<FavoriteEditor actions={localActions} snapshot={favoriting} onDone={()=>setFavoriting(null)}/>}
       {tab==='菜谱'&&unfavoriting&&<DeleteEditor actions={localActions} store='favorites' id={unfavoriting} onDone={()=>setUnfavoriting(null)}/>}
       {tab==='今天吃什么'&&replacement&&<Dialog title="替换已有计划" busy={pending} onClose={()=>{setReplacement(null);setConfirming(false);}}><h3>替换已有计划</h3>{notice&&<Notice text={notice} error={error}/>}{recoveryFeedback}<label>计划日期<input type="date" value={date} disabled readOnly/></label><label>计划餐次<select value={meal} disabled>{Object.entries(MEAL_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><p>此日期和餐次已有计划：{replacement.snapshots.map(s=>s.name).join('、')}。替换只修改计划，不改变实际记录。</p><button disabled={pending||!writable} onClick={()=>void savePlan(replacement)}>确认替换已有计划</button>{' '}<button disabled={pending} onClick={()=>{setReplacement(null);setConfirming(false);}}>取消替换计划</button></Dialog>}
-      {tab === '今天吃什么' ? <Today draft={draft} settings={currentDraft()} preferences={preferences} generation={generation} ready={ready} catalogAvailable={catalog?.ok === true} catalogLoading={catalogLoading} notice={notice} noticeError={error} recovery={recoveryFeedback} onRetryCatalog={() => void loadOnline()} onSettings={editSettings} onExclusions={saveExclusions} onGenerate={() => automatic()} onReplace={(slotId) => automatic(slotId)} onLock={toggleLock} onRemove={removeDish} onCountsConfirm={() => editDraft({ ...currentDraft(), countsConfirmed: true }, '人数和组合确认已保存')} onDiscard={() => { setGeneration(null); editDraft({ ...currentDraft(), dishes: [] }, '已放弃菜单，设置已保留'); }} data={data} writable={writable && !conflict} pending={pending||replacement!==null} confirming={confirming && !replacement} onCancel={()=>setConfirming(false)} date={date} meal={meal} onDate={setDate} onMeal={setMeal} onConfirm={() => { setMeal(draft?.meal ?? 'dinner'); setConfirming(true); }} onSave={() => void savePlan()} onShopping={()=>{if(shoppingDraft)openShopping([shoppingDraft]);}} onRecord={()=>{setRecording(true);setTemplating(false);}} onTemplate={()=>{setTemplating(true);setRecording(false);}} />
+      {tab === '今天吃什么' ? <Today key={settingsResetEpoch} draft={draft} settings={currentDraft()} preferences={preferences} generation={generation} ready={ready} catalogAvailable={catalog?.ok === true} catalogLoading={catalogLoading} notice={notice} noticeError={error} recovery={recoveryFeedback} onRetryCatalog={() => void loadOnline()} onSettings={editSettings} onExclusions={saveExclusions} onGenerate={() => automatic()} onReplace={(slotId) => automatic(slotId)} onLock={toggleLock} onRemove={removeDish} onCountsConfirm={() => editDraft({ ...currentDraft(), countsConfirmed: true }, '人数和组合确认已保存')} onDiscard={() => { setGeneration(null); editDraft({ ...currentDraft(), dishes: [] }, '已放弃菜单，设置已保留'); }} data={data} writable={writable && !conflict} pending={pending||replacement!==null} confirming={confirming && !replacement} onCancel={()=>setConfirming(false)} date={date} meal={meal} onDate={setDate} onMeal={setMeal} onConfirm={() => { setMeal(draft?.meal ?? 'dinner'); setConfirming(true); }} onSave={() => void savePlan()} onShopping={()=>{if(shoppingDraft)openShopping([shoppingDraft]);}} onRecord={()=>{setRecording(true);setTemplating(false);}} onTemplate={()=>{setTemplating(true);setRecording(false);}} />
         : tab === '菜谱' ? <Recipes preferences={preferences} catalog={catalog} loading={catalogLoading} onRetry={() => void loadOnline()} onSelect={select} onFavorite={favorite} favorites={data.favorites} writable={writable} pending={pending || !ready} />
         : tab === '日历' ? <Calendar actions={localActions} onShopping={plan=>openShopping([sourceFromPlan(plan)])}/>
         : <My actions={localActions} metadataKnown={metadataKnown} repository={repository} memoryData={{...data,preferences,draft}} shoppingSeed={shoppingSeed} draftSource={shoppingDraft} storageStatus={storageStatus} persisted={persisted} onPersistence={()=>{void requestPersistence().then(setPersisted);}}/>}

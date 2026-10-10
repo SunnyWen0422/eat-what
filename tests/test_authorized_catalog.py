@@ -17,4 +17,13 @@ class AuthorizedCatalogTest(unittest.TestCase):
         m=self.engine()
         with self.assertRaises(ValueError):m.execute_read_tool(self.ctx(),7,'search_dishes',{'filters':{'invented':True}})
         with self.assertRaises(ValueError):m.execute_read_tool(self.ctx(),7,'create_calendar_records',{})
+    def test_include_tags_match_any_requested_tag_and_excludes_still_reject(self):
+        m=self.engine();context=self.ctx()
+        context['catalog'][0]['tagCodes']='LIGHT'
+        context['catalog'][1]['tagCodes']='HOME_STYLE'
+        query={'filters':{'include_tag_codes':['LIGHT','HOME_STYLE']}}
+        self.assertEqual([row['id'] for row in m.execute_read_tool(context,7,'search_dishes',query)],[1,2])
+        query['filters']['exclude_tag_codes']=['HOME_STYLE']
+        self.assertEqual([row['id'] for row in m.execute_read_tool(context,7,'search_dishes',query)],[1])
+        self.assertEqual(m.execute_read_tool(context,7,'search_dishes',{'filters':{'include_tag_codes':['SPICY']}}),[])
 if __name__=='__main__':unittest.main()

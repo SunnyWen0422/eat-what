@@ -29,7 +29,7 @@ def execute_read_tool(context,user_id,name,args):
         if ingredients and not all(str(v).lower() in text for v in ingredients):continue
         if filters.get('type') and row.get('type')!=filters['type']:continue
         if filters.get('cuisine_codes') and row.get('cuisineCode') not in filters['cuisine_codes']:continue
-        if filters.get('include_tag_codes') and not set(filters['include_tag_codes']).issubset(codes):continue
+        if filters.get('include_tag_codes') and not set(filters['include_tag_codes']) & codes:continue
         if set(filters.get('exclude_tag_codes') or [])&codes:continue
         if any(str(v).lower() in text for v in filters.get('excluded_ingredients') or []):continue
         if filters.get('max_cook_minutes') is not None and (row.get('cookMinutes') is None or row['cookMinutes']>int(filters['max_cook_minutes'])):continue

@@ -110,26 +110,18 @@ public interface DishMapper {
     @Select("SELECT COUNT(*) FROM food WHERE FIND_IN_SET(#{code}, TAG_CODES) > 0 AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1")
     int countByTagCode(@Param("code") String code);
 
-    /**
-     * 按类型获取菜品（轻量版，不含image，支持limit）
-     */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, " +
-            "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
-            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
-            "FROM food WHERE TYPE = #{type} AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 ORDER BY ID DESC LIMIT #{limit}")
-    List<Dish> selectDishesLiteByType(@Param("type") String type,
-                                       @Param("limit") int limit);
-
-    /**
-     * 获取所有菜品（轻量版，不含image）
-     */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
-            "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, " +
-            "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
-            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step " +
-            "FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 ORDER BY ID DESC")
-    List<Dish> selectAllDishesLite();
+    /** Bounded public cache query; optional filters and row limit are SQL parameters. */
+    @Select({"<script>",
+            "SELECT ID as id, NAME as name, TYPE as type, ",
+            "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, ",
+            "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, ",
+            "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
+            "FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 ",
+            "<if test='type != null'>AND TYPE = #{type} </if>",
+            "<if test='keyword != null'>AND NAME LIKE CONCAT('%', #{keyword}, '%') </if>",
+            "ORDER BY ID DESC LIMIT #{limit}", "</script>"})
+    List<Dish> selectDishesLite(@Param("type") String type, @Param("keyword") String keyword,
+                                 @Param("limit") int limit);
 
     @Select({
         "<script>",

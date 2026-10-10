@@ -1,8 +1,13 @@
 import { createServer, type Server } from 'node:http';
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { realpath } from 'node:fs';
+import { lstat, readFile } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyRelease } from './release-files.ts';
+// Node's callback resolver still canonicalizes symlinks on Windows hosts where
+// the native promises resolver cannot use GetFinalPathNameByHandle.
+const canonicalPath = promisify(realpath);
 /** Local static acceptance helper. Reserved services are deliberately unavailable here. */
 export function createReleaseServer(directory: string): Server {
   const root = resolve(directory);
@@ -18,7 +23,7 @@ export function createReleaseServer(directory: string): Server {
     if (!isEntry && !isAsset) { reply(404, 'Not found\n'); return; }
     const file = join(root, isEntry ? 'index.html' : rawPath.slice(1));
     try {
-      const stat = await lstat(file); const resolved = await realpath(file);
+      const stat = await lstat(file); const resolved = await canonicalPath(file);
       if (!stat.isFile() || stat.isSymbolicLink() || !resolved.startsWith(root + sep)) { reply(404, 'Not found\n'); return; }
       const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.woff2': 'font/woff2' };
       const bytes = await readFile(file); response.writeHead(200, { 'Content-Type': types[extname(file)]!, 'Content-Length': bytes.length, 'Cache-Control': isEntry ? 'no-cache' : 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' }); response.end(request.method === 'HEAD' ? undefined : bytes);

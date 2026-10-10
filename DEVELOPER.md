@@ -1,273 +1,84 @@
-# 吃什么小程序 — 开发者手册
+# 吃什么：开发者手册
 
-> V4 接手入口：[开发者改造说明](docs/eat-what-developer-change-guide.md) / [前后端详细设计](docs/eat-what-agent-fullstack-detailed-design.md) / [本机开发与验证](docs/testing/local-verification.md) / [独立网页版](web/README.md)。本机小程序现按用户要求指向 `https://chishenme.icu/api`，V4 保持开启；线上旧后端仍须升级才能提供 V4 与公开菜库接口。源码合并不代表已部署。以下旧接口说明保留兼容背景，V4 以新详细设计及本次实施记录为准。
+当前分支 `codex/v4-meal-workspace-green-20261003` 已实际合并独立网页，合并基线 `c5bfe61`。本轮只在本地整理、修复与验收，不升级线上。接手入口：[交付记录](docs/release/2026-10-10-local-merged-readiness.md)、[启动与验证](docs/testing/local-verification.md)、[前后端设计](docs/eat-what-agent-fullstack-detailed-design.md)。旧计划保留背景，不作为现行生产授权。
 
-## 项目概述
+## 工程结构
 
-"吃什么"是一款微信小程序，通过 AI 推荐算法（前端规则 + 后端检索 + DeepSeek 大模型）帮助用户决定每天吃什么。支持自定义菜品、日历记录、饮食统计、智能对话推荐。
+小程序围绕当前餐完成选菜、安排、计划确认、采购和实际用餐记录。一级导航为“今天｜菜谱｜计划｜我的”，`app.json` 注册 27 页。网页版共享仓库和公开菜库，独立构建；个人计划、收藏、采购和备份在浏览器 IndexedDB，目前不与微信账号云同步。
 
-## 技术栈
+| 部分 | 技术与入口 | 责任 |
+| --- | --- | --- |
+| 微信小程序 | 原生、glass-easel；`app.js`、`pages/`、`components/`、`utils/` | 页面交互、认证请求、持久恢复 |
+| 网页 | React、TypeScript、Vite；`web/`，Node.js 24.x | 独立前端、公开菜库、本机个人记录 |
+| Java | Spring Boot 2.7.14、MyBatis；`backend/` | 认证、业务版本、来源校验与数据库写入 |
+| Python | FastAPI；`recommend-service/main.py` | 检索、规则与受约束助手建议 |
+| 数据 | MySQL 8；服务端连接 | 业务记录与证据保存，前端不携带数据库凭据 |
+| 检查工具 | `scripts/`、`tests/`、`web/scripts/` | 隔离测试、构建、候选与验收证据 |
 
-| 层 | 技术 |
-|---|------|
-| 前端 | 微信原生小程序（glass-easel 组件框架） |
-| 后端 | Java Spring Boot 2.7.14 + MyBatis + JDK 8 |
-| 推荐/AI | Python FastAPI + DeepSeek Chat API + jieba 分词 |
-| 数据库 | MySQL 8.0 |
-| 部署 | 阿里云 ECS（宝塔面板 + Nginx + systemd） |
+构建 JDK 与交付字节码目标分别核对。小程序打包明确排除 `web/`、后端、测试和私有运行目录，网页源码/依赖不会替换小程序页面、导航、图片或事件。
 
-## 项目结构
+## 环境与启动
 
-```
-吃什么/
-├── app.js / app.json / app.wxss    # 小程序入口、全局配置、全局样式
-├── pages/                          # 25个已注册页面
-│   ├── index/          # 选菜首页（选参数 → 点击"今天吃什么"）
-│   ├── result/         # 当前餐结果（V4共用工作区，旧推荐保留兼容）
-│   ├── recommend-filter/# 推荐筛选（菜系/标签/排除项/时长）
-│   ├── chat/           # AI助手对话页（DeepSeek智能推荐）
-│   ├── customize/      # 定制菜谱（分类浏览+搜索+自定义菜品）
-│   ├── calendar/       # 周/月计划与实际状态
-│   ├── calendar-detail/# 某一天的早中晚餐详情
-│   ├── dish-detail/    # 菜品详情（食材+步骤+图片）
-│   ├── profile/        # 我的页面（用户卡片+功能菜单+登录弹窗）
-│   ├── profile-edit/   # 个人信息编辑（微信头像+昵称）
-│   ├── statistics/     # 饮食回顾（明确实际记录）
-│   ├── favorite-dishes/# 收藏菜品列表
-│   ├── custom-dishes/  # 自定义菜品列表
-│   └── admin/          # 后台管理（5击版本号进入）
-├── utils/
-│   ├── api.js          # 后端API客户端（401重登+重试+ETag缓存+去重）
-│   ├── recommend.js    # 前端推荐引擎（类型映射+加权随机+偏好排序）
-│   ├── config.js       # 全局配置（API地址+功能开关）
-│   └── util.js         # 通用工具（用户隔离存储）
-├── backend/            # Java Spring Boot 后端源码
-│   └── src/main/java/com/eatwhat/
-│       ├── controller/     # 业务 Controller
-│       ├── service/        # 业务逻辑层
-│       ├── mapper/         # MyBatis数据访问（@Select注解SQL）
-│       ├── entity/         # 数据实体（User, Dish, RecipeRecord等）
-│       ├── dto/            # 请求/响应DTO
-│       ├── config/         # WebMvcConfig, CorsConfig, TokenInitializer
-│       ├── interceptor/    # AuthInterceptor（HMAC令牌认证拦截器）
-│       ├── exception/      # GlobalExceptionHandler
-│       └── util/           # TokenUtil(JWT), WeChatUtil, DateUtil
-├── recommend-service/  # Python 推荐/AI服务
-│   ├── main.py             # FastAPI入口（/chat, /chat/sync, /health）
-│   ├── rag.py              # 菜品与食材索引（jieba检索，按部署数据重建）
-│   ├── chat_handler.py     # 对话引擎（意图识别+RAG+DeepSeek+结构化命令）
-│   ├── db.py               # MySQL只读查询（pymysql）
-│   ├── config.py           # 配置（DeepSeek Key, DB连接）
-│   ├── graph/              # LangGraph推荐工作流
-│   └── requirements.txt    # Python依赖
-└── SERVER.md           # 服务器运维手册（SSH/数据库/部署流程）
+`utils/config.js` 是小程序 API 唯一来源，当前 `https://chishenme.icu/api`，V4 与微信登录开启。旧线上 V4/公开菜库 404 是前次只读证据，本轮没有再次访问或升级；启动本机服务不会自动改变源配置。
+
+当前本机完整数据环境是 `.local-maturity-active`，API `http://127.0.0.1:18780/api`，原专属 MySQL 端口记录 `7505`，实际以私有运行记录为准。`./scripts/start_local_maturity.ps1` 复用已有库和凭据，只使用 `local-v4` 与隔离账号，不能接到生产库。原 `.local-v4` 是历史样例环境。
+
+Java 使用私有目录的 SHA256 固定快照，避免占用构建输出。默认重启沿用保存包；新包选择使用 `-JarPath` 或 Python `--jar`。`check-jar` 校验/准备快照而不停止服务。包无效、归属不符、哈希漂移时停止前拒绝执行，数据库、Token 与预算保留。
+
+启动还校验私有配置与运行记录的数据源/端口/Token，并阻止父终端的 Spring/JVM 选项绕过此配置。API 监听必须属于记录的 Java；就绪检查结合活进程、完整命令归属和健康状态，不能接受其他环境的 HTTP 200。无法读取归属时拒绝执行，不扩大管理员或进程访问权限。
+
+旧错误记录可用显式 `python scripts/local_maturity.py adopt-running` 在普通终端恢复：核对当前唯一监听及完整命令，仅接受当前私有保存快照或项目旧构建路径；先保存新的原记录备份，只修正 Java 字段，不动进程或业务数据。识别旧 JAR 不代表最新代码，随后仍须用最终候选路径明确 `-JarPath` 重启。默认启动不自动恢复，外部/未知进程不能收养。
+
+源项目是唯一开发来源。`scripts/export_local_miniprogram.py` 向全新项目外目录导出，不覆盖已有目录，并保留源 API。离线体验使用交付清单明确标记并核对回环地址的副本，不用历史预览目录验收新代码。具体说明见 [本机验证](docs/testing/local-verification.md)。
+
+## 接口与业务契约
+
+- 微信登录通过 `POST /api/users/login` 获取令牌；私人资料、菜谱、收藏、偏好、菜单和记录使用服务端认证身份，不能信任客户端传入用户编号。
+- `/api/dishes` 是筛选/搜索/分页入口，`/api/dishes/lite` 用于有限预加载。公共缓存绑定 API 来源，用户缓存和待确认操作还需账户隔离；迟到响应不得污染另一环境。
+- `/api/meal-workspaces/**` 共享当前餐的版本化状态。保存计划与记录实吃分开；重复、冲突和未知结果恢复原请求，不静默创建替代写入。
+- 收藏、手动选菜、个人菜谱、日历、采购、实付与回顾保留确认和失败反馈。历史计划不推断为已经吃过，个人菜单与菜谱质量证据分别保存。
+- 网页只读 `/api/public/catalog/dishes`。公开目录默认关闭、允许编号为空，最多明确批准 500 道已发布系统菜；私人历史、菜谱和令牌不向匿名页面公开。
+- Python 提供建议，Java 执行认证、来源、版本和确认校验后的业务写入。内部服务使用匹配非空令牌；生产不能使用本机 Profile、测试入口或测试令牌。
+- 模型服务测试暂缓，普通本机启动不自动启动适配器或加载供应商凭据。语音提示“抱歉，该功能暂不可用”。规则验证不能称为供应商模型验证。
+
+详细字段以 Controller、DTO、接口契约测试和详细设计为准；旧部署清单不是当前完整 API 定义。
+
+## 网页开发
+
+在 `web/` 使用 Node.js 24.x，`npm ci` 安装锁定依赖。`npm run dev` 不启用线上代理；`npm run dev:online` 仅代理固定 HTTPS 公开菜库 GET，校验证书，剥离令牌/Cookie，不代理私人 API、数据库或写入。静态包需要同源后端，开发代理不进入包。
+
+本轮浏览器回归强制关闭代理，使用隔离响应。个人记录属于当前浏览器和站点来源，清空站点数据、更换浏览器或来源不会自动迁移，应先备份/导出。网页自动配餐保留自身证据门槛，不把 UNREVIEWED 伪升 VERIFIED。
+
+```powershell
+cd web
+npm run typecheck
+npm test -- --run
+npm run build
+npm run boundaries
+npm run online:check
+npm run e2e -- --project=chromium
 ```
 
-## API 接口清单
+候选工具检查文件、依赖、许可、哈希和接口边界，输出仍为待验收候选。Chrome、其他浏览器、微信原生、真机和真实链路分别验收，不互相替代。
 
-### 用户
-- `POST /api/users/login` — 微信登录（code → token）
-- `GET  /api/users/info` — 获取用户信息
-- `PUT  /api/users/info` — 更新用户信息
+## 数据质量与价格
 
-### 菜品
-- `GET  /api/dishes?type=X&page=1&pageSize=50` — 分页获取系统菜及当前用户自定义菜
-- `GET  /api/dishes?...&cuisineCodes=SICHUAN&tagCodes=SPICY&methodCodes=STEAM&maxCookMinutes=30` — 按规范化元数据筛选
-- `GET  /api/dishes/lite?type=X&limit=N` — 轻量列表（用于预加载）
-- `GET  /api/dishes/{id}` — 菜品详情
-- `GET  /api/dishes/custom` — 当前用户的自定义菜品
-- `POST /api/dishes/custom` — 创建自定义菜品
-- `GET  /api/dishes/search?keyword=X` — 搜索菜品
+治理证据保存来源、版本、内容哈希和审核状态。缺少证据的基础人数、用量和营养保持未知，推算不能写成已核验事实。质量表是补充信息，普通小程序浏览与手动选菜不因缺少 VERIFIED 而全部停用。
 
-### 推荐
-- `POST /api/recommend` — 生成推荐方案（数量、临时筛选及是否采用长期偏好）
-- `GET  /api/recommend/options` — 获取菜系/标签目录、数据量、元数据版本和功能开关
-- `GET  /api/recommend/single?type=X&exclude=1,2,3` — 随机推荐一道菜
+缺价保持空缺，禁止猜测或填零。官方参考价保留真实日期，参考估算和实际支出单独记录；实际支出不反写为官方价格，未知用量不自动换算/缩放/估价。
 
-### 推荐偏好
-- `GET  /api/users/preferences` — 获取当前登录用户长期偏好
-- `PUT  /api/users/preferences` — 保存当前登录用户长期偏好及永久排除项
+重要原始 Excel、数据库备份、审计报告和运行数据保留，清洗输出新目录并交付规则与审计。本机匿名化数据库不整库替换生产，不盲目重跑含覆盖语义或演示菜的旧 SQL。
 
-### 菜谱记录
-- `POST /api/recipe-records` — 保存菜谱记录到日历
-- `GET  /api/recipe-records/date/:date` — 按日期查询
-- `DELETE /api/recipe-records/date/:date/meal/:type` — 删除
-- `GET  /api/recipe-records/statistics` — 统计
+## 验证与交付
 
-### 收藏
-- `POST /api/favorite-dishes` — 收藏
-- `DELETE /api/favorite-dishes/{id}` — 取消收藏
-- `POST /api/favorite-dishes/batch-check` — 批量检查
-- `GET  /api/favorite-dishes` — 获取收藏列表
+根入口 `scripts/verify.ps1 -Offline -SkipModelServiceTests` 保留小程序、Python、迁移、网页与 Java 检查。网页锁定依赖、Maven 缓存提前准备；Windows TEMP/TMP 使用任务可写目录，Python/Cairo 使用独立环境。具体命令见 [验证说明](docs/testing/local-verification.md)。
 
-### AI 对话
-- `POST /api/chat/sync` — 非流式对话（返回JSON）
-- `POST /api/chat` — SSE流式对话
+依赖、数据库、JAR、日志、密钥、本机配置和测试输出不提交。提交前核对差异、业务契约、源码/构建物一致性，并记录实际结果与未覆盖范围；不能承诺没有任何潜在问题。
 
-### 后台管理
-- `GET  /api/admin/users?keyword=&page=1&pageSize=20` — 按用户 ID、昵称或手机号搜索并分页；返回 `success/list/data/total/page/pageSize/keyword`
-- `GET  /api/admin/users/{id}` — 用户详情+菜谱
-- `POST /api/admin/users/{id}/dishes` — 为用户添加菜谱
-- `DELETE /api/admin/users/{uid}/dishes/{did}` — 删除用户菜谱
+## 后续部署准备
 
-后台入口仅对 `ADMIN_USER_IDS` 中的用户显示：在个人中心连续点击版本号 5 次进入。新增菜品必须填写菜名、类型、食材和步骤；删除操作会物理删除对应用户拥有的自定义菜品，不会把它转成系统菜品。
+本轮没有整版生产升级授权，不运行上传、迁移、重启或小程序发布。历史 [线上设计](docs/planning/2026-10-07-online-v4-upgrade-design.md)、[实施计划](docs/superpowers/plans/2026-10-07-online-v4-upgrade.md) 和 [旧候选](docs/operations/2026-10-10-online-v4-candidate.md) 仅供比对，不代表本轮候选或现行指令。
 
-后台列表和用户详情采用“最后一次请求生效”：搜索或刷新可以覆盖未完成的旧请求，旧响应不得写入数据、错误或加载状态。已有内容刷新时继续显示原内容并给出更新反馈；后端会把超出范围的页码规范到最后一个有效页。
+未来需要匹配 Java/Python/前端/配置、核对实际端口与服务管理，保留数据库/微信/Token 配置，内部令牌仅服务端私密保存。按真实旧迁移血缘生成桥接增量，禁止盲目套新版 V1–V7 或插入演示数据。公开白名单单独确认，备份含业务库、运行文件、私密配置和助手会话库，先做隔离恢复演练。
 
-## 数据库
-
-### 连接信息
-```
-主机:   127.0.0.1:3306 (通过SSH隧道)
-数据库: food
-应用用户: 通过 `DB_USER` / `DB_PASSWORD` 环境变量配置
-root用户: 不在仓库中保存凭据
-```
-
-### 表结构
-
-```sql
--- food 表（离线基准数据为6665条系统菜，生产行数以迁移时审计为准）
-id INT PRIMARY KEY AUTO_INCREMENT
-name VARCHAR(255)        -- 菜名
-type VARCHAR(50)         -- meat/veg/soup/dessert/staple
-cl TEXT                  -- 材料（#分隔）
-step TEXT                -- 步骤（#分隔，旧版）
-steps TEXT               -- 详细步骤（###分隔）
-tags VARCHAR(500)        -- 标签（逗号分隔）
-image VARCHAR(500)       -- 图片URL（douguo.net）
-difficulty VARCHAR(20)   -- 简单/普通/困难
-cook_time VARCHAR(50)    -- 烹饪时间
-kcal INT                 -- 热量(千卡)
-methods VARCHAR(200)     -- 烹饪方法
-user_id BIGINT           -- 自定义菜品所属用户ID
-cuisine_code VARCHAR(32) -- 规范化菜系代码，可为空
-tag_codes VARCHAR(500)   -- 规范化标签代码，逗号分隔
-cook_minutes INT         -- 可筛选的烹饪分钟数
-metadata_version INT     -- 元数据映射版本
-
--- users 表（注册用户，63行）
-id BIGINT PK AUTO_INCREMENT
-open_id VARCHAR(128) UNIQUE  -- 微信OpenID
-session_key VARCHAR(128)
-nickname VARCHAR(64)
-avatar VARCHAR(255)
-phone VARCHAR(20)
-register_time DATETIME
-```
-
-## 服务器配置
-
-### 连接
-```
-SSH:  root@60.205.194.136:3294 (需私钥)
-域名: https://chishenme.icu
-面板: http://60.205.194.136:8888 (宝塔)
-```
-
-### 服务端口
-```
-Nginx:   80/443 → 127.0.0.1:8080
-Java:    8080 (context-path: /api)
-Python:  8000 (127.0.0.1)
-MySQL:   3306
-```
-
-### 重要路径
-```
-Java JAR:  /www/wwwroot/backend/eatwhat-backend-1.0.0.jar
-Java配置:  /www/wwwroot/backend/application-prod.yml
-Java源码:  /www/wwwroot/backend/fix_20260517/sourcecode/
-Python:    /www/wwwroot/recommend-service/
-Nginx配置: /www/server/panel/vhost/nginx/java_eatwhat-backend-1.conf
-日志:      /www/wwwlogs/eatwhat-backend-1.error.log
-```
-
-### 服务管理
-```
-Java:   宝塔面板 → Java项目管理 → 自动重启
-        禁止用 systemd（会导致双进程争端口8080）
-Python: systemctl restart eatwhat-recommend
-Nginx:  systemctl reload nginx
-MySQL:  systemctl restart mysql
-```
-
-## 开发工作流
-
-### 前端开发
-1. 微信开发者工具打开 `C:\Users\Administrator\Documents\Codex\2026-07-18\d-eatwhat\project`
-2. 修改代码 → 自动热重载 → 调试
-3. 点击"上传"提交到微信审核
-
-### Java 后端修改部署
-```bash
-# 方案A：完整Maven构建（需要本地有Maven）
-cd backend && mvn package -DskipTests
-scp target/eatwhat-backend-1.0.0.jar root@server:/www/wwwroot/backend/
-
-# 方案B：服务器上热修复单个文件
-scp YourFile.java root@server:/www/wwwroot/backend/fix_20260517/sourcecode/.../
-ssh root@server "cd /tmp && jar xf $JAR && javac ... && jar c0f ... $JAR"
-# 然后 kill Java进程 → 宝塔自动重启
-```
-
-### Python 修改部署
-```bash
-scp *.py root@server:/www/wwwroot/recommend-service/
-ssh root@server "systemctl restart eatwhat-recommend"
-```
-
-### 查看日志
-```bash
-ssh root@server "journalctl -u eatwhat --no-pager -n 50"     # Java
-ssh root@server "journalctl -u eatwhat-recommend -n 30"      # Python
-ssh root@server "tail -50 /www/wwwlogs/eatwhat-backend-1.error.log"  # Nginx
-```
-
-## 关键设计决策
-
-1. **Token认证**: 无状态HMAC-SHA256签名令牌，多实例使用同一 `TOKEN_SECRET` 即可验证
-2. **推荐算法**: 前端有本地规则引擎（utils/recommend.js），后端有Java规则引擎（RecommendationService），AI有DeepSeek对话推荐
-3. **前后端推荐降级链**: Java后端优先（2.5秒超时）→ 本地缓存/规则引擎；结果展示后不再被静默替换
-   - 结果页首次生成使用 800ms/2.5s 分阶段反馈和 8 秒页面级硬超时；重新生成保留旧方案并使用非阻塞提示。
-   - 每次生成携带递增版本，成功、失败、空结果、收藏状态和收尾写入都必须校验当前版本；页面卸载时使版本失效并清理计时器。
-4. **图片**: douguo.net CDN，HTTP必须转HTTPS才能在微信显示
-5. **分类**: 数据库存英文（meat/veg/soup/dessert/staple），前端同时支持中英文映射
-6. **自定义菜品**: food表 user_id列区分，游客存本地storage，登录用户存数据库
-7. **AI助手**: DeepSeek chat模型 + jieba分词知识库 + 食材倒排索引 + 10轮对话记忆持久化
-8. **数据写入边界**: Python服务只读菜品数据；AI产生结构化命令，由Java使用认证用户身份执行数据库写入
-9. **管理权限**: 管理接口和隐藏入口仅对 `ADMIN_USER_IDS` 中的用户开放
-10. **CSS**: 不使用CSS自定义属性（微信不支持），全站主色 #2BA471，圆角14rpx
-
-## 餐食安排助手（v4）
-
-- 小程序一级导航为 `选菜｜定制｜助手｜日历｜我的`；原有业务页面仍注册为流程页面，购物清单入口保留在“我的”首卡和各业务页面。
-- 新助手接口位于 `/api/assistant/**`，由 Java 代理到本机 Python 推荐服务；Java 从认证上下文注入 `user_id`，不会信任客户端传入的身份。
-- Python 助手使用 `assistant_sessions.sqlite3` 保存会话、消息、方案版本、任务状态和事件。会话与任务按 `user:<id>` 或独立 guest scope 隔离；模型驱动 Runtime 动态选择白名单工具，最终结果仍经过硬约束和来源校验。
-- 已登录用户的已保存菜系/标签偏好、收藏和近期日历记录只用于排序与硬性排除；当前任务条件优先，食材不会跨任务记忆，数据库上下文读取失败时自动退回索引推荐。
-- 助手只从已发布菜品索引或数据库查询返回真实 ID。模型可在当前任务中组合、换算和修改方案；日历、购物清单新增/修改/删除必须经过操作预览和用户确认后交给 Java 业务流程执行。
-- 助手保存日历使用 `preserveExisting=true`：服务端按用户/日期/餐次唯一键执行 `INSERT IGNORE`，冲突返回 409，前端展示差异并保留已有记录，不会静默覆盖。
-- `POST /api/assistant/sessions/{id}/messages` 支持单餐、现有食材、周期安排、局部换菜和做法查询；`POST /api/assistant/sessions/{id}/undo` 恢复上一版方案，历史版本不会被静默覆盖。
-- `recommend-service/agent_runtime.py` 是模型主导入口：最多 8 轮/16 次白名单工具调用，模型输出严格 JSON，模型不可用时明确降级到 `assistant_engine.py` 本地规则。
-- `recommend-service/agent_tools.py` 提供查询、当前任务转换和需确认的用户写入工具；`agent_policy.py`、`agent_schemas.py` 负责全局规则、版本和结构化校验。`assistant_skills.py` 作为兼容技能目录保留。
-- DeepSeek 通过 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL` 和 `DEEPSEEK_MODEL` 配置；没有 Key 时不调用模型，页面明确显示本地规则降级。
-- `POST /api/assistant/sessions/{id}/messages` 返回任务元数据；`GET /api/assistant/tasks/{taskId}`、`/events` 和 `POST /cancel` 支持任务查询、阶段反馈和停止。
-- 索引重建：`python scripts/build_assistant_index.py`；只读审计：`python scripts/audit_assistant_index.py --meta-path ... --ingredient-path ...`。重建只读取 MySQL，不修改业务表。
-
-## 推荐筛选与偏好开发约定（v3.2）
-
-- 菜系和标签唯一来源是 `backend/src/main/resources/recommendation-metadata.json`；前后端和导入脚本都使用稳定大写代码，不用中文文案作为业务键。
-- 首页快捷筛选固定为 `HOME_STYLE`、`SICHUAN`、`CANTONESE` 三项；完整筛选放在 `pages/recommend-filter/`。
-- 临时筛选存入用户隔离的临时 storage，长期偏好存入 `user_preference`；关闭“使用我的偏好”只关闭正向加权，永久排除仍生效。
-- 正向标签采用任一命中，排除标签/食材采用任一命中即淘汰；时长使用更严格的上限。
-- `GET /api/dishes` 是筛选、搜索和分页的统一入口，并强制只返回系统菜与当前用户自定义菜。
-- 数据重建入口是 `scripts/replace_dish_data.py`，元数据回填入口是 `scripts/backfill_recommendation_metadata.py`，审计文件不得手工维护。
-- 完整仓库完整性验证运行 `scripts/verify.ps1`；性能和回归验证应在独立 CI 环境执行，不把测试产物提交到仓库。
-
-## 日常注意事项
-
-- 服务器仅 1核1.6GB，避免大SQL一次性更新（分批执行）
-- sentence-transformers/faiss因内存不足已移除，改用jieba轻量分词
-- Java由宝塔管理不能有systemd冲突（eatwhat.service已删除）
-- dish_meta.json(46MB)和ingredient_map.json不在版本控制中，上线后build_index.py动态生成
-- DeepSeek API Key不在代码中，通过环境变量/.env注入
+切换与恢复要求见 [统一替换准备](docs/release/local-maturity-cutover.md)。原 Java 由宝塔管理、Python 由独立服务管理，部署前重新核对；不猜 SSH/面板端口，不叠加常驻 JVM，不以手工热补单个 class 替代匹配整版构建。

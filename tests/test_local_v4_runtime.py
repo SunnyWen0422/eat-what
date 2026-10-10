@@ -15,7 +15,7 @@ class LocalRuntimeTest(unittest.TestCase):
     def test_powershell_wrapper_only_forwards_explicit_java(self):
         # Source contract only: native PowerShell execution is a separate check.
         wrapper=(Path(__file__).resolve().parents[1]/'scripts/start_local_v4.ps1').read_text(encoding='utf-8')
-        self.assertRegex(wrapper, r'\[string\]\$JavaExecutable\s*\n')
+        self.assertRegex(wrapper, r'\[string\]\$JavaExecutable,\s*\n')
         self.assertIn("$runtimeArgs=@('serve')",wrapper)
         self.assertIn("if ($JavaExecutable) { $runtimeArgs+=@('--java',$JavaExecutable) }",wrapper)
         self.assertIn("'local_v4.py') @runtimeArgs",wrapper)
@@ -34,7 +34,7 @@ class LocalRuntimeTest(unittest.TestCase):
         state={'javaPid': 123, 'javaExecutable':'C:/custom-jdk/bin/java.exe','dbPort':12345,'password':'synthetic'}
         order=[]
         connection=Mock()
-        with patch.object(runtime.sys,'argv',['local_v4.py','restart']),patch.object(runtime,'read_state',return_value=state),patch.object(runtime,'executable_path',side_effect=lambda value:order.append(('validate',value)) or value),patch.object(runtime,'stop_owned',side_effect=lambda *args:order.append(('stop',None))),patch.object(runtime.pymysql,'connect',return_value=connection),patch.object(runtime,'start_java',side_effect=lambda state,value:order.append(('start',value))):
+        with patch.object(runtime.sys,'argv',['local_v4.py','restart']),patch.object(runtime,'read_state',return_value=state),patch.object(runtime,'executable_path',side_effect=lambda value:order.append(('validate',value)) or value),patch.object(runtime,'prepare_java_jar',return_value={'path':'fixture.jar','sha256':'fixture'}),patch.object(runtime,'validate_local_configuration'),patch.object(runtime,'verify_api_listener'),patch.object(runtime,'java_process_markers',return_value=['fixture.jar','local-v4','application-local.yml']),patch.object(runtime,'stop_owned',side_effect=lambda *args:order.append(('stop',None))),patch.object(runtime.pymysql,'connect',return_value=connection),patch.object(runtime,'start_java',side_effect=lambda state,value,prepared:order.append(('start',value))):
             runtime.main()
         self.assertEqual(('validate','C:/custom-jdk/bin/java.exe'),order[0])
         self.assertEqual(('start','C:/custom-jdk/bin/java.exe'),order[-1])
@@ -52,19 +52,16 @@ class LocalRuntimeTest(unittest.TestCase):
             self.assertFalse(runtime.start_optional_model())
     def test_basic_readiness_does_not_require_recommendation_health(self):
         response=Mock();response.__enter__=Mock(return_value=response);response.__exit__=Mock(return_value=False);response.status=200
-        with patch.object(runtime.urllib.request,'urlopen',return_value=response) as request:
+        with patch.object(runtime,'read_state',return_value={'javaPid':123}),patch.object(runtime,'verify_java_running'),patch.object(runtime,'verify_api_listener',return_value=True),patch.object(runtime.urllib.request,'urlopen',return_value=response) as request:
             runtime.wait_for_basic_api()
         self.assertTrue(request.call_args.args[0].endswith('/actuator/health/local-ready'))
     def test_dead_recorded_pid_does_not_require_cim_or_kill(self):
-        with patch.object(runtime.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '', '')) as run:
+        with patch.object(runtime,'process_command',return_value='') as identity,patch.object(runtime.subprocess, 'run') as run:
             runtime.stop_owned(1234, ['local-v4'])
-        self.assertEqual(run.call_count, 1)
-        self.assertIn('Get-Process', run.call_args.args[0][-1])
-        self.assertNotIn('Get-CimInstance', run.call_args.args[0][-1])
+        identity.assert_called_once_with(1234);run.assert_not_called()
 
     def test_live_pid_with_unreadable_identity_is_never_killed(self):
-        with patch.object(runtime.subprocess, 'run', side_effect=[subprocess.CompletedProcess([], 0, '1234', ''), subprocess.CalledProcessError(1, ['powershell'])]) as run:
-            with self.assertRaises(subprocess.CalledProcessError):
+        with patch.object(runtime,'process_command',side_effect=RuntimeError('identity unavailable')),patch.object(runtime.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError,'identity unavailable'):
                 runtime.stop_owned(1234, ['local-v4'])
-        self.assertEqual(run.call_count, 2)
-        self.assertNotIn('taskkill.exe', str(run.call_args))
+        run.assert_not_called()

@@ -6,8 +6,16 @@ ROOT=Path(__file__).resolve().parents[1]
 runtime.DATA=ROOT/'.local-maturity-active'
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','serve','status','stop'])
-    parser.add_argument('--keep-alive',action='store_true');parser.add_argument('--backup-zip');parser.add_argument('--quality-bundle');parser.add_argument('--java',default='D:/Java/bin/java.exe');parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['start','restart','serve','status','stop','check-jar','adopt-running'])
+    parser.add_argument('--keep-alive',action='store_true');parser.add_argument('--backup-zip');parser.add_argument('--quality-bundle');parser.add_argument('--java');parser.add_argument('--jar');parser.add_argument('--mysqld',default='C:/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe');args=parser.parse_args()
+    if args.action=='adopt-running':
+        if args.jar or args.java:raise RuntimeError('adopt-running cannot select a new executable or JAR; use an explicit restart afterward')
+        print(json.dumps(runtime.adopt_running()));return
+    if args.action=='check-jar':
+        state=runtime.read_state() if (runtime.DATA/'runtime.json').exists() else None
+        runtime.executable_path(args.java or (state or {}).get('javaExecutable') or 'D:/Java/bin/java.exe')
+        if state:runtime.validate_local_configuration(state)
+        print(json.dumps(runtime.prepare_java_jar(state,args.jar)));return
     if args.action=='start':
         if not args.backup_zip or not args.quality_bundle:raise ValueError('Explicit audited backup and governed bundle required')
         from bridge_legacy_local import prepare_source
@@ -18,8 +26,10 @@ def main():
             while True:time.sleep(1)
         return
     if args.action in ['restart','serve']:
-        state=runtime.read_state();java=runtime.executable_path(args.java)
-        runtime.stop_owned(state['javaPid'],[str(ROOT/'backend/target/eatwhat-backend-1.0.0.jar').replace('\\','/'),'local-v4','application-local.yml'])
+        state=runtime.read_state();java=runtime.executable_path(args.java or state.get('javaExecutable') or 'D:/Java/bin/java.exe')
+        prepared_jar=runtime.prepare_java_jar(state,args.jar)
+        runtime.validate_local_configuration(state);runtime.verify_api_listener(state)
+        runtime.stop_owned(state['javaPid'],runtime.java_process_markers(state))
         try:
             connection=runtime.pymysql.connect(host='127.0.0.1',port=state['dbPort'],user='root',password=state['password']);connection.close()
         except runtime.pymysql.OperationalError:
@@ -32,13 +42,14 @@ def main():
                 except runtime.pymysql.OperationalError:
                     if process.poll() is not None or time.monotonic()>deadline:raise RuntimeError('Owned local database did not start')
                     time.sleep(.25)
-        runtime.start_java(state,java);runtime.wait_for_basic_api()
+        runtime.start_java(state,java,prepared_jar);runtime.wait_for_basic_api()
         print('Local governed V4 ready at http://127.0.0.1:18780/api; external models and voice remain disabled.',flush=True)
         if args.action=='serve':
             while True:time.sleep(1)
         return
     state=runtime.read_state()
     if args.action=='status':print(json.dumps({k:v for k,v in state.items() if k not in ['password','tokenSecret']},ensure_ascii=False));return
-    runtime.stop_owned(state['javaPid'],[str(ROOT/'backend/target/eatwhat-backend-1.0.0.jar').replace('\\','/'),'local-v4','application-local.yml'])
+    runtime.validate_local_configuration(state);runtime.verify_api_listener(state)
+    runtime.stop_owned(state['javaPid'],runtime.java_process_markers(state))
     runtime.stop_owned(state['mysqlPid'],[str(runtime.DATA/'mysql').replace('\\','/')]);print('Only owned maturity processes stopped; data retained.')
 if __name__=='__main__':main()

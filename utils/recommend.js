@@ -1,19 +1,13 @@
 // 获取所有菜品（优先从缓存读取）
 const { filterAndRankDishes } = require('./recommendation-matcher')
 const { createPreferenceStore } = require('./preference-store')
+const { createCatalogCache } = require('./catalog-cache')
 
 async function getAllDishes() {
-  // 1. 优先从 App 全局缓存读取
-  const app = getApp && getApp()
-  if (app && app.globalData && app.globalData.allDishes && app.globalData.allDishes.length > 0) {
-    console.log('📦 使用 App 全局缓存菜品:', app.globalData.allDishes.length, '条')
-    return _processDishes(app.globalData.allDishes)
-  }
-
-  // 2. 从本地存储读取
-  const cached = wx.getStorageSync('cachedAllDishes')
-  if (cached && cached.length > 0) {
-    console.log('📦 使用本地存储缓存菜品:', cached.length, '条')
+  const cache = createCatalogCache(), source = cache.currentSource()
+  const cached = cache.read()
+  if (cached) {
+    console.log('📦 使用当前服务的缓存菜品:', cached.length, '条')
     return _processDishes(cached)
   }
 
@@ -21,18 +15,13 @@ async function getAllDishes() {
   const { getDishesLite } = require('./api')
   try {
     console.log('🔄 开始获取后端菜品数据（轻量版）...')
-    const dishes = await getDishesLite()
-    console.log('✅ API返回数据:', dishes)
-
-    // 更新缓存
-    if (app && app.globalData) {
-      app.globalData.allDishes = dishes
-    }
-    wx.setStorageSync('cachedAllDishes', dishes)
-    wx.setStorageSync('cachedAllDishesTime', Date.now())
+    const dishes = await getDishesLite({ limit: 500 })
+    cache.write(dishes, source)
+    console.log('✅ API返回菜品:', (dishes || []).length, '条')
 
     return _processDishes(dishes)
   } catch (error) {
+    cache.assertSource(source)
     console.error('❌ 获取后端菜品数据失败:', error)
     console.log('🔄 回退到本地数据...')
 

@@ -11,10 +11,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 @Service
 public class MealWorkspacePlanner {
+    private enum SelectionOrigin { AUTOMATIC, USER_SELECTION }
     private DishQualityService quality;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
     private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
     private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
+    List<Dish> attachQuality(List<Dish> selected) { return enrich(selected); }
     private final DishCandidateQueryService candidates;
     private final DishMapper dishes;
     private final UserPreferenceService preferences;
@@ -28,10 +30,13 @@ public class MealWorkspacePlanner {
         this.favorites=favorites;this.actual=actual;this.json=json;
     }
     public List<Dish> eligible(Long user,MealContext c) {
+        return eligible(user,c,SelectionOrigin.AUTOMATIC);
+    }
+    private List<Dish> eligible(Long user,MealContext c,SelectionOrigin origin) {
         if(!metadata.validateCriteria(c.getCriteria()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
         EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolve(c.getCriteria(),preferences.get(user),true);
-        List<Dish> pool=new ArrayList<>(candidates.findForUser(user,null,null,criteria,10000));
-        if ("breakfast".equals(c.getMealType())) pool=pool.stream().filter(d->Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE")).collect(Collectors.toList());
+        List<Dish> pool=new ArrayList<>(candidates.findRawForUser(user,null,null,criteria,10000));
+        if (origin==SelectionOrigin.AUTOMATIC&&"breakfast".equals(c.getMealType())) pool=pool.stream().filter(d->Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE")).collect(Collectors.toList());
         Collections.shuffle(pool);
         final EffectiveRecommendationCriteria effective=criteria;
         Set<Long> favoriteIds=new HashSet<>(favorites.getFavoriteDishIds(user));
@@ -63,14 +68,18 @@ public class MealWorkspacePlanner {
         return score;
     }
     public PlanDraft generate(Long user,MealWorkspace w,String command,Long target,List<Long> selected) {
+        // Only the explicit user selection command may choose untagged breakfast recipes.
+        return generate(user,w,command,target,selected,"select".equals(command)?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC);
+    }
+    private PlanDraft generate(Long user,MealWorkspace w,String command,Long target,List<Long> selected,SelectionOrigin origin) {
         MealContext c=MealWorkspaceRules.normalize(w.getContext());PlanDraft prior=w.getDraft();
-        List<Dish> pool=eligible(user,c);Map<Long,Dish> valid=pool.stream().collect(Collectors.toMap(Dish::getId,d->d,(a,b)->a));
+        List<Dish> pool=eligible(user,c,origin);Map<Long,Dish> valid=pool.stream().collect(Collectors.toMap(Dish::getId,d->d,(a,b)->a));
         if ("replace".equals(command)) {
             Dish old=prior.getDishes().stream().filter(d->Objects.equals(d.getId(),target)).findFirst().orElseThrow(()->new IllegalArgumentException("菜品不在方案中"));
             Set<Long> used=prior.getDishes().stream().map(Dish::getId).collect(Collectors.toSet());
             Dish replacement=pool.stream().filter(d->!used.contains(d.getId())&&category(d,c).equals(category(old,c))).filter(d->{List<Dish> next=new ArrayList<>(prior.getDishes());next.removeIf(v->Objects.equals(v.getId(),target));next.add(d);return fitsTime(next,c);}).findFirst().orElse(null);
             if(!MealWorkspaceRules.matchesContext(prior,c))throw new IllegalArgumentException("条件已变化，请重新安排整餐");
-            return MealWorkspaceRules.command(prior,command,target,replacement);
+            return MealWorkspaceRules.command(prior,command,target,enrich(replacement));
         }
         List<Dish> result=new ArrayList<>();
         for(Long lock:prior.getLockedDishIds()) {
@@ -99,9 +108,9 @@ public class MealWorkspacePlanner {
             }
             if(result.stream().anyMatch(d->!c.getCounts().containsKey(category(d,c))))throw new IllegalArgumentException("模板未包含保留菜品类型");
         }
-        PlanDraft next=new PlanDraft();next.setDishes(result);next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));next.setRequirementsFingerprint(prior.getRequirementsFingerprint());
-        next.setSource("select".equals(command)?"manual":"rules");next.setAdjustedBeforeConfirmation(!prior.getDishes().isEmpty() || prior.isAdjustedBeforeConfirmation());next.setLockedDishIds(new LinkedHashSet<>(prior.getLockedDishIds()));
-        next.setExplanations(Arrays.asList("按本餐人数和菜数搭配","已校验明确排除条件", "breakfast".equals(c.getMealType())?"仅使用早餐适用候选":"采购前核对份量，有可信依据的材料才按人数换算"));
+        PlanDraft next=new PlanDraft();next.setDishes(enrich(result));next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));next.setRequirementsFingerprint(prior.getRequirementsFingerprint());
+        next.setSource("select".equals(command)?(origin==SelectionOrigin.USER_SELECTION?"manual":"agent"):"rules");next.setAdjustedBeforeConfirmation(!prior.getDishes().isEmpty() || prior.isAdjustedBeforeConfirmation());next.setLockedDishIds(new LinkedHashSet<>(prior.getLockedDishIds()));
+        next.setExplanations(Arrays.asList("按本餐人数和菜数搭配","已校验明确排除条件", "breakfast".equals(c.getMealType())?(origin==SelectionOrigin.USER_SELECTION?"本餐菜品由你选择，请自行核对早餐适用性":"仅使用早餐适用候选"):"采购前核对份量，有可信依据的材料才按人数换算"));
         return MealWorkspaceRules.advance(prior,next);
     }
     public PlanDraft lockAndValidate(Long user,MealWorkspace w,List<Long> ids) {
@@ -109,12 +118,16 @@ public class MealWorkspacePlanner {
         Map<Long,Dish> snapshots=enrich(dishes.lockReadableDishes(ids,user)).stream().collect(Collectors.toMap(Dish::getId,d->d));
         if(!snapshots.keySet().containsAll(ids))throw new MealConsumptionService.VersionConflict("菜品可用状态已变化，请重新安排");
         for(Dish reviewed:w.getDraft().getDishes()) if(!MealWorkspaceRules.sameRecipe(reviewed,snapshots.get(reviewed.getId())))throw new MealConsumptionService.VersionConflict("菜品信息已更新，请查看新方案后确认");
-        return validateAgent(user,w,ids);
+        // This source is read from the server-owned persisted draft, never WorkspaceRequest.
+        return validateSelection(user,w,ids,"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC);
     }
     public PlanDraft validateAgent(Long user,MealWorkspace w,List<Long> ids) {
+        return validateSelection(user,w,ids,SelectionOrigin.AUTOMATIC);
+    }
+    private PlanDraft validateSelection(Long user,MealWorkspace w,List<Long> ids,SelectionOrigin origin) {
         MealWorkspace validation=new com.fasterxml.jackson.databind.ObjectMapper().convertValue(w,MealWorkspace.class);
         validation.getDraft().setRequirementsFingerprint(MealWorkspaceRules.requirementsFingerprint(w.getContext()));
-        PlanDraft validated=generate(user,validation,"select",null,ids);
+        PlanDraft validated=generate(user,validation,"select",null,ids,origin);
         Map<String,Integer> actualCounts=new HashMap<>();for(Dish d:validated.getDishes()) {String type=category(d,w.getContext());actualCounts.put(type,actualCounts.getOrDefault(type,0)+1);}
         Map<String,Integer> expected=new HashMap<>(w.getContext().getCounts());expected.values().removeIf(n->n==0);
         if(!expected.equals(actualCounts))throw new IllegalArgumentException("方案菜数与本餐设置不一致，请调整菜数或重新安排");

@@ -78,3 +78,9 @@ logging:
 meal-workspace:
   enabled: ${MEAL_WORKSPACE_ENABLED:false}
   service-token: ${MEAL_WORKSPACE_SERVICE_TOKEN:}
+
+# Web uses only this anonymous catalog. Enable with a separately reviewed list
+# of published system dish IDs; an empty list intentionally exposes no dishes.
+public-catalog:
+  enabled: ${PUBLIC_CATALOG_ENABLED:false}
+  allowed-dish-ids: []

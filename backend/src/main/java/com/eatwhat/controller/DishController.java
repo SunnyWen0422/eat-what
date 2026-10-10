@@ -203,7 +203,7 @@ public class DishController {
     public ResponseEntity<List<Dish>> getDishesLite(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "2147483647") int limit,
+            @RequestParam(defaultValue = "500") int limit,
             HttpServletRequest request) {
 
         // 从token获取用户ID（拦截器已验证）

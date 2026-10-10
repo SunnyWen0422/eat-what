@@ -1,5 +1,6 @@
 const api = require('./api')
 const { recommendPlans, getAllDishes } = require('./recommend')
+const { createCatalogCache } = require('./catalog-cache')
 
 function normalizeDish(dish, favoriteIds) {
   return {
@@ -30,6 +31,7 @@ function createRecommendationFlow(dependencies = {}) {
   const wxRuntime = dependencies.wx || wx
   const appProvider = dependencies.appProvider || (() => getApp())
   const backendTimeoutMs = dependencies.backendTimeoutMs || 2500
+  const catalog = createCatalogCache({ wx: wxRuntime, appProvider, getApiBaseUrl: dependencies.getApiBaseUrl })
 
   function normalizeBackendPlans(result) {
     if (!result || !result.success || !Array.isArray(result.plans)) return []
@@ -40,11 +42,7 @@ function createRecommendationFlow(dependencies = {}) {
   }
 
   function getCachedDishPool() {
-    const app = appProvider()
-    const globalDishes = app && app.globalData && app.globalData.allDishes
-    if (Array.isArray(globalDishes) && globalDishes.length > 0) return globalDishes
-    const localDishes = wxRuntime.getStorageSync('cachedAllDishes')
-    return Array.isArray(localDishes) && localDishes.length > 0 ? localDishes : null
+    return catalog.read()
   }
 
   async function refreshBackend(params) {
@@ -64,6 +62,7 @@ function createRecommendationFlow(dependencies = {}) {
   }
 
   async function generate(params) {
+    const source = catalog.currentSource()
     const cachedDishes = getCachedDishPool()
     let backendWarnings = []
     let appliedCriteria = null
@@ -71,6 +70,7 @@ function createRecommendationFlow(dependencies = {}) {
 
     try {
       const plans = await refreshBackendWithTimeout(params)
+      catalog.assertSource(source)
       backendWarnings = plans.warnings || []
       appliedCriteria = plans.appliedCriteria || null
       if (plans.length > 0) {
@@ -84,19 +84,23 @@ function createRecommendationFlow(dependencies = {}) {
         }
       }
     } catch (error) {
+      catalog.assertSource(source)
       backendUnavailable = true
       console.warn('Backend recommendation unavailable; using local recommendation:', error)
     }
 
     if (cachedDishes) {
       const plans = await localRecommend(params, cachedDishes)
+      catalog.assertSource(source)
       if (plans && plans.length > 0) {
         return { plans, source: 'cache', dishPool: cachedDishes, shouldRefresh: false, warnings: backendWarnings, appliedCriteria }
       }
     }
 
     const dishPool = cachedDishes || await loadAllDishes()
+    catalog.assertSource(source)
     const plans = await localRecommend(params, dishPool)
+    catalog.assertSource(source)
     const warnings = backendWarnings.length || (plans && plans.length) || !backendUnavailable
       ? backendWarnings
       : ['网络暂时不可用，本地菜品也没有同时满足当前条件。']

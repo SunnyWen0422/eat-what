@@ -2,19 +2,48 @@ import { access, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Server } from 'node:http';
+import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { expect, it, vi } from 'vitest';
 import { resolve } from 'node:path';
-// Test HTTP dispatch independently of Windows sandbox restrictions on ancestor-path canonicalization.
-const pathPolicy = vi.hoisted(() => ({ outside: false, denied: false }));
+const pathPolicy = vi.hoisted(() => ({ outside: false, denied: false, nativeDenied: false }));
 vi.mock('node:fs/promises', async importOriginal => {
   const fs = await importOriginal<typeof import('node:fs/promises')>();
   return { ...fs, realpath: async (path: string) => {
+    if (pathPolicy.nativeDenied) throw Object.assign(new Error('Native path resolution denied by host'), { code: 'EPERM' });
     if (pathPolicy.denied) throw new Error('path denied');
     if (pathPolicy.outside) return resolve(tmpdir(), 'outside.html');
-    return process.platform === 'win32' ? resolve(path) : fs.realpath(path);
+    return fs.realpath(path);
   } };
 });
+vi.mock('node:fs', async importOriginal => {
+  const fs = await importOriginal<typeof import('node:fs')>();
+  return { ...fs, realpath: (path: string, callback: (error: NodeJS.ErrnoException | null, resolvedPath: string) => void) => {
+    if (pathPolicy.denied) { callback(Object.assign(new Error('path denied'), { code: 'EPERM' }), ''); return; }
+    if (pathPolicy.outside) { callback(null, resolve(tmpdir(), 'outside.html')); return; }
+    // Successful paths must be resolved by Node itself, never substituted with resolve(path).
+    fs.realpath(path, callback);
+  } };
+});
+
+it('serves the actual canonical file when native promise realpath is denied and still rejects unsafe results', async () => {
+  const { createReleaseServer } = await import('../scripts/serve-release.ts');
+  const root = await mkdtemp(join(tmpdir(), 'eatwhat-callback-route-'));
+  try {
+    await writeFile(join(root, 'index.html'), '<html>callback candidate</html>');
+    pathPolicy.nativeDenied = true;
+    const server = createReleaseServer(root);
+    const dispatch = () => new Promise<{ status: number; body: string }>(resolveResponse => {
+      let status = 0;
+      const reply = { writeHead(code: number) { status = code; return this; }, end(body: string | Buffer) { resolveResponse({ status, body: body.toString() }); return this; } };
+      // Exercise this server's request handler without requiring a network capability.
+      server.emit('request', { method: 'GET', url: '/' } as IncomingMessage, reply as unknown as ServerResponse);
+    });
+    expect(await dispatch()).toEqual({ status: 200, body: '<html>callback candidate</html>' });
+    pathPolicy.outside = true; expect((await dispatch()).status).toBe(404); pathPolicy.outside = false;
+    pathPolicy.denied = true; expect((await dispatch()).status).toBe(404); pathPolicy.denied = false;
+  } finally { pathPolicy.nativeDenied = false; pathPolicy.outside = false; pathPolicy.denied = false; await rm(root, { recursive: true, force: true }); }
+});
+
 it('portable candidate HTTP server serves only fixed static routes and never disguises reserved routes as HTML', async () => {
   const script = fileURLToPath(new URL('../scripts/serve-release.ts', import.meta.url));
   expect(await access(script).then(() => true, () => false), 'portable candidate HTTP server must exist').toBe(true);

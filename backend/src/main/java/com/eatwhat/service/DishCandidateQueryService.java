@@ -27,6 +27,17 @@ public class DishCandidateQueryService {
                                   String keyword,
                                   RecommendationCriteria criteria,
                                   int maxResults) {
+        List<Dish> result = findRawForUser(userId, type, keyword, criteria, maxResults);
+        if (quality != null && !result.isEmpty()) quality.enrich(result);
+        return result;
+    }
+
+    /** Filter raw facts before pagination; quality evidence does not decide eligibility. */
+    public List<Dish> findRawForUser(Long userId,
+                                     String type,
+                                     String keyword,
+                                     RecommendationCriteria criteria,
+                                     int maxResults) {
         RecommendationCriteria value = criteria == null ? new RecommendationCriteria() : criteria;
         List<Dish> source = dishMapper.selectFilteredCandidates(
                 userId,
@@ -36,8 +47,6 @@ public class DishCandidateQueryService {
                 safe(value.getIncludeTagCodes()),
                 value.getMaxCookMinutes());
         if (source == null || source.isEmpty()) return Collections.emptyList();
-        if(quality!=null)quality.enrich(source);
-
         int limit = Math.max(1, maxResults);
         List<Dish> result = new ArrayList<>();
         for (Dish dish : source) {

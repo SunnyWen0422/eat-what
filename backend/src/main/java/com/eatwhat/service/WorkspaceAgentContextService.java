@@ -14,10 +14,12 @@ public class WorkspaceAgentContextService {
     public Map<String,Object> build(Long user,MealWorkspace workspace){
         if(user==null||user<1)throw new IllegalArgumentException("需要有效的当前用户");
         MealContext c=MealWorkspaceRules.normalize(workspace.getContext());List<Dish> eligible=planner.eligible(user,c);
-        Set<Long> locked=workspace.getDraft().getLockedDishIds();List<Map<String,Object>> catalog=new ArrayList<>();Set<Long> added=new HashSet<>();
-        for(Dish d:eligible){if(d.getUserId()!=null&&!Objects.equals(d.getUserId(),user))throw new IllegalArgumentException("候选菜品归属无效");if(locked.contains(d.getId())){catalog.add(readable(d));added.add(d.getId());}}
+        Set<Long> locked=workspace.getDraft().getLockedDishIds();List<Dish> selected=new ArrayList<>();Set<Long> added=new HashSet<>();
+        for(Dish d:eligible){if(d.getUserId()!=null&&!Objects.equals(d.getUserId(),user))throw new IllegalArgumentException("候选菜品归属无效");if(locked.contains(d.getId())){selected.add(d);added.add(d.getId());}}
         if(!added.containsAll(locked))throw new IllegalArgumentException("保留菜品已不可用，请核对本餐");
-        for(Dish d:eligible)if(catalog.size()<200&&added.add(d.getId()))catalog.add(readable(d));
+        for(Dish d:eligible)if(selected.size()<200&&added.add(d.getId()))selected.add(d);
+        List<Map<String,Object>> catalog=new ArrayList<>();
+        for(Dish d:planner.attachQuality(selected))catalog.add(readable(d));
         Map<String,Object> result=new LinkedHashMap<>();result.put("ownerUserId",user);result.put("catalog",catalog);result.put("preferences",preferences.get(user));result.put("favoriteDishIds",favorites.getFavoriteDishIds(user));
         String end=c.getDate(),start=MealConsumptionService.date(end).minusDays(6).toString();List<Map<String,Object>> recent=new ArrayList<>();
         for(MealConsumption meal:actual.range(user,start,end))if("eaten".equals(meal.getStatus())){Map<String,Object> item=new LinkedHashMap<>();item.put("date",meal.getMealDate());item.put("mealType",meal.getMealType());item.put("dishes",meal.getActualDishesJson());recent.add(item);}

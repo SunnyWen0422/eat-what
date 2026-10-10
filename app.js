@@ -103,6 +103,8 @@ App({
   
   // 预加载菜品数据到全局缓存（按类型分批，每类限 100 条，大幅减少首屏数据量）
   async precacheDishes() {
+    const catalog = require('./utils/catalog-cache').createCatalogCache()
+    const source = catalog.currentSource()
     try {
       const api = require('./utils/api')
       console.log('🔄 预加载菜品数据（按类型分批）...')
@@ -117,17 +119,18 @@ App({
       ])
 
       const allDishes = [...meats, ...vegs, ...soups, ...desserts]
+      catalog.assertSource(source)
       const elapsed = Date.now() - startTime
 
       if (allDishes.length > 0) {
-        this.globalData.allDishes = allDishes
+        catalog.write(allDishes, source)
         console.log(`✅ 菜品预加载完成: ${allDishes.length} 条 (荤${meats.length}/素${vegs.length}/汤${soups.length}/甜${desserts.length})，耗时 ${elapsed}ms`)
       } else {
         // 降级：分类加载失败时尝试全量加载（带 limit 防止返回全部 4 万行）
         console.log('⚠️ 分类加载返回空，降级到全量加载（限制 500 条）...')
         const dishes = await api.getDishesLite({ limit: 500 })
         if (dishes && dishes.length > 0) {
-          this.globalData.allDishes = dishes
+          catalog.write(dishes, source)
           console.log('✅ 菜品全量预加载完成:', dishes.length, '条')
         }
       }

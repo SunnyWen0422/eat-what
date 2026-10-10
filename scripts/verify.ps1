@@ -2,6 +2,7 @@ param(
  [string]$PythonExecutable=$env:CODEX_PYTHON,
  [string]$MavenExecutable='mvn',
  [string]$MavenRepository,
+ [string]$BackendBuildDirectory,
  [switch]$Offline,
  [switch]$SkipModelServiceTests
 )
@@ -112,7 +113,11 @@ if (Test-Path -LiteralPath (Join-Path $root 'web/package.json')) {
 Write-Host 'Checking Java tests and package...'
 if ($MavenRepository) { $env:MAVEN_ARGS = ('-Dmaven.repo.local=' + $MavenRepository) }
 if ($Offline) { $env:MAVEN_ARGS = '-o ' + $env:MAVEN_ARGS }
-& $MavenExecutable -q -f (Join-Path $root 'backend\pom.xml') test package
+$javaArguments = @('-q', '-f', (Join-Path $root 'backend\pom.xml'))
+if ($BackendBuildDirectory) {
+    $javaArguments += ('-Deatwhat.build.directory=' + [System.IO.Path]::GetFullPath($BackendBuildDirectory))
+}
+& $MavenExecutable @javaArguments test package
 if ($LASTEXITCODE -ne 0) {
     throw 'Java build check failed.'
 }

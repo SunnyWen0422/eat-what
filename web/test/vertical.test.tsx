@@ -211,7 +211,7 @@ describe('local meal controls through the real repository', () => {
   });
   it('restores saved settings and draft without regenerating; confirmed discard keeps preferences', async () => {
     const test = await mealSetup(); try {
-      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '4' } }); await screen.findByText('设置和草稿已保存');
+      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '4' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' })); await screen.findByText('设置和草稿已保存');
       fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); await screen.findByText('菜单已生成并保存');
       const before = await test.repo.read(); if (!before.ok) throw new Error('read');
       test.view.unmount(); render(<App repository={test.repo} catalogLoader={async () => ({ ok: true, value: test.source })} storageStatus={status} />);
@@ -223,11 +223,11 @@ describe('local meal controls through the real repository', () => {
   });
   it('persists group confirmation, revokes it on a combination edit, and blocks generation and plan save', async () => {
     const test = await mealSetup(); try {
-      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '9' } }); await screen.findByText('设置和草稿已保存');
+      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '9' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' })); await screen.findByText('设置和草稿已保存');
       fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); expect(await screen.findByText(/超过 8 人，请先确认/)).not.toBeNull();
       fireEvent.click(screen.getByRole('button', { name: '确认人数和组合' })); await screen.findByText('人数和组合确认已保存');
       const confirmed = await test.repo.read(); if (!confirmed.ok) throw new Error('read'); expect(confirmed.value.draft?.countsConfirmed).toBe(true);
-      fireEvent.change(screen.getByLabelText('菜数'), { target: { value: '3' } }); await screen.findByText('设置和草稿已保存');
+      fireEvent.change(screen.getByLabelText('菜数'), { target: { value: '3' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' })); await screen.findByText('设置和草稿已保存');
       const changed = await test.repo.read(); if (!changed.ok) throw new Error('read'); expect(changed.value.draft).toMatchObject({ servings: 9, countsConfirmed: false }); expect(changed.value.preferences.slots).toHaveLength(3);
       fireEvent.click(screen.getByRole('button', { name: '菜谱' })); fireEvent.click(await screen.findByRole('button', { name: '手选 接口meat1' })); await screen.findByText('草稿已保存');
       fireEvent.click(screen.getByRole('button', { name: '今天吃什么' })); expect((screen.getByRole('button', { name: '保存到日历' }) as HTMLButtonElement).disabled).toBe(true);
@@ -235,7 +235,7 @@ describe('local meal controls through the real repository', () => {
   });
   it('retains changed settings after an atomic save failure and suppresses success', async () => {
     const test = await mealSetup({ failSettings: true }); try {
-      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '5' } }); expect(await screen.findByText(/存储空间不足/)).not.toBeNull();
+      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '5' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' })); expect(await screen.findByText(/存储空间不足/)).not.toBeNull();
       expect((screen.getByLabelText('用餐人数') as HTMLInputElement).value).toBe('5'); expect(screen.queryByText('设置和草稿已保存')).toBeNull();
       const read = await test.repo.read(); if (!read.ok) throw new Error('read'); expect(read.value.preferences.servings).toBe(2); expect(read.value.draft).toBeNull();
     } finally { test.close(); }
@@ -257,7 +257,7 @@ describe('local meal controls through the real repository', () => {
   });
   it('saves retained failed preferences with the next draft edit rather than falsely losing them', async () => {
     const test = await mealSetup({ failSettingsOnce: true }); try {
-      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '5' } }); await screen.findByText(/存储空间不足/);
+      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '5' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' })); await screen.findByText(/存储空间不足/);
       fireEvent.click(screen.getByRole('button', { name: '菜谱' })); fireEvent.click(await screen.findByRole('button', { name: '手选 接口meat1' })); await screen.findByText('草稿已保存');
       const read = await test.repo.read(); if (!read.ok) throw new Error('read'); expect(read.value.draft?.servings).toBe(5); expect(read.value.preferences.servings).toBe(5);
     } finally { test.close(); }
@@ -266,11 +266,11 @@ describe('local meal controls through the real repository', () => {
     const test = await mealSetup(); try {
       const latest = personalData().preferences; latest.servings = 6;
       const { act } = await import('@testing-library/react'); await act(async () => { await test.repo.commit({ type: 'savePreferences', preferences: latest }, 0, 'foreign-setting'); });
-      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '4' } });
+      fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '4' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' }));
       expect((screen.getByLabelText('用餐人数') as HTMLInputElement).value).toBe('4'); fireEvent.click(screen.getByRole('button', { name: '查看最新内容' })); await screen.findByRole('button', { name: '采用最新草稿' });
-      fireEvent.change(screen.getByLabelText('菜数'), { target: { value: '4' } });
+      fireEvent.change(screen.getByLabelText('菜数'), { target: { value: '4' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' }));
       const before = await test.repo.read(); if (!before.ok) throw new Error('read'); expect(before.value.preferences.servings).toBe(6); expect(before.value.meta.revision).toBe(1);
-      fireEvent.click(screen.getByRole('button', { name: '保留当前编辑并继续' })); fireEvent.change(screen.getByLabelText('菜数'), { target: { value: '5' } }); await screen.findByText('设置和草稿已保存');
+      fireEvent.click(screen.getByRole('button', { name: '保留当前编辑并继续' })); fireEvent.change(screen.getByLabelText('菜数'), { target: { value: '5' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' })); await screen.findByText('设置和草稿已保存');
       const after = await test.repo.read(); if (!after.ok) throw new Error('read'); expect(after.value.preferences.servings).toBe(4); expect(after.value.preferences.slots).toHaveLength(5); expect(after.value.meta.revision).toBe(2);
     } finally { test.close(); }
   });

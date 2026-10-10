@@ -97,11 +97,33 @@ async function readDraft(page: Page) {
   });
 }
 
+test('real two-digit numeric entry remains editable until explicit apply and survives reload', async ({ page }) => {
+  await page.route('**/*', route => {
+    const url = new URL(route.request().url());
+    if (url.hostname !== '127.0.0.1') return route.abort();
+    return route.continue();
+  });
+  await directory(page); await page.goto('/');
+  await expect(page.getByRole('button', { name: '生成本餐菜单', exact: true })).toBeEnabled();
+  const people = page.getByLabel('用餐人数', { exact: true }), count = page.getByLabel('菜数', { exact: true });
+  await people.fill(''); await people.pressSequentially('12'); await expect(people).toHaveValue('12');
+  await count.fill(''); await count.pressSequentially('12'); await expect(count).toHaveValue('12');
+  await expect(page.getByRole('button', { name: '生成本餐菜单', exact: true })).toBeDisabled();
+  expect((await readDraft(page)).draft).toBeUndefined();
+  await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click();
+  await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
+  expect((await readDraft(page)).draft).toMatchObject({ servings: 12, countsConfirmed: false });
+  expect((await readDraft(page)).draft.slots).toHaveLength(12);
+  await page.reload(); await expect(people).toHaveValue('12'); await expect(count).toHaveValue('12');
+  await count.fill('21'); await expect(page.getByRole('button', { name: '应用人数和菜数', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '撤销人数和菜数修改', exact: true }).click(); await expect(count).toHaveValue('12');
+});
+
 test('trusted online directory → local generate/lock/replace → settings survive reload without another generation', async ({ page }) => {
   let directoryReads = 0;
   await page.route(catalogURL, (route) => { directoryReads++; return route.fulfill({ contentType: 'application/json', body: JSON.stringify(generationPageFixture) }); });
   await page.goto('/'); await expect(page.getByText('正在读取本地记录…')).toHaveCount(0);
-  await page.getByLabel('用餐人数', { exact: true }).fill('4'); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
+  await page.getByLabel('用餐人数', { exact: true }).fill('4'); await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click(); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
   const beforeGenerateReads = directoryReads;
   await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('菜单已生成并保存', { exact: true })).toBeVisible();
   const first = await readDraft(page); expect(first.draft.dishes).toHaveLength(3);
@@ -122,10 +144,10 @@ test('trusted online directory → local generate/lock/replace → settings surv
 test('group confirmation is saved and invalidated by combination edits; unresolved exclusion is never claimed effective', async ({ page }) => {
   await page.route(catalogURL, (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(generationPageFixture) }));
   await page.goto('/'); await expect(page.getByText('正在读取本地记录…')).toHaveCount(0);
-  await page.getByLabel('用餐人数', { exact: true }).fill('9'); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
+  await page.getByLabel('用餐人数', { exact: true }).fill('9'); await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click(); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('超过 8 人，请先确认菜数和类型组合。', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '确认人数和组合', exact: true }).click(); await expect(page.getByText('人数和组合确认已保存', { exact: true })).toBeVisible();
-  await page.getByLabel('菜数', { exact: true }).fill('3'); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible(); expect((await readDraft(page)).draft.countsConfirmed).toBe(false);
+  await page.getByLabel('菜数', { exact: true }).fill('3'); await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click(); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible(); expect((await readDraft(page)).draft.countsConfirmed).toBe(false);
   await page.getByRole('button', { name: '确认人数和组合', exact: true }).click(); await expect(page.getByText('人数和组合确认已保存', { exact: true })).toBeVisible();
   await page.getByLabel('硬忌口，每行一项').fill('芝麻'); await page.getByRole('button', { name: '保存忌口', exact: true }).click(); await expect(page.getByText('忌口已保存', { exact: true })).toBeVisible();
   const before = await readDraft(page); await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('忌口尚未识别，未生效：芝麻。请补全、移除或手选。', { exact: true })).toBeVisible(); expect(await readDraft(page)).toEqual(before);

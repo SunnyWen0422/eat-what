@@ -83,7 +83,7 @@ class MealWorkspaceMysqlIT {
         Dish reviewed=food.selectByIdsForUser(Collections.singletonList(99881L),1L).get(0);
         MealWorkspace w=create("2026-10-25");w.getContext().setCompositionMode("manual");w.getContext().setCounts(Collections.singletonMap("veg",1));w.getDraft().setDishes(Collections.singletonList(reviewed));
         DishCandidateQueryService candidates=mock(DishCandidateQueryService.class);
-        when(candidates.findForUser(anyLong(),isNull(),isNull(),any(),anyInt())).thenReturn(Collections.singletonList(reviewed));
+        when(candidates.findRawForUser(anyLong(),isNull(),isNull(),any(),anyInt())).thenReturn(Collections.singletonList(reviewed));
         UserPreferenceService prefs=mock(UserPreferenceService.class);when(prefs.get(1L)).thenReturn(new UserPreferenceDTO());
         MealWorkspacePlanner currentPlanner=new MealWorkspacePlanner(candidates,food,prefs,new RecommendationMetadataService(food),mock(FavoriteDishService.class),actual,json);
         JdbcTemplate other=new JdbcTemplate(new DriverManagerDataSource(System.getenv("V4_TEST_JDBC"),"root",System.getenv("V4_TEST_PASSWORD")));

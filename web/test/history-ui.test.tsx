@@ -120,7 +120,7 @@ describe('explicit retained-edit conflict recovery', () => {
   });
   it('builds the rebased save from current combined settings and draft, not the obsolete failed command', async () => {
     const { repo, attempts } = await conflictedEditor();
-    await tab('今天吃什么'); fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '4' } });
+    await tab('今天吃什么'); fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '4' } }); fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' }));
     fireEvent.change(screen.getByLabelText('硬忌口，每行一项'), { target: { value: '芝麻' } }); await click('保存忌口');
     expect(attempts).toHaveLength(1); await keepLocal(); await saveRetained();
     expect(attempts[1]).toMatchObject({ revision: 1, command: { type: 'saveSettings', preferences: { servings: 4, hardExclusions: [{ raw: '芝麻', ingredientId: null }] }, draft: { servings: 4 } } });
