@@ -1,0 +1,204 @@
+✔ four navigation labels preserve today recipes calendar and profile destinations (2.068353ms)
+✔ profile keeps independent list review account data and privacy routes (1.926806ms)
+✔ profile privacy entry opens the platform privacy statement on demand (1.041493ms)
+✔ shared text and controls use body 16 touch 44 and button 48 (1.130437ms)
+✔ replace dispatch is isolated from the dish detail tap (3.073161ms)
+✔ dish detail tap and busy replacement obey the command boundary (1.000612ms)
+✔ broken image retains the same dish name and a category placeholder (1.024427ms)
+✔ changing image identity clears a previous failure without changing dish ownership (1.001717ms)
+✔ dish duration metadata distinguishes explicitly unknown evidence (0.942505ms)
+✔ dish duration metadata distinguishes verified evidence (1.299173ms)
+✔ dish duration metadata distinguishes estimated evidence (0.882618ms)
+✔ dish duration metadata distinguishes unreviewed verified claim evidence (0.905745ms)
+✔ dish duration metadata distinguishes legacy without evidence evidence (0.97727ms)
+✔ breakfast side placeholder resolves to food line art rather than the info fallback (1.655579ms)
+✔ ingredient actions report source IDs without mutating business data (0.885408ms)
+✔ busy ingredient row never emits editing or checked mutations (0.664003ms)
+✔ composition summary exposes separate people and composition actions (0.870482ms)
+✔ persistent feedback announces the result and emits only an available next action (1.017577ms)
+✔ sheet optional restorefocus event drives an input focus property in a host harness after hiding (1.785208ms)
+✔ busy sheet mask does not close or restore focus (1.869038ms)
+✔ sheet reserves safe area and keyboard space while keeping the body scrollable (0.786193ms)
+✔ sheet measures wrapped headers and footers before sizing its scroll body (0.921978ms)
+✔ oversized chrome uses native whole-panel scrolling within the keyboard-visible viewport (0.895758ms)
+✔ keyboard leaving 47px space requests native dismissal without exceeding that space (0.907133ms)
+✔ keyboard leaving 10px space requests native dismissal without exceeding that space (0.814836ms)
+✔ keyboard leaving 0px space requests native dismissal without exceeding that space (0.791621ms)
+✔ sheet reduces its decorative margin before sacrificing a full primary hit target (0.809928ms)
+✔ an explicitly zero-height window is not replaced by a fictitious default viewport (0.756124ms)
+✔ failed native keyboard dismissal leaves a bounded panel and an honest instruction (0.727564ms)
+✔ a queued sheet measurement cannot query a detached component (0.750334ms)
+✔ reduced motion sets dish feedback and sheet dynamic durations to zero (2.017705ms)
+✔ account B cannot read account A composition or motion preference (0.564642ms)
+✔ optional preference read failure returns a safe view without overwriting unread settings (0.525908ms)
+✔ an optional storage read failure does not abort hidden sheet attachment (0.913764ms)
+✔ settings finishes loading recommendation preferences when local motion settings cannot be read (1.463205ms)
+✔ preference snapshots cannot mutate persisted compositions and reject invalid values (0.292189ms)
+✔ settings toggles motion separately from long-term recommendation preferences (0.89441ms)
+✔ motion storage failure preserves the visible setting and announces an unsaved result (0.742536ms)
+✔ settings reloads local motion preference when the account changes (1.193502ms)
+✔ compact rows flow with long text and keep scalable body text and real hit areas (0.335835ms)
+✔ compact-dish-row refreshes retained motion on visibility and account changes without reattachment (0.859096ms)
+✔ compact-dish-row newly displayed content reads current motion preference (0.899555ms)
+✔ action-feedback refreshes retained motion on visibility and account changes without reattachment (0.77549ms)
+✔ action-feedback newly displayed content reads current motion preference (0.981977ms)
+✖ empty meal selections route to picking instead of disabled calendar saving (1.010884ms)
+✖ help describes replace undo and existing legacy locks without offering keep (0.298902ms)
+✔ summaryCountsRemainSourceCounts (10.651245ms)
+✔ mixedUnitsNeverCoerce (1.218393ms)
+✔ legacy source objects preserve dish name date and meal rather than saying manual (0.367076ms)
+✔ same dish on different dates or meals has distinct stable group keys and starts collapsed (4.116662ms)
+✔ summary checks only visible pending sources without reversing already purchased sources (4.755576ms)
+✔ summary and source row identities survive filtering and use keys rather than render indices (0.51439ms)
+✔ single-source quantity opens the real editor while a merged row only expands its editable sources (2.651226ms)
+✔ unconfirmed check never moves or marks an item and success briefly displays bought before removing it (3.369546ms)
+✔ bought then undo returns to the original row and scroll position using the receipt version (3.980846ms)
+✔ createCheckUndo requires a successful homogeneous state transition and an authoritative newer version (0.545113ms)
+✔ 409 undo refreshes without force-rebasing or reversing a newer shopper choice (5.517758ms)
+✔ refresh invalidates an old undo and explains how to change purchased items back (4.300599ms)
+✔ other-write invalidates an old undo and explains how to change purchased items back (4.293104ms)
+✔ new-version invalidates an old undo and explains how to change purchased items back (3.556982ms)
+✔ reduced motion commits and moves the row immediately without suppressing the success result (2.944056ms)
+✔ unknownOutcomeReusesOriginalRequest across page reentry and a changed local version (5.447668ms)
+✔ network failure keeps the inverse operation original and does not offer another undo (4.361473ms)
+✔ a stale late receipt cannot replace a newer list or create a usable undo (2.888923ms)
+✔ account changes reject late receipts and clear the previous owners transition feedback and undo (3.796846ms)
+✔ the page only has pending and bought states and reuses compact rows and persistent action feedback (2.268426ms)
+✔ cost UI and automatic capability or quote reads are hidden without deleting old expenses (3.202394ms)
+✔ clear checked confirms the exact source count and leaves calendar recipe and actual records outside the write (4.120072ms)
+✔ clear all confirms the exact source count and leaves calendar recipe and actual records outside the write (2.456397ms)
+✔ manual notes remain visible in source details and a dish-source detail button expands that item only (2.114186ms)
+✔ a second concurrent check cannot run until the first receipt arrives (4.353133ms)
+✔ an unusable check receipt keeps the original request pending and never manufactures success or undo (2.251573ms)
+✔ a clear confirmation cannot silently authorize a changed count or another account (2.204587ms)
+✔ undo from purchased view restores its prior purchased state rather than assuming unchecked (2.686045ms)
+✔ display-only merges never expand the itemIds or origins of individual by-dish rows (0.170687ms)
+✔ undo rejects an unversioned prior list rather than assuming that any new receipt is safe (0.211179ms)
+✔ compact wrapper adds no vertical padding around the 52px ingredient row (0.190089ms)
+✔ explicit failed receipts never mark success even when they carry a newer snapshot (6.415459ms)
+✔ a refresh begun before a successful check cannot rewind the confirmed list or cache (3.803093ms)
+✔ folded dish source headers use an existing icon rather than the unknown-icon fallback (0.164484ms)
+✔ visible draft retry preserves newer confirmed state for forward checks (3.893413ms)
+✔ visible draft retry preserves newer confirmed state for inverse checks (4.195332ms)
+✔ visible draft retry retains the original operation after failed receipt (5.692114ms)
+✔ visible draft retry retains the original operation after missingList receipt (9.55442ms)
+✔ visible draft retry retains the original operation after null receipt (2.83501ms)
+✔ visible draft retry retains the original operation after missingVersion receipt (3.202652ms)
+✔ visible draft retry retains the original operation after oldVersion receipt (3.770416ms)
+✔ visible draft retry retains the original operation after wrongCheckedState receipt (2.794788ms)
+✔ visible draft retry retains the original operation after missingItem receipt (3.008695ms)
+✔ merged quantity remains unknown after overflow even when later sources are small (0.242688ms)
+✔ failed inverse replay retains the exact inverse request and purchased state (4.207212ms)
+✔ direct inverse rejects missing checked state (4.868517ms)
+✔ replayed inverse rejects missing checked state (4.264969ms)
+✔ direct inverse rejects null checked state (3.294411ms)
+✔ replayed inverse rejects null checked state (4.499062ms)
+✔ direct inverse rejects string checked state (4.250006ms)
+✔ replayed inverse rejects string checked state (3.83996ms)
+✔ direct inverse rejects number checked state (3.446388ms)
+✔ replayed inverse rejects number checked state (3.926465ms)
+✔ undo construction requires explicit boolean before and after states (0.209743ms)
+✔ original check survives unload before {"isNetworkError":true} and exact reentry replay (3.987931ms)
+✔ original check survives unload before {"statusCode":503} and exact reentry replay (3.763466ms)
+✔ HTTP 500 keeps original shopping request unknown (2.784374ms)
+✔ HTTP 502 keeps original shopping request unknown (2.247605ms)
+✔ HTTP 503 keeps original shopping request unknown (2.588956ms)
+✔ HTTP 504 keeps original shopping request unknown (3.279695ms)
+✔ inverse check is durable before unload and keeps restore context through replay (4.866307ms)
+✔ pending original remains in account A when account switches before rejection (2.431475ms)
+✔ late direct completion cannot retire or apply over a replacement journal request (2.584169ms)
+✔ late journal replay cannot remove the replacement that shares its operation ID (2.220682ms)
+✔ manual journals immutable original before boundary dispatch (3.362721ms)
+✔ patch journals immutable original before boundary dispatch (3.755718ms)
+✔ delete journals immutable original before boundary dispatch (3.340273ms)
+✔ clear journals immutable original before boundary dispatch (2.924635ms)
+✔ storage failure prevents shopping dispatch (2.128727ms)
+✔ explicit terminal rejection removes only original request and permits fresh corrected intent (2.323409ms)
+✖ late replay conflict cannot mark the replacement as conflicted (2.922017ms)
+ℹ tests 117
+ℹ suites 0
+ℹ pass 114
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 349.128847
+
+✖ failing tests:
+
+test at tests/experience-components.test.js:398:1
+✖ empty meal selections route to picking instead of disabled calendar saving (1.010884ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /<ui-button[^>]*wx:if="\{\{selectedMeal.count\}\}"[^>]*label="保存到日历"/. Input:
+
+  '<ui-sheet visible="{{showMealSelected}}" title="本餐已选菜品" bind:close="onHideMealSelected">\n' +
+    '  <view class="ew-title">{{selectedMeal.targetLabel}} · {{selectedMeal.people}} 人 · {{selectedMeal.count}} 道</view>\n' +
+    '  <view class="ew-muted">{{selectedMeal.message}}。查看本餐后可继续调整，保存到日历时再确认日期和餐次。</view>\n' +
+    `  <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />\n` +
+    '  <view wx:if="{{selectionError}}" class="ew-error" aria-live="polite">{{selectionError}}</view>\n' +
+    '  <view wx:for="{{mealSelectedDishes}}" wx:key="id" class="recipe-selected-row">\n' +
+    '    <button class="ew-hit-target ew-link recipe-selected-name" data-id="{{item.id}}" bindtap="onSelectedDish">{{item.name}}</button>\n' +
+    '    <button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onRemoveMealDish">移除</button>\n' +
+    '  </view>\n' +
+    '  <view wx:if="{{!selectedMeal.count}}" class="ew-notice">还没选菜，继续选菜后再保存到日历。</view>\n' +
+    '  <view class="ew-actions"><ui-button label="查看本餐" variant="secondary" bind:action="onViewMeal" /><ui-button label="继续选菜" variant="tertiary" bind:action="onContinueSelecting" /></view>\n' +
+    '  <ui-button slot="footer" label="保存到日历" disabled="{{!selectedMeal.count || selectionBusy || selectionLoading || selectionBlocked}}" bind:action="onSaveToCalendar" />\n' +
+    '</ui-sheet>\n'
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-components.test.js:400:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `<ui-sheet visible="{{showMealSelected}}" title="本餐已选菜品" bind:close="onHideMealSelected">\n  <view class="ew-title">{{selectedMeal.targetLabel}} · {{selectedMeal.people}} 人 · {{selectedMeal.count}} 道</view>\n  <view class="ew-muted">{{selectedMeal.message}}。查看本餐后可继续调整，保存到日历时再确认日期和餐次。</view>\n  <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />\n  <view wx:if="{{selectionError}}" class="ew-error" aria-live="polite">{{selectionError}}</view>\n  <view wx:for="{{mealSelectedDishes}}" wx:key="id" class="recipe-selected-row">\n    <button class="ew-hit-target ew-link recipe-selected-name" data-id="{{item.id}}" bindtap="onSelectedDish">{{item.name}}</button>\n    <button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onRemoveMealDish">移除</button>\n  </view>\n  <view wx:if="{{!selectedMeal.count}}" class="ew-notice">还没选菜，继续选菜后再保存到日历。</view>\n  <view class="ew-actions"><ui-button label="查看本餐" variant="secondary" bind:action="onViewMeal" /><ui-button label="继续选菜" variant="tertiary" bind:action="onContinueSelecting" /></view>\n  <ui-button slot="footer" label="保存到日历" disabled="{{!selectedMeal.count || selectionBusy || selectionLoading || selectionBlocked}}" bind:action="onSaveToCalendar" />\n</ui-sheet>\n`,
+    expected: /<ui-button[^>]*wx:if="\{\{selectedMeal.count\}\}"[^>]*label="保存到日历"/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/experience-components.test.js:406:1
+✖ help describes replace undo and existing legacy locks without offering keep (0.298902ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /换菜、保留/. Input:
+
+  '<view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px"><text class="ew-display">吃什么</text><text class="ew-subtitle">把每天的一餐，安排得轻松一些 · {{version}}</text>\n' +
+    '<view class="ew-section-title">从决定吃什么，到回顾吃过什么</view>\n' +
+    '<view class="help-step"><text class="ew-title">1 · 今天决定</text><text class="ew-subtitle">确认日期、餐次和人数；本餐要求可留空。点击“生成本餐菜单”，之后可以换菜、保留和撤销修改。</text></view>\n' +
+    '<view class="help-step"><text class="ew-title">2 · 保存到日历</text><text class="ew-subtitle">选好日期和餐次，把满意的方案保存到日历，再按周或按月查看、调整。保存到日历只保存计划，不会记作实际吃过。同一餐已有安排时会提示确认更新。</text></view>\n' +
+    '<view class="help-step"><text class="ew-title">3 · 准备食材</text><text class="ew-subtitle">先预览份量，移除家里已有的食材，再确认加入购物清单。清单支持食材汇总、餐次来源、数量修改、手动项和已购勾选。</text></view>\n' +
+    '<view class="help-step"><text class="ew-title">4 · 记录饮食</text><text class="ew-subtitle">吃完后，打开“记录饮食”，确认按计划吃了什么，或填写实际吃过的菜品、外食。实际吃过的内容才计入饮食回顾。也可以取消安排、纠正或撤销记录；修改计划不会删除吃过的记录。</text></view>\n' +
+    '<view class="help-step"><text class="ew-title">5 · 饮食回顾</text><text class="ew-subtitle">在“我的”查看周/月回顾、常吃菜品、记录分布和计划执行情况。历史安排不会自动被算成吃过，菜品类别次数也不代表营养摄入。</text></view>\n' +
+    '<view class="ew-notice">未连接时会标明缓存或待确认草稿。云端保存失败保留输入；清单冲突会展示最新版本，重新确认后才会提交。</view>\n' +
+    '<view class="help-step"><text class="ew-title">管理自己的偏好</text><text class="ew-subtitle">在“我的 → 偏好设置”编辑喜欢的菜系、标签、忌口食材和用时限制，也可重置偏好记忆。在助手内清空会话可删除该会话草稿。</text></view>\n' +
+    '<view class="ew-muted">微信授权和分享使用系统面板。登录后可同步个人资料、偏好、计划、实际用餐和购物清单。</view><view class="about-links"><navigator class="ew-hit-target about-link" url="/pages/logs/logs"><text>本机启动记录</text><ui-icon name="chevron-right" tone="muted" size="16" /></navigator></view></view>\n'
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-components.test.js:408:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '<view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px"><text class="ew-display">吃什么</text><text class="ew-subtitle">把每天的一餐，安排得轻松一些 · {{version}}</text>\n<view class="ew-section-title">从决定吃什么，到回顾吃过什么</view>\n<view class="help-step"><text class="ew-title">1 · 今天决定</text><text class="ew-subtitle">确认日期、餐次和人数；本餐要求可留空。点击“生成本餐菜单”，之后可以换菜、保留和撤销修改。</text></view>\n<view class="help-step"><text class="ew-title">2 · 保存到日历</text><text class="ew-subtitle">选好日期和餐次，把满意的方案保存到日历，再按周或按月查看、调整。保存到日历只保存计划，不会记作实际吃过。同一餐已有安排时会提示确认更新。</text></view>\n<view class="help-step"><text class="ew-title">3 · 准备食材</text><text class="ew-subtitle">先预览份量，移除家里已有的食材，再确认加入购物清单。清单支持食材汇总、餐次来源、数量修改、手动项和已购勾选。</text></view>\n<view class="help-step"><text class="ew-title">4 · 记录饮食</text><text class="ew-subtitle">吃完后，打开“记录饮食”，确认按计划吃了什么，或填写实际吃过的菜品、外食。实际吃过的内容才计入饮食回顾。也可以取消安排、纠正或撤销记录；修改计划不会删除吃过的记录。</text></view>\n<view class="help-step"><text class="ew-title">5 · 饮食回顾</text><text class="ew-subtitle">在“我的”查看周/月回顾、常吃菜品、记录分布和计划执行情况。历史安排不会自动被算成吃过，菜品类别次数也不代表营养摄入。</text></view>\n<view class="ew-notice">未连接时会标明缓存或待确认草稿。云端保存失败保留输入；清单冲突会展示最新版本，重新确认后才会提交。</view>\n<view class="help-step"><text class="ew-title">管理自己的偏好</text><text class="ew-subtitle">在“我的 → 偏好设置”编辑喜欢的菜系、标签、忌口食材和用时限制，也可重置偏好记忆。在助手内清空会话可删除该会话草稿。</text></view>\n<view class="ew-muted">微信授权和分享使用系统面板。登录后可同步个人资料、偏好、计划、实际用餐和购物清单。</view><view class="about-links"><navigator class="ew-hit-target about-link" url="/pages/logs/logs"><text>本机启动记录</text><ui-icon name="chevron-right" tone="muted" size="16" /></navigator></view></view>\n',
+    expected: /换菜、保留/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at tests/experience-shopping-list.test.js:607:1
+✖ late replay conflict cannot mark the replacement as conflicted (2.922017ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to: true
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-shopping-list.test.js:615:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }

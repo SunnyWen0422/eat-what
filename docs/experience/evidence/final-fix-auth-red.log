@@ -1,0 +1,189 @@
+✔ summaryCountsRemainSourceCounts (9.135875ms)
+✔ mixedUnitsNeverCoerce (1.211176ms)
+✔ legacy source objects preserve dish name date and meal rather than saying manual (0.356783ms)
+✔ same dish on different dates or meals has distinct stable group keys and starts collapsed (3.726649ms)
+✔ summary checks only visible pending sources without reversing already purchased sources (4.517935ms)
+✔ summary and source row identities survive filtering and use keys rather than render indices (0.545863ms)
+✔ single-source quantity opens the real editor while a merged row only expands its editable sources (2.723698ms)
+✔ unconfirmed check never moves or marks an item and success briefly displays bought before removing it (3.123377ms)
+✔ bought then undo returns to the original row and scroll position using the receipt version (3.87364ms)
+✔ createCheckUndo requires a successful homogeneous state transition and an authoritative newer version (0.53808ms)
+✔ 409 undo refreshes without force-rebasing or reversing a newer shopper choice (4.577943ms)
+✔ refresh invalidates an old undo and explains how to change purchased items back (3.712082ms)
+✔ other-write invalidates an old undo and explains how to change purchased items back (3.805955ms)
+✔ new-version invalidates an old undo and explains how to change purchased items back (3.326267ms)
+✔ reduced motion commits and moves the row immediately without suppressing the success result (2.862442ms)
+✔ unknownOutcomeReusesOriginalRequest across page reentry and a changed local version (5.077656ms)
+✔ network failure keeps the inverse operation original and does not offer another undo (3.175706ms)
+✔ a stale late receipt cannot replace a newer list or create a usable undo (2.50524ms)
+✔ account changes reject late receipts and clear the previous owners transition feedback and undo (2.751099ms)
+✔ the page only has pending and bought states and reuses compact rows and persistent action feedback (1.785055ms)
+✔ cost UI and automatic capability or quote reads are hidden without deleting old expenses (2.708601ms)
+✔ clear checked confirms the exact source count and leaves calendar recipe and actual records outside the write (3.800885ms)
+✔ clear all confirms the exact source count and leaves calendar recipe and actual records outside the write (2.234029ms)
+✔ manual notes remain visible in source details and a dish-source detail button expands that item only (2.164864ms)
+✔ a second concurrent check cannot run until the first receipt arrives (2.871886ms)
+✔ an unusable check receipt keeps the original request pending and never manufactures success or undo (2.304887ms)
+✔ a clear confirmation cannot silently authorize a changed count or another account (1.999175ms)
+✔ undo from purchased view restores its prior purchased state rather than assuming unchecked (2.983089ms)
+✔ display-only merges never expand the itemIds or origins of individual by-dish rows (0.223218ms)
+✔ undo rejects an unversioned prior list rather than assuming that any new receipt is safe (0.154484ms)
+✔ compact wrapper adds no vertical padding around the 52px ingredient row (0.21106ms)
+✔ explicit failed receipts never mark success even when they carry a newer snapshot (3.241ms)
+✔ a refresh begun before a successful check cannot rewind the confirmed list or cache (3.178101ms)
+✔ folded dish source headers use an existing icon rather than the unknown-icon fallback (0.160434ms)
+✔ visible draft retry preserves newer confirmed state for forward checks (3.592697ms)
+✔ visible draft retry preserves newer confirmed state for inverse checks (4.297079ms)
+✔ visible draft retry retains the original operation after failed receipt (5.617489ms)
+✔ visible draft retry retains the original operation after missingList receipt (7.210371ms)
+✔ visible draft retry retains the original operation after null receipt (2.762633ms)
+✔ visible draft retry retains the original operation after missingVersion receipt (3.21665ms)
+✔ visible draft retry retains the original operation after oldVersion receipt (3.056211ms)
+✔ visible draft retry retains the original operation after wrongCheckedState receipt (2.532499ms)
+✔ visible draft retry retains the original operation after missingItem receipt (2.77085ms)
+✔ merged quantity remains unknown after overflow even when later sources are small (0.305434ms)
+✔ failed inverse replay retains the exact inverse request and purchased state (4.156878ms)
+✔ direct inverse rejects missing checked state (3.639243ms)
+✔ replayed inverse rejects missing checked state (5.494305ms)
+✔ direct inverse rejects null checked state (3.069183ms)
+✔ replayed inverse rejects null checked state (4.305499ms)
+✔ direct inverse rejects string checked state (3.23869ms)
+✔ replayed inverse rejects string checked state (3.640063ms)
+✔ direct inverse rejects number checked state (3.043222ms)
+✔ replayed inverse rejects number checked state (3.634265ms)
+✔ undo construction requires explicit boolean before and after states (0.2633ms)
+✔ original check survives unload before {"isNetworkError":true} and exact reentry replay (3.566873ms)
+✔ original check survives unload before {"statusCode":503} and exact reentry replay (3.575266ms)
+✔ HTTP 500 keeps original shopping request unknown (2.169604ms)
+✔ HTTP 502 keeps original shopping request unknown (2.16806ms)
+✔ HTTP 503 keeps original shopping request unknown (2.177565ms)
+✔ HTTP 504 keeps original shopping request unknown (3.081025ms)
+✔ inverse check is durable before unload and keeps restore context through replay (3.803526ms)
+✔ pending original remains in account A when account switches before rejection (2.474143ms)
+✔ late direct completion cannot retire or apply over a replacement journal request (2.282017ms)
+✔ late journal replay cannot remove the replacement that shares its operation ID (1.961075ms)
+✔ manual journals immutable original before boundary dispatch (3.065236ms)
+✔ patch journals immutable original before boundary dispatch (2.711405ms)
+✔ delete journals immutable original before boundary dispatch (2.730752ms)
+✔ clear journals immutable original before boundary dispatch (2.851273ms)
+✔ storage failure prevents shopping dispatch (2.195113ms)
+✔ explicit terminal rejection removes only original request and permits fresh corrected intent (2.464153ms)
+✔ late replay conflict cannot mark the replacement as conflicted (2.418622ms)
+✖ retry HTTP 401 cannot resolve an earlier uncertain shopping request (3.688419ms)
+✖ retry HTTP 403 cannot resolve an earlier uncertain shopping request (3.909156ms)
+✖ retry HTTP 408 cannot resolve an earlier uncertain shopping request (3.060176ms)
+✖ retry HTTP 429 cannot resolve an earlier uncertain shopping request (2.73948ms)
+ℹ tests 75
+ℹ suites 0
+ℹ pass 71
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 330.516202
+
+✖ failing tests:
+
+test at tests/experience-shopping-list.test.js:618:48
+✖ retry HTTP 401 cannot resolve an earlier uncertain shopping request (3.688419ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + null
+  - {
+  -   checked: true,
+  -   expectedListVersion: 2,
+  -   itemIds: [
+  -     1
+  -   ],
+  -   requestId: 'check-1791586768228-8f8b8521144138'
+  - }
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-shopping-list.test.js:623:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: { itemIds: [ 1 ], checked: true, expectedListVersion: 2, requestId: 'check-1791586768228-8f8b8521144138' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/experience-shopping-list.test.js:618:48
+✖ retry HTTP 403 cannot resolve an earlier uncertain shopping request (3.909156ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + null
+  - {
+  -   checked: true,
+  -   expectedListVersion: 2,
+  -   itemIds: [
+  -     1
+  -   ],
+  -   requestId: 'check-1791586768232-212dfe3aaf54c'
+  - }
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-shopping-list.test.js:623:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: { itemIds: [ 1 ], checked: true, expectedListVersion: 2, requestId: 'check-1791586768232-212dfe3aaf54c' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/experience-shopping-list.test.js:618:48
+✖ retry HTTP 408 cannot resolve an earlier uncertain shopping request (3.060176ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + null
+  - {
+  -   checked: true,
+  -   expectedListVersion: 2,
+  -   itemIds: [
+  -     1
+  -   ],
+  -   requestId: 'check-1791586768236-0fc98942df4a'
+  - }
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-shopping-list.test.js:623:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: { itemIds: [ 1 ], checked: true, expectedListVersion: 2, requestId: 'check-1791586768236-0fc98942df4a' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests/experience-shopping-list.test.js:618:48
+✖ retry HTTP 429 cannot resolve an earlier uncertain shopping request (2.73948ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + null
+  - {
+  -   checked: true,
+  -   expectedListVersion: 2,
+  -   itemIds: [
+  -     1
+  -   ],
+  -   requestId: 'check-1791586768239-38bfdc2cb77848'
+  - }
+
+      at TestContext.<anonymous> (/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/tests/experience-shopping-list.test.js:623:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: { itemIds: [ 1 ], checked: true, expectedListVersion: 2, requestId: 'check-1791586768239-38bfdc2cb77848' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

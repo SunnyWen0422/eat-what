@@ -30,12 +30,12 @@
 }
 .empty-illustration { margin-bottom:20px; color: #28634E; opacity: 0.72; }
 .empty-illustration .line-icon { width: 78rpx; height: 78rpx; }
-.empty-title { display: block; font-size:1.285714em; font-weight: bold; color: #25332B; }
-.empty-desc { display: block; font-size:0.928571em; color: #56645B; margin:10px 0 30px; }
+.empty-title { display: block; font-size:1.125em; font-weight: bold; color: #25332B; }
+.empty-desc { display: block; font-size:0.8125em; color: #56645B; margin:10px 0 30px; }
 .empty-btn { background: #28634E; color: #FFFFFF; border-radius:24px; padding:10px 40px; font-size:1em; border: none; }
 
 .recommend-context { margin:0 0 12px; padding:10px 12px; background: #edf7f2; border-left: 4rpx solid #28634E; word-break: break-word; }
-.context-summary, .context-warning { display: block; font-size:0.857143em; line-height: 1.5; }
+.context-summary, .context-warning { display: block; font-size:0.75em; line-height: 1.5; }
 .context-summary { color:#28634E; }
 .context-warning { margin-top:4rpx; color:#75501A; }
 .empty-warning { max-width: 560rpx; margin:8rpx auto; text-align: center; }
@@ -51,7 +51,7 @@
 }
 .plan-swiper { flex: 1; height: 0; min-height: 0; width: 100%; }
 .plan-wrap { padding:12px 16px 32px; box-sizing: border-box; }
-.plan-label { text-align: center; font-size:0.857143em; color:#56645B; margin-bottom:8px; }
+.plan-label { text-align: center; font-size:0.75em; color:#56645B; margin-bottom:8px; }
 .dish-scroll { height: 100%; box-sizing: border-box; }
 
 /* ===== 菜品卡片 ===== */
@@ -66,7 +66,7 @@
 
 .dish-img-placeholder { display: flex; align-items: center; justify-content: center; color:#56645B; }
 .dish-img-placeholder .line-icon { width: 52rpx; height: 52rpx; }
-.dish-photo-caption { position: absolute; left: 8rpx; bottom: 8rpx; padding:3rpx 8rpx; border-radius:999rpx; color: #FFFFFF; background: #28634E; font-size:0.857143em; line-height: 1.2; }
+.dish-photo-caption { position: absolute; left: 8rpx; bottom: 8rpx; padding:3rpx 8rpx; border-radius:999rpx; color: #FFFFFF; background: #28634E; font-size:0.75em; line-height: 1.2; }
 
 .dish-body { flex: 1; min-width: 0; }
 .dish-top { display: flex; align-items: flex-start; justify-content: space-between; }
@@ -75,9 +75,9 @@
 .star-btn .line-icon { width: 36rpx; height: 36rpx; }
 .star-btn.on { color:#28634E; }
 .dish-tags { display: flex; flex-wrap: wrap; gap:6px; margin:6px 0; }
-.tag { max-width: 100%; word-break: break-word; font-size:0.857143em; color: #28634E; background: #EDF3ED; padding:2rpx 10rpx; border-radius:10rpx; }
+.tag { max-width: 100%; word-break: break-word; font-size:0.75em; color: #28634E; background: #EDF3ED; padding:2rpx 10rpx; border-radius:10rpx; }
 .dish-meta { display: flex; gap:14px; flex-wrap: wrap; margin-top:2px; }
-.meta-item { display: inline-flex; align-items: center; gap:4rpx; font-size:0.857143em; color: #56645B; }
+.meta-item { display: inline-flex; align-items: center; gap:4rpx; font-size:0.75em; color: #56645B; }
 .meta-item .line-icon { width: 24rpx; height: 24rpx; color:#56645B; }
 .refresh-btn { padding:6px; flex-shrink: 0; margin-left:4px; color: #28634E; }
 .refresh-btn .line-icon { width: 30rpx; height: 30rpx; }
@@ -103,9 +103,9 @@
   display: flex; align-items: center; justify-content: center;
 }
 .date-box { width: 86%; max-height: 90%; box-sizing: border-box; overflow-y: auto; background: #FFFFFF; border-radius:18px; padding:24px; text-align: center; }
-.date-title { font-size:1.142857em; font-weight: bold; color: #25332B; display: block; margin-bottom:24px; }
+.date-title { font-size:1em; font-weight: bold; color: #25332B; display: block; margin-bottom:24px; }
 .date-btn { background: #28634E; color: #FFFFFF; border-radius:12rpx; padding:14px; font-size:1em; }
-.date-cancel { margin-top:16px; font-size:0.928571em; color: #56645B; }
+.date-cancel { margin-top:16px; font-size:0.8125em; color: #56645B; }
 .generation-status {
   min-height: 104rpx;
   box-sizing: border-box;
@@ -134,7 +134,7 @@
 .generation-status-subtitle {
   margin-top:6rpx;
   color:#56645B;
-  font-size:0.857143em;
+  font-size:0.75em;
 }
 
 .generation-banner {
@@ -145,7 +145,7 @@
   margin:0 24rpx 16rpx;
   padding:12rpx 18rpx;
   border-radius:8rpx;
-  font-size:0.857143em;
+  font-size:0.75em;
   line-height: 1.4;
   word-break: break-word;
 }

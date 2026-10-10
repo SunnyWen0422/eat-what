@@ -52,6 +52,14 @@ public final class MealWorkspaceRules {
         return c;
     }
 
+    /** Preserve the old breakfast side bucket unless a manual category is requested explicitly. */
+    public static String category(Dish dish, MealContext context) {
+        String type=dish.getType();
+        boolean explicit="manual".equals(context.getCompositionMode()) && context.getCounts()!=null
+                && context.getCounts().getOrDefault(type,0)>0;
+        return "breakfast".equals(context.getMealType()) && !"staple".equals(type) && !explicit ? "side" : type;
+    }
+
     public static String contextFingerprint(MealContext c) {
         try { return com.eatwhat.util.WorkflowRequestHash.sha256(JSON.writeValueAsString(c)); }
         catch(Exception e) { throw new IllegalStateException("本餐条件无法校验",e); }
@@ -92,9 +100,33 @@ public final class MealWorkspaceRules {
         return advance(current, next);
     }
 
+    /** Explicit new interactions release legacy locks on a copy inside the
+     * command transaction. Preserve the original snapshot, without advancing
+     * the menu version until an actual menu change completes. */
+    public static PlanDraft prepareInteraction(PlanDraft current,String command,Boolean releaseLegacyLocks) {
+        PlanDraft next=copy(current);
+        if(!Boolean.TRUE.equals(releaseLegacyLocks) || !Arrays.asList("generate","regenerate","replace","select").contains(command) || next.getLockedDishIds().isEmpty())return next;
+        PlanDraft original=copy(current);original.setHistory(new ArrayList<>());
+        List<PlanDraft> history=new ArrayList<>(next.getHistory());history.add(original);
+        if(history.size()>10)history.remove(0);
+        next.setHistory(history);next.setLockedDishIds(new LinkedHashSet<>());return next;
+    }
+    public static PlanDraft command(PlanDraft current,String command,Long dishId,Dish replacement,Boolean releaseLegacyLocks) {
+        PlanDraft next=command(prepareInteraction(current,command,releaseLegacyLocks),command,dishId,replacement);
+        if(Boolean.TRUE.equals(releaseLegacyLocks) && "undo".equals(command))next.setLockedDishIds(new LinkedHashSet<>());
+        return next;
+    }
+    private static boolean preparedSnapshot(PlanDraft current,List<PlanDraft> history) {
+        if(history.isEmpty() || !current.getLockedDishIds().isEmpty())return false;
+        PlanDraft prior=history.get(history.size()-1);
+        if(prior.getLockedDishIds().isEmpty() || !Objects.equals(prior.getPlanVersion(),current.getPlanVersion()) || prior.getDishes().size()!=current.getDishes().size())return false;
+        for(int i=0;i<prior.getDishes().size();i++)if(!sameRecipe(prior.getDishes().get(i),current.getDishes().get(i)))return false;
+        return true;
+    }
+
     public static PlanDraft advance(PlanDraft current, PlanDraft next) {
         List<PlanDraft> history = new ArrayList<>(current.getHistory());
-        if (!current.getDishes().isEmpty()) {
+        if (!current.getDishes().isEmpty() && !preparedSnapshot(current,history)) {
             PlanDraft snapshot = copy(current); snapshot.setHistory(new ArrayList<>()); history.add(snapshot);
         }
         if (history.size() > 10) history.remove(0);

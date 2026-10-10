@@ -19,3 +19,10 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
 
 .ew-page{background:{{background}}}.dish-links{display:flex;gap:{{space.1.px}};flex-wrap:wrap;margin:{{space.2.px}} 0}.dish-links .ew-chip{background:transparent;border:1px solid {{border}};display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;padding:{{space.1.px}};font-size:{{font.secondary.em}}}.ew-actions{margin:{{space.2.px}} 0;gap:{{space.1.px}}}.meal-more{border-top:1px solid {{divider}};padding-top:{{space.1.px}}}.meal-more-toggle{margin-top:{{space.1.px}}}
+
+/* Read-first meal rows expand for long names and larger text. */
+.calendar-dish-row { min-height:80px; display:flex; align-items:center; border-bottom:1px solid {{divider}}; padding:{{space.1.px}} 0; box-sizing:border-box; }
+.dish-recipe-link { width:100%; min-height:64px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:{{space.1.px}}; padding:{{space.1.px}}; text-align:left; white-space:normal; word-break:break-word; background:transparent; font-size:1em; color:{{text}}; }
+.dish-recipe-link::after { border:0; }
+.original-plan .ew-reading { display:block; }
+.meal-more-panel { padding:{{space.2.px}}; background:{{card}}; border-radius:{{radius.2.px}}; }

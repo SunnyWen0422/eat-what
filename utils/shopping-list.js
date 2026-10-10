@@ -66,22 +66,60 @@ async function flushShoppingOperations() {
       else if (operation.type === 'clear') result = await api.clearShoppingList(operation.payload)
       else throw new Error('无法识别该草稿，请重新确认内容')
       if (scope !== key('pendingOps')) return { remaining: operations.length, accountChanged: true }
-      saveLocalShoppingList(result.list || result)
+      if (!loadPendingOperations().some(item => item.operationId === operation.operationId && item.payload && item.payload.requestId === operation.payload.requestId)) return { remaining: loadPendingOperations().length, superseded: true }
+      const list = result && (result.list || result)
+      // A replay resolves the original request; its stored receipt need not be
+      // the newest list. Validate before acknowledging, then never rewind cache.
+      const expected = operation.payload && operation.payload.expectedListVersion
+      if (!result || result.success === false || !list || !Array.isArray(list.dishes)
+        || !Number.isSafeInteger(list.version) || list.version < 0
+        || (Number.isSafeInteger(expected) && list.version <= expected)
+        || list.dishes.some(dish => !dish || !Array.isArray(dish.items || []) || (dish.items || []).some(item => !item))) {
+        throw { isNetworkError: true, message: '尚未读到可靠的清单结果，保留原草稿重试。' }
+      }
+      if (operation.type === 'check') {
+        const payload = operation.payload || {}
+        const checked = new Map(list.dishes.flatMap(dish => dish.items || []).map(item => [String(item.id), item.checked]))
+        if (!Array.isArray(payload.itemIds) || !payload.itemIds.length || typeof payload.checked !== 'boolean'
+          || payload.itemIds.some(id => checked.get(String(id)) !== payload.checked)) {
+          throw { isNetworkError: true, message: '勾选结果尚未确认，保留原草稿重试。' }
+        }
+      }
+      const current = loadLocalShoppingList()
+      if (list.version >= current.version) saveLocalShoppingList(list)
       removePendingOperation(operation.operationId, operation.payload && operation.payload.requestId)
     } catch (error) {
+      if (scope !== key('pendingOps')) return { remaining: operations.length, accountChanged: true }
+      if (!loadPendingOperations().some(item => item.operationId === operation.operationId && item.payload && item.payload.requestId === operation.payload.requestId)) return { remaining: loadPendingOperations().length, superseded: true }
       return { remaining: loadPendingOperations().length, conflict: error.statusCode === 409, error }
     }
   }
   return { remaining: loadPendingOperations().length, conflict: false }
 }
 
+// Explicit journal lifecycle transitions reconcile the matching preparation only.
+// A missing journal entry alone is never evidence that a request was resolved.
+function reconcilePreparation(requestId, replacement) {
+  const preparationKey = getUserStorageKey('shoppingPreparation')
+  const saved = wx.getStorageSync(preparationKey)
+  if (!saved || !saved.payload || saved.payload.requestId !== requestId) return
+  wx.setStorageSync(preparationKey, replacement
+    ? { ...saved, payload: replacement, retired: false }
+    : { ...saved, payload: null, retired: true, retiredRequestId: requestId })
+}
+
 function removePendingOperation(operationId, requestId) {
-  wx.setStorageSync(key('pendingOps'), loadPendingOperations().filter(item => operationId
-    ? item.operationId !== operationId : !item.payload || item.payload.requestId !== requestId))
+  const matches = item => (!operationId || item.operationId === operationId) && (!requestId || item.payload && item.payload.requestId === requestId) && !!(operationId || requestId)
+  const operations = loadPendingOperations()
+  for (const item of operations.filter(matches)) if (item.payload) reconcilePreparation(item.payload.requestId, null)
+  wx.setStorageSync(key('pendingOps'), operations.filter(item => !matches(item)))
 }
 
 function replacePendingOperation(operationId, operation) {
-  wx.setStorageSync(key('pendingOps'), loadPendingOperations().map(item => item.operationId === operationId ? operation : item))
+  const operations = loadPendingOperations()
+  const previous = operations.find(item => item.operationId === operationId)
+  if (previous && previous.payload && operation.payload) reconcilePreparation(previous.payload.requestId, operation.payload)
+  wx.setStorageSync(key('pendingOps'), operations.map(item => item.operationId === operationId ? operation : item))
 }
 
 function beginShoppingSelection(selection) { wx.setStorageSync(key('pendingSelection'), selection); return selection }

@@ -1,0 +1,11 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+.ingredient-row { display:flex; flex-wrap:wrap; align-items:center; min-height:52px; min-width:0; border-bottom:1px solid #E6EAE1; font-size:inherit; }
+.ingredient-check, .ingredient-quantity, .ingredient-sources { min-width:44px; min-height:44px; margin:0; padding:4px; display:flex; align-items:center; justify-content:center; background:transparent; border:0; color:#25332B; font-family:inherit; font-size:inherit; line-height:1.5; }
+.ingredient-check, .ingredient-sources { flex:0 0 44px; }
+.ingredient-name { flex:1 1 80px; min-width:0; font-size:1em; line-height:1.5; padding:4px 0; overflow-wrap:anywhere; }
+.ingredient-quantity { flex:0 1 auto; max-width:55%; overflow-wrap:anywhere; text-align:right; font-size:0.8125em; color:#56645B; }
+.check-box { width:18px; height:18px; box-sizing:border-box; border:1px solid #7C8E80; border-radius:4px; display:flex; align-items:center; justify-content:center; }
+.is-checked .check-box { border-color:#28634E; background:#EDF3ED; }
+.is-checked .ingredient-name { color:#56645B; }
+.ingredient-row button[disabled] { background:transparent; color:#56645B; }
+.ingredient-row button::after { border:0; }

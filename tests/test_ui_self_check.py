@@ -125,7 +125,8 @@ class UiSelfCheckTest(unittest.TestCase):
                         node = shutil.which('node')
                         self.assertIsNotNone(node, 'Node runtime must be on PATH for the native font contract')
                         values = subprocess.check_output([node, '-e', "global.wx={getAppBaseInfo:()=>({fontSizeScaleFactor:1.5})};const scale=require('./utils/font-scale');process.stdout.write(JSON.stringify([scale.base,scale.base*scale()]));"], cwd=isolated, text=True)
-                        self.assertEqual([16, 24], json.loads(values))
+                        expected_base = mutated['font']['body']
+                        self.assertEqual([expected_base, expected_base * 1.5], json.loads(values))
                     consumers = [output for source, output in sources if re.search(r'\{\{' + re.escape(f'{group}.{key}.') , (isolated / source).read_text(encoding='utf-8'))]
                     self.assertTrue(consumers, f'{group}.{key} has no WXSS consumers')
                     for file in [*consumers, 'utils/ui-tokens.js']:
@@ -134,9 +135,9 @@ class UiSelfCheckTest(unittest.TestCase):
                             bindings = re.findall(r'\{\{(font\.[^{}]+)\}\}', (isolated / source).read_text(encoding='utf-8'))
                             self.assertEqual({'font.body.em'}, set(bindings), 'Only body/body can remain 1em when body changes')
                             self.assertIn('font-size:1em', changed[file].decode())
-                            # Effective inherited font changes 14px -> 16px, without squaring the body ratio.
-                            self.assertEqual(16, runtime['font']['body'])
-                            self.assertEqual(14, json.loads(baseline['utils/ui-tokens.js'].decode().split('module.exports = ', 1)[1])['font']['body'])
+                            # The inherited body tracks the mutated token without squaring its ratio.
+                            self.assertEqual(mutated['font']['body'], runtime['font']['body'])
+                            self.assertEqual(tokens['font']['body'], json.loads(baseline['utils/ui-tokens.js'].decode().split('module.exports = ', 1)[1])['font']['body'])
                         else:
                             self.assertNotEqual(baseline[file], changed[file], f'{group}.{key} did not reach {file}')
                     # Runtime JS must export all dimensions, rather than just colors/controls.

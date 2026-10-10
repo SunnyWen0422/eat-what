@@ -1,3 +1,13 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-.ew-sheet{border-radius:24px 24px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom));background:#F8F7F2}.sheet-body{max-height:58vh;padding:12px 0 16px;box-sizing:border-box}
+.ew-sheet { display:flex; flex-direction:column; min-width:44px; overflow:hidden; border-radius:24px 24px 0 0; padding:0; background:#F8F7F2; animation:sheet-in 200ms ease-out; }
+.sheet-scroll { flex:0 1 auto; min-height:0; min-width:0; width:100%; box-sizing:border-box; }
+.sheet-layout { display:flex; flex-direction:column; min-width:0; overflow:hidden; box-sizing:border-box; padding:12px 16px calc(16px + env(safe-area-inset-bottom)); }
+.sheet-layout.overflow-chrome { display:block; overflow:visible; }
+.overflow-chrome .sheet-body { height:auto; }
+.sheet-handle { width:48px; height:4px; border-radius:2px; margin:0 auto 8px; background:#D9E1D5; flex-shrink:0; }
+.sheet-header { min-width:0; flex-shrink:0; gap:8px; }
+.sheet-header .ew-title { flex:1; min-width:0; overflow-wrap:anywhere; font-size:1.125em; }
+.sheet-body { flex:0 1 auto; min-height:0; min-width:0; padding:12px 0 16px; box-sizing:border-box; }
+.sheet-footer { flex-shrink:0; min-width:0; }
+@keyframes sheet-in { from { transform:translateY(12px); } to { transform:translateY(0); } }

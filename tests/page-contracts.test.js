@@ -7,6 +7,8 @@ const ingredients = require('../utils/shopping-ingredients')
 function page(route, api, store = {}) {
   let definition
   const sandbox = { Page: value => { definition = value }, require: name => {
+    if (name.endsWith('/shopping-view')) return require('../utils/shopping-view')
+    if (name.endsWith('/experience-preferences')) return () => ({get:()=>({reducedMotion:false})})
     if (name.endsWith('/shopping-list-presentation')) return require('../utils/shopping-list-presentation')
     if (name.endsWith('/shopping-prices')) return require('../utils/shopping-prices')
     if (name.endsWith('/shopping-capabilities')) return {refresh:async()=>({pricesEnabled:false,expensesEnabled:false}),notice:()=>''}
@@ -19,6 +21,7 @@ function page(route, api, store = {}) {
     if (name.endsWith('/meal-workflow')) return flow
     if (name.endsWith('/shopping-ingredients')) return ingredients
     if (name.endsWith('/shopping-list')) return store
+    if (name.endsWith('/calendar-meal-presentation')) return require('../utils/calendar-meal-presentation')
     throw new Error('Unexpected dependency ' + name)
   }, wx: { getStorageSync: () => null }, console, Date, Math, Map, Set }
   vm.runInNewContext(fs.readFileSync(route + '.js', 'utf8'), sandbox)
@@ -35,8 +38,11 @@ test('shopping filters retain the authoritative full list without another reques
   view.applyList({ version: 4, dishes: [{ dishName: '鱼', selectionKey: 'one', items: [{ id: 1, displayName: '盐', checked: true }, { id: 2, displayName: '鱼', checked: false }] }] })
   view.onFilterChange({ currentTarget: { dataset: { status: 'checked' } } })
   assert.equal(view.data.dishes[0].items[0].id, 1)
-  view.onFilterChange({ currentTarget: { dataset: { status: 'all' } } })
-  assert.equal(view.data.dishes[0].items.length, 2)
+  view.onFilterChange({ currentTarget: { dataset: { status: 'pending' } } })
+  assert.equal(view.data.dishes[0].items.length, 1)
+  assert.equal(view.data.dishes[0].items[0].id, 2)
+  assert.equal(view._full.dishes[0].items.length, 2)
+  assert.equal(view.data.pendingCount, 1); assert.equal(view.data.checkedCount, 1)
   assert.equal(requests, 0)
 })
 test('purchase preview preserves two dates for the same dish and separate people counts', async () => {
@@ -51,7 +57,7 @@ test('purchase preview preserves two dates for the same dish and separate people
 test('all registered routes have valid event handlers, dark titles and the shared theme', () => {
   const app = JSON.parse(fs.readFileSync('app.json','utf8'))
   assert.equal(app.pages.length,27)
-  assert.deepEqual(app.tabBar.list.map(tab => tab.text), ['今天','菜谱','计划','我的'])
+  assert.deepEqual(app.tabBar.list.map(tab => tab.text), ['今天','菜谱','日历','我的'])
   for (const route of app.pages) {
     const source = fs.readFileSync(route + '.js','utf8') + fs.readFileSync('utils/meal-workspace-page.js','utf8'), template = fs.readFileSync(route + '.wxml','utf8') + (['pages/index/index','pages/result/result','pages/chat/chat'].includes(route) ? fs.readFileSync('templates/meal-workspace.wxml','utf8') : '')
     assert.ok(fs.readFileSync(route + '.wxss','utf8').includes('styles/theme.wxss'), route)

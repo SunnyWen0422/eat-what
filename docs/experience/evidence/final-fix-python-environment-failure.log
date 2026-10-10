@@ -1,0 +1,53 @@
+....F........ [100%]
+=================================== FAILURES ===================================
+_ UiSelfCheckTest.test_all_dimension_tokens_change_every_matching_generated_consumer_and_restore_identically _
+
+self = <test_ui_self_check.UiSelfCheckTest testMethod=test_all_dimension_tokens_change_every_matching_generated_consumer_and_restore_identically>
+
+    def test_all_dimension_tokens_change_every_matching_generated_consumer_and_restore_identically(self):
+        # The generator locates ROOT from its file; copying its complete inputs isolates every mutation.
+        temporary_root = ROOT / '.test-artifacts' / 'ui-token'
+        temporary_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='ui-token-', dir=temporary_root) as directory:
+            isolated = Path(directory)
+            shutil.copytree(ROOT / 'design', isolated / 'design')
+            (isolated / 'scripts').mkdir()
+            shutil.copy2(ROOT / 'scripts/build_ui_assets.py', isolated / 'scripts/build_ui_assets.py')
+            shutil.copy2(ROOT / 'app.json', isolated / 'app.json')
+            manifest = json.loads((isolated / 'design/wxss-manifest.json').read_text(encoding='utf-8'))
+            for file in ['utils/ui-tokens.js', 'styles/theme.wxss', *[item['output'] for item in manifest]]:
+                (isolated / file).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / 'utils/font-scale.js', isolated / 'utils/font-scale.js')
+            shutil.copy2(ROOT / 'utils/meal-workspace-page.js', isolated / 'utils/meal-workspace-page.js')
+            original = (isolated / 'design/tokens.json').read_text(encoding='utf-8')
+            tokens = json.loads(original)
+
+            def build():
+                spec = importlib.util.spec_from_file_location('isolated_ui_assets', isolated / 'scripts/build_ui_assets.py')
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                module.build()
+                outputs = ['utils/ui-tokens.js', 'utils/ui-assets.js', 'styles/theme.wxss', 'app.json', 'design/asset-manifest.json', *[item['output'] for item in manifest]]
+                outputs += [str(file.relative_to(isolated)) for file in (isolated / 'assets').rglob('*') if file.is_file()]
+                return {file: (isolated / file).read_bytes() for file in outputs}
+
+>           baseline = build()
+                       ^^^^^^^
+
+tests/test_ui_self_check.py:113:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_ui_self_check.py:107: in build
+    spec.loader.exec_module(module)
+<frozen importlib._bootstrap_external>:999: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ModuleNotFoundError: No module named 'cairosvg'
+
+/workspace/scratch/cfdaa9512d5a/miniapp-experience-implementation-20261009/work/.test-artifacts/ui-token/ui-token-w8dt5qsj/scripts/build_ui_assets.py:5: ModuleNotFoundError
+=========================== short test summary info ============================
+FAILED tests/test_ui_self_check.py::UiSelfCheckTest::test_all_dimension_tokens_change_every_matching_generated_consumer_and_restore_identically
+1 failed, 12 passed, 60 subtests passed in 32.74s

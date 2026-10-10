@@ -174,5 +174,25 @@
   {
     "source": "design/wxss/pages/assistant-history/assistant-history.tpl",
     "output": "pages/assistant-history/assistant-history.wxss"
+  },
+  {
+    "source": "design/wxss/components/compact-dish-row/index.tpl",
+    "output": "components/compact-dish-row/index.wxss"
+  },
+  {
+    "source": "design/wxss/components/compact-ingredient-row/index.tpl",
+    "output": "components/compact-ingredient-row/index.wxss"
+  },
+  {
+    "source": "design/wxss/components/meal-composition-summary/index.tpl",
+    "output": "components/meal-composition-summary/index.wxss"
+  },
+  {
+    "source": "design/wxss/components/action-feedback/index.tpl",
+    "output": "components/action-feedback/index.wxss"
+  },
+  {
+    "source": "design/wxss/styles/recipe-selection.tpl",
+    "output": "styles/recipe-selection.wxss"
   }
 ]

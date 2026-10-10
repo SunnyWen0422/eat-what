@@ -37,6 +37,40 @@ class MealWorkspaceRulesTest {
         c.setPeople(6); assertEquals(Integer.valueOf(3),MealWorkspaceRules.normalize(c).getCounts().get("meat"));
         c.setPeople(51); assertThrows(IllegalArgumentException.class,()->MealWorkspaceRules.normalize(c));
     }
+    @Test void manualCountLimitsMatchAllSixFrontendCategories() {
+        MealContext c=new MealContext();c.setDate("2026-10-09");c.setCompositionMode("manual");
+        for(String type:Arrays.asList("meat","veg","soup","staple","dessert","side")) {
+            Map<String,Integer> counts=new LinkedHashMap<>();counts.put(type,10);c.setCounts(counts);
+            assertEquals(10,MealWorkspaceRules.normalize(c).getCounts().get(type));
+            for(Integer invalid:Arrays.asList(0,-1,11,null)) {
+                counts.put(type,invalid);assertThrows(IllegalArgumentException.class,()->MealWorkspaceRules.normalize(c));
+            }
+        }
+        c.setCounts(Collections.singletonMap("unknown",1));assertThrows(IllegalArgumentException.class,()->MealWorkspaceRules.normalize(c));
+        Map<String,Integer> over=new LinkedHashMap<>();over.put("meat",6);over.put("veg",5);c.setCounts(over);
+        assertThrows(IllegalArgumentException.class,()->MealWorkspaceRules.normalize(c));
+    }
+    @Test void zeroCategoriesAreAllowedWhenTotalAndPeopleAreWithinBounds() {
+        MealContext c=new MealContext();c.setDate("2026-10-09");c.setCompositionMode("manual");
+        Map<String,Integer> counts=new LinkedHashMap<>();counts.put("meat",2);counts.put("veg",1);counts.put("soup",0);c.setCounts(counts);
+        for(Integer people:Arrays.asList(1,50)) {c.setPeople(people);assertEquals(counts,MealWorkspaceRules.normalize(c).getCounts());}
+        for(Integer people:Arrays.asList(0,51)) {c.setPeople(people);assertThrows(IllegalArgumentException.class,()->MealWorkspaceRules.normalize(c));}
+    }
+    @Test void explicitBreakfastCategoriesDoNotGetCountedAgainAsSide() {
+        MealContext c=new MealContext();c.setDate("2026-10-09");c.setMealType("breakfast");MealWorkspaceRules.normalize(c);
+        Dish soup=new Dish();soup.setType("soup");Dish dessert=new Dish();dessert.setType("dessert");
+        Dish veg=new Dish();veg.setType("veg");Dish staple=new Dish();staple.setType("staple");
+        assertEquals("side",MealWorkspaceRules.category(soup,c));
+        assertEquals("side",MealWorkspaceRules.category(dessert,c));
+        c.setCompositionMode("manual");Map<String,Integer> counts=new LinkedHashMap<>();
+        counts.put("staple",1);counts.put("side",1);counts.put("soup",1);counts.put("dessert",1);c.setCounts(counts);MealWorkspaceRules.normalize(c);
+        assertEquals("staple",MealWorkspaceRules.category(staple,c));
+        assertEquals("side",MealWorkspaceRules.category(veg,c));
+        assertEquals("soup",MealWorkspaceRules.category(soup,c));
+        assertEquals("dessert",MealWorkspaceRules.category(dessert,c));
+        counts.put("soup",0);assertEquals("side",MealWorkspaceRules.category(soup,c));
+        c.setMealType("dinner");assertEquals("soup",MealWorkspaceRules.category(soup,c));
+    }
     @Test void lockAndUndoPreserveSnapshotAndAdvanceVersion() {
         Dish a=new Dish(); a.setId(1L); a.setName("番茄炒蛋"); a.setType("veg");
         Dish b=new Dish(); b.setId(2L); b.setName("青菜"); b.setType("veg");

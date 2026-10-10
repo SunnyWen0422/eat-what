@@ -27,3 +27,11 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .preview-bottom { display:flex; gap:10px; }.preview-bottom > ui-button:last-child { flex:1; min-width:0; }
 
 .preview-bottom { position:fixed; left:0; right:0; bottom:0; z-index:35; background:{{background}}; border-top:1px solid {{divider}}; }
+
+/* Compact read-only quantities; expand only the source being edited. */
+.shopping-preview-page .ingredient-row { min-height:52px; padding:0; gap:4px; }
+.shopping-preview-page .ingredient-row .ew-grow { flex:1 1 80px; min-width:0; overflow-wrap:anywhere; }
+.quantity-readonly { flex:0 1 auto; max-width:45%; overflow-wrap:anywhere; color:#56645B; }
+.people-row,.view-tabs { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.people-row input { width:72px; }
+.meal-label { overflow-wrap:anywhere; line-height:1.5; }

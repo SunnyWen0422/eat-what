@@ -3,6 +3,8 @@ import lombok.Data;
 import java.util.*;
 @Data
 public class WorkspaceRequest {
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private Boolean releaseLegacyLocks;
     private Long menuId;
     private Long menuVersion;
     private String menuDate;
@@ -15,4 +17,9 @@ public class WorkspaceRequest {
     private String command;
     private Long dishId;
     private List<Long> dishIds = new ArrayList<>();
+    // Omitted targets must serialize exactly as old requests, preserving logged hashes.
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String targetDate;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String targetMealType;
 }

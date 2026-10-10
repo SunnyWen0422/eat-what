@@ -144,4 +144,50 @@ class PersonalRecipeFoundationTest {
         assertEquals(Arrays.asList(1L,2L),Arrays.asList(generated.get(0).getId(),generated.get(1).getId()));
     }
 
+    @Test void optionalEditsClearOnlyWhenExplicitAndLegacyRequestsPreserveFields() throws Exception {
+        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1);
+        source.setImage("https://example.com/fish.jpg");
+        when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
+        DishWriteRequest legacy=write("legacy-optional"); legacy.setExpectedVersion(source.getContentVersion());
+        Dish unchanged=dishService().updatePersonalDish(7L,1L,legacy);
+        assertEquals(source.getFl(),unchanged.getFl()); assertEquals(source.getImage(),unchanged.getImage());
+        DishWriteRequest explicit=write("clear-optional"); explicit.setExpectedVersion(source.getContentVersion());
+        // Ignore unknown fields only in this RED fixture so pre-feature code reaches behavioral assertions.
+        json.readerForUpdating(explicit).without(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .readValue("{\"editServingDescription\":true,\"editImage\":true,\"fl\":null,\"image\":null}");
+        Dish cleared=dishService().updatePersonalDish(7L,1L,explicit);
+        assertNull(cleared.getFl()); assertNull(cleared.getImage());
+        assertEquals("2人份",source.getFl()); assertEquals("https://example.com/fish.jpg",source.getImage());
+    }
+
+    @Test void absentOptionalFlagsDoNotChangeLegacyReceiptEncoding() throws Exception {
+        DishWriteRequest request=write("existing-pending");
+        String encoded=json.writeValueAsString(request);
+        assertFalse(encoded.contains("editServingDescription")); assertFalse(encoded.contains("editImage"));
+    }
+
+    @Test void optionalServingEditRevokesVerifiedCopyEvidenceAndKeepsOriginalQuality() {
+        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1);
+        CatalogQuality quality=new CatalogQuality(); quality.setReviewStatus("VERIFIED"); quality.setServingsStatus("VERIFIED"); quality.setBasePeople(new java.math.BigDecimal("2"));
+        quality.setSourceKind("CURATED"); quality.setSourceRef("original-reference"); source.setQuality(quality);
+        when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
+        CustomDishService service=dishService(); service.setQuality(new DishQualityService(mock(DishQualityMapper.class),json));
+        DishWriteRequest request=write("serving-edit"); request.setExpectedVersion(source.getContentVersion());
+        request.setCl(source.getIngredientsAmounts()); request.setStep(source.getSteps()); request.setEditServingDescription(true); request.setFl("我的4人份说明");
+        Dish changed=service.updatePersonalDish(7L,1L,request);
+        assertEquals("UNREVIEWED",changed.getQuality().getReviewStatus()); assertEquals("UNKNOWN",changed.getQuality().getServingsStatus()); assertNull(changed.getQuality().getBasePeople());
+        assertEquals("original-reference",changed.getQuality().getSourceRef()); assertEquals("VERIFIED",source.getQuality().getReviewStatus());
+        assertEquals(source.getIngredientsAmounts(),changed.getIngredientsAmounts()); assertEquals(source.getSteps(),changed.getSteps()); assertEquals(source.getStepImages(),changed.getStepImages());
+    }
+    @Test void explicitOptionalUpdateSupportsReplacementAndRejectsUnsafeImageScheme() {
+        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1);
+        when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
+        DishWriteRequest request=write("replace-optionals"); request.setExpectedVersion(source.getContentVersion());
+        request.setEditServingDescription(true); request.setFl("原配方4人份"); request.setEditImage(true); request.setImage("https://example.com/new.jpg");
+        Dish changed=dishService().updatePersonalDish(7L,1L,request);
+        assertEquals("原配方4人份",changed.getFl()); assertEquals("https://example.com/new.jpg",changed.getImage());
+        request.setRequestId("unsafe-image"); request.setImage("javascript:alert(1)");
+        assertThrows(IllegalArgumentException.class,()->dishService().updatePersonalDish(7L,1L,request));
+    }
+
 }

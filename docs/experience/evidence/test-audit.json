@@ -1,0 +1,391 @@
+{
+  "scope": "Non-model UI command contracts, pure functions, static files, mapper/transaction stubs only. No network or model execution.",
+  "node": [
+    {
+      "path": "tests/account-boundaries.test.js",
+      "sha256": "5b125c400669f8c6b118b58e183842f6eea09978776a46ee4297168105ca9d9a"
+    },
+    {
+      "path": "tests/api-account-retry.test.js",
+      "sha256": "6293bab9b94e5997ea350bd877a812d55bbcd6baab552b9996c5f2db1cdf3b73"
+    },
+    {
+      "path": "tests/api-identity-success.test.js",
+      "sha256": "881da2b70c58021fe8fc196eada93b7a9db1217ddc893e82cadada77d7ab3893"
+    },
+    {
+      "path": "tests/assistant-history.test.js",
+      "sha256": "abc275eb5f87767908ab00f81cf16d9107c7929026146db4688d9dc984ce2cde"
+    },
+    {
+      "path": "tests/calendar-actual-recovery.test.js",
+      "sha256": "898006badc069327fc61f63c5bbaa1f52a84df5d65db86a01f3e8655f6243acd"
+    },
+    {
+      "path": "tests/controlled-harness.test.js",
+      "sha256": "09875a6c706f0cabbd4cab0526d2a85a4130bb561c8b1c3cf4fdc0c4555e9af1"
+    },
+    {
+      "path": "tests/detail-servings.test.js",
+      "sha256": "2eda6a27dbc271f82ef86adbbd10f0b7372b89985ef04533ef43bcc0a01b0d92"
+    },
+    {
+      "path": "tests/diet-report-api.test.js",
+      "sha256": "0dcc2ecd42c16b687c641690c66a8b269292be07e668e4db538370b6f0493bd6"
+    },
+    {
+      "path": "tests/diet-report.test.js",
+      "sha256": "93d095afcb8ee126a1a3fbdbaec332d31ce238d8130af0ab547e9313af6dc976"
+    },
+    {
+      "path": "tests/dish-workspace-handoff.test.js",
+      "sha256": "dcb81b28fa8da1f68c07934ed76cfc8f58259ea85465daaae6fe26a1ac87ba41"
+    },
+    {
+      "path": "tests/experience-actions.test.js",
+      "sha256": "ee577e498ef080d6ed7cb2aa1c2f13b79ef3c31dc11c0ac2af853cd2badef35a"
+    },
+    {
+      "path": "tests/experience-calendar.test.js",
+      "sha256": "c6036b156c84e79efa669cccbd9037af9e15faf97b705b6442bc619d9f25f24b"
+    },
+    {
+      "path": "tests/experience-components.test.js",
+      "sha256": "7619ebf33aaf6e9250024a2da055c6634d7e5feba0ffab7e1b2f39d7f84fd95a"
+    },
+    {
+      "path": "tests/experience-composition.test.js",
+      "sha256": "61239172358f6eeca58b5766935ff30d5d90de8a435af416ef59192b364540d5"
+    },
+    {
+      "path": "tests/experience-diet-review.test.js",
+      "sha256": "f715b08be07d382c76ea789ce69a36af74265d36fb65c297f259c7e43fe8fecf"
+    },
+    {
+      "path": "tests/experience-journeys.test.js",
+      "sha256": "ec523db84ed62303c2f8bc855ad472dbcae3d9b78d47f66a9d33a7d5d5761e61"
+    },
+    {
+      "path": "tests/experience-personal-recipes.test.js",
+      "sha256": "ca2a8d15d5f8eec6a252de64c77cff20e160ce9554590fcb0f4149022ded80b6"
+    },
+    {
+      "path": "tests/experience-recipe-selection.test.js",
+      "sha256": "ec1c9982eeb08516158a07ca8695d37b50cc482c1ac7d622eb88ba7828c6fcc9"
+    },
+    {
+      "path": "tests/experience-save-target.test.js",
+      "sha256": "62cf3724e1195db7ca37d75390ca8d56e47556e3e476c81c2fc1cdc945d409b5"
+    },
+    {
+      "path": "tests/experience-shopping-list.test.js",
+      "sha256": "5ff6e92a7ed6b4e08c08a18e917aa1130a1e63f7d28d70cd9e336126a63f42b5"
+    },
+    {
+      "path": "tests/experience-shopping-preview.test.js",
+      "sha256": "c35306e25f7cdf6bc0215c0fa3fe1ceadb44d63284110ff8fcf72a0430f5492b"
+    },
+    {
+      "path": "tests/favorite-meal-entry.test.js",
+      "sha256": "026bc0f86dff591bdde760df9c7e0349a1e7a15a98e55e60ce8c0ba8346629c4"
+    },
+    {
+      "path": "tests/frontend-workflow-regressions.test.js",
+      "sha256": "0da60bd6d818da7873139b9f532fc0903fb5e2ef9d07812cd576fbbc0520a064"
+    },
+    {
+      "path": "tests/history-workspace-target.test.js",
+      "sha256": "be1e22e0bf1a2495e42acb21f35fc04e371324612fbae3ed6f509c8eea1337a6"
+    },
+    {
+      "path": "tests/legacy-meal-import.test.js",
+      "sha256": "c14248d7d417086193dd654e2cbee873f3eae6f8ee888149cb827d16c94f7710"
+    },
+    {
+      "path": "tests/login-readiness.test.js",
+      "sha256": "eccfb4032710ed079cf9059099e7700299c960ddd6b65b854d28d8b154b7560e"
+    },
+    {
+      "path": "tests/meal-actual-entry.test.js",
+      "sha256": "32b0bc6205bc228b992aea2d2fa13d7d8548e21fd4243302d2e0bdd9b56bbd62"
+    },
+    {
+      "path": "tests/meal-actual-identity.test.js",
+      "sha256": "2fe07d6b4deb2fa8bee74eac5a564e607dcd309dd712007d1008ea750d0df871"
+    },
+    {
+      "path": "tests/meal-cooking.test.js",
+      "sha256": "8d615fc93a223746551ff83e1b27bc15e734c20d38690c10c19a470864f757bb"
+    },
+    {
+      "path": "tests/meal-dates.test.js",
+      "sha256": "f2176a33091a39f651282dffcd5fb1049f2703c692522b92f7838a2d80a5d46f"
+    },
+    {
+      "path": "tests/meal-navigation-hierarchy.test.js",
+      "sha256": "4caceb5f165aaa3540ea343a9c1dab33458bb909c069cbd2f8479b5bf054bb54"
+    },
+    {
+      "path": "tests/meal-workflow.test.js",
+      "sha256": "3e05554999975a4f69f396f597a24f3cf57ec81d2a3be3f137cb6577f9db361d"
+    },
+    {
+      "path": "tests/meal-workspace.test.js",
+      "sha256": "224aacb0520324ce16458e6224d0acdcbcd0b26a8899da02945461ca5b48e4bf"
+    },
+    {
+      "path": "tests/menu-workspace-handoff.test.js",
+      "sha256": "371f0728d7d3c1b114236c9f6483da09861e37ad487d8e6e357f67af1a9e193a"
+    },
+    {
+      "path": "tests/page-contracts.test.js",
+      "sha256": "c491b9b7a7440401b60694d2193bfbb5393da4926c547e630c378c93b15952be"
+    },
+    {
+      "path": "tests/page-identity-regressions.test.js",
+      "sha256": "fae3c390a1c0ab8930e7883b6018c3247ec91484894fb108cd98e65adf4e1788"
+    },
+    {
+      "path": "tests/page-purpose-copy.test.js",
+      "sha256": "6b659d5a9b59f66c2a2b3570f26c9f4c40a92a9a28cf0a85390fa8733fac5709"
+    },
+    {
+      "path": "tests/personal-recipe-pages.test.js",
+      "sha256": "c28e1f5bbf76103a2c2a9bc9748dae8f17bbe0e40ee6a18d79183a89156e6734"
+    },
+    {
+      "path": "tests/personal-recipes.test.js",
+      "sha256": "2ae9b9001e8f138502fb27d8ca28f12cfd0ece110cd842ea87baf18bdaa7d5b4"
+    },
+    {
+      "path": "tests/preference-scope.test.js",
+      "sha256": "a1e147d930dd903c4ffce5364936d687602e6aec829cd05bedfdf8a93a38312e"
+    },
+    {
+      "path": "tests/profile-entry-hierarchy.test.js",
+      "sha256": "cb842548106755df4607b2df8acf18558d0e4f9cc4a90bb69c042545c32ede3e"
+    },
+    {
+      "path": "tests/recipe-interaction-hierarchy.test.js",
+      "sha256": "2b172acbfe68ef8f0f5920a59ef52e15db46d70fd4713e22e26f4aaff9650739"
+    },
+    {
+      "path": "tests/recipe-quality.test.js",
+      "sha256": "77fd0d472bed7e9f23c56d28d433159d39bd336abaa3c5ea3915fccbe6d023d8"
+    },
+    {
+      "path": "tests/shopping-capability-race.test.js",
+      "sha256": "302288c2d7e40a0ac1d490c218f0712934d3b0380e9094680f4425cb37f50a89"
+    },
+    {
+      "path": "tests/shopping-drafts.test.js",
+      "sha256": "f58bb2afddb99a7a08c4997785b799fe643306b34b74c13fc78ef66f827ebe3f"
+    },
+    {
+      "path": "tests/shopping-edit-intent.test.js",
+      "sha256": "31dd6d5cb182ed98bd0f3703c2c87d4fcbb3ebd2efd710452e1b0523bc8dc7f9"
+    },
+    {
+      "path": "tests/shopping-view-hierarchy.test.js",
+      "sha256": "7ca0917c295fb584b50140f6a9af544b50459da084e5fa0b52d2a084288048b5"
+    },
+    {
+      "path": "tests/ui-assets.test.js",
+      "sha256": "4eb7e7c0fa98f6048a4a8bb5997a3cc304cca3405bbd23a92e6a3c12bebbf39a"
+    },
+    {
+      "path": "tests/ui-components.test.js",
+      "sha256": "f7fd620587c26bdfd7a0da4150d55a48344a75040c0bc9cb5d20d30ab3e88a60"
+    },
+    {
+      "path": "tests/ui-self-check.test.js",
+      "sha256": "b904fb140598b624a37a5abf3ed48e4838edd72a60f18e19ef68dd332d1857a5"
+    },
+    {
+      "path": "tests/ui-state-presentation.test.js",
+      "sha256": "082c39a2dffb5bc27c5c9f77bf0bbf5e87b83961c70f966ddf01ecac2265c7a4"
+    },
+    {
+      "path": "tests/v4-business-contracts.test.js",
+      "sha256": "4c9ccb9b36b339ceecc4f82cd98951cea3bfd892c57a4254bc28992ec5f93e1f"
+    },
+    {
+      "path": "tests/v4-local-features.test.js",
+      "sha256": "301780b35981cfc0035676cf291d78ad6c64de63a40977d6480732fbca3c6fae"
+    },
+    {
+      "path": "tests/workspace-controlled-flow.test.js",
+      "sha256": "55db858fef2528b735a1f181e1d185ce600b28c3897eb74dab6ed47df4454b91"
+    },
+    {
+      "path": "tests/workspace-day-boundary.test.js",
+      "sha256": "7327f19b63a77d468258894baba29cc993762204884d50b6cfa9cc8f03e84a8d"
+    },
+    {
+      "path": "tests/workspace-homepage.test.js",
+      "sha256": "dc3b7c2d14f0b09ebfc0f7d9f012925eac6843f9179fefa16e1470f99056bd4e"
+    },
+    {
+      "path": "tests/workspace-navigation.test.js",
+      "sha256": "f4c43b96d0120d2f260201e6ad63cb9a7ee1da6f4621ac8236a2710a3c448e24"
+    },
+    {
+      "path": "tests/workspace-page.test.js",
+      "sha256": "64b105e7076c25bbbf74807ec31c36ae3029649f6c0a7388841456d48a4c5e8f"
+    },
+    {
+      "path": "tests/workspace-primary-action.test.js",
+      "sha256": "0a0d54757f793836779c4e7df23dc2b930db03d876b529e634b7b4867774c5c7"
+    },
+    {
+      "path": "tests/workspace-requirements-sheet.test.js",
+      "sha256": "895a16816f11d65e0c58031ab7ed43c3dd5147a84d81d81434a03e3744c89853"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "tests/workspace-voice.test.js",
+      "reason": "Conservatively paused: contains fake voice-transcription transport flow; does not run with this acceptance list."
+    },
+    {
+      "path": "tests/deferred and all non-whitelisted Python/Java tests",
+      "reason": "No broad suites: model/offline/mock-model execution remains paused."
+    }
+  ],
+  "python": [
+    "test_ui_structure.py",
+    "test_ui_self_check.py",
+    "test_product_migration_contract.py"
+  ],
+  "java": [
+    {
+      "name": "com.eatwhat.dto.LegacyStatisticsBasisTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.DietReportFoundationTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.DietReviewCalculatorTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.FavoriteDishVisibilityTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.MealConsumptionServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.MealPlanServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.MealWorkspaceRulesTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.PersonalRecipeFoundationTest",
+      "tests": "21",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.RecommendationHistoryEvidenceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.ShoppingAddReceiptTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.ShoppingListReliabilityTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.ShoppingMutationServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.V4ActualHistoryContractTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.V4ShoppingContractTest",
+      "tests": "13",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.WorkspaceInteractionCompatibilityTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.WorkspacePlanSnapshotTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.eatwhat.service.WorkspaceTargetSaveTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "finalFixAudit": {
+    "base": "e13855bec3ed143ef39bd82b3ca62f3a0a6622ee",
+    "changedEntries": [
+      "tests/experience-shopping-list.test.js",
+      "tests/experience-components.test.js",
+      "tests/experience-personal-recipes.test.js",
+      "tests/page-purpose-copy.test.js"
+    ],
+    "scope": "Real Page/Component/cache/journal logic; literal WeChat storage and shopping API boundary fixtures only. New deferred races contain no model/offline/mock-model, network or subprocess execution. Existing 60-file allowlist and transitive audit retained; two exact source-copy assertions aligned with approved stronger empty-save condition/help copy."
+  }
+}

@@ -38,3 +38,10 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 /* Warm table v2: settings */
  .settings-page { padding:20px 16px 28px; background:{{background}}; }.sync-row { padding:0 0 16px; color:{{muted}}; font-size:{{font.body.em}}; gap:8px; }.section { border:0; background:{{card}}; border-radius:18px; padding:18px 16px; margin-bottom:14px; box-shadow:none; }.section-title { font-size:{{font.section.em}}; color:{{text}}; line-height:1.5; }.section-desc { font-size:{{font.body.em}}; line-height:1.7; margin:6px 0 12px; }.chip-grid { display:flex; flex-wrap:wrap; gap:8px; }.choice-chip, .ingredient-chip { min-height:44px; border-radius:12px; padding:10px 12px; background:{{surfaceSoft}}; color:{{text}}; border:1px solid transparent; box-sizing:border-box; line-height:1.5; font-size:{{font.body.em}}; }.choice-chip.selected { background:{{brandSoft}}; color:{{brand}}; border-color:{{brand}}; }.choice-chip.danger.selected { background:{{danger}}; color:{{card}}; border-color:{{danger}}; }.ingredient-row { display:flex; gap:8px; }.ingredient-input { flex:1; min-width:0; background:{{card}}; border:1px solid {{controlBorder}}; border-radius:12px; min-height:48px; padding:0 12px; }.add-btn { padding:0 12px; min-height:48px; color:{{brand}}; background:{{brandSoft}}; border-radius:12px; }.save-btn { min-height:48px; height:auto; padding:12px 16px; border-radius:14px; background:{{brand}}; color:{{card}}; margin:20px 0; font-size:{{font.reading.em}}; }.save-btn[disabled] { background:{{disabled}}; color:{{text}}; }
+
+/* App-local motion preference remains independent of recommendation persistence. */
+.appearance-row { display:flex; align-items:center; flex-wrap:wrap; gap:{{space.2.px}}; min-width:0; }
+.appearance-copy { flex:1 1 180px; min-width:0; }
+.appearance-copy .section-title, .appearance-copy .section-desc { overflow-wrap:anywhere; }
+.motion-switch { min-width:44px; min-height:44px; display:flex; align-items:center; }
+.motion-status { display:block; margin-top:{{space.1.px}}; font-size:{{font.secondary.em}}; line-height:1.5; color:{{muted}}; overflow-wrap:anywhere; }

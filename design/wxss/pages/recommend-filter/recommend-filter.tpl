@@ -52,3 +52,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .filter-page .clear-btn { border:1px solid {{controlBorder}}; background:{{card}}; color:{{brand}}; }
 .filter-page .option-chip,.filter-page .ingredient-chip { border-color:{{border}}; }
 .filter-page .option-chip.selected { border-color:{{brand}}; }
+
+/* Longer explicit meal-scoped labels wrap instead of shrinking text. */
+.filter-page .action-bar { flex-wrap:wrap; }
+.filter-page .clear-btn, .filter-page .apply-btn { flex:1 1 140px; min-width:0; margin:0; font-size:{{font.body.em}}; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }

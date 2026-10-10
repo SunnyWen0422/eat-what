@@ -4,21 +4,21 @@ page { min-height: 100%; background: #F8F7F2; color: #25332B; }
 button::after { border: none; }
 .page { min-height: 100vh; padding:28rpx 24rpx 48rpx; box-sizing: border-box; }
 .heading { display: flex; justify-content: space-between; align-items: center; margin-bottom:24rpx; }
-.title { display: block; font-size:1.285714em; font-weight: 700; }
-.subtitle { display: block; color: #56645B; font-size:0.857143em; margin-top:8rpx; }
-.refresh, .retry { background: #28634E; color: #FFFFFF; border-radius:10rpx; min-height: 72rpx; padding:0 24rpx; font-size:0.928571em; }
-.notice { background: #EDF3ED; color: #28634E; padding:16rpx 18rpx; border-radius:8rpx; margin-bottom:16rpx; font-size:0.857143em; }
+.title { display: block; font-size:1.125em; font-weight: 700; }
+.subtitle { display: block; color: #56645B; font-size:0.75em; margin-top:8rpx; }
+.refresh, .retry { background: #28634E; color: #FFFFFF; border-radius:10rpx; min-height: 72rpx; padding:0 24rpx; font-size:0.8125em; }
+.notice { background: #EDF3ED; color: #28634E; padding:16rpx 18rpx; border-radius:8rpx; margin-bottom:16rpx; font-size:0.75em; }
 .state, .empty { min-height: 240rpx; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #56645B; gap:20rpx; }
 .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:12rpx; }
-.metric { min-height: 140rpx; padding:18rpx 12rpx; box-sizing: border-box; background: #FFFFFF; border: 2rpx solid #D9E1D5; border-radius:12rpx; display: flex; flex-direction: column; justify-content: center; gap:6rpx; color: #56645B; font-size:0.857143em; }
-.metric-value { font-size:1.285714em; font-weight: 700; color:#25332B; }
+.metric { min-height: 140rpx; padding:18rpx 12rpx; box-sizing: border-box; background: #FFFFFF; border: 2rpx solid #D9E1D5; border-radius:12rpx; display: flex; flex-direction: column; justify-content: center; gap:6rpx; color: #56645B; font-size:0.75em; }
+.metric-value { font-size:1.125em; font-weight: 700; color:#25332B; }
 .metric-value.green { color: #28634E; } .metric-value.amber { color:#75501A; }
 .section-title { margin:30rpx 0 14rpx; font-size:1em; font-weight: 650; }
 .action-list, .audit-list { display: flex; flex-direction: column; gap:10rpx; }
 .action, .audit-row { background: #FFFFFF; border: 2rpx solid #D9E1D5; border-radius:12rpx; padding:20rpx; display: flex; align-items: center; justify-content: space-between; }
 .action-title, .audit-action { display: block; font-size:1em; font-weight: 650; }
-.action text:not(.action-title), .audit-meta { display: block; margin-top:8rpx; font-size:0.857143em; color: #56645B; }
-.arrow { font-size:1.714286em; color: #56645B; } .audit-target { color: #56645B; font-size:0.857143em; }
+.action text:not(.action-title), .audit-meta { display: block; margin-top:8rpx; font-size:0.75em; color: #56645B; }
+.arrow { font-size:1.5em; color: #56645B; } .audit-target { color: #56645B; font-size:0.75em; }
 
 /* 页面共享主题，适用于本页详情、表单和弹层。 */
 

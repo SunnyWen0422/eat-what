@@ -10,7 +10,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
       if(!target||!/^\d{4}-\d{2}-\d{2}$/.test(target.date)||!flow.mealNames[target.mealType])return
       const binding={...target,scope:scope()},key=binding.scope+`:pending:${target.date}:${target.mealType}`
       this._actualAlive=true;this._actualBinding=binding;binding.key=key
-      this.setData({actualVisible:true,actualLoading:true,actualBusy:false,actualError:'',actualText:'',actualMode:'changed',actualPlanChanged:false,actualPlanNames:'',actualOriginalPlanNames:target.displayedPlanNames||'',actualTitle:`${target.date} ${flow.mealNames[target.mealType]}`,actualUnknown:false,actualNeedsReload:false,actualHasPlan:false,actualCanRecord:target.date<=today()})
+      this.setData({actualVisible:true,actualQuick:!!target.quick,actualSavedMessage:'',actualLoading:true,actualBusy:false,actualError:'',actualText:'',actualMode:'changed',actualPlanChanged:false,actualPlanNames:'',actualOriginalPlanNames:target.displayedPlanNames||'',actualTitle:`${target.date} ${flow.mealNames[target.mealType]}`,actualUnknown:false,actualNeedsReload:false,actualHasPlan:false,actualCanRecord:target.date<=today()})
       try {
         const overview=await api.getMealOverview(target.date,target.date)
         if(!owns(this,binding))return
@@ -20,9 +20,9 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
         const pending=platform().getStorageSync(key)
         binding.pending=pending&&pending.scope===binding.scope?pending:null
         const changed=planChanged(binding,meal)
-        const mode=binding.pending?(binding.pending.body.status==='skipped'?'skipped':binding.pending.body.usePlan?'byPlan':'changed'):meal.actual&&meal.actual.status==='eaten'?'changed':meal.actual&&meal.actual.status==='skipped'?'skipped':meal.plan&&!changed?'byPlan':'changed'
-        this.setData({actualMode:mode,actualHasPlan:!!meal.plan,actualPlanChanged:changed,actualPlanNames:planNames(meal),actualText:binding.pending?binding.pending.text:meal.actualNames||(changed?binding.displayedPlanNames:'')||planNames(meal),actualUnknown:!!binding.pending,actualError:binding.pending?'上次保存结果待确认，请使用原请求重试':changed?'显示过的计划已变化，请返回核对；也可以填写实际做过的菜后保存变化记录':''})
-      }catch(error){if(owns(this,binding))this.setData({actualNeedsReload:true,actualError:flow.errorMessage(error,'本餐暂未读取，请重试')})}
+        const mode=binding.pending?(binding.pending.body.status==='skipped'?'skipped':binding.pending.body.usePlan?'byPlan':'changed'):meal.actual&&meal.actual.status==='eaten'?'changed':meal.actual&&meal.actual.status==='skipped'&&!target.quick?'skipped':meal.plan&&!changed?'byPlan':'changed'
+        this.setData({actualQuick:!!target.quick&&!binding.pending&&!changed,actualMode:mode,actualHasPlan:!!meal.plan,actualPlanChanged:changed,actualPlanNames:planNames(meal),actualText:binding.pending?binding.pending.text:meal.actualNames||(changed?binding.displayedPlanNames:'')||planNames(meal),actualUnknown:!!binding.pending,actualError:binding.pending?'上次保存结果待确认，请使用原请求重试':changed?'显示过的计划已变化，请返回核对；也可以填写实际做过的菜后保存变化记录':''})
+      }catch(error){if(owns(this,binding))this.setData({actualQuick:false,actualNeedsReload:true,actualError:flow.errorMessage(error,'本餐暂未读取，请重试')})}
       finally{if(owns(this,binding))this.setData({actualLoading:false})}
     },
     onActualText(e){if(!this.data.actualUnknown&&!this.data.actualBusy)this.setData({actualText:e.detail.value})},
@@ -80,12 +80,12 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
         await api.saveMealConsumption(b.date,b.mealType,operation.body)
         platform().removeStorageSync(b.key)
         if(!owns(this,b))return
-        this.setData({actualVisible:false,actualBusy:false,actualUnknown:false});this._actualBinding=null
+        this.setData({actualVisible:false,actualBusy:false,actualUnknown:false,actualQuick:false,actualSavedMessage:operation.body.status==='eaten'?'已记录这餐':operation.body.status==='skipped'?'已记录这餐没吃':'已更正为未记录'});this._actualBinding=null
         await onSaved.call(this,b)
       }catch(error){
         if(!owns(this,b))return
-        if(error.statusCode&&error.statusCode<500){b.pending=null;platform().removeStorageSync(b.key);this.setData({actualUnknown:false,actualNeedsReload:error.statusCode===409,actualError:flow.errorMessage(error,'记录未保存，请重新读取本餐再提交')});if(error.statusCode===409)b.meal=null}
-        else this.setData({actualUnknown:true,actualError:'保存结果待确认，输入已保留；请重试原请求'})
+        if(error.statusCode&&error.statusCode<500){b.pending=null;platform().removeStorageSync(b.key);this.setData({actualQuick:false,actualUnknown:false,actualNeedsReload:error.statusCode===409,actualError:flow.errorMessage(error,'记录未保存，请重新读取本餐再提交')});if(error.statusCode===409)b.meal=null}
+        else this.setData({actualQuick:false,actualUnknown:true,actualError:'保存结果待确认，输入已保留；请重试原请求'})
       }finally{if(owns(this,b))this.setData({actualBusy:false})}
     },
   }

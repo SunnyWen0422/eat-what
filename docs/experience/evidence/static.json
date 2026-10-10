@@ -1,0 +1,54 @@
+[
+  {
+    "check": "G1 syntax",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "files": 202,
+      "roots": [
+        "app",
+        "pages",
+        "utils",
+        "components",
+        "templates",
+        "design",
+        "explicit tests"
+      ]
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 template registration, handler references and nested taps",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "templates": 49,
+      "handlerScope": "page and imported utility source; not dynamic execution"
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 ordinary reachable copy (both feature branches)",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "templates": 24
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 asset references and density tokens",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "body": 16,
+      "touch": 44,
+      "button": 48
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  }
+]

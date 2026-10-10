@@ -78,7 +78,8 @@ for (const beforeShow of [true, false]) test(`F01 account change clears private 
   assert.equal(page.data.customForm.name, '')
   assert.equal(page.data.customForm.cuisineCode, '')
   assert.equal(page.data.customTagOptions[0].selected, false)
-  assert.equal(page.data.customError, '')
+  assert.equal(page.data.customError, beforeShow ? '' : '请输入菜品名称')
+  if (!beforeShow) assert.equal(page.data.customFocus, 'name')
 })
 
 test('F01 late custom save clears old ownership without changing the new draft', async () => {
@@ -339,22 +340,23 @@ test('F06 remote owner controls the detail edit entry and navigation', async () 
 
 test('F07 calendar recipe navigation passes plan and actual people to the real detail preview', async () => {
   const template = fs.readFileSync('pages/calendar-detail/calendar-detail.wxml', 'utf8')
-  const links = [...template.matchAll(/<text\b[^>]*bindtap="onViewDish"[^>]*>/g)].map(match => match[0])
+  const links = [...template.matchAll(/<compact-dish-row\b[^>]*bind:view="onViewDish"[^>]*>/g)].map(match => match[0])
   for (const fixture of [
     { meal: 'breakfast', source: 'plan', planPeople: 6, want: 6 },
     { meal: 'lunch', source: 'plan', planPeople: 4, want: 4 },
     { meal: 'dinner', source: 'actual', planPeople: 6, actualPeople: 3, want: 3 },
   ]) {
     const { page, navigation } = load('pages/calendar-detail/calendar-detail')
-    const item = { mealType: fixture.meal, plan: { targetPeople: fixture.planPeople }, actual: { plannedSnapshot: { targetPeople: fixture.actualPeople } } }
+    const item = { status: fixture.source === 'actual' ? 'eaten' : 'unrecorded', mealType: fixture.meal, plan: { targetPeople: fixture.planPeople }, actual: { plannedSnapshot: { targetPeople: fixture.actualPeople } } }
     page.data.meals = [item]
-    const binding = links.find(link => link.includes(`data-source="${fixture.source}"`))
+    const binding = links.find(link => link.includes('data-source='))
     assert.ok(binding, `${fixture.source} recipe link must exist`)
     const dataset = {}
     for (const attribute of binding.matchAll(/data-([a-z]+)="([^"]+)"/g)) {
       const value = attribute[2]
       dataset[attribute[1]] = value.startsWith('{{') ? vm.runInNewContext(value.slice(2, -2), { item, dish: { id: 42, dishId: 42 } }) : value
     }
+    assert.equal(dataset.source, fixture.source)
     page.onViewDish({ currentTarget: { dataset } })
     const query = Object.fromEntries(new URL('https://local' + navigation[0].url).searchParams)
     let preview
@@ -362,8 +364,8 @@ test('F07 calendar recipe navigation passes plan and actual people to the real d
     detail.onLoad(query); await new Promise(resolve => setImmediate(resolve))
     assert.equal(preview.targetPeople, fixture.want)
   }
-  assert.ok(links.some(link => link.includes('data-source="plan"') && link.includes('data-meal="{{item.mealType}}"')))
-  assert.ok(links.some(link => link.includes('data-source="actual"') && link.includes('data-meal="{{item.mealType}}"')))
+  assert.equal(links.length, 1, 'one shared recipe component follows the authoritative visible source')
+  assert.ok(links[0].includes('data-meal="{{item.mealType}}"'))
 })
 
 test('F07 generic browse retains the explicit two-person preview default', async () => {

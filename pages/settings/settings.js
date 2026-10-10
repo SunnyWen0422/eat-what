@@ -1,6 +1,7 @@
 const { getUserStorageKey } = require('../../utils/util')
 const { createPreferenceStore, defaultPreferences, normalizePreferences, sanitizePreferencesForOptions } = require('../../utils/preference-store')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
+const experiencePreferences = require('../../utils/experience-preferences')
 
 const DAY_OPTIONS = [0, 3, 7, 14, 30]
 const DURATION_OPTIONS = [null, 10, 20, 30, 45, 60]
@@ -19,6 +20,18 @@ Page({
     durationOptions: DURATION_OPTIONS,
     ingredientDraft: '',
     featureEnabled: true,
+    reducedMotion: false,
+    motionStatus: '',
+  },
+
+  onReducedMotionChange(e) {
+    if (this._scope && this._scope !== getUserStorageKey('preferencesPage')) return this.onLoad()
+    const reducedMotion = !!e.detail.value
+    try {
+      if (!this.experienceStore) this.experienceStore = experiencePreferences()
+      this.experienceStore.setReducedMotion(reducedMotion)
+      this.setData({ reducedMotion, motionStatus: '已保存到当前账号的本机设置' })
+    } catch (error) { this.setData({ motionStatus: '动态效果设置未保存，请重试' }) }
   },
 
   onDefaultPeople(e) {
@@ -30,6 +43,9 @@ Page({
   onUnload() { this._unloaded = true },
   async onLoad() {
     const scope = this._scope = getUserStorageKey('preferencesPage')
+    this.experienceStore = experiencePreferences()
+    this.setData({ reducedMotion: this.experienceStore.get().reducedMotion,
+      motionStatus: this.experienceStore.readFailed() ? '本机动态效果设置暂未读到，已暂时减少动态效果；推荐偏好仍可使用。' : '' })
     this.setData({ preferences: defaultPreferences(), ingredientDraft: '', loading: true, dirty: false, saving: false })
     this.store = createPreferenceStore()
     await this.store.migrateLegacy()

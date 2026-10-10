@@ -51,9 +51,10 @@ function fixture() {
     },
     confirmMealWorkspace: async (id, body) => {
       calls.push({ type: 'confirm', id, body: plain(body) })
-      const old = rows.get(id), plan = { revision: 1, dishIds: old.draft.dishes.map(d => d.id), dishDetails: old.draft.dishes }
-      plans.set(id, plan)
-      return replace(id, { status: 'planned', confirmation: { planRevision: plan.revision } })
+      const old = rows.get(id), plan = { revision: body.expectedPlanRevision + 1, dishIds: old.draft.dishes.map(d => d.id), dishDetails: old.draft.dishes }
+      const target = { date: body.targetDate || old.context.date, mealType: body.targetMealType || old.context.mealType }
+      plans.set(`${account}:${target.date}:${target.mealType}`, plan)
+      return replace(id, { status: 'planned', confirmation: { ...target, requestId: body.requestId, planVersion: body.planVersion, planRevision: plan.revision } })
     },
     getWorkspaceRequest: async () => null,
     recordBehaviorEvent: async () => {},

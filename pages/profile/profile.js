@@ -60,6 +60,7 @@ Page({
       },
       { icon: 'refresh', title: '数据同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
       { icon: 'history', title: '助手历史', desc: '查看以往对话与餐单', url: '/pages/assistant-history/assistant-history' },
+      { icon: 'info', title: '隐私说明', desc: '查看小程序隐私保护说明', action: 'privacy' },
       {
         icon: 'info',
         title: '关于',
@@ -240,6 +241,13 @@ Page({
   onMenuTap(e) {
     const { index } = e.currentTarget.dataset
     const menuItem = this.data.menuItems[index]
+
+    if (menuItem.action === 'privacy') {
+      const unavailable = () => wx.showModal({ title: '隐私说明暂未打开', content: '可在微信的小程序菜单中查看隐私保护说明。', showCancel: false })
+      if (wx.openPrivacyContract) wx.openPrivacyContract({ fail: unavailable })
+      else unavailable()
+      return
+    }
 
     if (menuItem.url) {
       if(menuItem.tab){wx.setStorageSync(getUserStorageKey('openPersonalMenus'),true);wx.switchTab({url:menuItem.url});return}

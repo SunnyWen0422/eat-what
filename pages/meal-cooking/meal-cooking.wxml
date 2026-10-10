@@ -1,10 +1,12 @@
 <view class="ew-page" style="font-size:{{fontBase * fontScale}}px">
-  <view class="ew-heading">一起做这餐</view><text class="ew-muted">按已保存的安排查看，接着上次的步骤做。</text>
+  <view class="ew-heading">{{recipeMode ? '大字做法' : '一起做这餐'}}</view><text class="ew-muted">{{recipeMode ? '查看原菜谱，接着上次的步骤做。' : '按已保存的安排查看，接着上次的步骤做。'}}</text>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取本餐做法" />
   <ui-state wx:elif="{{errorMessage}}" kind="error" title="{{errorMessage}}" action-label="{{planChanged ? '返回核对本餐' : '重新读取'}}" bind:action="onErrorAction" />
   <block wx:else><view class="ew-tabs"><button wx:for="{{dishes}}" wx:key="id" class="ew-hit-target {{dishIndex === index ? 'active' : ''}}" data-index="{{index}}" bindtap="onChooseDish">{{item.name}}</button></view>
-    <ui-card title="{{dishName}}"><view wx:if="{{steps.length}}"><text class="ew-muted">步骤 {{stepIndex + 1}} / {{steps.length}}</text><view class="cooking-step">{{steps[stepIndex]}}</view><view class="ew-actions"><ui-button label="上一步" variant="secondary" disabled="{{stepIndex === 0}}" bind:action="onPreviousStep" /><ui-button label="下一步" disabled="{{stepIndex >= steps.length - 1}}" bind:action="onNextStep" /></view></view><text wx:else class="ew-notice">这份已保存的安排缺少步骤，请查看原菜谱，不能猜测做法。</text></ui-card>
-    <ui-button label="做饭结束，记录吃过什么" variant="secondary" bind:action="onRecordActual" /><text class="ew-muted">步骤进度保存在本机。实际用餐由你确认后记录。</text>
+    <ui-card title="{{dishName}}"><view wx:if="{{steps.length}}"><text class="ew-muted">步骤 {{stepIndex + 1}} / {{steps.length}}</text><view class="cooking-step">{{steps[stepIndex]}}</view><view class="ew-actions"><ui-button label="上一步" variant="secondary" disabled="{{stepIndex === 0}}" bind:action="onPreviousStep" /><ui-button label="下一步" disabled="{{stepIndex >= steps.length - 1}}" bind:action="onNextStep" /></view></view><text wx:else class="ew-notice">{{recipeMode ? '这份菜谱还没有烹饪步骤，不能猜测做法。' : '这份已保存的安排缺少步骤，请查看原菜谱，不能猜测做法。'}}</text></ui-card>
+    <ui-button wx:if="{{!recipeMode && canRecordActual}}" label="这餐吃了" variant="secondary" bind:action="onRecordActual" /><text class="ew-muted">{{recipeMode ? '步骤进度保存在本机。阅读做法不会保存日历或记录饮食。' : '步骤进度保存在本机。实际用餐由你确认后记录。'}}</text>
   </block>
-  <include src="../../templates/meal-actual-sheet.wxml" />
+  <text wx:if="{{actualSavedMessage}}" class="ew-notice" role="status">{{actualSavedMessage}} · 可以继续查看做法</text>
+  <ui-confirm visible="{{actualVisible && actualQuick}}" title="这餐吃了" busy="{{actualBusy || actualLoading}}" confirm-label="确认记录" bind:cancel="closeMealActual" bind:confirm="onConfirmActual"><text class="ew-label">{{actualTitle}}</text><text class="ew-reading">{{actualText}}</text><text wx:if="{{actualError}}" class="ew-error">{{actualError}}</text><button class="ew-hit-target ew-link" disabled="{{actualBusy || actualLoading}}" bindtap="onActualAdjustment">有调整</button></ui-confirm>
+  <block wx:if="{{!actualQuick}}"><include src="../../templates/meal-actual-sheet.wxml" /></block>
 </view>

@@ -1,0 +1,9 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+.action-feedback { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; padding:4px 8px; margin:8px 0; border-radius:10px; background:#EDF3ED; color:#28634E; font-size:inherit; animation:feedback-appear 180ms ease-out; }
+.feedback-message { flex:1 1 120px; min-width:0; overflow-wrap:anywhere; font-size:0.8125em; line-height:1.5; }
+.feedback-actions { display:flex; flex-wrap:wrap; gap:4px; min-width:0; }
+.feedback-actions button { min-height:44px; min-width:44px; max-width:100%; padding:8px 4px; margin:0; border:0; border-radius:6px; background:transparent; color:#28634E; font-family:inherit; font-size:0.8125em; line-height:1.5; font-weight:600; overflow-wrap:anywhere; }
+.feedback-actions button::after { border:0; }
+.action-feedback.error { background:#FFF0ED; color:#A93B30; }
+.action-feedback.unknown { background:#FFF1DB; color:#75501A; }
+@keyframes feedback-appear { from { transform:translateY(2px); } to { transform:translateY(0); } }

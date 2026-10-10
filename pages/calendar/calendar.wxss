@@ -1,14 +1,14 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-.period { font-size:0.857143em; color:#56645B; gap:8rpx; } .period-nav { margin:0; width:88rpx; padding:0; background:#EDF3ED; color:#28634E; font-size:1.285714em; border-radius:20rpx; }
-.day-grid { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; margin:24rpx 0; } .day { min-width:44px; min-height:44px; border-radius:20rpx; text-align:center; padding:8rpx 0; box-sizing:border-box; } .day.selected { background:#28634E; color:#FFFFFF; } .weekday,.day-mark { display:block; font-size:0.857143em; min-height:26rpx; } .day-number { display:block; font-size:1em; font-weight:600; } .day-mark { color:#28634E; } .selected .day-mark { color:white; }
+.period { font-size:0.75em; color:#56645B; gap:8rpx; } .period-nav { margin:0; width:88rpx; padding:0; background:#EDF3ED; color:#28634E; font-size:1.125em; border-radius:20rpx; }
+.day-grid { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; margin:24rpx 0; } .day { min-width:44px; min-height:44px; border-radius:20rpx; text-align:center; padding:8rpx 0; box-sizing:border-box; } .day.selected { background:#28634E; color:#FFFFFF; } .weekday,.day-mark { display:block; font-size:0.75em; min-height:26rpx; } .day-number { display:block; font-size:1em; font-weight:600; } .day-mark { color:#28634E; } .selected .day-mark { color:white; }
 
 /* Shared finish for legacy pages; layout and permission-specific states remain local. */
 .ew-page { background:#F8F7F2; color:#25332B; }
 .ew-page .btn-primary, .ew-page .primary-btn, .ew-page .save-btn, .ew-page .primary-action, .ew-page .generate-btn { background:#28634E; border-radius:24rpx; }
 .ew-page .choice-chip, .ew-page .ingredient-chip, .ew-page .count-btn, .ew-page .clear-btn, .ew-page .period-nav, .ew-page .filter-chip { min-height:44px; min-width:44px; box-sizing:border-box; }
 
-.month-weekdays { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; text-align:center; font-size:0.857143em; color:#56645B; margin-top:24rpx; }
+.month-weekdays { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; text-align:center; font-size:0.75em; color:#56645B; margin-top:24rpx; }
 @media (max-width:400px) {
   /* Seven date targets need at least 308px on a 320px device. */
   .calendar-card { margin-left:-28rpx; margin-right:-28rpx; padding-left:4rpx; padding-right:4rpx; }
@@ -27,4 +27,4 @@ button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
-.calendar-card{background:transparent;border:0;border-radius:0;margin-left:-10px;margin-right:-10px;padding:12px 0}.day-grid{grid-template-columns:repeat(7,minmax(44px,1fr));gap:0}.day{min-width:44px;min-height:60px;box-sizing:border-box;padding:8px 0;border:0;border-radius:14px;height:auto}.day.selected{background:#28634E;color:#FFFFFF}.day-number{font-size:1.142857em}.weekday{font-size:0.857143em}.period{padding:0 8px}.meal-list .ew-card{border:0}.meal-link{border:0;border-bottom:1px solid #E6EAE1;background:transparent;border-radius:0;box-shadow:none}
+.calendar-card{background:transparent;border:0;border-radius:0;margin-left:-10px;margin-right:-10px;padding:12px 0}.day-grid{grid-template-columns:repeat(7,minmax(44px,1fr));gap:0}.day{min-width:44px;min-height:60px;box-sizing:border-box;padding:8px 0;border:0;border-radius:14px;height:auto}.day.selected{background:#28634E;color:#FFFFFF}.day-number{font-size:1em}.weekday{font-size:0.75em}.period{padding:0 8px}.meal-list .ew-card{border:0}.meal-link{border:0;border-bottom:1px solid #E6EAE1;background:transparent;border-radius:0;box-shadow:none}

@@ -1,0 +1,14 @@
+<ui-sheet visible="{{showMealSelected}}" title="本餐已选菜品" bind:close="onHideMealSelected">
+  <view class="ew-title">{{selectedMeal.targetLabel}} · {{selectedMeal.people}} 人 · {{selectedMeal.count}} 道</view>
+  <view class="ew-muted">{{selectedMeal.message}}。查看本餐后可继续调整，保存到日历时再确认日期和餐次。</view>
+  <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
+  <view wx:if="{{selectionError}}" class="ew-error" aria-live="polite">{{selectionError}}</view>
+  <view wx:for="{{mealSelectedDishes}}" wx:key="id" class="recipe-selected-row">
+    <button class="ew-hit-target ew-link recipe-selected-name" data-id="{{item.id}}" bindtap="onSelectedDish">{{item.name}}</button>
+    <button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onRemoveMealDish">移除</button>
+  </view>
+  <view wx:if="{{!selectedMeal.count}}" class="ew-notice">还没选菜，继续选菜后再保存到日历。</view>
+  <view class="ew-actions"><ui-button label="查看本餐" variant="secondary" bind:action="onViewMeal" /><ui-button label="继续选菜" variant="tertiary" bind:action="onContinueSelecting" /></view>
+  <ui-button wx:if="{{selectedMeal.count}}" slot="footer" label="保存到日历" disabled="{{!selectedMeal.count || selectionBusy || selectionLoading || selectionBlocked}}" bind:action="onSaveToCalendar" />
+  <ui-button wx:if="{{!selectedMeal.count}}" slot="footer" label="去选菜" bind:action="onContinueSelecting" />
+</ui-sheet>

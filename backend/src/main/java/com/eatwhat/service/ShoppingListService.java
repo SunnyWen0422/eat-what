@@ -108,12 +108,24 @@ public class ShoppingListService {
             if (!requestHash.equals(existing.getRequestHash()))
                 throw new MealConsumptionService.VersionConflict("请求标识已用于不同购物操作");
             try {
-                return new ShoppingSyncResponse(objectMapper.readValue(existing.getResponseJson(), ShoppingListResponse.class), true);
+                com.fasterxml.jackson.databind.JsonNode receipt = objectMapper.readTree(existing.getResponseJson());
+                if (receipt.has("schemaVersion")) {
+                    if (receipt.path("schemaVersion").asInt() != 2 || !receipt.path("list").isObject())
+                        throw new IllegalStateException("不支持的采购回执版本");
+                    com.fasterxml.jackson.databind.node.ObjectNode fields = ((com.fasterxml.jackson.databind.node.ObjectNode) receipt).deepCopy();
+                    fields.remove("schemaVersion");
+                    ShoppingSyncResponse replay = objectMapper.treeToValue(fields, ShoppingSyncResponse.class);
+                    if (replay.getList() == null) throw new IllegalStateException("采购回执缺少清单");
+                    replay.setIdempotent(true);
+                    return replay;
+                }
+                return new ShoppingSyncResponse(objectMapper.treeToValue(receipt, ShoppingListResponse.class), true);
             } catch (Exception error) { throw new IllegalStateException("采购请求记录无法读取，请联系管理员", error); }
         }
         requireVersion(request.getExpectedListVersion());
         ShoppingList list = getOrCreateForUpdate(userId);
         checkVersion(list, request.getExpectedListVersion());
+        int addedItemCount = 0, mergedItemCount = 0;
         if (request.getDishes() != null) {
             for (ShoppingDishRequest groupRequest : trustedDishes(userId, request)) {
                 ShoppingDish group = dishMapper.findBySelectionKey(list.getId(), groupRequest.getSelectionKey());
@@ -146,8 +158,9 @@ public class ShoppingListService {
                 for (ShoppingPreviewItemDTO item : groupRequest.getItems()) {
                     ShoppingItem entity = toEntity(group, item);
                     ShoppingItem existingItem = itemMapper.findBySource(group.getId(), entity.getSourceLineNo());
-                    if (existingItem == null) itemMapper.insert(entity);
+                    if (existingItem == null) { itemMapper.insert(entity); addedItemCount++; }
                     else {
+                        mergedItemCount++;
                         // A repeated selection must retain the shopper's purchased and manual decisions.
                         if (Boolean.TRUE.equals(existingItem.getUserOverride())) continue;
                         entity.setId(existingItem.getId());
@@ -161,12 +174,15 @@ public class ShoppingListService {
         increment(list, userId);
         ShoppingListResponse response = getList(userId, "all");
         if (behavior!=null) for (ShoppingDishRequest source : request.getDishes()) behavior.domain(userId,source.getSourceDate(),source.getSourceMealType(),request.getRequestId(),"shopping_confirmed");
+        ShoppingSyncResponse receipt = new ShoppingSyncResponse(response, false, addedItemCount, mergedItemCount);
         try {
-            logMapper.insertBoundSuccess(userId, request.getRequestId(), requestHash, objectMapper.writeValueAsString(response));
+            com.fasterxml.jackson.databind.node.ObjectNode envelope = objectMapper.valueToTree(receipt);
+            envelope.put("schemaVersion", 2);
+            logMapper.insertBoundSuccess(userId, request.getRequestId(), requestHash, objectMapper.writeValueAsString(envelope));
         } catch (Exception e) {
             throw new IllegalStateException("保存请求日志失败", e);
         }
-        return new ShoppingSyncResponse(response, false);
+        return receipt;
     }
 
     @Transactional

@@ -10,9 +10,9 @@
     </view>
 
     <view class="meal-options">
-      <view class="ew-hit-target meal-option {{mealType === 'breakfast' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="breakfast">早餐</view>
-      <view class="ew-hit-target meal-option {{mealType === 'lunch' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="lunch">午餐</view>
-      <view class="ew-hit-target meal-option {{mealType === 'dinner' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="dinner">晚餐</view>
+      <view aria-role="button" class="ew-hit-target meal-option {{mealType === 'breakfast' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="breakfast">早餐</view>
+      <view aria-role="button" class="ew-hit-target meal-option {{mealType === 'lunch' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="lunch">午餐</view>
+      <view aria-role="button" class="ew-hit-target meal-option {{mealType === 'dinner' ? 'active' : ''}}" bindtap="onMealTypeSelect" data-type="dinner">晚餐</view>
     </view>
 
     <view class="ew-card"><view class="ew-title">这餐几个人吃？</view><input class="ew-input" type="number" value="{{people}}" bindblur="onPeopleChange" /><button class="ew-hit-target ew-link" bindtap="onAdvancedToggle">{{advancedExpanded ? '收起菜品数量' : '调整荤素、汤与主食数量'}}</button></view>
@@ -22,9 +22,9 @@
       <view class="param-card">
         <view class="card-label"><text>荤菜数量</text></view>
         <view class="card-count">
-          <view class="ew-hit-target count-btn minus" bindtap="onMeatMinus">−</view>
+          <view aria-role="button" class="ew-hit-target count-btn minus" bindtap="onMeatMinus">−</view>
           <text class="card-num">{{meat}}</text>
-          <view class="ew-hit-target count-btn plus" bindtap="onMeatPlus">+</view>
+          <view aria-role="button" class="ew-hit-target count-btn plus" bindtap="onMeatPlus">+</view>
         </view>
       </view>
 
@@ -32,9 +32,9 @@
       <view class="param-card">
         <view class="card-label"><text>素菜数量</text></view>
         <view class="card-count">
-          <view class="ew-hit-target count-btn minus" bindtap="onVegMinus">−</view>
+          <view aria-role="button" class="ew-hit-target count-btn minus" bindtap="onVegMinus">−</view>
           <text class="card-num">{{veg}}</text>
-          <view class="ew-hit-target count-btn plus" bindtap="onVegPlus">+</view>
+          <view aria-role="button" class="ew-hit-target count-btn plus" bindtap="onVegPlus">+</view>
         </view>
       </view>
 
@@ -42,9 +42,9 @@
       <view class="param-card">
         <view class="card-label"><text>汤品数量</text></view>
         <view class="card-count">
-          <view class="ew-hit-target count-btn minus" bindtap="onSoupMinus">−</view>
+          <view aria-role="button" class="ew-hit-target count-btn minus" bindtap="onSoupMinus">−</view>
           <text class="card-num">{{soup}}</text>
-          <view class="ew-hit-target count-btn plus" bindtap="onSoupPlus">+</view>
+          <view aria-role="button" class="ew-hit-target count-btn plus" bindtap="onSoupPlus">+</view>
         </view>
       </view>
 
@@ -52,9 +52,9 @@
       <view class="param-card">
         <view class="card-label"><text>甜品数量</text></view>
         <view class="card-count">
-          <view class="ew-hit-target count-btn minus" bindtap="onDessertMinus">−</view>
+          <view aria-role="button" class="ew-hit-target count-btn minus" bindtap="onDessertMinus">−</view>
           <text class="card-num">{{dessert}}</text>
-          <view class="ew-hit-target count-btn plus" bindtap="onDessertPlus">+</view>
+          <view aria-role="button" class="ew-hit-target count-btn plus" bindtap="onDessertPlus">+</view>
         </view>
       </view>
 
@@ -62,14 +62,14 @@
       <view class="param-card">
         <view class="card-label"><text>主食数量</text></view>
         <view class="card-count">
-          <view class="ew-hit-target count-btn minus" bindtap="onStapleMinus">−</view>
+          <view aria-role="button" class="ew-hit-target count-btn minus" bindtap="onStapleMinus">−</view>
           <text class="card-num">{{staple}}</text>
-          <view class="ew-hit-target count-btn plus" bindtap="onStaplePlus">+</view>
+          <view aria-role="button" class="ew-hit-target count-btn plus" bindtap="onStaplePlus">+</view>
         </view>
       </view>
     </view>
 
-    <view class="ew-section-title">今天的用餐</view><view wx:if="{{todayError}}" class="ew-hit-target ew-notice" bindtap="onTodayMeal">{{todayError}}</view><meal-card wx:for="{{todayMeals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际：' + item.actualNames : '安排和实际用餐分别保存'}}" bind:open="onTodayMeal" />
+    <view class="ew-section-title">今天的用餐</view><view aria-role="button" wx:if="{{todayError}}" class="ew-hit-target ew-notice" bindtap="onTodayMeal">{{todayError}}</view><meal-card wx:for="{{todayMeals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际：' + item.actualNames : '安排和实际用餐分别保存'}}" bind:open="onTodayMeal" />
     <!-- 今日小提示 -->
     <view class="tip-card">
       
@@ -80,10 +80,10 @@
     <view class="tags-area" wx:if="{{recommendationPreferencesEnabled}}">
       <view class="filter-header">
         <text class="tags-label">快捷筛选</text>
-        <text class="ew-hit-target filter-more" bindtap="onOpenRecommendationFilter">更多筛选{{filterCount > 0 ? ' (' + filterCount + ')' : ''}}</text>
+        <text aria-role="button" class="ew-hit-target filter-more" bindtap="onOpenRecommendationFilter">更多筛选{{filterCount > 0 ? ' (' + filterCount + ')' : ''}}</text>
       </view>
       <scroll-view class="tag-group" scroll-x enhanced show-scrollbar="false">
-        <view
+        <view aria-role="button"
           class="ew-hit-target hot-tag {{item.selected ? 'active' : ''}}"
           wx:for="{{homeQuickOptions}}"
           wx:key="id"
@@ -100,7 +100,7 @@
       </view>
       <view class="filter-feedback" wx:if="{{filterCount > 0}}">
         <text class="filter-summary">当前：{{filterSummary}}</text>
-        <text class="ew-hit-target filter-clear" bindtap="onClearFilters">清除</text>
+        <text aria-role="button" class="ew-hit-target filter-clear" bindtap="onClearFilters">清除</text>
       </view>
     </view>
 
@@ -111,14 +111,14 @@
         <text class="section-header-hint">点击应用配置</text>
       </view>
       <view class="recipe-list">
-        <view class="ew-hit-target recipe-item {{selectedRecipeId === item.id ? 'selected' : ''}}"
+        <view aria-role="button" class="ew-hit-target recipe-item {{selectedRecipeId === item.id ? 'selected' : ''}}"
               wx:for="{{savedRecipes}}"
               wx:key="id"
               bindtap="onSelectRecipe"
               data-id="{{item.id}}">
           <view class="recipe-header">
             <text class="recipe-name">{{item.name}}</text>
-            <view class="ew-hit-target delete-btn" catchtap="onDeleteRecipe" data-id="{{item.id}}">×</view>
+            <view aria-role="button" class="ew-hit-target delete-btn" catchtap="onDeleteRecipe" data-id="{{item.id}}">×</view>
           </view>
           <view class="recipe-info">
             <text class="info-tag">{{item.people}}人</text>
@@ -133,7 +133,7 @@
           <view class="selected-badge" wx:if="{{selectedRecipeId === item.id}}">✓ 已选</view>
         </view>
       </view>
-      <view class="ew-hit-target unselect-btn" wx:if="{{selectedRecipeId}}" bindtap="onUnselectRecipe">取消选择</view>
+      <view aria-role="button" class="ew-hit-target unselect-btn" wx:if="{{selectedRecipeId}}" bindtap="onUnselectRecipe">取消选择</view>
     </view>
 
     <!-- 数据加载提示 -->

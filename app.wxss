@@ -6,7 +6,7 @@ page {
   height: 100%;
   background-color: #FFFFFF;
   color: #25332B;
-  font-size:14px;
+  font-size:16px;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
@@ -63,7 +63,7 @@ button::after { border: none; }
 
 /* 标签 */
 .tag-green {
-  font-size:0.857143em;
+  font-size:0.75em;
   padding:2rpx 12rpx;
   border-radius:10rpx;
   background: #EDF3ED;
@@ -89,9 +89,9 @@ button::after { border: none; }
   justify-content: center;
   padding:80rpx 40rpx;
 }
-.empty-icon { font-size:2.857097em; opacity: 0.5; margin-bottom:20rpx; }
-.empty-title { font-size:1.142857em; font-weight: bold; color: #25332B; }
-.empty-desc { font-size:0.857143em; color: #56645B; margin-top:10rpx; }
+.empty-icon { font-size:2.49996em; opacity: 0.5; margin-bottom:20rpx; }
+.empty-title { font-size:1em; font-weight: bold; color: #25332B; }
+.empty-desc { font-size:0.75em; color: #56645B; margin-top:10rpx; }
 
-page{background:#F8F7F2;color:#25332B;font-size:14px}
+page{background:#F8F7F2;color:#25332B;font-size:16px}
 .mobile-screen{background:#F8F7F2}

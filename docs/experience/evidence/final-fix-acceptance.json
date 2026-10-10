@@ -1,0 +1,122 @@
+[
+  {
+    "check": "G1 syntax",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "files": 202,
+      "roots": [
+        "app",
+        "pages",
+        "utils",
+        "components",
+        "templates",
+        "design",
+        "explicit tests"
+      ]
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 template registration, handler references and nested taps",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "templates": 49,
+      "handlerScope": "page and imported utility source; not dynamic execution"
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 ordinary reachable copy (both feature branches)",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "templates": 24
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 asset references and density tokens",
+    "kind": "static",
+    "status": "passed",
+    "evidence": {
+      "body": 16,
+      "touch": 44,
+      "button": 48
+    },
+    "limitation": "Static source contracts only; no native layout, screen-reader, device or model verification.",
+    "errors": []
+  },
+  {
+    "check": "G1 audited UI contracts",
+    "kind": "automated",
+    "status": "passed",
+    "evidence": [
+      "tests/account-boundaries.test.js",
+      "tests/api-account-retry.test.js",
+      "tests/api-identity-success.test.js",
+      "tests/assistant-history.test.js",
+      "tests/calendar-actual-recovery.test.js",
+      "tests/controlled-harness.test.js",
+      "tests/detail-servings.test.js",
+      "tests/diet-report-api.test.js",
+      "tests/diet-report.test.js",
+      "tests/dish-workspace-handoff.test.js",
+      "tests/experience-actions.test.js",
+      "tests/experience-calendar.test.js",
+      "tests/experience-components.test.js",
+      "tests/experience-composition.test.js",
+      "tests/experience-diet-review.test.js",
+      "tests/experience-journeys.test.js",
+      "tests/experience-personal-recipes.test.js",
+      "tests/experience-recipe-selection.test.js",
+      "tests/experience-save-target.test.js",
+      "tests/experience-shopping-list.test.js",
+      "tests/experience-shopping-preview.test.js",
+      "tests/favorite-meal-entry.test.js",
+      "tests/frontend-workflow-regressions.test.js",
+      "tests/history-workspace-target.test.js",
+      "tests/legacy-meal-import.test.js",
+      "tests/login-readiness.test.js",
+      "tests/meal-actual-entry.test.js",
+      "tests/meal-actual-identity.test.js",
+      "tests/meal-cooking.test.js",
+      "tests/meal-dates.test.js",
+      "tests/meal-navigation-hierarchy.test.js",
+      "tests/meal-workflow.test.js",
+      "tests/meal-workspace.test.js",
+      "tests/menu-workspace-handoff.test.js",
+      "tests/page-contracts.test.js",
+      "tests/page-identity-regressions.test.js",
+      "tests/page-purpose-copy.test.js",
+      "tests/personal-recipe-pages.test.js",
+      "tests/personal-recipes.test.js",
+      "tests/preference-scope.test.js",
+      "tests/profile-entry-hierarchy.test.js",
+      "tests/recipe-interaction-hierarchy.test.js",
+      "tests/recipe-quality.test.js",
+      "tests/shopping-capability-race.test.js",
+      "tests/shopping-drafts.test.js",
+      "tests/shopping-edit-intent.test.js",
+      "tests/shopping-view-hierarchy.test.js",
+      "tests/ui-assets.test.js",
+      "tests/ui-components.test.js",
+      "tests/ui-self-check.test.js",
+      "tests/ui-state-presentation.test.js",
+      "tests/v4-business-contracts.test.js",
+      "tests/v4-local-features.test.js",
+      "tests/workspace-controlled-flow.test.js",
+      "tests/workspace-day-boundary.test.js",
+      "tests/workspace-homepage.test.js",
+      "tests/workspace-navigation.test.js",
+      "tests/workspace-page.test.js",
+      "tests/workspace-primary-action.test.js",
+      "tests/workspace-requirements-sheet.test.js"
+    ],
+    "limitation": "Literal API receipts and WeChat stubs, not model/native tests."
+  }
+]

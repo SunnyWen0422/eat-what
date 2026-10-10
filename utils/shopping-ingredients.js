@@ -53,7 +53,8 @@ function normalizeLocalIngredient(item) {
 }
 
 function scaleLocalQuantity(item, basePeople, targetPeople) {
-  if (!Number.isFinite(item.quantityValue) || !Number.isFinite(basePeople) || basePeople <= 0) {
+  if (item.userOverride) return { ...item }
+  if (!Number.isFinite(item.quantityValue) || !Number.isFinite(basePeople) || basePeople <= 0 || !['mass', 'volume', 'count'].includes(item.unitFamily)) {
     return { ...item, calculationStatus: 'NEEDS_ADJUSTMENT', source: 'local-fallback' }
   }
   const scaled = item.quantityValue * Number(targetPeople || basePeople) / basePeople
@@ -150,4 +151,5 @@ module.exports = {
   formatShoppingQuantity,
   buildPurchaseSummary,
   normalizeQuantitySafety,
+  isSafeQuantity,
 }
