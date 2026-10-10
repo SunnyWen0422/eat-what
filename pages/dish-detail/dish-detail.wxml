@@ -14,6 +14,7 @@
 
   <!-- 菜品信息 -->
   <view class="dish-info {{dish.image ? 'with-hero' : ''}}">
+    <text class="ew-subtitle">查看食材用量和烹饪做法。</text>
     <view class="dish-header">
       <view class="dish-title-row">
         <text class="dish-name">{{dish.name}}</text>

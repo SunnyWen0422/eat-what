@@ -1,6 +1,6 @@
 <view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px">
   <text class="ew-heading">饮食回顾</text>
-  <text class="ew-subtitle">根据明确记录的实际用餐，回顾这一周或这个月。</text>
+  <text class="ew-subtitle">饮食统计只计入实际吃过的记录；计划执行单独对照。</text>
   <view class="ew-tabs">
     <view class="ew-hit-target ew-pill {{periodMode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="onMode">按周</view>
     <view class="ew-hit-target ew-pill {{periodMode === 'month' ? 'active' : ''}}" data-mode="month" bindtap="onMode">按月</view>
@@ -22,7 +22,7 @@
         <view class="ew-card"><text class="ew-number">{{reportView.overview.uniqueDishCount}}</text><text class="metric-label">已识别菜品种类</text></view>
         <view class="ew-card"><text class="ew-number">{{reportView.overview.entryCount}}</text><text class="metric-label">实际菜品条目</text></view>
       </view>
-      <ui-state wx:if="{{reportView.overview.mealCount === 0}}" kind="empty" title="这一周期还没有实际用餐记录" description="计划不会自动当成吃过；没有记录也不等于没有吃饭。" action-label="记录今天的一餐" bind:action="onRecord" />
+      <ui-state wx:if="{{reportView.overview.mealCount === 0}}" kind="empty" title="这一周期还没有实际用餐记录" description="计划不会自动当成吃过；没有记录也不等于没有吃饭。" action-label="记录饮食" bind:action="onRecord" />
       <view class="ew-card">
         <text class="ew-section-title">实际记录分布</text>
         <view class="ew-hit-target bar-row" wx:for="{{dailyRows}}" wx:key="date" data-date="{{item.date}}" bindtap="onRecord">
@@ -50,7 +50,8 @@
       <text class="ew-muted">{{reportView.categoryCounts.classifiedCount}} / {{reportView.categoryCounts.entryCount}} 条实际菜品可识别类别。次数包含未分类条目，不代表营养摄入比例。</text>
     </view>
     <view class="ew-card" data-report-block="planExecution">
-      <text class="ew-section-title">计划执行情况</text>
+      <text class="ew-section-title">计划执行对照</text>
+      <text class="ew-muted">仅对照安排是否执行，不计入饮食统计。</text>
       <text class="ew-muted">在所选周期内，截至 {{reportView.metadata.executionAsOfDate}}（{{reportView.metadata.timezone}}）：已到期安排 {{reportView.planExecution.plannedMealsDue}} 餐，按计划确认 {{reportView.planExecution.plannedMealsFollowed}} 餐，实际调整 {{reportView.planExecution.plannedMealsChanged}} 餐，明确取消 {{reportView.planExecution.skippedMeals}} 餐，未确认 {{reportView.planExecution.unconfirmedMeals}} 餐。未确认不等于没吃；今天与未来的计划不在到期统计内。</text>
     </view>
     <view class="ew-card" data-report-block="completeness">
