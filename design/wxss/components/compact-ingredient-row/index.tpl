@@ -6,5 +6,5 @@
 .check-box { width:18px; height:18px; box-sizing:border-box; border:1px solid {{controlBorder}}; border-radius:4px; display:flex; align-items:center; justify-content:center; }
 .is-checked .check-box { border-color:{{brand}}; background:{{brandSoft}}; }
 .is-checked .ingredient-name { color:{{muted}}; }
-.ingredient-row button[disabled] { background:transparent; color:{{muted}}; }
-.ingredient-row button::after { border:0; }
+.ingredient-control.is-disabled { background:transparent; color:{{muted}}; }
+.ingredient-control::after { border:0; }

@@ -5,6 +5,7 @@ const { getDishById } = require('../../utils/api')
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     dish: null, targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
+    showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
     loading: true,
     error: false,
     isFavorite: false,showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionBusy:false,selectionLoading:false,selectionBlocked:true,mealPrimaryLabel:'加入本餐',showSelectedPanel:false,selectedList:[],detailError:'',errorKind:'',mealAddError:''
@@ -38,6 +39,15 @@ Page({
     return this.refreshSelectedMeal()
   },
   onHide() { this._recipeVisible=false;clearTimeout(this._recipePoll) },
+  onReady() { this.measureDetailActions() },
+  onResize() { this.measureDetailActions() },
+  measureDetailActions() {
+    if (this._unloaded || !wx.createSelectorQuery) return
+    const measure = () => wx.createSelectorQuery().in(this).select('.detail-bottom').boundingClientRect(rect => {
+      if (!this._unloaded && rect && rect.height > 0) this.setData({ detailActionHeight: Math.ceil(rect.height) + 16 })
+    }).exec()
+    if (wx.nextTick) wx.nextTick(measure); else measure()
+  },
   onUnload() { require('../../utils/dish-workspace-handoff').disposeSelectionPage(this); this._detailInitialization = null; this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   current(scope) { return !this._unloaded && scope === getUserStorageKey('dishView') },
   clearRecipeSelection() {
@@ -71,7 +81,8 @@ Page({
 
   async loadDishDetail(id) {
     const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
-    this.setData({ dish: null, qualityView:null,qualitySourcesVisible:false,isFavorite: false, favoriteBusy: false, canEditCustom: false, copyBusy: false, copyError: '',detailError:'',errorKind:'' })
+    this._copyPreviewBinding = null
+    this.setData({ dish: null, qualityView:null,qualitySourcesVisible:false,isFavorite: false, favoriteBusy: false, canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
@@ -142,7 +153,7 @@ Page({
 
         const user = wx.getStorageSync('userInfo') || {}
         const canEditCustom = !!user.id && dish.userId != null && String(dish.userId) === String(user.id)
-        this.setData({ dish, loading: false, canEditCustom })
+        this.setData({ dish, loading: false, canEditCustom }, () => this.measureDetailActions())
         this.checkFavoriteStatus(id)
         this.loadMealQuantities(id, scope, epoch)
       } else {
@@ -203,24 +214,42 @@ Page({
     } finally { if(this.current(scope))this.setData({ favoriteBusy: false }) }
   },
 
-  async onCopyPersonal() {
+  onShowDetailMore() { if (this.data.dish && this.current(this._scope)) this.setData({ showDetailMore: true }) },
+  onHideDetailMore() { this.setData({ showDetailMore: false }) },
+  onCopyPersonal() {
     const dish = this.data.dish, scope = this._scope
     if (!dish || !dish.id || !this.current(scope) || this.data.copyBusy) return
     if (!this._copyJournal) this._copyJournal = require('../../utils/personal-recipes').createWriteJournal()
+    const pending = this._copyJournal.pending('dish:copy:' + dish.id)
+    this._copyPreviewBinding = { scope, id: dish.id, version: dish.contentVersion, epoch: this._epoch }
+    const form = require('../../utils/personal-recipes').recipeForm(dish)
+    this.setData({ showDetailMore: false, showCopyPreview: true, copyPending: !!pending, copyError: '', copyPreview: { name: form.name, ingredients: form.ingredients, steps: form.steps } })
+  },
+  onCancelCopyPersonal() {
+    if (this.data.copyBusy) return
+    this._copyPreviewBinding = null
+    this.setData({ showCopyPreview: false, copyPreview: null })
+  },
+  async onConfirmCopyPersonal() {
+    const binding = this._copyPreviewBinding, dish = this.data.dish, scope = binding && binding.scope
+    if (!binding || !this.data.showCopyPreview || !dish || !this.current(scope) || this.data.copyBusy || binding.epoch !== this._epoch || binding.id !== dish.id) return
+    const pending = this._copyJournal.pending('dish:copy:' + dish.id)
+    if (!pending && binding.version !== dish.contentVersion) return this.setData({ copyError: '原菜谱已变化，请关闭预览后重新核对。' })
     this.setData({ copyBusy: true, copyError: '' })
     try {
-      const copy = await this._copyJournal.run('dish:copy:' + dish.id, { expectedVersion: dish.contentVersion }, body => require('../../utils/api').copyPersonalDish(dish.id, body))
-      if (!this.current(scope)) return
-      this.setData({ copyMessage: '已复制到我的菜谱，接下来可编辑自己的副本；原菜谱保留。' })
+      const copy = await this._copyJournal.run('dish:copy:' + dish.id, { expectedVersion: binding.version }, body => require('../../utils/api').copyPersonalDish(dish.id, body))
+      if (!this.current(scope) || this._copyPreviewBinding !== binding || binding.epoch !== this._epoch) return
+      this.setData({ showCopyPreview: false, copyPreview: null, copyMessage: '已复制到我的菜谱，接下来可编辑自己的副本；原菜谱保留。' })
+      this._copyPreviewBinding = null
       wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(copy.id) })
-    } catch (error) { if (this.current(scope)) this.setData({ copyError: require('../../utils/meal-workflow').errorMessage(error, '复制结果未确认，请重试原操作') }) }
-    finally { if (this.current(scope)) this.setData({ copyBusy: false }) }
+    } catch (error) { if (this.current(scope) && this._copyPreviewBinding === binding) this.setData({ copyError: require('../../utils/meal-workflow').errorMessage(error, '复制结果未确认，请重试原操作') }) }
+    finally { if (this.current(scope) && binding.epoch === this._epoch) this.setData({ copyBusy: false, copyPending: !!this._copyJournal.pending('dish:copy:' + dish.id) }) }
   },
 
   onEditCustom() {
     const dish = this.data.dish, user = wx.getStorageSync('userInfo') || {}
     if (!this.current(this._scope) || !this.data.canEditCustom || !dish || !user.id || String(dish.userId) !== String(user.id)) return
-    wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(dish.id) })
+    this.setData({ showDetailMore: false }); wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(dish.id) })
   },
   onRetry() { if (this._dishId) return this._loadAfterLogin(this._dishId) },
   onToggleQualitySources(){this.setData({qualitySourcesVisible:!this.data.qualitySourcesVisible})},
@@ -230,16 +259,17 @@ Page({
     if (!dish || !dish.id || !this.current(this._scope)) return
     const { beginShoppingSelection } = require('../../utils/shopping-list')
     beginShoppingSelection({ dishIds: [dish.id], targetPeople: this.data.targetPeople, source: 'dish-detail', dishes: [dish] })
-    wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
+    this.setData({ showDetailMore: false }); wx.navigateTo({ url: '/pages/shopping-preview/shopping-preview' })
   },
   selectionOptions() { const scope=this._scope || getUserStorageKey('dishView');return {api:require('../../utils/api'),wx,storageKey:getUserStorageKey,current:()=>this.current(scope),errorKey:'mealAddError'} },
-  refreshSelectedMeal() { return require('../../utils/dish-workspace-handoff').refreshSelectionPage(this,this.selectionOptions()) },
-  onRetrySelection() { return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'recover',null,this.selectionOptions()) },
+  async refreshSelectedMeal() { const result = await require('../../utils/dish-workspace-handoff').refreshSelectionPage(this,this.selectionOptions()); this.measureDetailActions(); return result },
+  async onRetrySelection() { try { return await require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'recover',null,this.selectionOptions()) } finally { this.measureDetailActions() } },
   async onAddToCurrentMeal() {
     if(!this.data.dish || !this.current(this._scope))return
     if(this.data.isAddedToMeal)return this.onViewMeal()
     if(!this._recipeSelection)await this.refreshSelectedMeal()
-    return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'append',Number(this.data.dish.id),this.selectionOptions())
+    const result = await require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'append',Number(this.data.dish.id),this.selectionOptions())
+    this.measureDetailActions(); return result
   },
   onViewMeal() { if(this.current(this._scope))return require('../../utils/dish-workspace-handoff').openSelectedMeal(this,wx) },
   onSaveToCalendar() { if(this.current(this._scope))return require('../../utils/dish-workspace-handoff').openSelectedMeal(this,wx,true) },

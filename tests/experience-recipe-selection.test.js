@@ -222,7 +222,8 @@ test('recipe templates contain no malformed opening tag and provide shared respo
     assert.doesNotMatch(fs.readFileSync('pages/'+route+'.wxml','utf8'), /<</)
     assert.match(fs.readFileSync('pages/'+route+'.wxss','utf8'), /recipe-selection.wxss/)
   }
-  assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxss','utf8'), /\.container \.detail-bottom\s*\{[^}]*position:\s*static/s)
+  assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml','utf8'), /detail-action-spacer[^>]*detailActionHeight/)
+  assert.doesNotMatch(fs.readFileSync('pages/dish-detail/dish-detail.wxss','utf8'), /\.container \.detail-bottom\s*\{[^}]*position:\s*static/s)
 })
 
 test('first recipe in an empty meal creates only a workspace then selects into that target', async () => {

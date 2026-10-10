@@ -31,7 +31,7 @@ function emptyCustomForm() {
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',recipeSource:'all',browseScrollTop:0,selectionMode:true,selectionTargetLabel:'',showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionLoading:false,selectionBusy:false,selectionBlocked:true,
-    personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, menuDate: '', menuMealIndex: 2, menuMealLabels: ['早餐','午餐','晚餐'], customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
+    personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],activeMenu:null,showMenuTarget:false,menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, menuDate: '', menuMealIndex: 2, menuMealLabels: ['早餐','午餐','晚餐'], customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
     tabs: ['meat', 'veg', 'soup', 'staple', 'dessert'],
     tabNames: {
       'meat': '荤菜',
@@ -119,7 +119,7 @@ Page({
     this.setData({ activeTab: 'meat', recipeSource:'all', browseScrollTop:0, showMealSelected:false,mealSelectedDishes:[],selectedMeal:null, selectionFeedback:null, selectionBusy:false, selectionLoading:false, selectionMode:true, selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
       customForm: emptyCustomForm(), customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: false })),
       customError: '', saveError: '', browseError: '', savingCustom: false, savingPlan: false, loading: false, loadingMore: false,
-      personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
+      personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],activeMenu:null,showMenuTarget:false,menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
       searchKeyword: '', hasMore: true, browseCriteria: emptyBrowseCriteria(), showBrowseFilters: false })
     this.renderBrowseFilters(); this.syncCustomLeaveAlert()
     return false
@@ -430,6 +430,10 @@ Page({
     if (idx >= 0) {
       selectedIds.splice(idx, 1)
     } else {
+      if (selectedIds.length >= 10) {
+        this.setData({ saveError: '最多选择 10 道菜，请先移除一道后再加入，已有菜品保留。' })
+        wx.showToast({ title: '最多选择10道菜', icon: 'none' }); return
+      }
       this.addToGlobalCache([dish])
       selectedIds.push(dish.id)
       wx.vibrateShort({ type: 'light' })
@@ -558,6 +562,7 @@ Page({
   onRetrySelection() { return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'recover',null,this.selectionOptions()) },
   onViewMeal() { if(this.ensureBrowseOwner())return require('../../utils/dish-workspace-handoff').openSelectedMeal(this,wx) },
   onBrowseScroll(e) { this.setData({browseScrollTop:Math.max(0,Number(e.detail.scrollTop)||0)}) },
+  onBrowseReachEnd() { if (!this.data.showCustomForm) return this.onScrollToLower() },
   onRecipeSource(e) {
     if(!this.ensureBrowseOwner())return
     const source=e.currentTarget.dataset.source
@@ -566,6 +571,15 @@ Page({
     this.setData({recipeSource:source,browseScrollTop:0,currentDishes:[]});this.currentPage=1
     return this.loadPage(this.data.activeTab,1)
   },
+  onAddRecipe() { return this.onTabChange({ currentTarget: { dataset: { tab: 'custom' } } }) },
+  onManageRecipes() { if (this.ensureBrowseOwner()) wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes' }) },
+  onOpenMenuDetail(e) {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy || this.data.menuFormVisible || this.data.menuEditingId || this.data.menuPending) return
+    const menu = this.data.menus.find(item => String(item.id) === String(e.currentTarget.dataset.id))
+    if (menu) this.setData({ activeMenu: menu, showMenuTarget: false, menuError: '', menuMissingDishes: [] })
+  },
+  onBackToMenus() { if (this.ensureBrowseOwner() && !this.data.menuBusy) this.setData({ activeMenu: null, showMenuTarget: false, menuMissingDishes: [] }) },
+  onToggleMenuTarget() { if (this.ensureBrowseOwner() && !this.data.menuBusy) this.setData({ showMenuTarget: !this.data.showMenuTarget }) },
 
   writeJournal() {
     if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
@@ -611,7 +625,7 @@ Page({
     this.setData({ menuLoading: true, menuError: '' })
     try {
       const menus = await api.getPersonalMenus()
-      if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) this.setData({ menus: Array.isArray(menus) ? menus : [] })
+      if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) { const list = Array.isArray(menus) ? menus : []; this.setData({ menus: list, activeMenu: this.data.activeMenu ? list.find(row => String(row.id) === String(this.data.activeMenu.id)) || null : null }) }
     } catch (error) { if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单读取失败，请重试') }) }
     finally { if (this.isBrowseCurrent(identity) && epoch === this._menuEpoch) this.setData({ menuLoading: false }) }
   },
@@ -668,7 +682,7 @@ Page({
       const unavailable = refreshed.some(d => d.unavailable), changed = refreshed.some(d => d.changed)
       const menuReviewNotice = pending ? '上次保存结果未确认，重试会使用原内容。' : unavailable ? '部分菜品已不可用，仍保留在已选中。请移除或替换后再保存。' : changed ? '菜单菜谱内容有变化，以下为最新内容。请核对后点保存菜单，确认更新快照。' : '已读取当前菜谱。保存菜单后才会更新组合和快照。'
       this._menuVersion = pending ? pending.expectedVersion : menu.version
-      this.setData({ menuFormVisible: true, menuEditingId: id, menuName: pending ? pending.name : menu.name, menuPeople: pending ? pending.people : menu.people, menuPending: !!pending, menuReviewDishes, menuReviewNotice, selectedIds: ids, selectedTotal: ids.length, selectedList: this.buildSelectedList(ids), selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: ids.includes(d.id) })) })
+      this.setData({ menuFormVisible: true, activeMenu: null, showMenuTarget: false, menuEditingId: id, menuName: pending ? pending.name : menu.name, menuPeople: pending ? pending.people : menu.people, menuPending: !!pending, menuReviewDishes, menuReviewNotice, selectedIds: ids, selectedTotal: ids.length, selectedList: this.buildSelectedList(ids), selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: ids.includes(d.id) })) })
       this._menuInitial = this.menuFormSnapshot(); this.syncCustomLeaveAlert()
     } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单读取失败') }) }
     finally { if (this.isBrowseCurrent(identity, epoch)) { this.setData({ menuBusy: false }); this.syncCustomLeaveAlert() } }
@@ -695,7 +709,7 @@ Page({
     this._menuVersion = null
     const selectedIds = [...ids], dishes = selectedIds.map(id => sourceDishes.find(d => Number(d.id) === Number(id)) || this.allDishesMap[id] || { id, name: '菜品 ' + id })
     this.addToGlobalCache(dishes)
-    this.setData({ menuFormVisible:true,menuEditingId: null, menuName: '', menuPeople: people, selectedIds, selectedTotal: selectedIds.length, selectedList: dishes, menuReviewDishes: dishes, menuReviewNotice: '这些已选菜品仅保存为可复用模板，不写入日历。', currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: selectedIds.includes(Number(d.id)) })) })
+    this.setData({ menuFormVisible:true,activeMenu:null,showMenuTarget:false,menuEditingId: null, menuName: '', menuPeople: people, selectedIds, selectedTotal: selectedIds.length, selectedList: dishes, menuReviewDishes: dishes, menuReviewNotice: '这些已选菜品仅保存为可复用模板，不写入日历。', currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: selectedIds.includes(Number(d.id)) })) })
     this._menuInitial = this.menuFormSnapshot(); this.syncCustomLeaveAlert()
   },
   onNewMenu() {

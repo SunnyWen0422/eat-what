@@ -1,2 +1,2 @@
-@import "../../styles/theme.wxss";
+@import "../../styles/component-theme.wxss";
 .field{margin:{{space.3.px}} 0}.label{display:block;color:{{text}};font-size:{{font.body.em}};font-weight:500;line-height:1.5;margin-bottom:{{space.1.px}}}.input{box-sizing:border-box;width:100%;min-height:{{controls.touchSize.px}};padding:{{space.2.px}};background:{{card}};border:1px solid {{controlBorder}};border-radius:{{radius.2.px}};font-size:{{font.reading.em}};line-height:1.5;color:{{text}}}.error{display:block;color:{{danger}};font-size:{{font.secondary.em}};line-height:1.6;margin-top:{{space.1.px}}}.invalid{border-color:{{danger}}}

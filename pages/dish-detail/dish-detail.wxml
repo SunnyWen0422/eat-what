@@ -112,7 +112,7 @@
     </view>
 
     <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤，不能猜测做法。</view>
-    <button class="ew-hit-target ew-link" bindtap="onOpenCooking">大字做法，接着上次步骤看</button>
+    <button class="ew-hit-target ew-link detail-cooking-link" bindtap="onOpenCooking">大字做法，接着上次步骤看</button>
     <!-- 小贴士 -->
     <view class="section" wx:if="{{dish.tips}}">
       <view class="section-title">
@@ -123,7 +123,34 @@
       </view>
     </view>
   </view>
-  <view class="section"><button class="ew-hit-target ew-link" loading="{{copyBusy}}" disabled="{{copyBusy}}" bindtap="onCopyPersonal">复制到我的私房菜</button><view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view><view wx:if="{{copyError}}" class="ew-error">{{copyError}}<button class="ew-hit-target ew-link" bindtap="onRetry">重新读取菜品</button></view></view><view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view><view class="detail-bottom"><button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜品</button><button class="ew-hit-target ew-link" bindtap="onShowSelected">{{selectedMeal.targetLabel}} · 已选 {{selectedMeal.count}} 道</button><text class="ew-muted">{{selectedMeal.message}}</text><action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" /><ui-button label="{{mealPrimaryLabel}}" loading="{{selectionBusy}}" disabled="{{selectionLoading || (!isAddedToMeal && selectionBlocked)}}" bind:action="onAddToCurrentMeal" /><ui-button label="准备食材" variant="secondary" bind:action="onAddToShoppingList" /></view>
+  <view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view>
+  <view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view>
+  <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" />
+  <ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
+  <view class="detail-action-spacer" style="height:{{detailActionHeight}}px" aria-hidden="true" />
+  <view class="detail-bottom">
+    <view class="detail-context-row">
+      <button class="ew-hit-target ew-link detail-selected-summary" bindtap="onShowSelected">{{selectedMeal ? selectedMeal.targetLabel : '本餐'}} · 已选 {{selectedMeal ? selectedMeal.count : 0}} 道 · 查看菜单</button>
+      <button class="ew-hit-target ew-link detail-more-button" bindtap="onShowDetailMore">更多</button>
+    </view>
+    <text wx:if="{{isAddedToMeal}}" class="ew-muted detail-added-state">已加入本餐 ✓</text>
+    <ui-button label="{{mealPrimaryLabel}}" loading="{{selectionBusy}}" disabled="{{selectionLoading || (!isAddedToMeal && selectionBlocked)}}" bind:action="onAddToCurrentMeal" />
+  </view>
+  <ui-sheet visible="{{showDetailMore}}" title="更多菜谱操作" bind:close="onHideDetailMore">
+    <ui-button label="准备食材" variant="secondary" bind:action="onAddToShoppingList" />
+    <ui-button label="复制为我的菜谱" variant="secondary" bind:action="onCopyPersonal" />
+    <button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜谱</button>
+  </ui-sheet>
+  <ui-sheet visible="{{showCopyPreview}}" title="复制为我的菜谱" busy="{{copyBusy}}" bind:close="onCancelCopyPersonal">
+    <view class="ew-title">{{copyPreview.name}}</view>
+    <view class="ew-notice">确认后会在我的菜谱中创建副本，再进入编辑页。原菜谱和来源记录保留；取消预览不会创建菜谱。</view>
+    <view class="ew-label">食材与用量</view><text class="section-content copy-preview-text" user-select>{{copyPreview.ingredients}}</text>
+    <view class="ew-label">做法</view><text class="section-content copy-preview-text" user-select>{{copyPreview.steps}}</text>
+    <view wx:if="{{copyPending}}" class="ew-notice">上次复制结果待确认，重试使用原请求，不会另建副本。</view>
+    <view wx:if="{{copyError}}" class="ew-error">{{copyError}}</view>
+    <ui-button label="取消预览" variant="tertiary" disabled="{{copyBusy}}" bind:action="onCancelCopyPersonal" />
+    <ui-button slot="footer" label="{{copyPending ? '核对原复制' : '确认创建副本并编辑'}}" loading="{{copyBusy}}" bind:action="onConfirmCopyPersonal" />
+  </ui-sheet>
   <include src="../../templates/recipe-selected-sheet.wxml" />
 </view>
 

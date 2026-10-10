@@ -1,4 +1,4 @@
-@import "../../styles/theme.wxss";
+@import "../../styles/component-theme.wxss";
 .ew-sheet { display:flex; flex-direction:column; min-width:44px; overflow:hidden; border-radius:{{radius.4.px}} {{radius.4.px}} 0 0; padding:0; background:{{background}}; animation:sheet-in 200ms ease-out; }
 .sheet-scroll { flex:0 1 auto; min-height:0; min-width:0; width:100%; box-sizing:border-box; }
 .sheet-layout { display:flex; flex-direction:column; min-width:0; overflow:hidden; box-sizing:border-box; padding:{{space.2.px}} {{space.3.px}} calc({{space.3.px}} + env(safe-area-inset-bottom)); }

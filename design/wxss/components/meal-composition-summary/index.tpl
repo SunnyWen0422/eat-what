@@ -3,5 +3,5 @@
 .summary-label { flex:1; min-width:0; color:{{muted}}; overflow-wrap:anywhere; }
 .summary-value { min-width:0; max-width:70%; font-weight:600; overflow-wrap:anywhere; }
 .composition-value { color:{{brand}}; }
-.summary-row[disabled] { background:transparent; color:{{muted}}; }
+.summary-row.is-disabled { background:transparent; color:{{muted}}; }
 .summary-row::after { border:0; }

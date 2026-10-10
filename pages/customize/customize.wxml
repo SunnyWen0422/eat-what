@@ -1,14 +1,28 @@
 <!--pages/customize/customize.wxml-->
 <view class="ew-page page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
+<scroll-view class="recipe-browse-scroll mobile-scroll" scroll-y enhanced bindscroll="onBrowseScroll" scroll-top="{{browseScrollTop}}" scroll-into-view="{{showCustomForm && customFocus ? 'custom-' + customFocus : ''}}" bindscrolltolower="onBrowseReachEnd">
 
-  <view class="recipe-page-header"><view class="ew-heading">菜谱</view></view>
-  <view class="recipe-sources"><button class="ew-hit-target {{recipeSource === 'all' ? 'active' : ''}}" data-source="all" bindtap="onRecipeSource">全部菜谱</button><button class="ew-hit-target {{recipeSource === 'mine' ? 'active' : ''}}" data-source="mine" bindtap="onRecipeSource">我的菜谱</button><button class="ew-hit-target" data-source="menus" bindtap="onRecipeSource">常用菜单</button></view>
+  <view wx:if="{{!showCustomForm}}" class="recipe-page-header"><view class="ew-heading">菜谱</view></view>
+    <!-- 搜索框 -->
+    <view class="search-wrap" wx:if="{{!showCustomForm}}">
+      <input placeholder-class="ew-placeholder" class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+      <view class="browse-filter-header">
+        <view aria-role="button" class="ew-hit-target browse-filter-command" bindtap="onToggleBrowseFilters">
+          <text>筛选{{browseFilterCount > 0 ? ' (' + browseFilterCount + ')' : ''}}</text>
+          <text class="browse-filter-arrow">{{showBrowseFilters ? '收起' : '展开'}}</text>
+        </view>
+        <text class="ew-hit-target browse-filter-clear" wx:if="{{browseFilterCount > 0}}" bindtap="onClearBrowseFilters">清除</text>
+      </view>
+    </view>
+
+  <view wx:if="{{!showCustomForm}}" class="recipe-sources"><button class="ew-hit-target {{recipeSource === 'all' ? 'active' : ''}}" data-source="all" bindtap="onRecipeSource">全部菜谱</button><button class="ew-hit-target {{recipeSource === 'mine' ? 'active' : ''}}" data-source="mine" bindtap="onRecipeSource">我的菜谱</button><button class="ew-hit-target" data-source="menus" bindtap="onRecipeSource">常用菜单</button></view>
+  <view wx:if="{{recipeSource === 'mine' && !showCustomForm}}" class="personal-recipe-entry"><text class="ew-muted">记下自己的拿手菜</text><button class="ew-hit-target ew-link" bindtap="onAddRecipe">添加菜谱</button><button class="ew-hit-target ew-link" bindtap="onManageRecipes">管理</button></view>
   <view wx:if="{{personalSaveMessage}}" class="ew-notice" role="status">{{personalSaveMessage}}</view>
-  <view wx:if="{{personalGuideVisible}}" class="ew-subtitle">单道菜存到我的菜谱；组合存到常用菜单；本餐安排再保存到日历。<button class="ew-hit-target ew-link" bindtap="onDismissPersonalGuide">知道了</button></view>
-  <view class="recipe-target">{{selectedMeal ? selectedMeal.targetLabel : selectionTargetLabel}} · {{selectedMeal ? selectedMeal.people : 2}} 人</view>
+  <view wx:if="{{personalGuideVisible && !showCustomForm}}" class="ew-subtitle">单道菜存到我的菜谱；组合存到常用菜单；本餐安排再保存到日历。<button class="ew-hit-target ew-link" bindtap="onDismissPersonalGuide">知道了</button></view>
+  <view wx:if="{{!showCustomForm}}" class="recipe-target">{{selectedMeal ? selectedMeal.targetLabel : selectionTargetLabel}} · {{selectedMeal ? selectedMeal.people : 2}} 人</view>
   <view wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-notice">正在编辑常用菜单，当前选择不会改动本餐草稿。<button class="ew-hit-target ew-link" disabled="{{menuBusy || menuPending}}" bindtap="onExitMenuEdit">退出菜单编辑，继续本餐</button></view>
   <!-- 分类独立横向滚动，末项始终可以滑到 -->
-  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
+  <scroll-view wx:if="{{!showCustomForm}}" class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
   <view class="sidebar">
     <view aria-role="button"
       wx:for="{{tabs}}"
@@ -20,14 +34,6 @@
     >
       <text>{{tabNames[item]}}</text>
     </view>
-    <view aria-role="button"
-      id="category-custom"
-      class="ew-hit-target sidebar-item custom-btn {{activeTab === 'custom' ? 'sidebar-active' : ''}}"
-      data-tab="custom"
-      bindtap="onTabChange"
-    >
-      <text>添加私房菜</text>
-    </view>
   </view>
   </scroll-view>
 
@@ -35,9 +41,9 @@
   <view class="content">
 
     <!-- 定制菜品表单 -->
-    <scroll-view class="custom-form mobile-scroll" scroll-y enhanced scroll-into-view="{{customFocus ? 'custom-' + customFocus : ''}}" wx:if="{{showCustomForm}}">
+    <view class="custom-form" wx:if="{{showCustomForm}}">
       <view class="custom-form-content">
-      <view class="form-title">添加我的私房菜</view>
+      <view class="form-title">添加我的菜谱</view>
       <input placeholder-class="ew-placeholder" class="form-input" id="custom-name" focus="{{customFocus === 'name'}}" aria-label="菜品名称" maxlength="255" placeholder="菜品名称" value="{{customForm.name}}" data-field="name" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
 
       <view class="type-row">
@@ -49,7 +55,7 @@
 
       <textarea id="custom-ingredients" focus="{{customFocus === 'ingredients'}}" aria-label="食材用料" placeholder-class="ew-placeholder" class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" maxlength="10000" auto-height cursor-spacing="24" />
       <textarea id="custom-steps" focus="{{customFocus === 'steps'}}" aria-label="烹饪步骤" placeholder-class="ew-placeholder" class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" maxlength="20000" auto-height cursor-spacing="24" />
-      <button class="ew-hit-target ew-link" bindtap="onToggleCustomExtras">{{customExtrasVisible ? '收起可选资料' : '添加时间、份数说明或图片（可选）'}}</button>
+      <button class="ew-hit-target ew-link custom-form-secondary" bindtap="onToggleCustomExtras">{{customExtrasVisible ? '收起可选资料' : '添加时间、份数说明或图片（可选）'}}</button>
       <view wx:if="{{customExtrasVisible}}" class="personal-recipe-extras">
       <picker class="ew-hit-target" mode="selector" range="{{cuisineOptions}}" range-key="label" bindchange="onCustomCuisineChange">
         <view class="form-input selector-input">菜系：{{customForm.cuisineLabel}}</view>
@@ -65,44 +71,18 @@
       <view class="ew-label">原配方份数说明（可选）</view><input placeholder-class="ew-placeholder" class="form-input" aria-label="原配方份数说明" placeholder="例如：原配方2人份。不会自动核验或换算。" value="{{customForm.servingDescription}}" maxlength="1000" data-field="servingDescription" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
       <view class="ew-label">图片 HTTPS 地址（可选）</view><input id="custom-image" focus="{{customFocus === 'image'}}" class="form-input" value="{{customForm.image}}" maxlength="2048" data-field="image" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
       </view>
-      <view wx:if="{{customPending}}" class="ew-notice">上次保存结果未确认，重试会使用原内容。</view><view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="ew-hit-target save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">{{customPending ? '重试原保存' : '保存菜谱'}}</button><button class="ew-hit-target ew-link" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>
-      </view>
-    </scroll-view>
-
-    <!-- 搜索框 -->
-    <view class="search-wrap" wx:if="{{!showCustomForm}}">
-      <input placeholder-class="ew-placeholder" class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
-      <view class="hot-tags" wx:if="{{!searchKeyword}}">
-        <text aria-role="button" class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="红烧">红烧</text>
-        <text aria-role="button" class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="清蒸">清蒸</text>
-        <text aria-role="button" class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="糖醋">糖醋</text>
-        <text aria-role="button" class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="麻辣">麻辣</text>
-        <text aria-role="button" class="ew-hit-target hot-tag" bindtap="onQuickSearch" data-kw="凉拌">凉拌</text>
-      </view>
-      <view class="browse-filter-header">
-        <view aria-role="button" class="ew-hit-target browse-filter-command" bindtap="onToggleBrowseFilters">
-          <text>筛选{{browseFilterCount > 0 ? ' (' + browseFilterCount + ')' : ''}}</text>
-          <text class="browse-filter-arrow">{{showBrowseFilters ? '收起' : '展开'}}</text>
-        </view>
-        <text class="ew-hit-target browse-filter-clear" wx:if="{{browseFilterCount > 0}}" bindtap="onClearBrowseFilters">清除</text>
+      <view wx:if="{{customPending}}" class="ew-notice">上次保存结果未确认，重试会使用原内容。</view><view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="ew-hit-target save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">{{customPending ? '重试原保存' : '保存菜谱'}}</button><button class="ew-hit-target ew-link custom-form-secondary" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>
       </view>
     </view>
 
     <!-- 展开的筛选与菜品共用纵向滚动区，避免短屏被筛选挤满 -->
-    <scroll-view
-      class="dish-list mobile-scroll"
-      scroll-y
-      enhanced
-      bindscrolltolower="onScrollToLower"
-      bindscroll="onBrowseScroll" scroll-top="{{browseScrollTop}}"
-      wx:if="{{!showCustomForm}}"
-    >
+    <view class="dish-list" wx:if="{{!showCustomForm}}">
       <view class="dish-list-content">
       <text class="browse-filter-summary" wx:if="{{browseFilterSummary}}">当前：{{browseFilterSummary}}</text>
       <ui-state wx:if="{{loading}}" kind="loading" title="正在读取菜品" /><ui-state wx:elif="{{browseError}}" kind="error" title="读取失败" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
 
       <view wx:for="{{currentDishes}}" wx:key="id" class="recipe-item">
-        <compact-dish-row dish="{{item}}" mode="select" selected="{{item.isSelected}}" disabled="{{savingPlan || menuBusy || menuPending || (!(menuFormVisible || menuEditingId) && (selectionBusy || selectionLoading || selectionBlocked))}}" bind:view="onTapDish" bind:select="onToggleSelect" />
+        <compact-dish-row dish="{{item}}" mode="{{menuFormVisible || menuEditingId || menuPending ? 'select' : 'read'}}" selected="{{item.isSelected}}" disabled="{{savingPlan || menuBusy || menuPending || (!(menuFormVisible || menuEditingId) && (selectionBusy || selectionLoading || selectionBlocked))}}" bind:view="onTapDish" bind:select="onToggleSelect" />
       </view>
 
       <!-- 加载更多 -->
@@ -115,25 +95,25 @@
         {{searchKeyword || browseFilterCount ? '没有符合搜索或筛选的菜品' : '这个分类暂时没有菜品'}}
       </view>
       </view>
-    </scroll-view>
+    </view>
 
     <view wx:if="{{saveError}}" class="ew-error">{{saveError}}</view>
     <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
     <button wx:if="{{saveError}}" class="ew-hit-target ew-link" bindtap="onViewMeal">查看本餐核对</button>
     <!-- 底部操作栏 -->
-    <view class="bottom-bar" wx:if="{{!showCustomForm && (selectionMode || selectedTotal)}}">
-      <view aria-role="button" class="ew-hit-target selected-wrap" bindtap="onShowSelected">
-        <text class="selected-num">已选 {{menuFormVisible || menuEditingId || menuPending ? selectedTotal : selectedMeal ? selectedMeal.count : selectedTotal}} 道</text>
-        <ui-icon class="selected-arrow {{showSelectedPanel ? 'arrow-up' : ''}}" name="chevron-right" tone="muted" size="16" />
-      </view>
-      <text class="selected-status">{{menuFormVisible || menuEditingId || menuPending ? '常用菜单组合' : selectedMeal.message}}</text><button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && selectedTotal}}" class="ew-hit-target save-btn" loading="{{savingPlan || selectionBusy}}" disabled="{{savingPlan || !selectedTotal || selectionLoading || selectionBlocked}}" bindtap="onSaveToCalendar">保存到日历</button>
-      <button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && !selectedTotal}}" class="ew-hit-target save-btn" bindtap="onContinueSelecting">去选菜</button>
-      <button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending}}" class="ew-hit-target ew-link shopping-btn" disabled="{{savingPlan || !selectedTotal}}" bindtap="onAddSelectedToShoppingList">准备食材</button>
-      <button wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-hit-target ew-link" bindtap="onResumeMenuForm">继续命名与保存</button>
-    </view>
+
 
   </view>
 
+</scroll-view>
+    <view class="bottom-bar" wx:if="{{!showCustomForm}}">
+      <view aria-role="button" class="ew-hit-target selected-wrap" bindtap="onShowSelected">
+        <text class="selected-num">{{menuFormVisible || menuEditingId || menuPending ? '常用菜单组合 ' + selectedTotal + ' 道' : selectedTotal ? '已选 ' + selectedTotal + ' 道 · ' + (selectedMeal ? selectedMeal.targetLabel : selectionTargetLabel) : '还没选菜 · 去选菜'}}</text>
+        <text class="selected-view-link">查看</text><ui-icon name="chevron-right" tone="muted" size="16" />
+      </view>
+      <button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && !selectedMeal && selectedTotal}}" class="ew-hit-target save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
+      <button wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-hit-target ew-link" bindtap="onResumeMenuForm">继续命名与保存</button>
+    </view>
   <ui-sheet visible="{{showBrowseFilters}}" title="本次筛选" bind:close="onToggleBrowseFilters">
       <view class="browse-filter-panel">
         <view class="browse-filter-group" wx:for="{{browseFilterGroups}}" wx:key="key" wx:for-item="group">
@@ -185,33 +165,43 @@
     </view>
   </view>
 
-  <ui-sheet visible="{{showMenus}}" title="常用菜单" busy="{{menuBusy}}" bind:close="onCloseMenus">
-    <view class="ew-subtitle">把几道菜存成常用组合，使用时先进入本餐草稿，再确认安排。</view>
-    <view class="ew-label">使用菜单的日期和餐次</view>
-    <picker class="ew-hit-target" mode="date" value="{{menuDate}}" disabled="{{menuBusy}}" bindchange="onMenuDate"><view class="ew-input ew-hit-target">{{menuDate}}</view></picker>
-    <picker class="ew-hit-target" range="{{menuMealLabels}}" value="{{menuMealIndex}}" disabled="{{menuBusy}}" bindchange="onMenuMeal"><view class="ew-input ew-hit-target">{{menuMealLabels[menuMealIndex]}}</view></picker>
-    <view wx:for="{{menuMissingDishes}}" wx:key="id" class="ew-error">{{item.name}} · 已删除或不可用</view>
+  <ui-sheet visible="{{showMenus}}" title="{{menuFormVisible || menuEditingId || menuPending ? '保存常用菜单' : activeMenu ? activeMenu.name : '常用菜单'}}" busy="{{menuBusy}}" bind:close="onCloseMenus">
     <view wx:if="{{menuError}}" class="ew-error">{{menuError}}<button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="loadMenus">重新读取菜单</button></view>
     <ui-state wx:if="{{menuLoading}}" kind="loading" title="正在读取菜单" />
-    <view wx:for="{{menus}}" wx:key="id" class="ew-card">
-      <view class="ew-title">{{item.name}}</view><view class="ew-subtitle">{{item.people}} 人 · {{item.dishIds.length}} 道菜</view>
-      <compact-dish-row wx:for="{{item.dishes}}" wx:for-item="menuDish" wx:key="id" dish="{{menuDish}}" mode="read" data-id="{{menuDish.id}}" data-people="{{item.people}}" bind:view="onMenuDish" />
-      <view class="ew-actions"><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onApplyMenu">用作本餐菜单</button><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy || menuPending}}" bindtap="onEditMenu">编辑组合</button><button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onDeleteMenu">删除</button></view>
-    </view>
-    <ui-state wx:if="{{!menuLoading && !menus.length && !menuError}}" kind="empty" title="还没有常用菜单" description="在菜谱里选择几道菜，再保存成一个组合。" />
-    <button class="ew-hit-target ew-link" bindtap="onOpenMenuForm">把已选菜品存为新菜单</button>
+    <block wx:if="{{!menuFormVisible && !menuEditingId && !menuPending}}">
+      <block wx:if="{{!activeMenu}}">
+        <view class="ew-subtitle">常做的组合，打开后可用作本餐菜单。</view>
+        <button wx:for="{{menus}}" wx:key="id" class="ew-hit-target common-menu-summary" data-id="{{item.id}}" disabled="{{menuBusy}}" bindtap="onOpenMenuDetail"><text class="ew-title">{{item.name}}</text><text class="ew-muted">{{item.dishIds.length}} 道菜 · {{item.people}} 人</text><text class="common-menu-arrow">›</text></button>
+        <ui-state wx:if="{{!menuLoading && !menus.length && !menuError}}" kind="empty" title="还没有常用菜单" description="把本餐满意的几道菜存为常用组合，下次直接使用。" />
+      </block>
+      <block wx:else>
+        <button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="onBackToMenus">返回常用菜单</button>
+        <view class="ew-title">{{activeMenu.dishIds.length}} 道菜 · {{activeMenu.people}} 人</view>
+        <compact-dish-row wx:for="{{activeMenu.dishes}}" wx:for-item="menuDish" wx:key="id" dish="{{menuDish}}" mode="read" data-id="{{menuDish.id}}" data-people="{{activeMenu.people}}" bind:view="onMenuDish" />
+        <button class="ew-hit-target ew-link menu-target-context" disabled="{{menuBusy}}" bindtap="onToggleMenuTarget">用作 {{menuDate}} {{menuMealLabels[menuMealIndex]}} · {{showMenuTarget ? '收起' : '更改目标餐'}}</button>
+        <view wx:if="{{showMenuTarget}}" class="menu-target-options"><picker class="ew-hit-target" mode="date" value="{{menuDate}}" disabled="{{menuBusy}}" bindchange="onMenuDate"><view class="ew-input ew-hit-target">{{menuDate}}</view></picker><picker class="ew-hit-target" range="{{menuMealLabels}}" value="{{menuMealIndex}}" disabled="{{menuBusy}}" bindchange="onMenuMeal"><view class="ew-input ew-hit-target">{{menuMealLabels[menuMealIndex]}}</view></picker></view>
+        <view wx:for="{{menuMissingDishes}}" wx:key="id" class="ew-error">{{item.name}} · 已删除或不可用</view>
+        <view class="ew-muted">先进入本餐草稿，保存到日历时再确认。编辑组合只修改常用菜单。</view>
+        <button class="ew-hit-target ew-link" data-id="{{activeMenu.id}}" disabled="{{menuBusy || menuPending}}" bindtap="onEditMenu">编辑常用菜单</button>
+        <button class="ew-hit-target ew-link danger" data-id="{{activeMenu.id}}" disabled="{{menuBusy}}" bindtap="onDeleteMenu">删除常用菜单</button>
+      </block>
+    </block>
+    <button wx:if="{{activeMenu && !menuFormVisible && !menuEditingId && !menuPending}}" slot="footer" class="ew-hit-target menu-use-primary" data-id="{{activeMenu.id}}" loading="{{menuBusy}}" disabled="{{menuBusy}}" bindtap="onApplyMenu">用作本餐菜单</button>
+    <button wx:if="{{!activeMenu}}" class="ew-hit-target ew-link" bindtap="onOpenMenuForm">把已选菜品存为新菜单</button>
     <view wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-card">
       <view class="ew-title">{{menuEditingId ? '编辑菜单' : '把已选菜品存为菜单'}}</view>
       <view class="ew-label">菜单名称</view><input placeholder-class="ew-placeholder" class="ew-input" value="{{menuName}}" maxlength="100" data-field="menuName" disabled="{{menuBusy || menuPending}}" bindinput="onMenuInput" placeholder="例如：工作日晚餐" />
       <view class="ew-label">默认人数</view><input placeholder-class="ew-placeholder" class="ew-input" type="number" value="{{menuPeople}}" data-field="menuPeople" disabled="{{menuBusy || menuPending}}" bindinput="onMenuInput" />
       <view class="ew-subtitle">已选 {{selectedTotal}} 道。关闭此面板可继续选菜、移除菜品，然后回来保存。</view>
       <view wx:if="{{menuReviewNotice}}" class="ew-notice">{{menuReviewNotice}}</view>
-      <view wx:for="{{menuReviewDishes}}" wx:key="id" class="ew-card">
+      <view wx:for="{{menuReviewDishes}}" wx:key="id" class="common-menu-edit-row">
         <view class="ew-title">{{item.name}}{{item.unavailable ? ' · 不可用' : item.changed ? ' · 内容已变化' : ''}}</view>
-        <view wx:if="{{!item.unavailable}}" class="ew-subtitle">食材：{{item.reviewIngredients}}</view>
-        <view wx:if="{{!item.unavailable}}" class="ew-subtitle">步骤：{{item.reviewSteps}}</view>
+        <view wx:if="{{item.changed && !item.unavailable}}" class="ew-subtitle">食材：{{item.reviewIngredients}}</view>
+        <view wx:if="{{item.changed && !item.unavailable}}" class="ew-subtitle">步骤：{{item.reviewSteps}}</view>
       </view>
       <view wx:if="{{menuPending}}" class="ew-notice">上次保存结果未确认，重试将使用原菜单内容。</view>
+      <button wx:if="{{menuEditingId}}" class="ew-hit-target ew-link" data-id="{{menuEditingId}}" disabled="{{menuBusy || menuPending}}" bindtap="onEditMenu">重新读取当前常用菜单</button>
+      <button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="onCloseMenus">继续选菜，稍后命名与保存</button>
       <view class="ew-actions"><ui-button label="{{menuPending ? '重试原保存' : '保存常用菜单'}}" loading="{{menuBusy}}" bind:action="onSaveMenu" /><ui-button wx:if="{{menuEditingId}}" label="另存新菜单" variant="secondary" disabled="{{menuBusy || menuPending}}" bind:action="onSaveMenuAsNew" /></view>
     </view>
   </ui-sheet>

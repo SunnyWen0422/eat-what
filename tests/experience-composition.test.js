@@ -198,7 +198,9 @@ test('generated page declares permanent requirements filter selection and compos
   const visible = surface.replace(/<view wx:if="\{\{advancedVisible\}\}"[\s\S]*?<\/view><\/view>/g, '')
   assert.match(visible, /<meal-composition-summary[^>]+bind:composition="onOpenComposition"/)
   for (const handler of ['onOpenRequirements', 'onOpenFilter', 'onChooseDishes']) assert.match(visible, new RegExp(`bindtap="${handler}"`))
-  assert.equal((surface.match(/mode="date"/g) || []).length, 1)
+  assert.equal((surface.match(/mode="date"/g) || []).length, 0)
+  const more = template.split('visible="{{moreVisible}}"')[1].split('</ui-sheet>')[0]
+  assert.match(more, /mode="date"[^>]*bindchange="onDateTarget"/)
   assert.match(surface, /dateLabel/)
   assert.doesNotMatch(template, /label="语音输入 · 暂不可用"/)
 })

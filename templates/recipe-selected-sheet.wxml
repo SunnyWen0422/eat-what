@@ -8,7 +8,7 @@
     <button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onRemoveMealDish">移除</button>
   </view>
   <view wx:if="{{!selectedMeal.count}}" class="ew-notice">还没选菜，继续选菜后再保存到日历。</view>
-  <view class="ew-actions"><ui-button label="查看本餐" variant="secondary" bind:action="onViewMeal" /><ui-button label="继续选菜" variant="tertiary" bind:action="onContinueSelecting" /></view>
-  <ui-button wx:if="{{selectedMeal.count}}" slot="footer" label="保存到日历" disabled="{{!selectedMeal.count || selectionBusy || selectionLoading || selectionBlocked}}" bind:action="onSaveToCalendar" />
+  <ui-button label="继续选菜" variant="secondary" bind:action="onContinueSelecting" />
+  <ui-button wx:if="{{selectedMeal.count}}" slot="footer" label="查看本餐" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bind:action="onViewMeal" />
   <ui-button wx:if="{{!selectedMeal.count}}" slot="footer" label="去选菜" bind:action="onContinueSelecting" />
 </ui-sheet>

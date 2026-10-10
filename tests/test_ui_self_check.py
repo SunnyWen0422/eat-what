@@ -12,6 +12,44 @@ from ui_source_audit import ROOT, Template, page_audit, rules, styles, declared_
 
 
 class UiSelfCheckTest(unittest.TestCase):
+    def test_workspace_full_width_and_light_actions_survive_global_button_rules(self):
+        template = Template((ROOT / 'templates/meal-workspace.wxml').read_text(encoding='utf-8'))
+        css = rules(ROOT / 'app.wxss') + rules(ROOT / 'pages/index/index.wxss')
+        entry = next(node for node in template.nodes if 'workspace-requirements-entry' in node.classes())
+        self.assertEqual('100%', styles(entry, css).get('width'))
+        for handler in ['onOpenFilter', 'onChooseDishes', 'onRegenerate']:
+            node = next(node for node in template.nodes if node.attrs.get('bindtap') == handler)
+            result = styles(node, css)
+            self.assertEqual('0', result.get('border'), handler)
+            self.assertEqual('0.8125em', result.get('font-size'), handler)
+
+    def test_detail_secondary_actions_keep_reading_hierarchy(self):
+        route = 'pages/dish-detail/dish-detail'
+        template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
+        css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
+        for handler in ['onShowSelected', 'onShowDetailMore', 'onOpenCooking']:
+            node = next(node for node in template.nodes if node.attrs.get('bindtap') == handler)
+            result = styles(node, css)
+            self.assertEqual('0', result.get('border'), handler)
+            self.assertEqual('transparent', result.get('background'), handler)
+            self.assertEqual('0.8125em', result.get('font-size'), handler)
+
+    def test_own_recipe_save_fills_the_form_and_allows_text_growth(self):
+        route = 'pages/customize/customize'
+        template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
+        css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
+        save = next(node for node in template.nodes if node.attrs.get('bindtap') == 'onSaveCustomDish')
+        result = styles(save, css)
+        self.assertEqual('100%', result.get('width'))
+        self.assertEqual('auto', result.get('height'))
+        self.assertEqual('1.5', result.get('line-height'))
+        self.assertEqual('1em', result.get('font-size'))
+        for handler in ['onToggleCustomExtras', 'onCancelCustom']:
+            node = next(node for node in template.nodes if node.attrs.get('bindtap') == handler)
+            result = styles(node, css)
+            self.assertEqual('0', result.get('border'), handler)
+            self.assertEqual('0.8125em', result.get('font-size'), handler)
+
     @staticmethod
     def fixed_touch_minimum(value):
         match = re.fullmatch(r'(\d+(?:\.\d+)?)px', value or '')

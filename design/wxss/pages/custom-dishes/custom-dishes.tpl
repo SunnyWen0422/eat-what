@@ -22,3 +22,9 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
  .private-dish-row { padding:16px; border-bottom:1px solid {{divider}}; background:{{card}}; }.private-dish-row .ew-title { line-height:1.5; overflow-wrap:anywhere; }.private-dish-row .ew-actions { margin:4px 0 0; gap:12px; }.private-dish-row .danger { margin-left:auto; }.ew-input { font-size:{{font.reading.em}}; line-height:1.7; }.ew-actions { flex-wrap:wrap; }
 
 .personal-recipe-extras { padding:12px 0; border-top:1px solid #E6EAE1; }.personal-recipe-extras input { min-height:48px; }.ew-error { overflow-wrap:anywhere; }
+.private-dish-row { display:flex; align-items:center; gap:8px; background:transparent; padding:0; }
+.private-dish-row compact-dish-row { flex:1; min-width:0; }
+.private-dish-manage { flex:0 0 auto; padding:8px 0; margin:0; font-size:{{font.secondary.em}}; }
+.personal-page-heading { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.personal-page-heading .ew-heading { flex:1; min-width:0; }
+.personal-page-heading button { flex:0 0 auto; margin:0; font-size:{{font.secondary.em}}; }

@@ -90,6 +90,8 @@ def build():
     template = (ROOT / "design/theme.wxss.tpl").read_text(encoding="utf-8")
     template = render_template(template)
     (ROOT / "styles/theme.wxss").write_text("/* Generated from design/tokens.json and theme.wxss.tpl. */\n" + template, encoding="utf-8")
+    component_template = render_template((ROOT / "design/component-theme.wxss.tpl").read_text(encoding="utf-8"))
+    (ROOT / "styles/component-theme.wxss").write_text("/* Generated component-safe theme. */\n" + component_template, encoding="utf-8")
     for item in json.loads((ROOT / "design/wxss-manifest.json").read_text(encoding="utf-8")):
         contents = (ROOT / item["source"]).read_text(encoding="utf-8")
         contents = render_template(contents)

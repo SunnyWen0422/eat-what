@@ -31,13 +31,14 @@ test('calendar meal entry labels actual records before existing or empty plans',
 
 test('calendar detail labels saving a plan separately from recording food', () => {
   const source = read('pages/calendar-detail/calendar-detail.wxml')
-  assert.match(source, /这里保存用餐安排；吃过后用“记录饮食”记下实际吃了什么/)
-  assert.match(source, /'修改饮食记录' : '记录饮食'/)
+  // The approved read-first layout removes the repeated introduction and
+  // gives copying its own destination label instead of generic save wording.
+  assert.match(source, /bindtap="onActualDifferent"[^>]*>更正记录/)
+  assert.match(source, /原安排保留，只复制菜单，不复制实际记录/)
   const expression = source.match(/confirm-label="\{\{(.*?)\}\}"/)
   assert.ok(expression, 'the form confirm label reflects its action')
-  for (const formMode of ['plan', 'copy']) {
-    assert.equal(vm.runInNewContext(expression[1], { formMode }), '保存到日历')
-  }
+  assert.equal(vm.runInNewContext(expression[1], { formMode: 'plan' }), '保存到日历')
+  assert.equal(vm.runInNewContext(expression[1], { formMode: 'copy' }), '复制安排')
   assert.equal(vm.runInNewContext(expression[1], { formMode: 'actual' }), '记录饮食')
 })
 

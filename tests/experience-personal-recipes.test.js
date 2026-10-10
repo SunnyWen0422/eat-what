@@ -108,10 +108,95 @@ test('public copy delegates authenticated ownership to server, preserves source 
   const authenticatedUserId = 'A'; let createdDish, request
   const source = { ...dish, userId: null }, before = plain(source)
   const f = fixture('dish-detail', { copyPersonalDish: async (id, body) => { request = body; createdDish = { id: 22, ownerId: authenticatedUserId }; return createdDish } })
-  f.page.data.dish = source; await f.page.onCopyPersonal()
+  f.page.data.dish = source; await f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal()
   assert.equal(createdDish.ownerId, authenticatedUserId)
   assert.equal(request.ownerId, undefined); assert.equal(request.expectedVersion, 'v1'); assert.deepEqual(source, before)
   assert.match(f.navigation[0], /edit=22/); assert.match(f.page.data.copyMessage || '', /我的菜谱/)
+})
+
+test('copy preview and cancellation never create a recipe or navigate', async () => {
+  let copies = 0
+  const f = fixture('dish-detail', { copyPersonalDish: async () => { copies++; return { id: 22 } } })
+  f.page.data.dish = plain(dish); f.page.onCopyPersonal()
+  assert.equal(f.page.data.showCopyPreview, true); assert.equal(copies, 0)
+  assert.equal(f.page.data.copyPreview.name, dish.name)
+  f.page.onCancelCopyPersonal(); assert.equal(f.page.data.showCopyPreview, false)
+  await f.page.onConfirmCopyPersonal(); assert.equal(copies, 0); assert.equal(f.navigation.length, 0)
+})
+
+test('copy confirmation rejects account or recipe version drift and retry reuses original request', async () => {
+  const sent = []
+  const f = fixture('dish-detail', { copyPersonalDish: async (id, body) => { sent.push(plain(body)); if (sent.length === 1) throw { isNetworkError: true }; return { id: 22 } } })
+  f.page.data.dish = plain(dish); f.page.onCopyPersonal(); f.page.data.dish.contentVersion = 'v2'
+  await f.page.onConfirmCopyPersonal(); assert.equal(sent.length, 0)
+  f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal(); await f.page.onConfirmCopyPersonal()
+  assert.deepEqual(sent[1], sent[0]); assert.equal(sent.length, 2)
+  const other = fixture('dish-detail', { copyPersonalDish: async () => { throw Error('must not create') } })
+  other.page.data.dish = plain(dish); other.page.onCopyPersonal(); other.account.id = 'B'; await other.page.onConfirmCopyPersonal()
+  assert.equal(other.navigation.length, 0)
+})
+
+test('recipe browsing opens detail with filters scroll and meal selection retained', () => {
+  const f = fixture(); f.page.data.searchKeyword = '鱼'; f.page.data.browseScrollTop = 380
+  f.page.data.selectedIds = [8]; f.page.allDishesMap[7] = plain(dish)
+  f.page.onTapDish({ detail: { id: 7 }, currentTarget: { dataset: {} } })
+  assert.match(f.navigation[0], /dish-detail.*id=7/); assert.equal(f.page.data.searchKeyword, '鱼')
+  assert.equal(f.page.data.browseScrollTop, 380); assert.deepEqual(plain(f.page.data.selectedIds), [8]); assert.equal(f.sent.length, 0)
+})
+
+test('reusable-menu selection refuses an eleventh dish without truncating or writing the meal', () => {
+  const f = fixture(); f.page.data.menuFormVisible = true; f.page.data.selectedIds = Array.from({ length: 10 }, (_, i) => i + 1)
+  f.page.data.selectedTotal = 10; f.page.allDishesMap[11] = { id: 11, name: '第十一道' }
+  f.page.onToggleSelect({ detail: { id: 11 }, currentTarget: { dataset: {} } })
+  assert.deepEqual(plain(f.page.data.selectedIds), Array.from({ length: 10 }, (_, i) => i + 1)); assert.equal(f.page.data.selectedTotal, 10)
+  assert.match(f.page.data.saveError, /10/); assert.equal(f.sent.length, 0); assert.equal(f.calendarWrites.length, 0)
+})
+
+test('menu summary opens only one detail and changing target is an explicit toggle', () => {
+  const f = fixture(); f.page.data.menus = [menu()]; f.page.data.selectedIds = [9]
+  f.page.onOpenMenuDetail(event('id', 3)); assert.equal(f.page.data.activeMenu.id, 3)
+  assert.equal(f.page.data.showMenuTarget, false); assert.deepEqual(plain(f.page.data.selectedIds), [9])
+  f.page.onToggleMenuTarget(); assert.equal(f.page.data.showMenuTarget, true)
+  f.page.onBackToMenus(); assert.equal(f.page.data.activeMenu, null); assert.equal(f.sent.length, 0)
+})
+
+test('own recipe management offers explicit edit or delete after a read-first row', () => {
+  const f = fixture('custom-dishes'); f.page.data.dishes = [plain(dish)]
+  f.page.onViewDish({ detail: { id: 7 }, currentTarget: { dataset: {} } }); assert.match(f.navigation[0], /id=7/)
+  f.page.onManageDish(event('id', 7)); assert.deepEqual(plain(f.dialogs[0].itemList), ['编辑菜谱', '删除菜谱'])
+  f.dialogs[0].success({ tapIndex: 0 }); assert.equal(f.page.data.editing, true); assert.equal(f.sent.length, 0)
+})
+
+test('detail More actions close without writes and measured bottom height covers its spacer', () => {
+  const f = fixture('dish-detail'); f.page.data.dish = plain(dish)
+  f.page.onShowDetailMore(); assert.equal(f.page.data.showDetailMore, true)
+  f.page.onHideDetailMore(); assert.equal(f.page.data.showDetailMore, false); assert.equal(f.sent.length, 0)
+  f.wx.createSelectorQuery = () => ({ in() { return this }, select() { return this }, boundingClientRect(callback) { callback({ height: 247.4 }); return this }, exec() {} })
+  f.page.measureDetailActions(); assert.ok(f.page.data.detailActionHeight >= 248)
+})
+
+test('summary detail and management cannot retain another account or a stale menu', async () => {
+  const f = fixture(); f.page.data.menus = [menu()]; f.page.onOpenMenuDetail(event('id', 3))
+  f.api.getPersonalMenus = async () => []; await f.page.loadMenus(); assert.equal(f.page.data.activeMenu, null)
+  f.page.data.menus = [menu()]; f.page.onOpenMenuDetail(event('id', 3)); f.account.id = 'B'; f.page.ensureBrowseOwner()
+  assert.equal(f.page.data.activeMenu, null); assert.equal(f.page.data.showMenuTarget, false)
+  const own = fixture('custom-dishes'); own.page.data.dishes = [plain(dish)]; own.page.onManageDish(event('id', 7))
+  own.account.id = 'B'; own.dialogs[0].success({ tapIndex: 0 }); assert.equal(own.page.data.editing, false)
+})
+
+test('copy pending cancellation can reopen and recover exactly the original request', async () => {
+  const sent = [], f = fixture('dish-detail', { copyPersonalDish: async (id, body) => { sent.push(plain(body)); if (sent.length === 1) throw { isNetworkError: true }; return { id: 22 } } })
+  f.page.data.dish = plain(dish); f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal()
+  assert.equal(f.page.data.copyPending, true); f.page.onCancelCopyPersonal(); assert.equal(sent.length, 1)
+  f.page.onCopyPersonal(); assert.equal(f.page.data.copyPending, true); await f.page.onConfirmCopyPersonal()
+  assert.equal(sent.length, 2); assert.deepEqual(sent[1], sent[0]); assert.match(f.navigation[0], /edit=22/)
+})
+
+test('late copy receipt after a new recipe read cannot navigate or expose old result', async () => {
+  const pending = deferred(), f = fixture('dish-detail', { copyPersonalDish: () => pending.promise })
+  f.page.data.dish = plain(dish); f.page._epoch = 1; f.page.onCopyPersonal(); const operation = f.page.onConfirmCopyPersonal()
+  f.page._epoch = 2; f.page._copyPreviewBinding = null; f.page.data.dish = { ...dish, id: 8 }
+  pending.resolve({ id: 22 }); await operation; assert.equal(f.navigation.length, 0); assert.equal(f.page.data.copyMessage, '')
 })
 test('saving reusable menu only writes a template and preserves historical snapshots', async () => {
   const f = fixture(), historyBeforeTemplateEdit = [{ date: '2026-10-01', dishes: [plain(dish)] }]
@@ -254,7 +339,7 @@ test('guide is dismissible once per account and does not create a preference or 
 test('template editor cannot expose calendar save for its independent selection', () => {
   const source = fs.readFileSync('pages/customize/customize.wxml', 'utf8')
   const calendar = source.match(/<button([^>]+)bindtap="onSaveToCalendar"/)[1]
-  assert.match(calendar, /wx:if="\{\{!menuFormVisible && !menuEditingId && !menuPending && selectedTotal\}\}"/)
+  assert.match(calendar, /wx:if="\{\{!menuFormVisible && !menuEditingId && !menuPending && !selectedMeal && selectedTotal\}\}"/)
   assert.equal(vm.runInNewContext(calendar.match(/wx:if="\{\{([^}]+)\}\}"/)[1], {menuFormVisible:true,menuEditingId:3,menuPending:false}), false)
 })
 
@@ -356,7 +441,7 @@ for (const confirm of [false, true]) test(`rereview R1: visible same-template ed
   const source = fs.readFileSync('pages/customize/customize.wxml', 'utf8'), reload = source.match(/bindtap="([^"]+)">重新读取菜单/)[1]
   await f.page[reload](); assert.equal(f.page.data.menus[0].version, 3); assert.equal(f.page._menuVersion, 2); assert.equal(f.page.data.menuName, '待保留的本地名称')
   await f.page.onResumeMenuForm(); assert.equal(reads, 1); assert.equal(f.page.data.menuName, '待保留的本地名称')
-  const edit = source.match(/bindtap="([^"]+)">编辑组合/)[1]; await f.page[edit](event('id', 3))
+  const edit = source.match(/bindtap="([^"]+)">重新读取当前常用菜单/)[1]; await f.page[edit](event('id', 3))
   assert.equal(f.dialogs.length, 1); assert.match(f.dialogs[0].title, /重新读取/); assert.equal(reads, 1); assert.equal(f.page.data.menuName, '待保留的本地名称')
   await f.dialogs[0].success({ confirm }); assert.equal(attempts.length, 1, 'refresh decision must not auto-save')
   if (!confirm) { assert.equal(reads, 1); assert.equal(f.page._menuVersion, 2); assert.equal(f.page.data.menuName, '待保留的本地名称'); assert.equal(Number(f.page.data.menuPeople), 4) }

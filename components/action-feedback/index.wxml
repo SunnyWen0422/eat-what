@@ -1,5 +1,5 @@
 <view wx:if="{{feedback.message}}" class="action-feedback {{feedback.state}}" style="animation-duration:{{motionDuration}}ms" aria-live="polite">
   <ui-icon name="{{feedback.state === 'success' ? 'check' : feedback.state === 'pending' ? 'clock' : 'warning'}}" size="18" />
   <text class="feedback-message">{{feedback.message}}</text>
-  <view class="feedback-actions"><button wx:if="{{feedback.state === 'success' && feedback.undoAvailable}}" disabled="{{busy}}" catchtap="onUndo">{{feedback.undoLabel || '撤销上一步'}}</button><button wx:if="{{feedback.state === 'success' && feedback.target}}" disabled="{{busy}}" catchtap="onView">{{feedback.viewLabel || '查看'}}</button></view>
+  <view class="feedback-actions"><button class="feedback-action" wx:if="{{feedback.state === 'success' && feedback.undoAvailable}}" disabled="{{busy}}" catchtap="onUndo">{{feedback.undoLabel || '撤销上一步'}}</button><button class="feedback-action" wx:if="{{feedback.state === 'success' && feedback.target}}" disabled="{{busy}}" catchtap="onView">{{feedback.viewLabel || '查看'}}</button></view>
 </view>

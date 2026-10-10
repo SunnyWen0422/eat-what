@@ -260,7 +260,7 @@ module.exports = function workspacePage(options = {}) {
         saveState,savedTarget,savedMessage:savedView ? `已保存到${savedView.label}` : '',saveTargetLocked:!!this.data.busy || !!state.pending,saveRecoveryPending:!!state.pending && state.pending.type==='confirm' })
       const context=this.data.context
       if(!this.data.peopleError)this.setData({peopleInput:String(context.people)})
-      this.setData({todayDate:defaultTarget().date,pageTitle:this.data.mode==='assistant'?'本餐对话':this.data.mode==='result'?'本餐方案':'今天',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
+      this.setData({todayDate:defaultTarget().date,pageTitle:this.data.mode==='assistant'?'本餐对话':draft.dishes.length?'本餐菜单':context.date===defaultTarget().date?'今天吃什么？':'这餐吃什么？',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
         mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
         ...contextPresentation(context),
         conditionsNotice:w && w.status === 'needs_regeneration' ? '条件已更新' : ''})
@@ -576,7 +576,7 @@ module.exports = function workspacePage(options = {}) {
       if (!this.current() || this.data.busy || this.data.contextLocked) return
       const c = clone(this.data.context)
       this.onCancelRequirements();this.onCloseComposition();this.onClosePeople();
-      this.setData({ settingsVisible: true, settingsContext: c, ownedText: c.ownedIngredients.join('、'), settingsError: '' }); this.renderCounts()
+      this.setData({ moreVisible:false, settingsVisible: true, settingsContext: c, ownedText: c.ownedIngredients.join('、'), settingsError: '' }); this.renderCounts()
     },
     onCloseMealSettings() { if (!this.data.busy) this.setData({ settingsVisible: false,settingsContext:null }) },
     onPeopleSetting(e) { this.setData({ 'settingsContext.people': e.detail.value }) },
@@ -607,7 +607,12 @@ module.exports = function workspacePage(options = {}) {
       this.setData({ moreVisible: false }); wx.switchTab({ url: '/pages/customize/customize' })
     },
     onReturnToday() { return this.switchTarget(defaultTarget(),{followToday:true}) },
-    onDateTarget(e) { return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
+    onDateTarget(e) { this.setData({moreVisible:false}); return this.switchTarget({ date: e.detail.value, mealType: this.data.context.mealType }) },
+    onMealTab(e) {
+      const index = Number(e.currentTarget.dataset.index)
+      if (!Number.isInteger(index) || index < 0 || index >= MEALS.length || this.data.loading || this.data.busy || index === this.data.mealIndex) return
+      return this.onMealTarget({detail:{value:index}})
+    },
     onMealTarget(e) {
       const followToday = (options.mode || 'today') === 'today' && !(this._params || {}).date &&
         this.data.context.date === defaultTarget().date && !wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))

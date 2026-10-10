@@ -1,1 +1,1 @@
-<button class="ew-hit-target button {{variant}}" disabled="{{disabled || loading}}" loading="{{loading}}" bindtap="onTap">{{label}}<slot /></button>
+<button class="{{(disabled || loading) ? 'is-disabled' : ''}} ew-hit-target button {{variant}}" disabled="{{disabled || loading}}" loading="{{loading}}" bindtap="onTap">{{label}}<slot /></button>

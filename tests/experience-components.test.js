@@ -395,13 +395,14 @@ for (const name of ['compact-dish-row', 'action-feedback']) {
     assert.equal(f.view.data.motionDuration, 0)
   })
 }
-test('empty meal selections route to picking instead of disabled calendar saving', () => {
+test('selected meal sheet leads to the meal while an empty selection leads to picking', () => {
   const shared = read('templates/recipe-selected-sheet.wxml')
-  assert.match(shared, /<ui-button[^>]*wx:if="\{\{selectedMeal.count\}\}"[^>]*label="保存到日历"/)
+  assert.match(shared, /<ui-button[^>]*wx:if="\{\{selectedMeal.count\}\}"[^>]*label="查看本餐"[^>]*bind:action="onViewMeal"/)
   assert.match(shared, /<ui-button[^>]*wx:if="\{\{!selectedMeal.count\}\}"[^>]*label="去选菜"[^>]*bind:action="onContinueSelecting"/)
   const custom = read('pages/customize/customize.wxml')
-  assert.match(custom, /<button[^>]*wx:if="\{\{!menuFormVisible && !menuEditingId && !menuPending && selectedTotal\}\}"[^>]*bindtap="onSaveToCalendar"/)
-  assert.match(custom, /<button[^>]*wx:if="\{\{!menuFormVisible && !menuEditingId && !menuPending && !selectedTotal\}\}"[^>]*bindtap="onContinueSelecting">去选菜/)
+  assert.match(custom, /class="ew-hit-target selected-wrap"[^>]*bindtap="onShowSelected"/)
+  assert.match(custom, /class="selected-num"/)
+  assert.doesNotMatch(custom, /class="bottom-bar"[\s\S]*?<button[^>]*bindtap="onViewMeal"/)
 })
 test('help describes replace undo and existing legacy locks without offering keep', () => {
   const source = read('pages/about/about.wxml')

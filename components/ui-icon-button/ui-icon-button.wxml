@@ -1,1 +1,1 @@
-<button class="ew-hit-target icon-button" aria-label="{{label}}" disabled="{{disabled}}" bindtap="tap"><ui-icon name="{{name}}" label="{{label}}" /></button>
+<button class="{{(disabled) ? 'is-disabled' : ''}} ew-hit-target icon-button" aria-label="{{label}}" disabled="{{disabled}}" bindtap="tap"><ui-icon name="{{name}}" label="{{label}}" /></button>

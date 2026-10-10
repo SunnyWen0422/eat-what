@@ -1,1 +1,1 @@
-<button class="ew-hit-target chip {{selected ? 'active' : ''}}" disabled="{{disabled}}" aria-pressed="{{selected}}" bindtap="tap">{{label}}</button>
+<button class="{{(disabled) ? 'is-disabled' : ''}} ew-hit-target chip {{selected ? 'active' : ''}}" disabled="{{disabled}}" aria-pressed="{{selected}}" bindtap="tap">{{label}}</button>

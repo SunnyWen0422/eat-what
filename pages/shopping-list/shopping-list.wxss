@@ -62,3 +62,13 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 .dish-chevron { display:block; flex:0 0 auto; }
 .dish-chevron.expanded { transform:rotate(90deg); }
+
+/* Secondary view controls and source text reflow without reducing touch targets. */
+.shopping-page > .ew-between { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; }
+.shopping-page > .ew-between > view { flex:1 1 180px; min-width:0; }
+.shopping-page .ew-heading { font-size:1.5em; }
+.shopping-page .ew-tabs { display:flex; flex-wrap:wrap; gap:4px; }
+.shopping-page .ew-tabs button { min-width:0; flex:1 1 100px; margin:0; white-space:normal; font-size:0.875em; line-height:1.5; }
+.shopping-page .quantity-warning { background:transparent; padding:0 8px 6px; margin-top:0; font-size:0.8125em; }
+.shopping-page .dish-header { margin:0; white-space:normal; }
+.shopping-page .view-count { font-size:0.8125em; }

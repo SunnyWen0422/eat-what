@@ -4,7 +4,7 @@ const labels = { meat: '荤菜', veg: '素菜', soup: '汤羹', staple: '主食'
 
 Component({
   properties: { mode: { type: String, value: 'replace' }, selected: Boolean, dish: Object, busy: Boolean, disabled: Boolean, feedback: String, reducedMotion: Boolean },
-  data: { dishView: {}, imageFailed: false, motionDuration: 0 },
+  data: { dishView: { name: '菜品', meta: '', image: '', placeholderIcon: 'recipe' }, imageFailed: false, motionDuration: 0 },
   lifetimes: { attached() { this.updateDish(); this.updateMotion() } },
   pageLifetimes: { show() { this.updateMotion() } },
   observers: { dish() { this.updateDish(); this.updateMotion() }, reducedMotion() { this.updateMotion() } },

@@ -77,8 +77,8 @@
 }
 .browse-filter-header { justify-content: space-between; margin-top:{{space.1.px*1.25}}; }
 .browse-filter-command { gap:{{space.1.px}}; color:{{text}}; font-size:{{font.secondary.em}}; font-weight: 600; }
-.browse-filter-arrow,
-.browse-filter-clear { color: {{brand}}; font-size:{{font.caption.em}}; font-weight: 400; }
+.browse-filter-arrow { color: {{brand}}; font-size:1em; font-weight:400; }
+.browse-filter-clear { color: {{brand}}; font-size:{{font.secondary.em}}; font-weight:400; }
 .browse-filter-summary { display: block; margin:{{space.0.px*1.5}} 0 {{space.1.px*1.25}}; color:{{muted}}; font-size:{{font.caption.em}}; line-height: 1.5; word-break: break-word; }
 .browse-filter-panel { margin-top:{{space.1.px*1.25}}; padding-top:{{space.1.px}}; border-top: 1px solid #edf0ee; }
 .browse-filter-group { margin-bottom:{{space.1.px*1.125}}; }
@@ -488,3 +488,38 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .sidebar-item { width:auto; }
 
 .personal-recipe-extras { padding:12px 0; border-top:1px solid #E6EAE1; }.personal-recipe-extras input { min-height:48px; }.ew-error { overflow-wrap:anywhere; }
+
+/* Browsing has one read action; reusable-menu editing keeps its own selection context. */
+.search-input { height:auto; box-sizing:border-box; padding:10px 12px; line-height:1.5; }
+.search-wrap { flex:none; padding:0 0 8px; border:0; }
+.recipe-item { margin-bottom:0; }
+.recipe-sources button { font-size:{{font.secondary.em}}; background:transparent; border-radius:8px; }
+.personal-recipe-entry { display:flex; align-items:center; flex-wrap:wrap; gap:8px; flex:none; }
+.personal-recipe-entry .ew-muted { flex:1; min-width:0; }
+.personal-recipe-entry button { margin:0; font-size:{{font.secondary.em}}; }
+.ew-page .bottom-bar { flex:none; flex-wrap:wrap; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); gap:4px 8px; }
+.ew-page .bottom-bar .selected-wrap { order:0; flex:1 1 140px; min-width:{{controls.touchSize.px}}; justify-content:flex-start; gap:8px; }
+.ew-page .bottom-bar .selected-status { flex:1 1 140px; min-width:0; font-size:{{font.secondary.em}}; }
+.ew-page .bottom-bar > .ew-link { flex:0 1 auto; margin:0; padding:4px; white-space:normal; line-height:1.5; }
+.common-menu-summary { display:grid; grid-template-columns:1fr auto; width:100%; text-align:left; padding:12px 0; margin:0; background:transparent; border-bottom:1px solid {{divider}}; white-space:normal; line-height:1.5; }
+.common-menu-summary::after { border:0; }
+.common-menu-summary .ew-title,.common-menu-summary .ew-muted { grid-column:1; min-width:0; overflow-wrap:anywhere; }
+.common-menu-summary .ew-title { font-size:1em; }
+.common-menu-summary .ew-muted { font-size:{{font.secondary.em}}; }
+.common-menu-arrow { grid-column:2; grid-row:1 / 3; align-self:center; color:{{muted}}; padding:8px; }
+.menu-target-context { width:100%; text-align:left; white-space:normal; font-size:{{font.secondary.em}}; line-height:1.5; padding:8px 0; }
+.menu-target-options { display:flex; flex-wrap:wrap; gap:8px; }
+.menu-target-options picker { flex:1 1 140px; min-width:0; }
+.ew-page button.menu-use-primary { background:{{brand}}; color:{{card}}; min-height:48px; width:100%; line-height:1.5; padding:12px 16px; border-radius:{{radius.2.px}}; font-size:1em; white-space:normal; }
+.danger { color:{{danger}}; }
+.recipe-browse-scroll { flex:1; min-height:0; width:100%; height:0; }
+.recipe-browse-scroll .content { display:block; height:auto; overflow:visible; }
+.recipe-browse-scroll .dish-list,.recipe-browse-scroll .custom-form { height:auto; min-height:0; overflow:visible; }
+.recipe-browse-scroll .dish-list-content { padding-bottom:16px; }
+.recipe-page-header { margin-bottom:8px; }
+.common-menu-edit-row { padding:12px 0; border-bottom:1px solid {{divider}}; }
+.common-menu-edit-row .ew-title { font-size:1em; line-height:1.5; overflow-wrap:anywhere; }
+.selected-num { flex:1; min-width:0; overflow-wrap:anywhere; }
+.selected-view-link { flex:0 0 auto; font-size:{{font.secondary.em}}; color:{{brand}}; }
+.ew-page .custom-form button.save-custom-btn { display:flex; align-items:center; justify-content:center; width:100%; height:auto; min-height:{{controls.primaryHeight.px}}; line-height:1.5; padding:12px 16px; margin:12px 0 0; border:0; border-radius:{{radius.2.px}}; font-size:{{font.body.em}}; white-space:normal; }
+.ew-page .custom-form button.custom-form-secondary { font-size:{{font.secondary.em}}; line-height:1.5; padding:8px 0; margin:0; background:transparent; border:0; border-radius:0; white-space:normal; }

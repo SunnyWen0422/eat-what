@@ -70,6 +70,21 @@ test('compact summary and by-dish use the same source counts without auto inputs
   const markup = fs.readFileSync('pages/shopping-preview/shopping-preview.wxml', 'utf8')
   assert.match(markup, /加入购物清单（/); assert.doesNotMatch(markup, /bindtap="onRemoveItem"[^>]*>移除/)
 })
+test('by-dish groups start folded, retain fold choice on return and do not mutate preparation',async()=>{
+ const h=await loaded();const original=clone(h.page.data.dishes),group=h.page.data.shoppingView.groups[0];assert.equal(group.expanded,false);assert.equal(group.sourceCount,3);assert.equal(h.page.data.peopleVisible,false)
+ h.page.onToggleDish({currentTarget:{dataset:{key:group.selectionKey}}});assert.equal(h.page.data.shoppingView.groups[0].expanded,true);assert.deepEqual(clone(h.page.data.dishes),original);h.page.onUnload()
+ const returned=await loaded({storage:h.storage,selection:null});assert.equal(returned.page.data.shoppingView.groups[0].expanded,true);assert.equal(returned.page.data.itemCount,3)
+ returned.page.onToggleDish({currentTarget:{dataset:{key:group.selectionKey}}});assert.equal(returned.page.data.shoppingView.groups[0].expanded,false)
+})
+test('read-only single quantity opens only that source; multi-source quantity opens sources without redistribution',async()=>{
+ const h=await loaded();h.page.onEditRow({currentTarget:{dataset:{key:h.page.data.shoppingView.rows[0].key}}});assert.equal(h.page.data.formVisible,true);assert.equal(h.page._edit.itemIndex,0);h.page.closeForm()
+ const safe={calculationStatus:'CALCULATED',servingsVerified:true,parseStatus:'PARSED',quantityValue:20,quantityText:'20g',unitFamily:'mass',unitCode:'g'};Object.assign(h.page.data.dishes[0].items[0],safe);Object.assign(h.page.data.dishes[0].items[1],safe);h.page.refreshView()
+ const row=h.page.data.shoppingView.rows.find(row=>row.sourceCount===2);h.page.onEditRow({currentTarget:{dataset:{key:row.key}}});assert.equal(h.page.data.formVisible,false);assert.equal(h.page.data.sourcesVisible,true);assert.equal(h.page.data.sourceRows.length,2)
+ h.page.onEditItem({currentTarget:{dataset:{dishIndex:h.page.data.sourceRows[1].dishIndex,itemIndex:h.page.data.sourceRows[1].itemIndex}}});h.page.onQuantity({detail:{value:'半袋'}});h.page.saveForm();assert.equal(h.page.data.dishes[0].items[0].quantityText,'20g');assert.equal(h.page.data.dishes[0].items[1].quantityText,'半袋');assert.equal(h.page.data.itemCount,3)
+})
+test('on-demand people edit keeps preparation intact when recalculation is canceled',async()=>{
+ const h=await loaded({approve:false});h.page.onRemoveItem(event());const original=clone(h.page.data.dishes);h.page.onPeopleOptions();assert.equal(h.page.data.peopleVisible,true);h.page.onPeopleDraft({detail:{value:'4'}});await h.page.onApplyPeople();assert.deepEqual(clone(h.page.data.dishes),original);assert.equal(h.page.data.targetPeople,2);assert.equal(h.page.data.itemCount,2)
+})
 test('returning before submission restores editable preparation without loading forever', async () => {
   const h = await loaded(); h.page.onRemoveItem(event()); h.page.onUnload()
   const returned = await loaded({ storage: h.storage, selection: null })

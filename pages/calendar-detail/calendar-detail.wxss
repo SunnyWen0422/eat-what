@@ -27,3 +27,19 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .dish-recipe-link::after { border:0; }
 .original-plan .ew-reading { display:block; }
 .meal-more-panel { padding:12px; background:#FFFFFF; border-radius:14px; }
+
+/* One meal remains the reading subject; secondary actions use rows and a sheet. */
+.calendar-meal { margin:12px 0 24px; }
+.meal-heading { display:flex; align-items:center; gap:8px; }
+.meal-heading .ew-grow { min-width:0; flex:1; }
+.meal-status { display:block; font-size:0.875em; }
+.calendar-dish-row > compact-dish-row { width:100%; min-width:0; }
+.calendar-detail-page .meal-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; margin:0; padding:8px 0; text-align:left; white-space:normal; overflow-wrap:anywhere; background:transparent; border-radius:0; border-bottom:1px solid #E6EAE1; font-size:1em; line-height:1.5; color:#28634E; }
+.meal-action-row::after { border:0; }
+.meal-action-row > ui-icon { flex:0 0 auto; }
+.meal-status-actions { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:8px; }
+.meal-status-actions .ew-link { margin:0; font-size:0.875em; padding:0; }
+.meal-sheet-list .danger-link { color:#A94442; }
+.sheet-explanation { display:block; padding:8px 0; }
+.calendar-detail-page .ew-reading,.original-plan { overflow-wrap:anywhere; white-space:normal; }
+.calendar-detail-page .ew-heading { font-size:1.5em; }

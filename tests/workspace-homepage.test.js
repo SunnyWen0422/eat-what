@@ -23,9 +23,10 @@ test('shared homepage keeps one optional requirements entry and an independent p
   assert.match(firstScreen, /本餐要求（选填）/)
   assert.equal((firstScreen.match(/bindtap="onOpenRequirements"/g) || []).length, 1)
   assert.equal((firstScreen.match(/bindtap="onChooseDishes"/g) || []).length, 1)
-  assert.doesNotMatch(firstScreen, /<textarea|补充要求|聊聊这餐|助手历史|bindtap="onQuickActual"/)
+  assert.doesNotMatch(firstScreen, /<textarea|聊聊这餐|助手历史|bindtap="onQuickActual"/)
   assert.match(firstScreen, /hardExclusionSummary/)
-  assert.match(firstScreen, /wx:if="\{\{advancedVisible\}\}"/)
+  assert.doesNotMatch(firstScreen, /bindchange="onDateTarget"|bind:action="onOpenMealSettings"/)
+  assert.match(firstScreen, /bindtap="onMealTab"/)
   assert.match(template, /title="本餐要求（选填）"/)
   assert.doesNotMatch(template, /bind:change="onPeopleSetting"/)
   assert.match(template, /title="\{\{confirmationTitle\}\}"/)
@@ -37,6 +38,27 @@ test('empty, generated, planned and needs-input states have one explicit next ac
   assert.equal(deriveWorkspacePresentation({ ...view, status: 'draft', canConfirm: true }).primaryLabel, '保存到日历')
   assert.equal(deriveWorkspacePresentation({ ...view, status: 'planned', linkedPlan: {} }).primaryAction, 'onViewRecipes')
   assert.equal(deriveWorkspacePresentation({ ...view, status: 'needs_input' }).primaryLabel, '调整本餐要求')
+})
+
+test('meal tabs keep the selected date, restore its meal and ignore busy or invalid taps', async t => {
+  const f = fixture(), page = f.createPage()
+  t.after(() => page.onUnload())
+  await page.initializeWorkspace(target)
+  const originalDate = page.data.context.date
+  const select = index => page.onMealTab({ currentTarget: { dataset: { index } } })
+  await select(0)
+  assert.equal(page.data.context.date, originalDate)
+  assert.equal(page.data.context.mealType, 'breakfast')
+  assert.equal(page.data.mealIndex, 0)
+  for (const value of [-1, 3, 'bad', 0.5]) await select(value)
+  assert.equal(page.data.context.mealType, 'breakfast')
+  page.data.busy = true
+  await select(1)
+  assert.equal(page.data.context.mealType, 'breakfast')
+  page.data.busy = false
+  await select(2)
+  assert.equal(page.data.context.date, originalDate)
+  assert.equal(page.data.context.mealType, 'dinner')
 })
 
 for (const syncStatus of ['unknown', 'offline', 'conflict']) {
@@ -156,7 +178,7 @@ test('saving a generated menu reviews a target before confirming and never recor
   assert.equal(f.calls[0].body.expectedPlanRevision, 0)
   assert.equal(f.calls.filter(call => call.type === 'actual').length, 0)
   const template = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
-  assert.match(template, /workspace-save-target[^>]*>[\s\S]*?context.date[\s\S]*?mealName/)
+  assert.match(template, /workspace-save-fields[^>]*>[\s\S]*?saveTarget.date[\s\S]*?mealLabels\[saveMealIndex\]/)
   assert.match(template, /仅保存计划，不记录吃过/)
   assert.equal(f.calls.filter(call => call.type === 'confirm').length, 1)
   assert.equal(page.data.primaryAction, 'onViewRecipes')

@@ -76,7 +76,7 @@ test('detail copy checks content version and opens its own editable copy', async
   let body
   const { page, navigation } = load('pages/dish-detail/dish-detail', { copyPersonalDish: async (id, value) => { body = value; return { id: 9 } } })
   page._scope = 'A:dishView'; page.data.dish = { id: 1, name: '鱼', contentVersion: 'v1' }
-  await page.onCopyPersonal(); assert.equal(body.expectedVersion, 'v1'); assert.ok(body.requestId); assert.match(navigation[0].url, /edit=9/)
+  await page.onCopyPersonal(); await page.onConfirmCopyPersonal(); assert.equal(body.expectedVersion, 'v1'); assert.ok(body.requestId); assert.match(navigation[0].url, /edit=9/)
 })
 test('menu apply binds resolved target/version/people and only opens a draft', async () => {
   const requests = []

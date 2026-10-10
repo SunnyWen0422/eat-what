@@ -56,7 +56,7 @@ Page({
       const justChecked = !!(transition && row.itemIds.some(id => transition.itemIds.includes(id)))
       return { ...row, sourceExpanded: (this._expandedSources || []).includes(row.key), justChecked, checkedState: justChecked ? 'all' : row.checkedState }
     }
-    const dishes = display.groups.map(group => ({ ...group, expanded: (this._expandedDishes || []).includes(group.key), items: group.items.map(decorate) }))
+    const dishes = display.groups.map(group => ({ ...group,contextLabel:group.sourceDate?`${Number(group.sourceDate.slice(5,7))}月${Number(group.sourceDate.slice(8,10))}日 ${flow.mealNames[group.sourceMealType] || ''}`.trim():'手动添加', expanded: (this._expandedDishes || []).includes(group.key), items: group.items.map(decorate) }))
     this.setData({ pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
       dishes, summaryRows: decorateShoppingRows(display.rows.map(decorate), [], this._expandedSources || []) })
   },

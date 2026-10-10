@@ -1,6 +1,6 @@
 <view class="ingredient-row {{checked ? 'is-checked' : ''}}">
-  <button class="ingredient-check" disabled="{{busy}}" catchtap="onCheck" aria-role="checkbox" aria-checked="{{checked}}" aria-label="{{checked ? '移回待买：' : '标为已买：'}}{{rowView.name}}"><view class="check-box"><ui-icon wx:if="{{checked}}" name="check" size="16" /></view></button>
+  <button class="ingredient-control {{(busy) ? 'is-disabled' : ''}} ingredient-check" disabled="{{busy}}" catchtap="onCheck" aria-role="checkbox" aria-checked="{{checked}}" aria-label="{{checked ? '移回待买：' : '标为已买：'}}{{rowView.name}}"><view class="check-box"><ui-icon wx:if="{{checked}}" name="check" size="16" /></view></button>
   <text class="ingredient-name">{{rowView.name}}</text>
-  <button class="ingredient-quantity" disabled="{{busy}}" catchtap="onEdit" aria-label="编辑{{rowView.name}}用量{{rowView.sourceCount > 1 ? '，先查看来源' : ''}}">{{rowView.quantityLabel}}</button>
-  <button class="ingredient-sources" disabled="{{busy}}" catchtap="onSources" aria-label="查看{{rowView.name}}的来源"><ui-icon name="chevron-right" tone="muted" size="16" /></button>
+  <button class="ingredient-control {{(busy) ? 'is-disabled' : ''}} ingredient-quantity" disabled="{{busy}}" catchtap="onEdit" aria-label="编辑{{rowView.name}}用量{{rowView.sourceCount > 1 ? '，先查看来源' : ''}}">{{rowView.quantityLabel}}</button>
+  <button class="ingredient-control {{(busy) ? 'is-disabled' : ''}} ingredient-sources" disabled="{{busy}}" catchtap="onSources" aria-label="查看{{rowView.name}}的来源"><ui-icon name="chevron-right" tone="muted" size="16" /></button>
 </view>

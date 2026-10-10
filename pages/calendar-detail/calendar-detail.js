@@ -18,24 +18,26 @@ Page({
   onActualReload(...args){return actual.onActualReload.call(this,...args)},
   submitMealActual(...args){return actual.submitMealActual.call(this,...args)},
   sendMealActual(...args){return actual.sendMealActual.call(this,...args)},
-  data: { actualVisible:false,actualBusy:false,actualText:'',actualMode:'changed',copyUnknown:false,copyPendingMeal:'',fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
+  data: { actualVisible:false,actualBusy:false,actualText:'',actualMode:'changed',copyUnknown:false,copyPendingMeal:'',copyMealType:'',copyMealOptions:['早餐','午餐','晚餐'],copyMealIndex:2,sheetMode:'',sheetMeal:null,fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
   onLoad(options) { const day=options.date || flow.today();this.setData({ dateHeading:`${Number(day.slice(5,7))}月${Number(day.slice(8,10))}日${flow.mealNames[options.mealType]?' '+flow.mealNames[options.mealType]:''}`,focusedMeal:flow.mealNames[options.mealType]?options.mealType:'', selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
   onShow() { this.loadMealRecords() },
-  onAdjustMeal(e) { const type=e.currentTarget.dataset.meal;if(this.data.mutating || !this.meal(type)?.plan || this._viewScope!==getUserStorageKey('mealView'))return;this.setData({adjustMeal:this.data.adjustMeal===type?'':type,manageMeal:'',expandedMeal:''}) },
-  onManageMeal(e) { const type=e.currentTarget.dataset.meal;if(this.data.mutating || this._viewScope!==getUserStorageKey('mealView'))return;this.setData({manageMeal:this.data.manageMeal===type?'':type,adjustMeal:'',expandedMeal:''}) },
+  openMealSheet(type, mode) { const meal=this.meal(type);if(!meal || this.data.mutating || this.data.actualBusy || this._viewScope!==getUserStorageKey('mealView'))return;this.setData({sheetMode:mode,sheetMeal:meal}) },
+  closeMealSheet() { if(!this.data.mutating)this.setData({sheetMode:'',sheetMeal:null}) },
+  onAdjustMeal(e) { const type=e.currentTarget.dataset.meal;if(this.meal(type)?.plan)this.openMealSheet(type,'adjust') },
+  onManageMeal(e) { this.openMealSheet(e.currentTarget.dataset.meal,'manage') },
   onOriginalPlan(e) { const type=e.currentTarget.dataset.meal;this.setData({originalMeal:this.data.originalMeal===type?'':type}) },
   onActualAdjustment(){if(this.data.actualBusy || this.data.actualLoading || this.data.actualUnknown)return;this.setData({actualQuick:false,actualMode:'changed'})},
-  onMoreMeal(e) { const type=e.currentTarget.dataset.meal; if(!this.data.mutating && this.meal(type))this.setData({expandedMeal:this.data.expandedMeal===type?'':type}) },
+  onMoreMeal(e) { if(this.data.canRecord)this.openMealSheet(e.currentTarget.dataset.meal,'status') },
   onUnload() { this.disposeMealActual(); this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
   async loadMealRecords() {
     const epoch = this._epoch = (this._epoch || 0) + 1, scope = getUserStorageKey('mealView'), current = () => !this._unloaded && epoch === this._epoch && scope === getUserStorageKey('mealView')
-    if (this._viewScope !== scope) { this.disposeMealActual();this._signature = null; this.setData({ meals: [], overview: null, formVisible: false, formName: '', formActual: '', mutating: false, expandedMeal: '',adjustMeal:'',manageMeal:'',originalMeal:'',actualSavedMessage:'',actualVisible:false,actualQuick:false,actualText:'',actualBusy:false,actualUnknown:false,copyUnknown:false,copyPendingMeal:'' }) }
+    if (this._viewScope !== scope) { this.disposeMealActual();this._signature = null; this.setData({ meals: [], overview: null, formVisible: false, formName: '', formActual: '', mutating: false, sheetMode:'',sheetMeal:null,originalMeal:'',actualSavedMessage:'',actualVisible:false,actualQuick:false,actualText:'',actualBusy:false,actualUnknown:false,copyUnknown:false,copyPendingMeal:'' }) }
     this._viewScope = scope
     this.updateCopyPending()
     this.setData({ loading: true, errorMessage: '' })
     try {
       const overview = await api.getMealOverview(this.data.selectedDate, this.data.selectedDate)
-      if (current()) this.setData({ meals: flow.mealViews(overview, this.data.selectedDate).map(meal=>({...meal,presentation:calendarMealPresentation({...meal,date:this.data.selectedDate,today:flow.today()}),statusLabel:meal.status==='eaten'?'已吃':meal.status==='skipped'?'这餐没吃':meal.plan?'已安排 · 未记录':'未记录'})), overview, canRecord:this.data.selectedDate<=flow.today() },()=>{if(current()&&this.data.focusedMeal&&wx.pageScrollTo)wx.pageScrollTo({selector:'#meal-'+this.data.focusedMeal,duration:0})})
+      if (current()) this.setData({ meals: flow.mealViews(overview, this.data.selectedDate).filter(meal=>!this.data.focusedMeal || meal.mealType===this.data.focusedMeal).map(meal=>({...meal,displayPeople:meal.status==='eaten'?(meal.actual?.targetPeople || meal.actual?.plannedSnapshot?.targetPeople || null):(meal.plan?.targetPeople || null),presentation:calendarMealPresentation({...meal,date:this.data.selectedDate,today:flow.today()}),statusLabel:meal.status==='eaten'?'已吃':meal.status==='skipped'?'这餐没吃':meal.plan?'已安排':'未记录'})), overview, canRecord:this.data.selectedDate<=flow.today() })
     } catch (error) { if (current()) this.setData({ errorMessage: flow.errorMessage(error, '读取失败，请重试。实际用餐记录没有被修改。') }) }
     finally { if (current()) this.setData({ loading: false }) }
   },
@@ -43,7 +45,7 @@ Page({
   onEditPlan(e) {
     const type=e.currentTarget.dataset.meal, value=this.meal(type)
     if(!value || this.data.mutating || this._viewScope!==getUserStorageKey('mealView'))return
-    this.setData({ formVisible: true, formMode: 'plan', formMeal: type, formTitle: `${flow.mealNames[type]}安排`, formName: value.plan ? value.plan.recipeName : '', formPeople: String(value.plan && value.plan.targetPeople || 2), formError: '' })
+    this.closeMealSheet();this.setData({ formVisible: true, formMode: 'plan', formMeal: type, formTitle: `${flow.mealNames[type]}安排`, formName: value.plan ? value.plan.recipeName : '', formPeople: String(value.plan && value.plan.targetPeople || 2), formError: '' })
   },
   async onActualDifferent(e) {
     await this.openActualFor(e,'changed')
@@ -51,7 +53,7 @@ Page({
   async openActualFor(e,mode) {
     const type=e.currentTarget.dataset.meal,value=this.meal(type)
     if(!value || this.data.mutating || this.data.actualBusy || this._unloaded || this._viewScope!==getUserStorageKey('mealView'))return
-    const opening=this.openMealActual({date:this.data.selectedDate,mealType:type,planRevision:value.planRevision,quick:mode==='byPlan',displayedPlanNames:value.plan?(value.plan.dishDetails||[]).map(d=>d.name).join('、'):''})
+    this.closeMealSheet();const opening=this.openMealActual({date:this.data.selectedDate,mealType:type,planRevision:value.planRevision,quick:mode==='byPlan',displayedPlanNames:value.plan?(value.plan.dishDetails||[]).map(d=>d.name).join('、'):''})
     const binding=this._actualBinding
     await opening
     if(this._actualBinding===binding && binding?.meal && !this.data.actualUnknown && !this._unloaded && this._viewScope===getUserStorageKey('mealView'))this.setData({actualMode:mode==='byPlan' && binding.meal.actual?.status==='eaten'?'changed':mode})
@@ -60,18 +62,19 @@ Page({
     const type=e.currentTarget.dataset.meal
     const pending=this.readPendingCopy()
     if((!this.meal(type)?.plan&&!pending) || this.data.mutating || this._viewScope!==getUserStorageKey('mealView'))return
-    const meal=pending?pending.mealType:type
-    this.setData({ formVisible: true, formMode: 'copy', formMeal: meal, formTitle: pending?'确认刚才的复制':`复制${flow.mealNames[meal]}安排`, copyDate: pending?pending.date:flow.shiftDay(this.data.selectedDate, 1), copyUnknown:!!pending,formError:pending?'上次复制结果待确认，将使用原日期和原请求重试':'' })
+    const meal=pending?(pending.sourceMealType || pending.mealType):type,copyMealType=pending?pending.mealType:type
+    this.closeMealSheet();this.setData({ formVisible: true, formMode: 'copy', formMeal: meal, formTitle: pending?'确认刚才的复制':`复制${flow.mealNames[meal]}安排`, copyDate: pending?pending.date:flow.shiftDay(this.data.selectedDate, 1),copyMealType,copyMealIndex:['breakfast','lunch','dinner'].indexOf(copyMealType), copyUnknown:!!pending,formError:pending?'上次复制结果待确认，将使用原日期和原请求重试':'' })
   },
   onName(e) { this.setData({ formName: e.detail.value }) }, onPeople(e) { this.setData({ formPeople: e.detail.value }) },
   onActualInput(e) { this.setData({ formActual: e.detail.value }) }, onCopyDate(e) { if(this.data.mutating || this.readPendingCopy())return;this.setData({ copyDate: e.detail.value }) },
+  onCopyMeal(e) { if(this.data.mutating || this.readPendingCopy())return;const index=Number(e.detail.value),type=['breakfast','lunch','dinner'][index];if(type)this.setData({copyMealType:type,copyMealIndex:index}) },
   closeForm() { if (!this.data.mutating) this.setData({ formVisible: false, formError: '' }) },
   async run(operation, success) {
     if (this.data.mutating) return
     const scope=this._viewScope
     if(this._unloaded || scope!==getUserStorageKey('mealView')) { this.loadMealRecords(); return }
     this.setData({ mutating: true, formError: '', errorMessage: '' })
-    try { await operation(scope); if(this._unloaded || scope!==getUserStorageKey('mealView'))return; this.setData({ formVisible: false }); wx.showToast({ title: success, icon: 'success' }); await this.loadMealRecords(); this.refreshFlags() }
+    try { await operation(scope); if(this._unloaded || scope!==getUserStorageKey('mealView'))return; this.setData({ formVisible: false,sheetMode:'',sheetMeal:null }); wx.showToast({ title: success, icon: 'success' }); await this.loadMealRecords(); this.refreshFlags() }
     catch(error) { if(error.cancelled)return; if(!this._unloaded && scope===getUserStorageKey('mealView'))this.setData({ formError: flow.errorMessage(error), errorMessage: flow.errorMessage(error) }) }
     finally { if(!this._unloaded && scope===getUserStorageKey('mealView'))this.setData({ mutating: false }) }
   },
@@ -104,10 +107,11 @@ Page({
       const pending=this.readPendingCopy()
       if(pending)return this.run(()=>this.sendCopyCommand(pending),'已复制安排')
       if(!value?.plan)return this.setData({formError:'原安排已变化，请返回核对'})
-      if(this.data.copyDate===this.data.selectedDate)return this.setData({formError:'请选择另一天。'})
+      const targetType=flow.mealNames[this.data.copyMealType]?this.data.copyMealType:type
+      if(this.data.copyDate===this.data.selectedDate && targetType===type)return this.setData({formError:'请选择其他日期或餐次。'})
       const date=this.data.copyDate,sourceDate=this.data.selectedDate,source=JSON.parse(JSON.stringify(value.plan))
       return this.run(async(scope)=>{
-        const overview=await api.getMealOverview(date,date), target=flow.mealViews(overview,date).find(x=>x.mealType===type)
+        const overview=await api.getMealOverview(date,date), target=flow.mealViews(overview,date).find(x=>x.mealType===targetType)
         if(this._unloaded || scope!==getUserStorageKey('mealView'))throw {cancelled:true}
         if(target.plan) {
           const approved=await new Promise(resolve=>wx.showModal({title:'该餐次已有安排',content:`原安排：${target.plan.recipeName}\n将复制：${source.recipeName}\n实际用餐记录会保留。`,confirmText:'覆盖安排',success:r=>resolve(r.confirm),fail:()=>resolve(false)}))
@@ -115,7 +119,7 @@ Page({
         }
         if(this._unloaded || scope!==getUserStorageKey('mealView'))throw {cancelled:true}
         const body={recipeName:source.recipeName,dishIds:source.dishIds || [],targetPeople:source.targetPeople || 2,isManual:source.isManual==null?0:source.isManual,expectedRevision:target.planRevision || 0,requestId:flow.requestId('copy')}
-        const operation={scope,sourceDate,sourcePlanRevision:source.revision,date,mealType:type,body}
+        const operation={scope,sourceDate,sourceMealType:type,sourcePlanRevision:source.revision,date,mealType:targetType,body}
         wx.setStorageSync(this.copyJournalKey(sourceDate),operation)
         this.updateCopyPending()
         await this.sendCopyCommand(operation)
@@ -158,7 +162,7 @@ Page({
   onChooseRecipe(e) {
     const type=e.currentTarget.dataset.meal,value=this.meal(type)
     if(!value || this.data.mutating || this._viewScope!==getUserStorageKey('mealView'))return
-    wx.setStorageSync(getUserStorageKey('pendingRecipeRecord'),{date:this.data.selectedDate,mealType:type,expectedRevision:value.planRevision || 0,targetPeople:value.plan && value.plan.targetPeople || 2})
+    this.closeMealSheet();wx.setStorageSync(getUserStorageKey('pendingRecipeRecord'),{date:this.data.selectedDate,mealType:type,expectedRevision:value.planRevision || 0,targetPeople:value.plan && value.plan.targetPeople || 2})
     if(require('../../utils/config').ENABLE_MEAL_WORKSPACE)wx.setStorageSync(getUserStorageKey('activeMealTarget'),{date:this.data.selectedDate,mealType:type})
     wx.switchTab({url:'/pages/customize/customize'})
   },

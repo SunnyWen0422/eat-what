@@ -27,3 +27,13 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
 
 .calendar-card{background:transparent;border:0;border-radius:0;margin-left:-10px;margin-right:-10px;padding:{{space.2.px}} 0}.day-grid{grid-template-columns:repeat(7,minmax(44px,1fr));gap:0}.day{min-width:44px;min-height:60px;box-sizing:border-box;padding:{{space.1.px}} 0;border:0;border-radius:{{radius.2.px}};height:auto}.day.selected{background:{{brand}};color:{{card}}}.day-number{font-size:{{font.reading.em}}}.weekday{font-size:{{font.caption.em}}}.period{padding:0 {{space.1.px}}}.meal-list .ew-card{border:0}.meal-link{border:0;border-bottom:1px solid {{divider}};background:transparent;border-radius:0;box-shadow:none}
+
+.calendar-heading { flex-wrap:wrap; align-items:flex-start; gap:8px; }
+.calendar-heading > view:first-child { flex:1 1 160px; min-width:0; }
+.calendar-heading-actions { display:flex; flex-wrap:wrap; gap:4px; }
+.calendar-heading-actions .ew-link { margin:0; padding:0 4px; font-size:0.875em; }
+.calendar-secondary-actions { margin-top:16px; }
+.calendar-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; padding:8px 0; margin:0; white-space:normal; overflow-wrap:anywhere; text-align:left; background:transparent; border-bottom:1px solid #E6EAE1; border-radius:0; font-size:1em; line-height:1.5; color:#28634E; }
+.calendar-action-row::after { border:0; }
+.calendar-action-row > ui-icon { flex:0 0 auto; }
+.calendar-heading .ew-heading { font-size:1.5em; }

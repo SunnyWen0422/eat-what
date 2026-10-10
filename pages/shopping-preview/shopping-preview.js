@@ -5,7 +5,7 @@ const flow = require('../../utils/meal-workflow')
 const { isSafeQuantity } = require('../../utils/shopping-ingredients')
 const { buildShoppingView, shoppingAddMessage } = require('../../utils/shopping-view')
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), targetPeople: 2, uniformPeople: false, dishes: [], warnings: [], previewLoading: true, confirmInFlight: false, errorMessage: '', formVisible: false, formQuantity: '', formError: '', editName: '', canConfirm: false, viewMode: 'summary', shoppingView: {}, itemCount: 0, unknownMessage: '', resultMessage: '', outcomeUnknown: false, sourceRows: [], sourcesVisible: false },
+  data: { previewActionHeight:176, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), targetPeople: 2, uniformPeople: false, dishes: [], warnings: [], previewLoading: true, confirmInFlight: false, errorMessage: '', formVisible: false, formQuantity: '', formError: '', editName: '', canConfirm: false, viewMode: 'summary', shoppingView: {}, itemCount: 0, unknownMessage: '', resultMessage: '', outcomeUnknown: false, sourceRows: [], sourcesVisible: false,expandedDishes:[],contextLabel:'本次菜单',peopleLabel:'',peopleVisible:false,peopleDraft:'2' },
   onLoad() {
     this._scope = getUserStorageKey('shoppingList')
     this._draftKey = getUserStorageKey('shoppingPreparation')
@@ -25,6 +25,18 @@ Page({
     this.setData({ targetPeople: Number(this.selection.targetPeople) || 2 }); this.loadPreview()
   },
   onUnload() { this.persist(); this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
+  onReady() { this.measurePreviewActions() },
+  onResize() { this.measurePreviewActions() },
+  measurePreviewActions() {
+    if (this._unloaded || !wx.createSelectorQuery) return
+    const measure = () => {
+      if (this._unloaded) return
+      wx.createSelectorQuery().in(this).select('.preview-bottom').boundingClientRect(rect => {
+        if (!this._unloaded && rect && rect.height > 0) this.setData({ previewActionHeight: Math.ceil(rect.height) + 16 })
+      }).exec()
+    }
+    if (wx.nextTick) wx.nextTick(measure); else measure()
+  },
   current() { return !this._unloaded && this._scope === getUserStorageKey('shoppingList') },
   sources() { return this.selection.sources && this.selection.sources.length ? this.selection.sources : [{ dishIds: this.selection.dishIds || [], targetPeople: this.data.targetPeople }] },
   reconcilePreparation() {
@@ -46,16 +58,26 @@ Page({
   persist() {
     this.reconcilePreparation()
     if (this._retired) return
-    if (this.current() && this._draftKey && !this.data.resultMessage) wx.setStorageSync(this._draftKey, { selection: this.selection, selectionId: this._selectionId, payload: this._confirmedPayload || null, data: { dishes: this.data.dishes, warnings: this.data.warnings, targetPeople: this.data.targetPeople, uniformPeople: this.data.uniformPeople, canConfirm: this.data.canConfirm, viewMode: this.data.viewMode, errorMessage: this.data.errorMessage, outcomeUnknown: this.data.outcomeUnknown } })
+    if (this.current() && this._draftKey && !this.data.resultMessage) wx.setStorageSync(this._draftKey, { selection: this.selection, selectionId: this._selectionId, payload: this._confirmedPayload || null, data: { dishes: this.data.dishes, warnings: this.data.warnings, targetPeople: this.data.targetPeople, uniformPeople: this.data.uniformPeople, canConfirm: this.data.canConfirm, viewMode: this.data.viewMode, expandedDishes:this.data.expandedDishes,errorMessage: this.data.errorMessage, outcomeUnknown: this.data.outcomeUnknown } })
   },
   locked() { return this._retired || !this.current() || this.data.confirmInFlight || this.data.outcomeUnknown || !!this.data.resultMessage },
   refreshView() {
     const shoppingView = buildShoppingView({ dishes: this.data.dishes })
+    const expanded=new Set(this.data.expandedDishes || [])
+    shoppingView.groups=shoppingView.groups.map(group=>({...group,contextLabel:group.sourceDate?`${Number(group.sourceDate.slice(5,7))}月${Number(group.sourceDate.slice(8,10))}日 ${flow.mealNames[group.sourceMealType] || ''}`.trim():'本次菜单',expanded:expanded.has(group.selectionKey),sourceCount:group.items.length}))
     const unknown = shoppingView.groups.flatMap(group => group.items).filter(item => !item.userOverride && !isSafeQuantity(item)).length
-    this.setData({ shoppingView, itemCount: shoppingView.pendingCount, unknownMessage: unknown ? `${unknown}项待确认，可先加入` : '' })
+    const contexts=[...new Set(this.data.dishes.map(dish=>dish.sourceDate?`${Number(dish.sourceDate.slice(5,7))}月${Number(dish.sourceDate.slice(8,10))}日 ${flow.mealNames[dish.sourceMealType] || ''}`.trim():'本次菜单'))]
+    const people=[...new Set(this.data.dishes.map(dish=>dish.targetPeople).filter(Boolean))]
+    this.setData({ shoppingView, itemCount: shoppingView.pendingCount,contextLabel:`${contexts.length===1?contexts[0]:contexts.length+'餐'} · ${this.data.dishes.length}道菜`,peopleLabel:people.length===1?people[0]+'人':'各餐人数', unknownMessage: unknown ? `${unknown}项待确认，可先加入` : '' }, () => this.measurePreviewActions())
     this.persist()
   },
-  onViewMode(e) { const mode = e.currentTarget.dataset.mode; if (mode === 'summary' || mode === 'dish') this.setData({ viewMode: mode }) },
+  onViewMode(e) { const mode = e.currentTarget.dataset.mode; if (mode === 'summary' || mode === 'dish') {this.setData({ viewMode: mode });this.persist()} },
+  onToggleDish(e) { const key=e.currentTarget.dataset.key;if(!this.current() || !this.data.shoppingView.groups.some(group=>group.selectionKey===key))return;const expanded=this.data.expandedDishes || [];this.setData({expandedDishes:expanded.includes(key)?expanded.filter(value=>value!==key):[...expanded,key]});this.refreshView() },
+  onEditRow(e) { if(this.locked())return;const row=this.data.shoppingView.rows.find(item=>item.key===e.currentTarget.dataset.key);if(!row)return;if(row.sourceCount===1){const source=this.sourceEvent({currentTarget:{dataset:{key:row.sources[0].key}}});if(source)this.onEditItem(source)}else this.onSources(e) },
+  onPeopleOptions() { if(!this.locked())this.setData({peopleVisible:true,peopleDraft:String(this.data.targetPeople),errorMessage:''}) },
+  closePeople() { if(!this.data.previewLoading)this.setData({peopleVisible:false}) },
+  onPeopleDraft(e) { this.setData({peopleDraft:e.detail.value}) },
+  async onApplyPeople() { if(this.locked() || this.data.previewLoading)return;this.setData({errorMessage:''});await this.onPeopleChange({detail:{value:this.data.peopleDraft}});if(!this.data.errorMessage)this.setData({peopleVisible:false}) },
   onSources(e) {
     const row = this.data.shoppingView.rows.find(item => item.key === e.currentTarget.dataset.key)
     if (!row) return
@@ -120,7 +142,7 @@ Page({
     if (!Number.isInteger(value) || value < 1 || value > 50) { this.setData({ errorMessage: '人数应为 1 至 50 的整数' }); return }
     const approved = await new Promise(resolve => wx.showModal({ title: '重新计算全部食材？', content: '将所有餐次统一为新人数，之前编辑和移除的食材会重新生成。', success: r => resolve(r.confirm), fail: () => resolve(false) }))
     if (!approved || this.locked()) return
-    this.setData({ targetPeople: value, uniformPeople: true }); this.loadPreview()
+    this.setData({ targetPeople: value, uniformPeople: true }); await this.loadPreview()
   },
   onRemoveItem(e) {
     if (this.locked()) return
@@ -183,7 +205,7 @@ Page({
         this.setData({ outcomeUnknown: false, errorMessage: '清单已变化，预览和修改仍保留。再次确认会读取最新版本，保留已买标记和手动用量。' })
       } else if (error.isNetworkError || error.statusCode >= 500) this.setData({ outcomeUnknown: true, errorMessage: '云端结果待确认，已保留本次内容。可重试确认，或在购物清单查看待确认草稿。' })
       else { if (this._confirmedPayload) store.removePendingOperation(null, this._confirmedPayload.requestId); this._confirmedPayload = null; this.setData({ outcomeUnknown: false, errorMessage: flow.errorMessage(error) }) }
-    } finally { if (this.current()) { this.setData({ confirmInFlight: false }); this.persist() } }
+    } finally { if (this.current()) { this.setData({ confirmInFlight: false }, () => this.measurePreviewActions()); this.persist() } }
   },
   onBack() { wx.navigateBack() }, onShoppingList() { wx.redirectTo({ url: '/pages/shopping-list/shopping-list' }) },
 })

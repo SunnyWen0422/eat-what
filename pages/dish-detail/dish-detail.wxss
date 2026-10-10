@@ -378,6 +378,16 @@ button.share-btn { left:auto; bottom:auto; width:44px; max-width:44px; box-sizin
 
 @import "../../styles/recipe-selection.wxss";
 
-/* An in-flow action section stays reachable at 200% text without covering steps. */
-.container .detail-bottom { position:static; padding:16px 0 calc(16px + env(safe-area-inset-bottom)); }
+/* The measured spacer follows the real action height, including large fonts and safe area. */
+.container .detail-bottom { position:fixed; padding:8px 16px calc(8px + env(safe-area-inset-bottom)); gap:4px; }
 .container { padding-bottom:16px; }
+.detail-context-row { display:flex; align-items:center; gap:8px; min-width:0; }
+.container .detail-context-row button.ew-link,.container button.detail-cooking-link { margin:0; font-size:0.8125em; line-height:1.5; white-space:normal; padding:6px 0; background:transparent; border:0; border-radius:0; }
+.container .detail-context-row button.detail-selected-summary { justify-content:flex-start; }
+.detail-selected-summary { flex:1; min-width:0; text-align:left; overflow-wrap:anywhere; }
+.detail-more-button { flex:0 0 auto; }
+.detail-added-state { display:block; font-size:0.8125em; }
+.detail-action-spacer { width:100%; flex:none; }
+.copy-preview-text { display:block; white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 20px; color:#25332B; }
+.step-content { min-width:0; }
+@media(max-width:360px) { .dish-title-row { flex-wrap:wrap; } .dish-title-row .dish-name { flex-basis:100%; } }

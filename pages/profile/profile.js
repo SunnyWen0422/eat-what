@@ -162,9 +162,9 @@ Page({
         // 计算注册天数
         let joinDays = 0
         if (user.registerTime) {
-          const registerDate = new Date(user.registerTime)
+          const registerDate = require('../../utils/server-date').serverDate(user.registerTime)
           const now = new Date()
-          joinDays = Math.floor((now - registerDate) / (1000 * 60 * 60 * 24))
+          joinDays = registerDate ? Math.max(0, Math.floor((now - registerDate) / (1000 * 60 * 60 * 24))) : 0
         }
 
         // 更新本地存储

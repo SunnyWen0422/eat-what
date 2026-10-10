@@ -36,7 +36,20 @@ Page({
     } catch (error) { if (this.current(scope, identity) && epoch === this._epoch) this.setData({ dishes: wx.getStorageSync(scope) || [], errorMessage: flow.errorMessage(error, '云端读取失败，显示上次数据。请刷新后编辑。') }) }
     finally { if (this.current(scope, identity) && epoch === this._epoch) this.setData({ loading: false }) }
   },
-  onViewDish(e) { wx.navigateTo({ url: '/pages/dish-detail/dish-detail?id=' + e.currentTarget.dataset.id }) },
+  onViewDish(e) {
+    if (!this.ensureOwner()) return
+    const id = Number(e.detail && e.detail.id || e.currentTarget.dataset.id)
+    if (Number.isSafeInteger(id) && id > 0) wx.navigateTo({ url: '/pages/dish-detail/dish-detail?id=' + id })
+  },
+  onManageDish(e) {
+    if (!this.ensureOwner() || this.data.saving || this.data.errorMessage) return
+    const id = e.currentTarget.dataset.id, scope = this._viewScope, identity = this._identity, epoch = this._epoch
+    wx.showActionSheet({ itemList: ['编辑菜谱', '删除菜谱'], success: result => {
+      if (!this.current(scope, identity) || epoch !== this._epoch || this.data.saving || this.data.errorMessage) return
+      if (result.tapIndex === 0) this.onEdit({ currentTarget: { dataset: { id } } })
+      if (result.tapIndex === 1) this.onDelete({ currentTarget: { dataset: { id } } })
+    } })
+  },
   onEdit(e) { const dish = this.data.dishes.find(item => String(item.id) === String(e.currentTarget.dataset.id)); if (dish) this.edit(dish) },
   edit(dish) {
     if (!this.ensureOwner()) return
@@ -100,7 +113,7 @@ Page({
     if (!this.ensureOwner()) return
     const identity = this._identity, epoch = this._epoch
     const id = e.currentTarget.dataset.id, scope = getUserStorageKey('customDishesCloud')
-    wx.showModal({ title: '删除自定义菜品？', content: '云端菜品会删除，已记录的实际用餐快照会保留。', confirmText: '删除', success: async result => {
+    wx.showModal({ title: '删除这份菜谱？', content: '我的菜谱中会删除这道菜，已记录的实际用餐快照会保留。', confirmText: '删除', success: async result => {
       if (!result.confirm || this.data.saving || !this.current(scope, identity) || epoch !== this._epoch) return
       this.setData({ saving: true })
       try {
