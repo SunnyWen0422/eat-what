@@ -1,5 +1,9 @@
 # 本机 V4 开发与验证
 
+## 2026-10-10 独立网页合并兼容检查
+
+包含 `web/` 的版本先在该目录执行 `npm ci`，使用 Node.js 24.x。根验证会同时检查小程序、Python、网页与 Java；JSON 检查接受合法的 npm 空键和大小写键，并排除依赖与生成目录。外部模型服务仍使用 `-SkipModelServiceTests` 延后。见 [本次修复及验证](2026-10-10-independent-web-repair.md)。线上配置的可用性和数据库访问请见 [访问恢复步骤](../operations/2026-10-10-online-access-recovery.md)，不能把本地构建通过当作线上联通证明。
+
 ## 2026-10-08 当前改版
 
 本地分支 `codex/v4-ui-ux-20261007`，改版代码 `0ed569b`。微信开发者工具请导入 `../work/ui-ux-redesign/wechat-local-0ed569b`（293 份运行资源的纯净副本）；原项目 `project/` 保持唯一开发来源。V4 开启，语音仍显示“抱歉，该功能暂不可用”。本轮不调用外部模型，模型服务验证使用 `-SkipModelServiceTests` 延后；源码布局和官方编译不能替代原生/真机验收。完整证据与未完成项见 [本轮报告](2026-10-ui-ux-redesign-results.md)。

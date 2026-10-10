@@ -1,6 +1,6 @@
 # 吃什么小程序 — 开发者手册
 
-> V4 接手入口：[开发者改造说明](docs/eat-what-developer-change-guide.md) / [前后端详细设计](docs/eat-what-agent-fullstack-detailed-design.md) / [本机开发与验证](docs/testing/local-verification.md)。本机体验开关已按用户要求开启，API 为 127.0.0.1:18780；未发布。以下旧接口说明保留兼容背景，V4 以新详细设计及本次实施记录为准。
+> V4 接手入口：[开发者改造说明](docs/eat-what-developer-change-guide.md) / [前后端详细设计](docs/eat-what-agent-fullstack-detailed-design.md) / [本机开发与验证](docs/testing/local-verification.md) / [独立网页版](web/README.md)。本机小程序现按用户要求指向 `https://chishenme.icu/api`，V4 保持开启；线上旧后端仍须升级才能提供 V4 与公开菜库接口。源码合并不代表已部署。以下旧接口说明保留兼容背景，V4 以新详细设计及本次实施记录为准。
 
 ## 项目概述
 

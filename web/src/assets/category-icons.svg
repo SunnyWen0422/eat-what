@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#316943" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <symbol id="vegetable" viewBox="0 0 64 64"><path d="M17 46C10 28 25 13 46 17C51 40 38 53 17 46ZM17 46L39 25M27 36L26 25M27 36L39 37"/></symbol>
+  <symbol id="meat" viewBox="0 0 64 64"><path d="M19 42C6 36 14 15 31 15S53 34 42 42C35 48 25 46 19 42Z"/><ellipse cx="30" cy="30" rx="8" ry="6"/><path d="M23 46L19 53M39 46L43 53"/></symbol>
+  <symbol id="staple" viewBox="0 0 64 64"><path d="M12 31H52C48 49 16 49 12 31ZM17 27C16 18 25 15 30 20C35 11 49 17 48 27M24 50H40"/></symbol>
+  <symbol id="soup" viewBox="0 0 64 64"><path d="M11 30H53C49 50 15 50 11 30ZM22 22C15 18 28 14 22 9M33 22C26 18 39 14 33 9M44 22C37 18 50 14 44 9M22 52H42"/></symbol>
+  <symbol id="breakfastSnack" viewBox="0 0 64 64"><path d="M13 49V24C9 22 10 12 19 12H45C54 12 55 22 51 24V49ZM23 23V39M33 23V39M43 23V39"/></symbol>
+</svg>

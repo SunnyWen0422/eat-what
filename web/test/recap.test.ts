@@ -1,0 +1,13 @@
+import { describe, expect, it } from 'vitest';
+import { summarizeActuals } from '../src/history/recap.ts';
+import { snapshotRecipe } from '../src/domain/snapshots.ts';
+import type { ActualMeal, LocalDate, TimeZone, UtcIso } from '../src/domain/types.ts';
+import { recipe } from './fixtures.ts';
+const today='2026-10-09' as LocalDate;
+const actual=(date: string, overrides:Partial<ActualMeal>={}):ActualMeal=>({id:'00000000-0000-4000-8000-000000000001',date:date as LocalDate,meal:'dinner',snapshots:[snapshotRecipe(recipe())],planId:null,note:'',createdAt:'2026-10-09T00:00:00.000Z' as UtcIso,updatedAt:'2026-10-09T00:00:00.000Z' as UtcIso,timeZone:'America/Los_Angeles' as TimeZone,revision:1,requestId:'one',...overrides});
+describe('civil-date actual-only recap',()=>{
+  it('returns every empty date as unrecorded, never as not eaten',()=>{const r=summarizeActuals([],today,7);expect(r.days).toHaveLength(7);expect(r.days.map(d=>d.date)).toEqual(['2026-10-03','2026-10-04','2026-10-05','2026-10-06','2026-10-07','2026-10-08','2026-10-09']);expect(r.days.every(d=>d.status==='unrecorded'&&d.recordCount===0)).toBe(true);expect(r.dishCounts).toEqual([]);expect(r.mealCounts).toEqual({breakfast:0,lunch:0,dinner:0,snack:0});});
+  it('counts once per actual recipe identity while multi-label categories overlap',()=>{const a=snapshotRecipe(recipe({types:['meat','soup']}));const r=summarizeActuals([actual('2026-10-09',{snapshots:[a,a]}),actual('2026-10-09',{meal:'snack'})],today,7);expect(r.dishCounts).toEqual([{recipeId:a.recipeId,count:2}]);expect(r.mealCounts.dinner).toBe(1);expect(r.mealCounts.snack).toBe(1);expect(r.categoryCounts).toEqual({meat:1,soup:1,vegetable:1});expect(r.days.at(-1)).toEqual({date:today,status:'recorded',recordCount:2});});
+  it('uses exact 7 and 30 inclusive windows and excludes future records without reinterpreting time zones',()=>{const input=[actual('2026-10-02'),actual('2026-10-03'),actual('2026-09-10'),actual('2026-09-09'),actual('2026-10-10')];expect(summarizeActuals(input,today,7).mealCounts.dinner).toBe(1);const r=summarizeActuals(input,today,30);expect(r.days).toHaveLength(30);expect(r.days[0]!.date).toBe('2026-09-10');expect(r.mealCounts.dinner).toBe(3);});
+  it('crosses DST, year and leap month boundaries by civil date and keeps historical category snapshots',()=>{const day='2024-03-01' as LocalDate;expect(summarizeActuals([],day,7).days.map(d=>d.date)).toContain('2024-02-29');expect(summarizeActuals([actual('2026-11-01')],'2026-11-02' as LocalDate,7).mealCounts.dinner).toBe(1);expect(summarizeActuals([],'2026-01-01' as LocalDate,7).days[0]!.date).toBe('2025-12-26');});
+});
