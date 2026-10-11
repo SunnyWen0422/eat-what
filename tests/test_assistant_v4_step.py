@@ -446,6 +446,39 @@ class AssistantV4StepTest(unittest.TestCase):
         self.assertNotIn("providerContinuation", response)
         self.assertEqual(1, len(requests))
 
+    def test_provider_native_index_is_preserved_and_binding_uses_call_id(self):
+        calls = [call("native-" + str(i), "search_dishes", {"query": "青菜", "top_k": 3}) for i in range(4)]
+        for item, index in zip(calls, (3, 0, 2, 1)): item["index"] = index
+        message = tool_message(*calls)
+        request = body()
+        status, response, _ = self.route(message, request)
+        self.assertEqual(200, status); self.assertEqual("read_calls", response["type"])
+        self.assertEqual(["native-0", "native-1", "native-2", "native-3"], [item["callId"] for item in response["readCalls"]])
+        self.assertEqual(message, response["providerContinuation"]["assistantMessage"])
+        self.assertEqual([message], response["providerContinuation"]["messages"])
+        request["providerContinuation"] = response["providerContinuation"]
+        request["readResults"] = [read_result("native-" + str(i), "search_dishes", [{"id": i + 2, "name": "青菜"}]) for i in reversed(range(4))]
+        status, response, requests = self.route(final({"type": "final", "reply": "x"}), request)
+        self.assertEqual(200, status); self.assertEqual("final", response["type"])
+        history = [item for item in requests[0]["json"]["messages"] if item["role"] in ("assistant", "tool")]
+        self.assertEqual(message, history[0])
+        self.assertEqual([3, 0, 2, 1], [item["index"] for item in history[0]["tool_calls"]])
+        self.assertEqual(["native-0", "native-1", "native-2", "native-3"], [item["tool_call_id"] for item in history[1:]])
+
+    def test_invalid_native_index_or_unknown_extra_rejects_whole_batch(self):
+        for changes in ({"index": True}, {"index": -1}, {"index": 4}, {"index": "0"}, {"index": 1.0}, {"index": 0, "extra": "provider metadata?"}):
+            invalid = call("bad", "search_dishes", {"query": "青菜", "top_k": 3}); invalid.update(changes)
+            _, response, _ = self.route(tool_message(call("good"), invalid))
+            self.assertEqual("need_input", response["type"])
+            self.assertNotIn("readCalls", response); self.assertNotIn("providerContinuation", response)
+
+    def test_recipe_query_description_separates_literal_keyword_and_composition(self):
+        _, _, requests = self.route(tool_message(call("search", "search_dishes", {"top_k": 12})))
+        description = next(tool["function"]["description"] for tool in requests[0]["json"]["tools"] if tool["function"]["name"] == "search_dishes")
+        self.assertIn("query仅用于字面菜名或食材名称", description)
+        self.assertIn("一般组餐请省略query", description)
+        self.assertIn("不要填写整段需求或一荤一素一汤", description)
+
 
 if __name__ == "__main__":
     unittest.main()

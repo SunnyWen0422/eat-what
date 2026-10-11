@@ -179,7 +179,7 @@ FRAME = obj({"role": string(20, ["user", "assistant"]), "content": string(2000)}
 def tool_catalog(capabilities=None):
     allowed = set(READS if capabilities is None else capabilities) & set(READS)
     descriptions = {
-        "search_dishes": "一次查询满足条件的真实候选。未限定type时服务端均衡返回多类别，无需按荤菜、素菜、汤各调用一次；仅补充缺少的必要候选，不重复相同查询。",
+        "search_dishes": "一次查询满足条件的真实候选。query仅用于字面菜名或食材名称；一般组餐请省略query，不要填写整段需求或一荤一素一汤。限制用filters表达。未限定type时服务端均衡返回多类别，无需按荤菜、素菜、汤各调用一次；仅补充缺少的必要候选，不重复相同查询。",
         "search_by_ingredients": "现有食材明确时，一次查询满足食材及filters限制的真实候选；无需逐个食材或类别重复调用。",
         "get_dish_details": "仅在选菜所需原料/基础份量事实缺失时查询，可在一个dish_ids列表读取多道菜；复用此前结果。",
         "get_dish_methods": "用户询问做法且上下文没有步骤时，读取指定真实菜谱的原始做法；不为普通选菜重复查询。",
@@ -213,7 +213,9 @@ def shopping_facts(items):
 
 
 def tool_call(value, allowed):
-    validate(value, obj({"id": string(100, nonempty=True), "type": string(20, ["function"]),
+    # Native provider index is protocol metadata only. Identity, authority and
+    # result bindings remain exclusively the validated call ID/name/arguments.
+    validate(value, obj({"id": string(100, nonempty=True), "index": integer(0, 3), "type": string(20, ["function"]),
         "function": obj({"name": string(60, list(allowed)), "arguments": string(16000)}, ["name", "arguments"])}, ["id", "type", "function"]))
     function = value["function"]
     try: arguments = strict_json(function["arguments"])
