@@ -41,6 +41,18 @@ class AssistantV4StoreTest {
     String session(){SessionRequest r=new SessionRequest();r.setWorkspaceId("w");r.setRequestId(UUID.randomUUID().toString());return store.createSession(1L,r).getSessionId();}
     TurnRequest request(){TurnRequest r=new TurnRequest();r.setRequestId(UUID.randomUUID().toString());r.setWorkspaceId("w");r.setExpectedWorkspaceRevision(0L);r.setExpectedPlanVersion(0L);r.setEntryScene("chat");r.setMessage("晚餐");return r;}
     @Test void same_key_same_turn(){String s=session();TurnRequest r=request();String id=store.claimTurn(1L,s,r).getTurnId();assertEquals(id,store.claimTurn(1L,s,r).getTurnId());assertEquals(1,turns.size());}
+    @Test void genuine_receipt_workspace_reference_advances_but_never_regresses_or_switches_scope(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        Card first=new Card();first.setReceiptRef("first");WorkspaceRef reference=new WorkspaceRef();reference.setWorkspaceId("w");reference.setWorkspaceRevision(5L);reference.setPlanVersion(3L);first.setWorkspaceRef(reference);
+        store.completeWorkflowStep(1L,id,"step-1","first",first);assertEquals(5L,store.findTurn(1L,id).getWorkspaceRef().getWorkspaceRevision());
+        Card stale=new Card();stale.setReceiptRef("second");WorkspaceRef old=new WorkspaceRef();old.setWorkspaceId("w");old.setWorkspaceRevision(4L);old.setPlanVersion(2L);stale.setWorkspaceRef(old);
+        store.completeWorkflowStep(1L,id,"step-2","second",stale);assertEquals(5L,store.findTurn(1L,id).getWorkspaceRef().getWorkspaceRevision());
+    }
+    @Test void receipt_for_another_workspace_cannot_change_parent_scope(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        Card card=new Card();card.setReceiptRef("receipt");WorkspaceRef reference=new WorkspaceRef();reference.setWorkspaceId("other");reference.setWorkspaceRevision(99L);reference.setPlanVersion(99L);card.setWorkspaceRef(reference);
+        store.completeWorkflowStep(1L,id,"step-1","receipt",card);assertEquals("w",store.findTurn(1L,id).getWorkspaceRef().getWorkspaceId());
+    }
     @Test void same_key_different_body_409(){String s=session();TurnRequest r=request();store.claimTurn(1L,s,r);r.setMessage("午餐");assertEquals(409,assertThrows(ResponseStatusException.class,()->store.claimTurn(1L,s,r)).getRawStatusCode());}
     @Test void foreign_session_404(){String s=session();assertEquals(404,assertThrows(ResponseStatusException.class,()->store.sessionState(2L,s)).getRawStatusCode());}
     @Test void restart_recovers_without_new_command(){String s=session();TurnRequest r=request();String id=store.claimTurn(1L,s,r).getTurnId();assertEquals(id,newStore().claimTurn(1L,s,r).getTurnId());assertEquals(1,turns.size());}
@@ -107,4 +119,11 @@ class AssistantV4StoreTest {
         store.purgeExpired();for(String id:Arrays.asList(queued,running,awaiting))assertEquals("cancelled",store.findTurn(1L,id).getStatus());
         assertThrows(ResponseStatusException.class,()->store.withActiveLease(1L,running,runLease.getLeaseToken(),()->"write"));assertThrows(ResponseStatusException.class,()->store.withActiveParent(1L,awaiting,"step-1",()->"write"));
     }
-}
+    @Test void completing_second_step_preserves_prior_real_receipt_cards() {
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        Card calendar=new Card();calendar.setType("receipt");calendar.setReceiptRef("calendar-real");calendar.setId("calendar-card");
+        store.completeWorkflowStep(1L,id,"step-1","calendar-real",calendar);
+        Card shopping=new Card();shopping.setType("receipt");shopping.setReceiptRef("shopping-real");shopping.setId("shopping-card");
+        TurnView done=store.completeWorkflowStep(1L,id,"step-2","shopping-real",shopping);
+        assertEquals(2,done.getCards().size());assertEquals("calendar-real",done.getCards().get(0).getReceiptRef());assertEquals("shopping-real",done.getCards().get(1).getReceiptRef());
+    }}

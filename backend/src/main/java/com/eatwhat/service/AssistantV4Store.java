@@ -77,7 +77,12 @@ public class AssistantV4Store {
     public TurnView completeWorkflowStep(Long user,String turnId,String stepId,String receiptRef,Card receiptCard){
         if(receiptRef==null||receiptRef.trim().isEmpty())throw new IllegalArgumentException("缺少业务回执");
         return withActiveParent(user,turnId,stepId,()->{TurnRecord row=turnRecord(user,turnId);WorkflowContinuation c=continuation(user,turnId);WorkflowStep s=c.getSteps().get(c.getCursor());s.setStatus("completed");s.setReceiptRef(receiptRef);c.setCursor(c.getCursor()+1);
-            TurnResult result=row.getResultJson()==null?new TurnResult():decode(row.getResultJson(),TurnResult.class);result.setContinuation(c);result.setPendingAction(null);result.setCards(new ArrayList<>());if(receiptCard!=null)result.getCards().add(receiptCard);result.setRetryable(false);result.setStatus(c.getCursor()==c.getSteps().size()?"completed":"awaiting_confirmation");
+            TurnResult result=row.getResultJson()==null?new TurnResult():decode(row.getResultJson(),TurnResult.class);result.setContinuation(c);result.setPendingAction(null);List<Card> receipts=new ArrayList<>();for(Card existing:result.getCards())if(existing.getReceiptRef()!=null&&!existing.getReceiptRef().trim().isEmpty()&&(receiptCard==null||!Objects.equals(existing.getReceiptRef(),receiptCard.getReceiptRef())))receipts.add(existing);if(receiptCard!=null)receipts.add(receiptCard);result.setCards(receipts);result.setRetryable(false);result.setStatus(c.getCursor()==c.getSteps().size()?"completed":"awaiting_confirmation");
+            if(receiptCard!=null&&Objects.equals(receiptRef,receiptCard.getReceiptRef())&&receiptCard.getWorkspaceRef()!=null){
+                WorkspaceRef next=receiptCard.getWorkspaceRef(),old=result.getWorkspaceRef();
+                if(Objects.equals(row.getWorkspaceId(),next.getWorkspaceId())&&next.getWorkspaceRevision()!=null&&next.getPlanVersion()!=null&&next.getWorkspaceRevision()>=0&&next.getPlanVersion()>=0
+                        &&(old==null||((old.getWorkspaceRevision()==null||next.getWorkspaceRevision()>=old.getWorkspaceRevision())&&(old.getPlanVersion()==null||next.getPlanVersion()>=old.getPlanVersion()))))result.setWorkspaceRef(copy(next,WorkspaceRef.class));
+            }
             result.setReply(c.getCursor()==c.getSteps().size()?"已完成":"已保存，正在准备下一步");return saveResult(row,row.getStatus(),row.getLeaseToken(),result,true);
         });
     }
@@ -142,6 +147,24 @@ public class AssistantV4Store {
         if("awaiting_confirmation".equals(s.getStatus())){TurnResult result=decode(r.getResultJson(),TurnResult.class);PendingAction p=result.getPendingAction();if(p==null||!stepId.equals(p.getStepId())||p.getExpiresAt()==null||p.getExpiresAt()<=clock.millis())throw conflict();}
         for(String dependency:s.getDependsOn())if(c.getSteps().stream().noneMatch(p->dependency.equals(p.getStepId())&&"completed".equals(p.getStatus())))throw conflict();return work.get();
     });}
+    /** Explicit user repreview may renew an expired token, but never resurrect a cancelled parent. */
+    public <T>T withRepreviewParent(Long user,String turnId,String stepId,String oldTaskId,Supplier<T> work){return tx.execute(t->{
+        lock(user);TurnRecord row=turnRecord(user,turnId);session(user,row.getSessionId());
+        if(!"awaiting_confirmation".equals(row.getStatus()))throw conflict();
+        WorkflowContinuation c=continuation(user,turnId);if(c==null||c.getCursor()>=c.getSteps().size())throw conflict();
+        WorkflowStep step=c.getSteps().get(c.getCursor());TurnResult result=decode(row.getResultJson(),TurnResult.class);PendingAction p=result.getPendingAction();
+        if(!"awaiting_confirmation".equals(step.getStatus())||!Objects.equals(stepId,step.getStepId())||!Objects.equals(oldTaskId,step.getTaskId())||p==null||!Objects.equals(stepId,p.getStepId())||!Objects.equals(oldTaskId,p.getTaskId()))throw conflict();
+        for(String dependency:step.getDependsOn())if(c.getSteps().stream().noneMatch(s->dependency.equals(s.getStepId())&&"completed".equals(s.getStatus())))throw conflict();
+        return work.get();
+    });}
+    public TurnView replacePendingAction(Long user,String turnId,String stepId,String oldTaskId,PendingAction pending,Card card){
+        return withRepreviewParent(user,turnId,stepId,oldTaskId,()->{
+            if(pending==null||!Objects.equals(stepId,pending.getStepId())||pending.getTaskId()==null||Objects.equals(oldTaskId,pending.getTaskId())||pending.getPreviewToken()==null||pending.getExpiresAt()==null||pending.getExpiresAt()<=clock.millis()||card==null||!Objects.equals(pending.getTaskId(),card.getTaskId())||!Objects.equals(pending.getPreviewToken(),card.getPreviewToken()))throw conflict();
+            TurnRecord row=turnRecord(user,turnId);TurnResult result=decode(row.getResultJson(),TurnResult.class);WorkflowContinuation c=continuation(user,turnId);c.getSteps().get(c.getCursor()).setTaskId(pending.getTaskId());
+            List<Card> cards=new ArrayList<>();for(Card previous:result.getCards())if(previous.getReceiptRef()!=null&&!previous.getReceiptRef().trim().isEmpty())cards.add(previous);cards.add(card);
+            result.setContinuation(c);result.setPendingAction(pending);result.setCards(cards);result.setRetryable(false);result.setReply("采购预览已更新，请核对后确认");return saveResult(row,"awaiting_confirmation",null,result,true);
+        });
+    }
     /** Recovery never reconstructs provider frames and never issues another provider request itself. */
     public List<TurnRecord> recoverable(){return db.recoverable(clock.millis());}
     public TurnView recoverExpired(Long user,String id){return tx.execute(t->{lock(user);TurnRecord r=turnRecord(user,id);if(!"running".equals(r.getStatus())||r.getLeaseUntil()>clock.millis())return view(r);TurnResult result=new TurnResult();result.setStatus("failed");result.setReply("本次对话已中断，请重新发送；已保存内容仍保留");result.setRetryable(true);if(r.getContinuationJson()!=null){WorkflowContinuation c=decode(r.getContinuationJson(),WorkflowContinuation.class);boolean done=false;for(WorkflowStep s:c.getSteps()){if("completed".equals(s.getStatus()))done=true;else s.setStatus("failed");}result.setContinuation(c);if(done)result.setStatus("partially_completed");}return saveResult(r,"running",r.getLeaseToken(),result,false);});}

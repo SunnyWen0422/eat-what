@@ -68,6 +68,13 @@
       "description": "Owner-scoped V4 assistant sessions, durable turn budgets and validated workflow continuations",
       "checksumSha256": "d756ce7ca8a58ebad8cc33895e5dd5e1dfe09785eba9cf804689fc3cc8370ebf",
       "rollback": "Disable ASSISTANT_V4_ENABLED; retain assistant tables and business domain receipts. Restore only a reviewed backup; never drop live data."
+    },
+    {
+      "version": "V8_10__assistant_shopping_scope_aliases",
+      "file": "V8_10__assistant_shopping_scope_aliases.sql",
+      "description": "Durable owner-scoped procurement aliases across draft and saved meal references",
+      "checksumSha256": "08ccfb4aee5de3f2b2c95b80cc1c39fc44d3b6d6a4a49245846c74a6532ac1fd",
+      "rollback": "Disable ASSISTANT_V4_ENABLED; retain procurement aliases and shopping receipts. Restore only a reviewed backup; never drop live data."
     }
   ]
 }
