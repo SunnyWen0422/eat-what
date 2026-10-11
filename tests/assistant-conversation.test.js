@@ -1,6 +1,35 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const { createAssistantConversation, probeAssistantCapability, clearCapabilityCache } = require('../utils/assistant-conversation')
+const confirmationTurn=()=>({turnId:'t1',status:'awaiting_confirmation',cards:[{id:'save',type:'calendar_save',taskId:'task1',previewToken:'token1',expiresAt:Date.now()+60000}],pendingAction:{taskId:'task1',previewToken:'token1'}})
+test('running confirmation stays unknown until late completion and never duplicates write',async()=>{
+ let task={status:'running'},cancels=0;const f=fixture({getAssistantV4Turn:async()=>confirmationTurn(),confirmControlledTask:async(...args)=>{f.confirms.push(args);throw Error('lost')},getControlledTask:async()=>task,cancelAssistantV4Turn:async()=>cancels++});await f.conversation.load();await f.conversation.send('保存');await f.conversation.confirm('save');await f.conversation.recover();await f.conversation.confirm('save');await f.conversation.cancelTurn();assert.equal(f.conversation.state().confirmationPending,true);assert.equal(cancels,0);assert.equal(f.confirms.length,1);task={status:'completed'};await f.conversation.recover();await f.conversation.confirm('save');assert.equal(f.conversation.state().confirmationPending,false);assert.equal(f.confirms.length,1)
+})
+test('durable failure does not allow an expired token to retry',async()=>{
+ let turn=confirmationTurn();const f=fixture({getAssistantV4Turn:async()=>turn,confirmControlledTask:async(...args)=>{f.confirms.push(args);return{status:'failed',retryable:true}}});await f.conversation.load();await f.conversation.send('保存');await f.conversation.confirm('save');turn.cards[0].expiresAt=1;await f.conversation.recover();await f.conversation.confirm('save');assert.equal(f.confirms.length,1);assert.match(f.conversation.state().error,/过期/)
+})
+test('ambiguous or unauthorized session lookup preserves binding and never creates another',async()=>{
+ for(const statusCode of [401,500]){let creates=0;const f=fixture({createAssistantV4Session:async()=>{creates++;return{sessionId:'s1'}},getAssistantV4Session:async()=>{throw{statusCode}}});await f.conversation.load();f.conversation.setInput('仍在输入');const restored=f.recreate();await restored.load();assert.equal(creates,1);assert.equal([...f.persisted.values()][0].sessionId,'s1');assert.equal(restored.state().input,'仍在输入')}
+})
+test('durable retryable confirmation failure permits exact-token explicit retry and cancellation',async()=>{
+ const f=fixture({getAssistantV4Turn:async()=>confirmationTurn(),confirmControlledTask:async(...args)=>{f.confirms.push(args);return{status:'failed',retryable:true}},getControlledTask:async()=>({status:'failed',retryable:true})});
+ await f.conversation.load();await f.conversation.send('保存');await f.conversation.confirm('save');await f.conversation.recover();assert.equal(f.conversation.state().confirmationPending,false);await f.conversation.confirm('save');assert.deepEqual(f.confirms,[['task1','token1'],['task1','token1']]);
+ let cancelled=0;f.api.cancelAssistantV4Turn=async()=>cancelled++;await f.conversation.cancelTurn();assert.equal(cancelled,1)
+})
+test('committed calendar pending next step resumes despite legacy retryable false without re-saving',async()=>{
+ let committed=false,resumes=0;const pending={turnId:'t1',status:'awaiting_confirmation',retryable:false,cards:[{id:'receipt',type:'receipt',receiptRef:'calendar-real'}],continuation:{cursor:1,steps:[{status:'completed',receiptRef:'calendar-real'},{status:'pending'}]}};
+ const f=fixture({getAssistantV4Turn:async()=>committed?pending:confirmationTurn(),confirmControlledTask:async(...args)=>{f.confirms.push(args);committed=true;return{status:'completed',retryable:true}},resumeAssistantV4Turn:async()=>{resumes++;return{...pending,status:'completed'}}});await f.conversation.load();await f.conversation.send('保存并准备食材');await f.conversation.confirm('save');assert.equal(f.conversation.state().recoverable,true);await f.conversation.recover();assert.equal(resumes,1);assert.equal(f.confirms.length,1)
+})
+test('empty selection is local and definitive shopping rejection restores correctable parent',async()=>{
+ let calls=0;const turn={...confirmationTurn(),cards:[{...confirmationTurn().cards[0],type:'shopping_preview',data:{items:[{sourceKey:'a',selected:true},{sourceKey:'b',selected:true}]}}]};
+ const f=fixture({getAssistantV4Turn:async()=>turn,repreviewAssistantShopping:async()=>{calls++;throw{statusCode:409}}});await f.conversation.load();await f.conversation.send('食材');await f.conversation.selectShopping('save',[]);assert.equal(calls,0);assert.equal(f.conversation.state().selectionPending,false);await f.conversation.selectShopping('save',['a']);assert.equal(f.conversation.state().selectionPending,false);await f.conversation.selectShopping('save',['a','b']);assert.equal(calls,2)
+})
+test('renewal recovery awaits rejections inside its catch and clears definitive 400',async()=>{
+ let reject={};const f=fixture({getAssistantV4Turn:async()=>({...confirmationTurn(),cards:[{...confirmationTurn().cards[0],type:'shopping_preview',data:{items:[{sourceKey:'a'}]}}]}),repreviewAssistantShopping:async()=>{throw reject},getControlledTaskByRequest:async()=>{throw{statusCode:404}}});await f.conversation.load();await f.conversation.send('食材');await f.conversation.selectShopping('save',['a']);assert.equal(f.conversation.state().selectionPending,true);reject={statusCode:400};await assert.doesNotReject(f.conversation.recover());assert.equal(f.conversation.state().selectionPending,false)
+})
+test('expired binding retains old intent as evidence and creates new stable session without submitting it',async()=>{
+ let creates=[],expired=false,loseCreate=false;const f=fixture({createAssistantV4Session:async body=>{creates.push(body);if(loseCreate)throw Error('lost');return{sessionId:creates.length===1?'s1':'s2',messages:[]}},getAssistantV4Session:async()=>{if(expired)throw{statusCode:404};return{sessionId:'s1',messages:[]}},sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);throw Error('unknown')}});await f.conversation.load();await f.conversation.send('保存旧意图');expired=true;loseCreate=true;const restored=f.recreate();await restored.load();loseCreate=false;await restored.recover();assert.equal(restored.state().sessionId,'s2');assert.equal(restored.state().input,'保存旧意图');assert.equal(f.bodies.length,1);assert.equal(creates.length,3);assert.notEqual(creates[0].requestId,creates[1].requestId);assert.deepEqual(creates[1],creates[2]);const saved=[...f.persisted.values()][0];assert.equal(saved.pending,null);assert.equal(saved.expiredBindings[0].pending.body.message,'保存旧意图');assert.match(restored.state().error,/重新|过期/)
+})
 function fixture(extra={}) {
  let account='A',source='local',revision=1, reads=0, ids=0
  const persisted=new Map(), bodies=[], confirms=[]

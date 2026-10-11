@@ -2,7 +2,13 @@ const {createAssistantConversation,probeAssistantCapability}=require('./assistan
 const {safeText}=require('./assistant-cards')
 // Keep the existing page's handlers and lifecycle intact when the service is unavailable.
 module.exports=function assistantPage(fallback, options={}) {
- return {...fallback,data:{...fallback.data,assistantConnected:false,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false,conversationRecoverable:false,keyboardHeight:0},
+ return {...fallback,data:{...fallback.data,assistantConnected:false,conversationCurrentMenu:null,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false,conversationRecoverable:false,keyboardHeight:0},
+  renderWorkspace(){
+   if(fallback.renderWorkspace)fallback.renderWorkspace.call(this)
+   if(!this.data.assistantConnected || !this.current())return
+   const w=this.store&&this.store.state().workspace,context=w&&w.context,dishes=w&&w.draft&&w.draft.dishes
+   this.setData({conversationCurrentMenu:context&&Array.isArray(dishes)&&dishes.length?{id:'current-menu',type:'menu',title:'当前本餐菜单',data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}:null})
+  },
   async onLoad(params={}) {
    this._assistantAlive=true;this._assistantParams=params
    const app=typeof getApp==='function'?getApp():null;if(app&&app.waitForLogin)await app.waitForLogin()
@@ -40,7 +46,7 @@ module.exports=function assistantPage(fallback, options={}) {
    if(!this._assistantAlive || !this._scope)return
    if(!this.current()){
     if(this.conversation)this.conversation.dispose()
-    this.setData({assistantConnected:false,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false})
+    this.setData({assistantConnected:false,conversationCurrentMenu:null,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false})
     const enabled=await (options.probe || probeAssistantCapability)()
     if(!this._assistantAlive)return
     await fallback.initializeWorkspace.call(this,this._assistantParams)

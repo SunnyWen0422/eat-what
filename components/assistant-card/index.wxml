@@ -20,5 +20,5 @@
  <ui-button class="card-action" wx:if="{{active && view.canConfirm}}" label="{{view.type === 'calendar_save' ? '确认保存计划' : '确认加入清单'}}" disabled="{{busy}}" bind:action="onConfirm" />
  <ui-button class="card-action" wx:if="{{active && view.expired && view.type === 'shopping_preview'}}" label="重新核对食材" variant="secondary" disabled="{{busy}}" bind:action="onRepreview" />
  <ui-button class="card-action" wx:if="{{view.url}}" label="{{view.actionLabel}}" variant="secondary" bind:action="onOpen" />
- <ui-button class="card-action" wx:if="{{view.canUndo}}" label="撤销这次草稿调整" variant="tertiary" disabled="{{busy}}" bind:action="onUndo" />
+ <ui-button class="card-action" wx:if="{{active && view.canUndo}}" label="撤销这次草稿调整" variant="tertiary" disabled="{{busy}}" bind:action="onUndo" />
 </view>

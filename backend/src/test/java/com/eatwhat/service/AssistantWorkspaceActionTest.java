@@ -11,6 +11,19 @@ import org.springframework.transaction.support.*;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 class AssistantWorkspaceActionTest {
+ @Test void empty_assistant_snapshot_fails_before_any_dish_lock_query() throws Exception {
+  DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");w.getDraft().setDishes(Collections.emptyList());f.f.sourceJson=f.f.json.writeValueAsString(w);
+  assertThrows(IllegalArgumentException.class,()->f.f.service.assistantSnapshot(1L,"source"));verifyNoInteractions(f.f.validator);
+ }
+ @Test void legacy_undo_without_original_context_marks_mismatch_for_regeneration() throws Exception {
+  DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");PlanDraft prior=MealWorkspaceRules.copy(w.getDraft());prior.setContextSnapshot(null);w.getDraft().setHistory(Collections.singletonList(prior));w.getContext().setPeople(5);f.f.sourceJson=f.f.json.writeValueAsString(w);DraftIntent undo=new DraftIntent();undo.setOperation("undo");assertEquals("needs_regeneration",f.apply(undo,"legacy-undo").getStatus());
+ }
+ @Test void structured_hard_exclusions_survive_partial_criteria_without_text() throws Exception {
+  DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");w.getContext().getCriteria().setExcludedIngredients(Collections.singletonList("花生"));w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));f.f.sourceJson=f.f.json.writeValueAsString(w);
+  DraftIntent i=new DraftIntent();i.setOperation("regenerate");i.setSelectedDishIds(Arrays.asList(1L,2L,3L));i.setContextPatch(Collections.singletonMap("criteria",Collections.singletonMap("maxCookMinutes",20)));
+  assertEquals(Collections.singletonList("花生"),f.apply(i,"partial-criteria").getContext().getCriteria().getExcludedIngredients());
+  i.setContextPatch(Collections.singletonMap("criteria",Collections.singletonMap("excludedIngredients",Collections.emptyList())));assertThrows(IllegalArgumentException.class,()->f.apply(i,"remove-exclusion"));
+ }
  @Test void context_patch_then_generate_then_undo_restores_context_and_fingerprint() throws Exception {
   WorkspaceTargetSaveTest.Fixture f=new WorkspaceTargetSaveTest.Fixture();
   MealWorkspace w=f.json.readValue(f.sourceJson,MealWorkspace.class);
@@ -66,7 +79,7 @@ class AssistantWorkspaceActionTest {
   assertThrows(IllegalArgumentException.class,()->WorkspaceAssistantToolAdapter.validateArguments(json.readTree("{\"operation\":\"generate\",\"selectedDishIds\":[\"1\"]}")));
   assertThrows(IllegalArgumentException.class,()->WorkspaceAssistantToolAdapter.validateArguments(json.readTree("{\"operation\":\"generate\",\"contextPatch\":{\"criteria\":{\"understood\":true}}}")));
  } @Test void replay_returns_original_revision_without_reapplying_or_claiming_later_menu() throws Exception {DraftFixture f=new DraftFixture();DraftIntent first=f.replace();MealWorkspace saved=f.apply(first,"once");assertEquals(saved.getRevision(),f.apply(first,"once").getRevision());DraftIntent keep=new DraftIntent();keep.setOperation("adjust");keep.setKeepDishIds(Collections.singletonList(4L));f.apply(keep,"later");MealWorkspace replay=f.apply(first,"once");assertEquals(5L,replay.getRevision());assertEquals(6L,f.service.get(1L,"source").getRevision());assertTrue(replay.getDraft().getDishes().isEmpty());}
- @Test void interpreted_text_cannot_keep_trust_while_removing_its_hard_exclusions() throws Exception {DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");w.getContext().setRequirements("不要花生");w.getContext().getCriteria().setExcludedIngredients(Collections.singletonList("花生"));w.getDraft().setRequirementsFingerprint(MealWorkspaceRules.requirementsFingerprint(w.getContext()));w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));f.f.sourceJson=f.f.json.writeValueAsString(w);DraftIntent i=new DraftIntent();i.setOperation("regenerate");i.setSelectedDishIds(Arrays.asList(1L,2L,3L));i.setContextPatch(Collections.singletonMap("criteria",Collections.emptyMap()));assertThrows(IllegalArgumentException.class,()->f.apply(i,"relax"));assertEquals(Collections.singletonList("花生"),f.service.get(1L,"source").getContext().getCriteria().getExcludedIngredients());}}
+ @Test void interpreted_text_cannot_keep_trust_while_removing_its_hard_exclusions() throws Exception {DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");w.getContext().setRequirements("不要花生");w.getContext().getCriteria().setExcludedIngredients(Collections.singletonList("花生"));w.getDraft().setRequirementsFingerprint(MealWorkspaceRules.requirementsFingerprint(w.getContext()));w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));f.f.sourceJson=f.f.json.writeValueAsString(w);DraftIntent i=new DraftIntent();i.setOperation("regenerate");i.setSelectedDishIds(Arrays.asList(1L,2L,3L));i.setContextPatch(Collections.singletonMap("criteria",Collections.singletonMap("excludedIngredients",Collections.emptyList())));assertThrows(IllegalArgumentException.class,()->f.apply(i,"relax"));assertEquals(Collections.singletonList("花生"),f.service.get(1L,"source").getContext().getCriteria().getExcludedIngredients());}}
 
 
 

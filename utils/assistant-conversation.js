@@ -25,8 +25,8 @@ function createAssistantConversation(options = {}) {
  const persist=()=>{if(current()&&key){record.input=view.input;write(key,clone(record))}notify()}
  const exclusive=action=>{if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
  const workspace=()=>store && store.state().workspace
- const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&record.pending)view.input=record.pending.body.message;persist();return state()}
- const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&turn.retryable===true&&!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending'
+ const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(!record.sessionId||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&record.pending)view.input=record.pending.body.message;persist();return state()}
+ const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending'
  function adopt(turn) {
   if(!current())return
   view.turn=clone(turn);view.busy=['queued','running'].includes(turn.status);view.recoverable=view.busy||!!canResume(turn)
@@ -82,13 +82,28 @@ function createAssistantConversation(options = {}) {
   key=`assistant-v4:${encodeURIComponent(scope)}:${id}`;record=clone(read(key)) || {sessionBody:{workspaceId:id,requestId:makeId()},sessionId:null,pending:null,messages:[],input:'',confirmedTasks:[]}
   view.input=record.input || '';view.messages=clone(record.messages || []);view.recoverable=!!(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown)
   try {
-   const result=record.sessionId ? await api.getAssistantV4Session(record.sessionId) : await api.createAssistantV4Session(clone(record.sessionBody))
+   let result
+   if(record.sessionId){
+    try{result=await api.getAssistantV4Session(record.sessionId)}catch(error){
+     if(!current())return state()
+     if(!error || error.statusCode!==404)throw error
+     // A definitive owner-scoped session absence expires only the binding. Keep
+     // recovery evidence, but never replay its old business intent in a new session.
+     record.expiredBindings=record.expiredBindings || []
+     record.expiredBindings.push(clone({sessionId:record.sessionId,sessionBody:record.sessionBody,pending:record.pending,renewal:record.renewal,confirmation:record.confirmation,lastTurn:record.lastTurn,confirmedTasks:record.confirmedTasks}))
+     view.input=view.input || record.pending&&record.pending.body.message || ''
+     record.sessionId=null;record.sessionBody={workspaceId:id,requestId:makeId()};record.pending=null;record.renewal=null;record.confirmation=null;record.lastTurn=null;record.confirmedTasks=[]
+     record.bindingExpired=true;view.sessionId=null;view.turn=null;view.recoverable=false;persist()
+    }
+   }
+   if(!result){persist();result=await api.createAssistantV4Session(clone(record.sessionBody))}
    if(!current())return state()
    if(!result || !result.sessionId)throw Error('invalid session')
    record.sessionId=result.sessionId;view.sessionId=result.sessionId;view.nextCursor=result.nextCursor || null
    if(Array.isArray(result.messages)&&result.messages.length)view.messages=clone(result.messages)
    record.messages=clone(view.messages)
    if(record.pending)view.input=record.pending.body.message
+   if(record.bindingExpired)view.error='原对话已过期，输入仍保留。请先核对日历和清单，再重新说明要办理的内容'
    persist();return state()
   }catch(error){return fail('对话暂未连接，输入已保留，请重新进入或重试')}
  }
@@ -100,7 +115,7 @@ function createAssistantConversation(options = {}) {
   if(!message || message.length>2000)return fail('请用两千字以内说说这一餐的想法')
   if(!w || local.dirty || local.pending)return fail('本餐还有未同步内容，请回到今天先同步后再试')
   record.pending={body:{requestId:makeId(),message,workspaceId:w.id,expectedWorkspaceRevision:w.revision,expectedPlanVersion:w.draft && w.draft.planVersion || 0,entryScene:options.entryScene || 'chat'}}
-  view.input='';view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
+  record.bindingExpired=false;view.input='';view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
   try{return await dispatch()}catch(error){return fail()}
  })}
  function recover(turnId) {return exclusive(async()=>{
@@ -108,12 +123,12 @@ function createAssistantConversation(options = {}) {
   try {
    if(record.confirmation && record.confirmation.unknown){
     if(!await resolveConfirmation())return state()
-    return resumeCurrent()
+    return await resumeCurrent()
    }
-   if(record.renewal)return resolveRenewal(true)
-   if(turnId)return poll(turnId)
-   if(record.pending){await dispatch();if(!current())return state();return resumeCurrent()}
-   return state()
+   if(record.renewal)return await resolveRenewal(true)
+   if(turnId)return await poll(turnId)
+   if(record.pending){await dispatch();if(!current())return state();return await resumeCurrent()}
+   return await resumeCurrent()
   }catch(error){return fail('结果暂未核对，原请求已保留，请稍后恢复')}
  })}
  async function resolveConfirmation(){
@@ -121,9 +136,11 @@ function createAssistantConversation(options = {}) {
   const task=await api.getControlledTask(confirmation.taskId);if(!current())return false
   if(!task){fail('刚才的保存结果还待核对，请稍后恢复');return false}
   if(task.status==='completed'){if(!record.confirmedTasks.includes(confirmation.taskId))record.confirmedTasks.push(confirmation.taskId);confirmation.unknown=false}
-  else if(task.status==='awaiting_confirmation'||task.status==='cancelled'||task.status==='failed'&&task.retryable===false)confirmation.unknown=false
+  else if(task.status==='awaiting_confirmation'||task.status==='cancelled'||task.status==='failed')confirmation.unknown=false
   else {fail('刚才的保存结果还待核对，请稍后恢复');return false}
-  persist();await poll(confirmation.turnId);return current()
+  persist();await poll(confirmation.turnId)
+  if(current()&&task.status==='failed'&&task.retryable===true){view.error='这次保存未完成，可再次确认重试，或取消预览';persist()}
+  return current()
  }
  function confirm(cardId) {return exclusive(async()=>{
   const turn=view.turn,card=turn && (turn.cards || []).find(c=>c.id===cardId),pending=turn && turn.pendingAction
@@ -132,9 +149,10 @@ function createAssistantConversation(options = {}) {
   if(record.confirmedTasks.includes(card.taskId))return state()
   if(record.confirmation && record.confirmation.unknown)return fail('刚才的保存结果还待核对，请先恢复原请求')
   if(!card.expiresAt || Number(card.expiresAt)<=Date.now())return fail('这份预览已过期，请重新核对后再确认')
-  record.confirmation={taskId:card.taskId,turnId:turn.turnId,unknown:true};view.busy=true;persist()
+  record.confirmation={taskId:card.taskId,turnId:turn.turnId,previewToken:card.previewToken,unknown:true};view.busy=true;persist()
   try {
    const result=await api.confirmControlledTask(card.taskId,card.previewToken);if(!current())return state()
+   if(result&&result.status==='failed'){record.confirmation.unknown=false;persist();await poll(turn.turnId);return fail(result.retryable?'这次保存未完成，可再次确认重试，或取消预览':'这份预览未能保存，请取消后重新核对')}
    if(!result || result.status!=='completed')return fail('保存结果待核对，请恢复刚才的请求')
    record.confirmedTasks.push(card.taskId);record.confirmation.unknown=false;persist()
    return await poll(turn.turnId)
@@ -155,7 +173,17 @@ function createAssistantConversation(options = {}) {
    try{task=await api.getControlledTaskByRequest(renewal.body.requestId)}catch(error){if(error.statusCode!==404)throw error}
    if(!current())return state()
   }
-  if(!task){task=await api.repreviewAssistantShopping(renewal.taskId,clone(renewal.body));if(!current())return state()}
+  if(!task){
+   try{task=await api.repreviewAssistantShopping(renewal.taskId,clone(renewal.body))}catch(error){
+    if(!current())return state()
+    if(!error||![400,409].includes(error.statusCode))throw error
+    // Rejection is definitive; restore the server's current parent before
+    // enabling edits. If this read fails the renewal remains recoverable.
+    await poll(renewal.turnId);if(!current())return state()
+    record.renewal=null;view.busy=false;view.error='这次选择未能应用，已恢复当前预览。请保留已购或手动填写的食材后再试';persist();return state()
+   }
+   if(!current())return state()
+  }
   if(!task || !task.id)throw Error('invalid renewal')
   renewal.newTaskId=task.id;persist()
   const turn=await api.getAssistantV4Turn(renewal.turnId);if(!current())return state()
@@ -172,6 +200,7 @@ function createAssistantConversation(options = {}) {
   if(!api.repreviewAssistantShopping || !turn || turn.status!=='awaiting_confirmation' || !card || card.type!=='shopping_preview' || card.receiptRef || card.data&&card.data.kind==='readonly_fact' || !pending || card.taskId!==pending.taskId || card.previewToken!==pending.previewToken || record.confirmedTasks.includes(card.taskId))return state()
   const keys=new Set((card.data&&card.data.items || []).map(i=>i.sourceKey).filter(k=>typeof k==='string'))
   if(selectedSourceKeys!==undefined&&(!Array.isArray(selectedSourceKeys)||selectedSourceKeys.some(k=>!keys.has(k))||new Set(selectedSourceKeys).size!==selectedSourceKeys.length))return fail('食材选择已变化，请核对当前预览')
+  if(Array.isArray(selectedSourceKeys)&&selectedSourceKeys.length===0)return fail('请至少保留一种食材；不再采购时可取消预览')
   if(excludedOwnedIngredients!==undefined&&(!Array.isArray(excludedOwnedIngredients)||excludedOwnedIngredients.some(k=>typeof k!=='string'||!k.trim())||new Set(excludedOwnedIngredients).size!==excludedOwnedIngredients.length))return fail('请核对家里已有的食材')
   const body={requestId:makeId()};if(selectedSourceKeys!==undefined)body.selectedSourceKeys=clone(selectedSourceKeys);if(excludedOwnedIngredients!==undefined)body.excludedOwnedIngredients=clone(excludedOwnedIngredients)
   record.renewal={turnId:turn.turnId,taskId:card.taskId,body};view.busy=true;view.error='';persist()

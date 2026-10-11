@@ -39,7 +39,7 @@ public class MealWorkspaceService {
         return read(db.slot(user,date,meal));
     }
     public MealWorkspace assistantSnapshot(Long user,String id){
-        return tx.execute(status->{lock(user);MealWorkspace w=get(user,id);planner.lockAndValidateAssistant(user,w,w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList()));return w;});
+        return tx.execute(status->{lock(user);MealWorkspace w=get(user,id);if(w.getDraft().getDishes().isEmpty())throw new IllegalArgumentException("请先生成方案");planner.lockAndValidateAssistant(user,w,w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList()));return w;});
     }
     public Map<String,Object> linked(Long user,MealWorkspace w) {
         return linked(user,w,w==null?null:w.getContext().getDate(),w==null?null:w.getContext().getMealType());
@@ -168,9 +168,14 @@ public class MealWorkspaceService {
                     Set<String> allowed=new HashSet<>(Arrays.asList("people","counts","compositionMode","criteria","totalCookMinutes","requirements","ownedIngredients"));
                     if(!allowed.containsAll(intent.getContextPatch().keySet()))throw new IllegalArgumentException("本餐条件字段无效");
                     Map<String,Object> merged=json.convertValue(context,Map.class);merged.putAll(intent.getContextPatch());
+                    if(intent.getContextPatch().containsKey("criteria")){
+                        Object patch=intent.getContextPatch().get("criteria");if(!(patch instanceof Map))throw new IllegalArgumentException("筛选条件无效");
+                        Map<String,Object> criteria=json.convertValue(originalContext.getCriteria(),Map.class);criteria.putAll((Map<String,Object>)patch);merged.put("criteria",criteria);
+                    }
                     context=json.convertValue(merged,MealContext.class);MealWorkspaceRules.normalize(context);
                     // Uninterpreted text cannot be erased or claimed understood by a model flag.
                     if(!Objects.equals(context.getRequirements(),originalContext.getRequirements())&&(!originalContext.getRequirements().trim().isEmpty()||!context.getRequirements().trim().isEmpty()))throw new IllegalArgumentException("请先将文字限制明确为筛选条件");
+                    if(!context.getCriteria().getExcludedIngredients().containsAll(originalContext.getCriteria().getExcludedIngredients())||!context.getCriteria().getExcludeTagCodes().containsAll(originalContext.getCriteria().getExcludeTagCodes()))throw new IllegalArgumentException("本餐忌口仍然有效，不能放宽已设置的限制");
                     if(!originalContext.getRequirements().trim().isEmpty()&&!preservesInterpretedLimits(originalContext,context))throw new IllegalArgumentException("文字限制仍然有效，不能放宽已校验条件");
                 }
                 if(!MealWorkspaceRules.understandsRequirements(original,context))throw new IllegalArgumentException("本餐文字限制尚未校验，请先明确筛选条件");
@@ -205,7 +210,7 @@ public class MealWorkspaceService {
                 next.setHistory(history);next.setContextSnapshot(null);next.setPlanVersion(original.getPlanVersion()+1);next.setTotalCookMinutes(MealWorkspaceRules.totalMinutes(next.getDishes()));w.setDraft(next);
                 planner.lockAndValidateAssistant(user,w,ids);
             }
-            db.cancel(id);w.setTaskId(null);w.setSuggestedTarget(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":"draft");w.setMessage("本餐已调整，可以撤销最近一次修改");
+            db.cancel(id);w.setTaskId(null);w.setSuggestedTarget(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("本餐已调整，可以撤销最近一次修改");
             long before=w.getRevision();w.setRevision(before+1);
             if(db.save(id,user,w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");
             receipt(user,requestId,hash,w);return w;

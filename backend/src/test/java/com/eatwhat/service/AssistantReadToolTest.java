@@ -11,6 +11,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AssistantReadToolTest {
+    @Test void actual_summary_uses_same_past_eaten_rows_as_display() {
+        Fixture f=new Fixture();MealConsumption past=new MealConsumption();past.setUserId(7L);past.setStatus("eaten");past.setMealDate("2020-01-01");past.setActualDishesJson("[{\"dishId\":5,\"name\":\"菜\",\"type\":\"veg\"}]");MealConsumption future=new MealConsumption();future.setStatus("eaten");future.setMealDate("2099-01-01");future.setActualDishesJson(past.getActualDishesJson());
+        when(f.meals.overview(anyLong(),anyString(),anyString())).thenReturn(Collections.singletonMap("consumptions",Arrays.asList(past,future)));when(f.meals.review(anyLong(),anyString(),anyString())).thenReturn(Collections.singletonMap("mealCount",2));
+        AssistantReadToolService service=f.reads();ReadResult result=service.read(7L,f.call("read_actual_diet_review","startDate","2099-01-01","endDate","2099-01-01"),f.scope);assertEquals(0,((Map<?,?>)result.getItems().get(0).get("summary")).get("mealCount"));
+        result=service.read(7L,f.call("read_actual_diet_review","startDate","2020-01-01","endDate","2020-01-01"),f.scope);assertEquals(1,((Map<?,?>)result.getItems().get(0).get("summary")).get("mealCount"));assertEquals(1,((Map<?,?>)result.getItems().get(0).get("summary")).get("classifiedCount"));verify(f.meals,never()).review(anyLong(),anyString(),anyString());
+    }
     static class Fixture extends AssistantV4ContextTest.Fixture {
         final DishQueryService dishes=mock(DishQueryService.class);final DishCandidateQueryService candidates=mock(DishCandidateQueryService.class);
         final MealConsumptionService meals=mock(MealConsumptionService.class);final ShoppingListService shopping=mock(ShoppingListService.class);

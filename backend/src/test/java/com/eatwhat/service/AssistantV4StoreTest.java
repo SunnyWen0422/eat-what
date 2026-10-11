@@ -16,6 +16,11 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class AssistantV4StoreTest {
+    @Test void committed_calendar_is_durably_resumable_before_any_postcommit_listener(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        store.completeWorkflowStep(1L,id,"step-1","calendar-real",null);
+        TurnView recovered=newStore().findTurn(1L,id);assertEquals("awaiting_confirmation",recovered.getStatus());assertTrue(recovered.isRetryable());assertNull(recovered.getPendingAction());assertEquals(1,recovered.getContinuation().getCursor());assertEquals("pending",recovered.getContinuation().getSteps().get(1).getStatus());assertEquals("calendar-real",recovered.getContinuation().getSteps().get(0).getReceiptRef());
+    }
     AssistantV4Mapper db;MealConsumptionMapper locks;MealWorkspaceService workspaces;TransactionTemplate tx;
     AssistantV4Store store;Map<String,SessionRecord> sessions;Map<String,TurnRecord> turns;
     final long now=1800000000000L;
