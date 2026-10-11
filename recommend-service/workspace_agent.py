@@ -50,8 +50,7 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
         from authorized_catalog import execute_read_tool
         execute=lambda name,args,scope:execute_read_tool(authorized_context,user_id,name,args)
     model = model or DeepSeekModelClient(timeout=10)
-    tools = [t for t in agent_tools.model_catalog()["tools"] if t["name"] in {
-        "search_dishes", "search_by_ingredients", "get_dish_details", "get_dish_methods"}]
+    tools = agent_tools.v4_model_catalog()["tools"]
     messages = [{"role": "system", "content": json.dumps({
         "instruction": "理解本餐自由文本并用只读工具选择真实菜品。明确限制全部转为 criteria 或 totalCookMinutes，不能确定时 needsInput=true。不得编造菜品、营养或用时。日期餐次与工作区不同时返回实际目标并等待用户切换。保留菜品必须包含。只返回 JSON。",
         "context": context, "lockedDishIds": workspace.get("draft", {}).get("lockedDishIds", []),

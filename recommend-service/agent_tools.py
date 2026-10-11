@@ -91,6 +91,26 @@ def model_catalog() -> Dict[str, Any]:
     return {"version": "2.0", "tools": [copy.deepcopy(item) for item in _CATALOG if not item.get("mutates")]}
 
 
+def v4_model_catalog() -> Dict[str, Any]:
+    """Authorized-workspace read contract, separate from legacy RAG parameters."""
+    string_list = {"type": "array", "items": {"type": "string", "maxLength": 40}, "maxItems": 30}
+    filters = _schema([], {
+        # Keep these codes aligned with Java MealWorkspaceRules/CustomDishService.
+        "type": {"type": "string", "enum": ["meat", "veg", "soup", "staple", "dessert", "side"]},
+        "cuisine_codes": string_list,
+        "include_tag_codes": string_list,
+        "exclude_tag_codes": string_list,
+        "excluded_ingredients": string_list,
+        "max_cook_minutes": {"type": "integer", "minimum": 1, "maximum": 240},
+    })
+    tools = [copy.deepcopy(item) for item in _CATALOG if item["name"] in {
+        "search_dishes", "search_by_ingredients", "get_dish_details", "get_dish_methods"}]
+    for item in tools:
+        if item["name"] in {"search_dishes", "search_by_ingredients"}:
+            item["input_schema"]["properties"]["filters"] = copy.deepcopy(filters)
+    return {"version": "4.0", "tools": tools}
+
+
 def tool_spec(name: str) -> Dict[str, Any]:
     for item in _CATALOG:
         if item["name"] == name:

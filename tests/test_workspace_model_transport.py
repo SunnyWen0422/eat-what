@@ -1,17 +1,13 @@
-import importlib
-import sys
-from pathlib import Path
 import unittest
 from unittest.mock import patch, Mock
 
-SERVICE = Path(__file__).resolve().parents[1] / 'recommend-service'
+from assistant_v4_isolation import isolated_service
 
 class WorkspaceModelTransportTest(unittest.TestCase):
  def test_tool_round_trip_keeps_provider_metadata_private(self):
-  sys.path.insert(0, str(SERVICE))
-  try:
-   client = importlib.import_module('model_client')
-   agent = importlib.import_module('workspace_agent')
+  with isolated_service() as service:
+   client = service.client
+   agent = service.agent
    context = {'date':'2026-10-06','mealType':'dinner','requirements':'不要鸡蛋'}
    tool = {'id':'tool-1','type':'function','function':{'name':'search_dishes','arguments':'{}'}}
    responses = [
@@ -24,8 +20,15 @@ class WorkspaceModelTransportTest(unittest.TestCase):
      self.assertEqual('opaque provider metadata',assistant.get('reasoning_content'))
     response=Mock(status_code=200);response.json.return_value=responses.pop(0);return response
    with patch.object(client.httpx,'post',side_effect=post):
-    result=agent.run_task({'context':context,'draft':{}},910002,model=client.DeepSeekModelClient(api_key='test-only'),execute=lambda *args:[{'id':7}])
+    result=agent.run_task({'context':context,'draft':{},'agentContext':{'ownerUserId':910002,'catalog':[{'id':7,'name':'清炒青菜','type':'veg','cl':'青菜 蒜'}]}},910002,model=client.DeepSeekModelClient(api_key='test-only'))
    self.assertFalse(result['needsInput'])
    self.assertNotIn('reasoning_content',result)
    self.assertEqual([7],result['dishIds'])
-  finally:sys.path.remove(str(SERVICE))
+
+ def test_missing_context_is_rejected(self):
+  with isolated_service() as service:
+   with patch.object(service.client.httpx,'post',side_effect=AssertionError('Provider must not run without authorized context')):
+    result=service.agent.run_task({'context':{'date':'2026-10-06','mealType':'dinner'},'draft':{}},910002)
+   self.assertTrue(result['needsInput'])
+   self.assertEqual('AuthorizedContextMissing',result['failureClass'])
+   self.assertEqual([],result['dishIds'])

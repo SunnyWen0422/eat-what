@@ -37,6 +37,8 @@ def _validate_schema_value(value: Any, schema: Dict[str, Any], path: str) -> Non
             elif type_name == "boolean" and isinstance(value, bool): valid = True
         if not valid:
             raise SchemaValidationError(f"invalid tool argument type: {path}")
+    if "enum" in schema and value not in schema["enum"]:
+        raise SchemaValidationError(f"invalid tool argument value: {path}")
     if isinstance(value, str) and isinstance(schema.get("maxLength"), int) and len(value) > schema["maxLength"]:
         raise SchemaValidationError(f"tool argument is too long: {path}")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -52,9 +54,11 @@ def _validate_schema_value(value: Any, schema: Dict[str, Any], path: str) -> Non
             _validate_schema_value(item, item_schema, f"{path}[{index}]")
     if isinstance(value, dict) and schema.get("additionalProperties") is False:
         properties = schema.get("properties") or {}
+        unknown = set(value) - set(properties)
+        if unknown:
+            raise SchemaValidationError(f"unknown tool arguments: {path}.{sorted(unknown)[0]}")
         for key, child in value.items():
-            if key in properties:
-                _validate_schema_value(child, properties[key], f"{path}.{key}")
+            _validate_schema_value(child, properties[key], f"{path}.{key}")
 
 
 def validate_tool_call(call: Dict[str, Any], allowed_tools: Set[str], tool_catalog: Optional[Iterable[Dict[str, Any]]] = None) -> Dict[str, Any]:
