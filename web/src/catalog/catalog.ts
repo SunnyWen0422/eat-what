@@ -101,8 +101,11 @@ export function normalizePublicDish(input: PublicDish): Result<CatalogRecipe> {
       : [...new Set(rawIngredients)].map((raw) => ({ ingredientId: null, form: '', part: null, raw, quantity: null, trust: 'unknown', compoundResolved: false }));
     const primarySteps = nonempty(dish.steps) ? dish.steps : dish.step;
     const steps = [primarySteps, dish.tips].filter(nonempty);
-    const identitiesVerified = !!quality?.ingredients.length && quality.ingredients.every((i) => i.identityStatus === 'VERIFIED' && nonempty(i.name));
-    const generationEligible = !!classification && overallVerified && quality?.stepStatus === 'VERIFIED' && nonempty(primarySteps) && ingredients.length > 0 && identitiesVerified;
+    // The server public projection determines publication. Ordinary suggestions
+    // need usable content, not an assertion that every ingredient was audited.
+    // Explicit rejection/browse-only remains binding; factual trust stays intact.
+    const generationEligible = !!classification && quality?.reviewStatus !== 'REJECTED' && quality?.reviewStatus !== 'BROWSE_ONLY'
+      && nonempty(primarySteps) && ingredients.length > 0;
     const baseServings = overallVerified && quality?.servingsStatus === 'VERIFIED' && quality.basePeople !== null && Number.isSafeInteger(quality.basePeople) && quality.basePeople >= 1 && quality.basePeople <= 50 ? quality.basePeople : null;
     const issues = [...(quality?.issueCodes ?? []), 'FAMILY_DATABASE_ID_FALLBACK', 'MEALS_LOCAL_CONVENTION', 'STANDARD_INGREDIENT_IDS_UNKNOWN', 'COMPOUND_COMPOSITION_UNKNOWN'];
     if (!classification) issues.push('UNMAPPED_TYPE');

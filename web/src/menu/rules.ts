@@ -57,8 +57,9 @@ function validateInput(input: GenerateInput): Result<GenerateInput> {
   return { ok: true, value: input };
 }
 function eligible(recipe: CatalogRecipe, input: GenerateInput, slot: Slot): boolean {
-  return recipe.generationEligible === true && recipe.reviewStatus === 'VERIFIED' && recipe.stepStatus === 'VERIFIED'
-    && recipe.steps.length > 0 && recipe.ingredients.length > 0 && recipe.ingredients.every((ingredient) => ingredient.trust === 'reviewed') && recipe.meals.includes(input.draft.meal) && recipe.types.includes(slot.type);
+  return recipe.generationEligible === true && !['REJECTED', 'BROWSE_ONLY'].includes(recipe.reviewStatus)
+    && recipe.steps.some(step => step.trim().length > 0) && recipe.ingredients.some(ingredient => ingredient.raw.trim().length > 0)
+    && recipe.meals.includes(input.draft.meal) && recipe.types.includes(slot.type);
 }
 /** Snapshot facts are JSON values; object key order is not recipe content. */
 function canonicalFacts(value: unknown): string {
@@ -78,16 +79,15 @@ function lockConflicts(input: GenerateInput): GenerationResult['conflicts'] {
     const reasons: string[] = [];
     if (!current) reasons.push('菜谱已不在当前在线目录');
     else {
-      if (!eligible(current, input, slot)) reasons.push('当前审核、餐次或类型不适用');
-      if (!isText(current.contentVersion) || !isText(retained.contentVersion)
-        || canonicalFacts(snapshotRecipe(current)) !== canonicalFacts(snapshotRecipe(retained))) {
-        reasons.push('锁定快照版本或内容与当前审核记录不一致，无法确认适用性');
+      if (!eligible(current, input, slot)) reasons.push('当前菜谱内容、餐次或类型不适用');
+      if (canonicalFacts(snapshotRecipe(current)) !== canonicalFacts(snapshotRecipe(retained))) {
+        reasons.push('锁定快照版本或内容与当前菜谱不一致，无法确认适用性');
       }
       reasons.push(...hardReasons(current, input.hardExclusions));
     }
     if (!retained.types.includes(slot.type)) reasons.push('锁定快照类型不匹配当前槽位');
-    if (!retained.steps.length || !retained.ingredients.length || retained.ingredients.some((ingredient) => ingredient.trust !== 'reviewed')) {
-      reasons.push('锁定快照缺少完整审核原料或步骤');
+    if (!retained.steps.some(step => step.trim().length > 0) || !retained.ingredients.some(ingredient => ingredient.raw.trim().length > 0)) {
+      reasons.push('锁定快照缺少食材或步骤');
     }
     reasons.push(...hardReasons(retained, input.hardExclusions));
     if (kept.some((r) => duplicate(r, dish.recipe))) reasons.push('与其他锁定菜重复');

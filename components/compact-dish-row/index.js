@@ -1,5 +1,6 @@
 const tokens = require('../../utils/ui-tokens')
 const experiencePreferences = require('../../utils/experience-preferences')
+const { imageSource, placeholderIcon } = require('../../utils/dish-image')
 const labels = { meat: '荤菜', veg: '素菜', soup: '汤羹', staple: '主食', dessert: '甜品', side: '配餐' }
 
 Component({
@@ -19,14 +20,18 @@ Component({
         else if (quality.timeStatus === 'ESTIMATED') duration = `预计 ${minutes} 分钟`
       }
       const meta = category + (duration ? ` · ${duration}` : '')
-      const image = typeof dish.image === 'string' ? dish.image.replace(/^http:/, 'https:') : ''
-      const identity = `${dish.id}:${image}`
-      this.setData({ dishView: { id: dish.dishId || dish.id, name: dish.name || '未命名菜品', image, meta, placeholderIcon: labels[dish.type] ? dish.type : 'recipe' },
+      const image = imageSource(dish.image)
+      const identity = `${dish.dishId || dish.id}:${image}`
+      this.setData({ dishView: { id: dish.dishId || dish.id, name: dish.name || '未命名菜品', image, meta, placeholderIcon: placeholderIcon(dish.type) },
         imageFailed: this._imageIdentity === identity && this.data.imageFailed || false })
       this._imageIdentity = identity
     },
     updateMotion() { this.setData({ motionDuration: this.properties.reducedMotion || experiencePreferences().get().reducedMotion ? 0 : tokens.motion.row }) },
-    onImageError() { this.setData({ imageFailed: true }) },
+    onImageError(event) {
+      const source = event && event.currentTarget && event.currentTarget.dataset.source
+      if (source != null && source !== this.data.dishView.image) return
+      this.setData({ imageFailed: true })
+    },
     onView() { const dish = this.properties.dish || {}; const id = dish.dishId || dish.id; if (id != null) this.triggerEvent('view', { id }) },
     onReplace() { const dish = this.properties.dish || {}; if (this.properties.mode !== 'read' && !this.properties.busy && !this.properties.disabled && dish.id != null) this.triggerEvent(this.properties.mode === 'select' ? 'select' : 'replace', { id: dish.id }) },
   },

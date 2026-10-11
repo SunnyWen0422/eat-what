@@ -28,6 +28,14 @@ This repository contains three cooperating applications:
 
 ## Verification
 
+### GitHub Push Workflow
+
+- Before the first push, check the target branch, HEAD, origin and available Git/proxy settings. On Windows, Git may not inherit an enabled system proxy; inspect that setting before repeated direct connection attempts.
+- Reuse an enabled proxy with a command-scoped `git -c http.proxy=...`; do not persist machine-specific values or credentials, change global settings, or disable certificate verification.
+- Retry an identical connection failure at most once without new evidence. Classify MSYS `0xC0000022`, `waitpid` and credential-helper failures as possible execution-environment restrictions; an unreadable token here does not prove the user's ordinary terminal login is invalid.
+- If the credential helper remains unavailable, provide one ordinary-terminal push command instead of repeated protocol/credential experiments. Do not substitute unrelated SSH keys, recreate commit history, or force-push.
+- Claim success only after the target remote branch SHA is verified against local HEAD. Local machine observations belong in the parent workspace rules, outside this repository.
+
 Run the repository verification script after code changes:
 
 ```powershell

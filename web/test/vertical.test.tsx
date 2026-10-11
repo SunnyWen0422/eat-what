@@ -158,13 +158,13 @@ describe('post-save concurrent draft protection', () => {
 });
 
 describe('local meal controls through the real repository', () => {
-  async function mealSetup(options: { forged?: boolean; failSettings?: boolean; failSettingsOnce?: boolean; failDraftOnce?: boolean } = {}) {
+  async function mealSetup(options: { unreviewed?: boolean; forged?: boolean; failSettings?: boolean; failSettingsOnce?: boolean; failDraftOnce?: boolean } = {}) {
     const { IDBFactory } = await import('fake-indexeddb'); const { webcrypto } = await import('node:crypto');
     const { openRepository } = await import('../src/data/repository.ts'); const { createPublicCatalogProvider, loadCatalog } = await import('../src/catalog/catalog.ts');
     vi.stubGlobal('crypto', webcrypto);
     const opened = await openRepository({ factory: new IDBFactory(), now: () => new Date('2026-10-09T00:00:00.000Z'), uuid: () => '00000000-0000-4000-8000-000000000001' });
     if (!opened.ok) throw new Error(opened.error.message);
-    const rows = ['meat', 'veg'].flatMap((type, index) => [1, 2, 3, 4].map((n) => ({ id: 100 + index * 10 + n, name: `接口${type}${n}`, type, cl: '原料原文', steps: '测试步骤', contentVersion: 'test-only-generation', quality: { reviewStatus: 'VERIFIED', stepStatus: 'VERIFIED', ingredients: [{ name: '审核原料', rawText: '未知复合配料原文', identityStatus: 'VERIFIED' }] } })));
+    const rows = ['meat', 'veg'].flatMap((type, index) => [1, 2, 3, 4].map((n) => ({ id: 100 + index * 10 + n, name: `接口${type}${n}`, type, cl: '原料原文', steps: '测试步骤', contentVersion: 'test-only-generation', quality: { reviewStatus: options.unreviewed ? 'UNREVIEWED' : 'VERIFIED', stepStatus: 'VERIFIED', ingredients: [{ name: '审核原料', rawText: '未知复合配料原文', identityStatus: 'VERIFIED' }] } })));
     const loaded = await loadCatalog(createPublicCatalogProvider(async () => ({ list: rows, total: rows.length, page: 1, pageSize: 100 })));
     if (!loaded.ok) throw new Error(loaded.error.message);
     const source = options.forged ? structuredClone(loaded.value) : loaded.value;
@@ -190,8 +190,8 @@ describe('local meal controls through the real repository', () => {
     await waitFor(() => expect(screen.queryByText('正在读取本地记录…')).toBeNull());
     return { repo: opened.value, source, view, attempts, close: () => { cleanup(); opened.value.close(); vi.unstubAllGlobals(); } };
   }
-  it('generates, locks and replaces locally, preserving every other slot and persisted snapshots', async () => {
-    const test = await mealSetup(); try {
+  it.each([false, true])('generates, locks and replaces from database rows (unreviewed=%s), preserving other slots', async unreviewed => {
+    const test = await mealSetup({ unreviewed }); try {
       fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); await screen.findByText('菜单已生成并保存');
       const first = await test.repo.read(); if (!first.ok || !first.value.draft) throw new Error('missing draft');
       const saved = first.value.draft;
@@ -203,9 +203,9 @@ describe('local meal controls through the real repository', () => {
   });
   it('does not accept a copied catalog as an automatic UI source, including replacement', async () => {
     const test = await mealSetup({ forged: true }); try {
-      fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); expect(await screen.findByText(/在线目录尚未满足.*自动选择/)).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); expect(await screen.findByText(/当前餐次或分类的可推荐菜品不足/)).not.toBeNull();
       fireEvent.click(screen.getByRole('button', { name: '菜谱' })); fireEvent.click(await screen.findByRole('button', { name: '手选 接口meat1' })); await screen.findByText('草稿已保存');
-      fireEvent.click(screen.getByRole('button', { name: '今天吃什么' })); fireEvent.click(screen.getByRole('button', { name: '换一道 接口meat1' })); expect(await screen.findByText(/在线目录尚未满足.*自动选择/)).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: '今天吃什么' })); fireEvent.click(screen.getByRole('button', { name: '换一道 接口meat1' })); expect(await screen.findByText(/当前餐次或分类的可推荐菜品不足/)).not.toBeNull();
       const read = await test.repo.read(); if (!read.ok) throw new Error('read'); expect(read.value.draft?.dishes.map((d) => d.recipe.name)).toEqual(['接口meat1']);
     } finally { test.close(); }
   });

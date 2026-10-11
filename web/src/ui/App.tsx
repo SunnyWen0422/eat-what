@@ -295,7 +295,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     if (preferences.softPreferences.includes('vegetarian')) { setNotice('当前目录没有完整配料的素食适用审核，素食自动选择不可用。可以核对配料后手选。'); setError(true); return; }
     const openSlots = current.slots.filter((slot) => slotId ? slot.id === slotId : !current.dishes.some((d) => d.slotId === slot.id && d.locked));
     const gatedSlots = openSlots.length ? openSlots : current.slots;
-    if (!catalog?.ok || !gatedSlots.every((slot) => canGenerate(catalog.value, current.meal, slot.type))) { setNotice('在线目录尚未满足当前餐次和类型的可信准入，自动选择不可用。请重试在线菜谱或手选。'); setError(true); return; }
+    if (!catalog?.ok || !gatedSlots.every((slot) => canGenerate(catalog.value, current.meal, slot.type))) { setNotice('当前餐次或分类的可推荐菜品不足，请重试读取在线菜谱、调整组合或手选。'); setError(true); return; }
     const input: GenerateInput = { catalog: catalog.value, draft: current, hardExclusions, unresolvedExclusions, favoriteIds: data.favorites.flatMap((favorite) => typeof favorite.recipeId === 'string' ? [favorite.recipeId] : []), actualMeals: data.actualMeals, today: localDate(new Date(), zone), seed: ++seedRef.current };
     const result = slotId ? replaceSlot(input, slotId) : generateMeal(input);
     if (!result.ok) { setNotice(result.error.message); setError(true); return; }

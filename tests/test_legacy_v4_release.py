@@ -74,6 +74,15 @@ class LegacyV4ReleaseTest(unittest.TestCase):
             if mutation == 'foreign-key': data['schemaContracts']['dish_quality_profile']['foreignKeys'] = [{'name': 'unexpected', 'columns': ['dish_id'], 'targetTable': 'food', 'targetColumns': ['id'], 'onDelete': 'CASCADE', 'onUpdate': 'RESTRICT'}]
             with self.subTest(mutation=mutation), self.assertRaises(ValueError): self.helper.build_plan([data])
 
+    def test_create_pins_legacy_collation_even_when_mysql_charset_default_differs(self):
+        data = fixture(); data['databaseCollation'] = 'utf8mb4_general_ci'
+        plan = self.helper.build_plan([data])
+        sql = next(step['sql'] for step in plan['steps'] if step['name'] == 'shopping_expense')
+        self.assertRegex(sql, r'DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci$')
+        self.assertIn('CHARACTER SET ascii COLLATE ascii_bin', sql)
+        explicit = next(step['sql'] for step in plan['steps'] if step['name'] == 'meal_workspace')
+        self.assertRegex(explicit, r'COLLATE=utf8mb4_unicode_ci$')
+
     def test_exact_legacy_lineage_and_explicit_nonnegative_status_count_are_required(self):
         for mutation in ['wrong-lineage', 'extra-lineage', 'missing-count', 'bool-count', 'negative-count']:
             data = fixture()

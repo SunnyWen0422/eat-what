@@ -19,14 +19,14 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
       <button disabled={pending || !writable} aria-label={`${favorite ? '取消收藏' : '收藏'} ${recipe.name}`} onClick={() => { if (detail) setSelected(null); onFavorite(recipe); }}>{favorite ? '取消收藏' : '收藏'}</button></div>;
   }
   return <section aria-labelledby="recipes-title">
-    <h2 id="recipes-title">菜谱</h2><p className="muted">在线菜谱可浏览和手选，满足审核准入时可本地配餐。个人记录保存在当前浏览器。</p>
+    <h2 id="recipes-title">菜谱</h2><p className="muted">从在线数据库读取菜谱，按餐次和分类推荐，也可以自己选菜。个人记录保存在当前浏览器。</p>
     <div className="card filters"><label>搜索名称或食材<input type="search" value={keyword} onChange={event => setKeyword(event.target.value)} /></label>
       <label>菜谱分类<select value={category} onChange={event => setCategory(event.target.value as DishType | '')}><option value="">全部分类</option>{Object.entries(TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
       <label>仅看收藏<input type="checkbox" checked={favoritesOnly} onChange={event => setFavoritesOnly(event.target.checked)} /></label>
       <button onClick={() => { setKeyword(''); setCategory(''); setFavoritesOnly(false); }}>清除筛选</button><p>筛选仅在本地进行，不发送关键词或收藏。</p>
     </div>
     {loading ? <Notice text="正在读取在线菜谱…" /> : !catalog?.ok ? <div className="notice"><p>在线菜谱暂时无法读取。已有个人计划仍可查看，可在“我的”新建自定义菜谱。</p><button disabled={loading} onClick={onRetry}>重试在线菜谱</button></div>
-      : <><Notice text={`已读取 ${recipes.length} 道在线菜谱 · 当前显示 ${matches.length} 道 · 具备单菜准入标记 ${recipes.filter(recipe => recipe.generationEligible).length} 道。自动配餐仍需当前餐次和类型的整体准入。`} />
+      : <><Notice text={`已读取 ${recipes.length} 道在线菜谱 · 当前显示 ${matches.length} 道 · ${recipes.filter(recipe => recipe.generationEligible).length} 道可参与普通推荐。设置忌口或素食要求后，会进一步核对食材信息。`} />
         {!recipes.length ? <p>当前没有可浏览的在线菜谱。</p> : !matches.length ? <p>没有匹配的菜谱，试试调整筛选。</p>
           : <ul className="recipe-list">{matches.map(recipe => <li className="card" key={recipe.recipeId}><CategoryIcon type={recipe.types[0]} /><h3>{recipe.name}</h3><p className="muted">{recipe.types.map(type => TYPE_LABELS[type]).join('、') || '分类未知'} · {recipe.baseServings === null ? '基准人数未知' : `基准 ${recipe.baseServings} 人`} · {recipe.reviewStatus === 'VERIFIED' ? '有审核记录' : '审核状态未知'}</p>
             <p>份量和复合食材信息可能未知，请按实际需求核对。</p>{warnings(recipe).map(warning => <p className="warning" key={warning}>{warning}</p>)}

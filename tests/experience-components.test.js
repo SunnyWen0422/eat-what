@@ -103,6 +103,43 @@ test('changing image identity clears a previous failure without changing dish ow
   assert.equal(f.view.data.imageFailed, false)
   assert.equal(f.view.data.dishView?.id, 8)
 })
+
+test('dish thumbnails prefer the supplied image and ignore a late failure from a replaced image', () => {
+  const original = { id: 7, name: '青菜', type: 'veg', image: '  http://example.com/veg.jpg  ' }
+  const f = component('compact-dish-row', { dish: original })
+  assert.equal(f.view.data.dishView.image, 'https://example.com/veg.jpg')
+  assert.equal(f.view.data.imageFailed, false)
+  f.view.onImageError({ currentTarget: { dataset: { source: 'https://example.com/previous.jpg' } } })
+  assert.equal(f.view.data.imageFailed, false)
+  f.view.onImageError({ currentTarget: { dataset: { source: 'https://example.com/veg.jpg' } } })
+  assert.equal(f.view.data.imageFailed, true)
+  assert.equal(original.image, '  http://example.com/veg.jpg  ')
+  f.view.properties.dish = { ...original, image: 'https://example.com/new.jpg' }
+  f.observe('dish')
+  assert.equal(f.view.data.imageFailed, false)
+})
+
+test('empty image values use category line art and preserve rounded photo clipping', () => {
+  for (const image of [null, undefined, '', '   ', {}]) {
+    const f = component('compact-dish-row', { dish: { id: 8, type: 'veg', image } })
+    assert.equal(f.view.data.dishView.image, '')
+    assert.equal(f.view.data.dishView.placeholderIcon, 'veg')
+  }
+  assert.match(read('components/compact-dish-row/index.wxss'), /border-radius:\s*14px/)
+  assert.match(read('components/compact-dish-row/index.wxss'), /overflow:\s*hidden/)
+})
+
+test('detail image failure preserves the recipe source and cannot hide a newly loaded photo', () => {
+  const view = page('pages/dish-detail/dish-detail.js')
+  view.data.dish = { id: 8, image: 'https://example.com/veg.jpg' }
+  view.onDishImageError({ currentTarget: { dataset: { url: 'https://example.com/previous.jpg' } } })
+  assert.equal(view.data.dishImageFailed, false)
+  view.onDishImageError({ currentTarget: { dataset: { url: view.data.dish.image } } })
+  assert.equal(view.data.dishImageFailed, true)
+  assert.equal(view.data.dish.image, 'https://example.com/veg.jpg')
+  assert.match(read('pages/dish-detail/dish-detail.wxml'), /dish.image && !dishImageFailed/)
+  assert.match(read('pages/dish-detail/dish-detail.wxml'), /wx:else class="dish-image-placeholder"/)
+})
 for (const [name, quality, expected] of [
   ['explicitly unknown', { reviewStatus: 'UNREVIEWED', timeStatus: 'UNKNOWN' }, '荤菜'],
   ['verified', { reviewStatus: 'VERIFIED', timeStatus: 'VERIFIED' }, '荤菜 · 20 分钟'],

@@ -168,6 +168,12 @@ def _contracts(database_collation):
         for match in re.finditer(r'CREATE TABLE(?: IF NOT EXISTS)?\s+\w+\s*\([^;]+?\)\s*ENGINE=InnoDB DEFAULT CHARSET=utf8mb4(?: COLLATE=\w+)?\s*;', text, re.I):
             sql = match.group(0).strip().removesuffix(';'); name, contract = _parse_table(sql, database_collation)
             if name in creates: raise ValueError('Duplicate migration table')
+            # MySQL's explicit DEFAULT CHARSET selects that charset's server default
+            # collation, which can differ from an older database's collation. Pin
+            # the same table default that the prepared contract attests. Explicit
+            # table and column collations (notably ascii_bin keys) stay untouched.
+            if not re.search(r'\bCOLLATE=\w+\s*$', sql, re.I):
+                sql += ' COLLATE=' + contract['collation']
             creates[name] = re.sub(r'^CREATE TABLE (?!IF NOT EXISTS)', 'CREATE TABLE IF NOT EXISTS ', sql, flags=re.I); contracts[name] = contract
     if set(creates) != set(NEW_TABLES + QUALITY_TABLES): raise ValueError('Reviewed target table inventory differs')
     return creates, contracts, sources

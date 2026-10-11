@@ -1,19 +1,22 @@
 <!--pages/dish-detail/dish-detail.wxml-->
 <view class="ew-page container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
   <!-- 菜品图片 -->
-  <view wx:if="{{dish.image}}" class="dish-image-container">
+  <view class="dish-image-container {{!dish.image || dishImageFailed ? 'is-placeholder' : ''}}">
     <image
-      wx:if="{{dish.image}}"
+      wx:if="{{dish.image && !dishImageFailed}}"
       class="dish-image"
       src="{{dish.image}}" binderror="onDishImageError"
       mode="aspectFill"
       bindtap="previewImage"
       data-url="{{dish.image}}"
     />
+    <view wx:else class="dish-image-placeholder" aria-label="{{dish.typeLabel || '菜品'}}类别占位图">
+      <ui-icon name="{{dishPlaceholderIcon}}" size="48" />
+    </view>
   </view>
 
   <!-- 菜品信息 -->
-  <view class="dish-info {{dish.image ? 'with-hero' : ''}}">
+  <view class="dish-info with-hero">
     <text class="ew-subtitle">查看食材用量和烹饪做法。</text>
     <view class="dish-header">
       <view class="dish-title-row">

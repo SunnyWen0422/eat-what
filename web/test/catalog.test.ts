@@ -63,7 +63,7 @@ describe('truthful online normalization', () => {
     if (result.ok) {
       expect(isRecipeSnapshot(result.value, catalogOnlyKeys)).toBe(true);
       expect(result.value.contentVersion).toBe(null);
-      expect(result.value.generationEligible).toBe(false);
+      expect(result.value.generationEligible).toBe(true);
       expect(result.value.baseServings).toBe(null);
       expect(result.value.ingredients.every((i) => i.quantity === null)).toBe(true);
     }
@@ -81,7 +81,7 @@ describe('truthful online normalization', () => {
     const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [{ ...dish(), quality: null, isPublished: 1, reviewStatus: 'VERIFIED' }], total: 1 })).list({ page: 1, pageSize: 100 });
     expect(result.ok).toBe(true); if (!result.ok) return;
     const normalized = normalizePublicDish(result.value.list[0]!); expect(normalized.ok).toBe(true);
-    if (normalized.ok) { expect(normalized.value.reviewStatus).toBe('UNKNOWN'); expect(normalized.value.generationEligible).toBe(false); expect(normalized.value.baseServings).toBe(null); expect(normalized.value.ingredients.every((i) => i.quantity === null && i.ingredientId === null && i.trust === 'unknown' && !i.compoundResolved)).toBe(true); }
+    if (normalized.ok) { expect(normalized.value.reviewStatus).toBe('UNKNOWN'); expect(normalized.value.generationEligible).toBe(true); expect(normalized.value.baseServings).toBe(null); expect(normalized.value.ingredients.every((i) => i.quantity === null && i.ingredientId === null && i.trust === 'unknown' && !i.compoundResolved)).toBe(true); }
   });
   it('keeps unknown quantities and servings unknown even when numbers are present', () => {
     const row = dish(); row.quality!.servingsStatus = 'UNKNOWN'; row.quality!.ingredients[0]!.quantityStatus = 'UNKNOWN';
@@ -104,10 +104,15 @@ describe('truthful online normalization', () => {
     const value = await catalog([dish(1, { type: 'unmapped' }), dish(2, { type: null }), dish(3, { type: 'unmapped' })]);
     expect(value.recipes).toHaveLength(3); expect(value.recipes.every((r) => !r.generationEligible && r.types.length === 0)).toBe(true); expect(canGenerate(value, 'dinner', 'vegetable')).toBe(false);
   });
-  it('excludes incomplete or unverified steps from automatic selection', async () => {
+  it('excludes missing steps but permits present unreviewed instructions for ordinary suggestions', async () => {
     const incomplete = dish(1, { step: null, steps: null }); const unverified = dish(2); unverified.quality!.stepStatus = 'UNKNOWN';
     const value = await catalog([incomplete, unverified, dish(3)]); expect(canGenerate(value, 'dinner', 'vegetable')).toBe(false);
-    expect(value.recipes.filter((r) => r.generationEligible)).toHaveLength(1);
+    expect(value.recipes.filter((r) => r.generationEligible)).toHaveLength(2);
+  });
+  it.each(['REJECTED', 'BROWSE_ONLY'] as const)('keeps explicit %s outside ordinary recommendations', status => {
+    const row = dish(); row.quality!.reviewStatus = status;
+    const result = normalizePublicDish(row); expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.value.generationEligible).toBe(false); expect(result.value.reviewStatus).toBe(status); }
   });
   it('opens only three distinct successful provider families and rejects imported clones', async () => {
     const value = await catalog(); expect(canGenerate(value, 'dinner', 'vegetable')).toBe(true); expect(canGenerate(value, 'breakfast', 'vegetable')).toBe(false);

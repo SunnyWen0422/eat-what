@@ -370,6 +370,8 @@ button.share-btn { left:auto; bottom:auto; width:44px; max-width:44px; box-sizin
 /* Recipe actions belong to the title, with or without a successfully loaded hero. */
 .container .dish-info { margin-top:0; padding-top:0; }
 .container .dish-info.with-hero { padding-top:20px; }
+.container .dish-image-container.is-placeholder { height:144px; }
+.container .dish-image-placeholder { width:100%;height:100%;background:#EDF3ED;color:#28634E;border-radius:18px;display:flex;align-items:center;justify-content:center; }
 .dish-title-row { display:flex; align-items:center; gap:12px; min-width:0; }
 .dish-title-row .dish-name { flex:1; min-width:0; margin:0; overflow-wrap:break-word; }
 .dish-title-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }

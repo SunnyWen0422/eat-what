@@ -1,6 +1,10 @@
 # 吃什么：开发者手册
 
-当前分支 `codex/v4-meal-workspace-green-20261003` 已实际合并独立网页，合并基线 `c5bfe61`。本轮只在本地整理、修复与验收，不升级线上。接手入口：[交付记录](docs/release/2026-10-10-local-merged-readiness.md)、[启动与验证](docs/testing/local-verification.md)、[前后端设计](docs/eat-what-agent-fullstack-detailed-design.md)。旧计划保留背景，不作为现行生产授权。
+2026-10-11：已按用户要求刷新线上 Java/Python 后端，健康和访问边界检查通过。后端运行源码与已验证部署一致，本轮未替换运行包、配置或数据库；前端继续暂停上线。图片旧域名的证书不匹配也已从服务器复现。见 [后端刷新与图片证书核对](docs/operations/2026-10-11-backend-refresh.md)。
+
+2026-10-10 最新边界：用户已暂停前端继续上线。微信开发版本已上传但未提审/发布；网页普通数据库推荐已在暂停前切换；当前本地另有原生布局修复尚未上传。见 [前端暂停记录](docs/operations/2026-10-10-frontend-update-paused.md) 与 [图 2 原生对齐](docs/testing/2026-10-10-native-layout-repair.md)。下文生产升级记录保留各次部署的历史范围。
+
+当前分支 `codex/v4-meal-workspace-green-20261003` 已实际合并独立网页，合并基线 `c5bfe61`。用户随后明确授权统一上线，运行源码 `eabcc05` 已于 2026-10-10 完成 Java/Python/网页与数据库增量部署；实际结果、备份及未验收范围见 [生产升级记录](docs/operations/2026-10-10-production-release.md)。接手入口：[前轮本地交付](docs/release/2026-10-10-local-merged-readiness.md)、[启动与验证](docs/testing/local-verification.md)、[前后端设计](docs/eat-what-agent-fullstack-detailed-design.md)。历史计划不自动授权新的生产操作。
 
 后续已整合环境/npm 修复 `4ab3d1f` 与小程序体验 `7fd7243`，冲突处理、额外修复和当前验证范围见 [优化分支合并验收](docs/testing/2026-10-10-optimization-branches-merge.md)。前轮 `7b70efe` 的冻结交付包不包含这次改动。
 
@@ -23,7 +27,7 @@
 
 ## 环境与启动
 
-`utils/config.js` 是小程序 API 唯一来源，当前 `https://chishenme.icu/api`，V4 与微信登录开启。旧线上 V4/公开菜库 404 是前次只读证据，本轮没有再次访问或升级；启动本机服务不会自动改变源配置。
+`utils/config.js` 是小程序 API 唯一来源，当前 `https://chishenme.icu/api`，V4 与微信登录开启。2026-10-10 部署后 V4 私人接口匿名访问返回 401，公开菜库 500 道可读；旧版 404 记录已不是当前状态。启动本机服务不会自动改变源配置。
 
 当前本机完整数据环境是 `.local-maturity-active`，API `http://127.0.0.1:18780/api`，原专属 MySQL 端口记录 `7505`，实际以私有运行记录为准。`./scripts/start_local_maturity.ps1` 复用已有库和凭据，只使用 `local-v4` 与隔离账号，不能接到生产库。原 `.local-v4` 是历史样例环境。
 
@@ -41,9 +45,9 @@ Java 使用私有目录的 SHA256 固定快照，避免占用构建输出。默�
 - `/api/dishes` 是筛选/搜索/分页入口，`/api/dishes/lite` 用于有限预加载。公共缓存绑定 API 来源，用户缓存和待确认操作还需账户隔离；迟到响应不得污染另一环境。
 - `/api/meal-workspaces/**` 共享当前餐的版本化状态。保存计划与记录实吃分开；重复、冲突和未知结果恢复原请求，不静默创建替代写入。
 - 收藏、手动选菜、个人菜谱、日历、采购、实付与回顾保留确认和失败反馈。历史计划不推断为已经吃过，个人菜单与菜谱质量证据分别保存。
-- 网页只读 `/api/public/catalog/dishes`。公开目录默认关闭、允许编号为空，最多明确批准 500 道已发布系统菜；私人历史、菜谱和令牌不向匿名页面公开。
+- 网页只读 `/api/public/catalog/dishes`。源码配置默认关闭、允许编号为空；本次生产部署明确启用 500 道已发布系统菜白名单。私人历史、菜谱和令牌不向匿名页面公开。
 - Python 提供建议，Java 执行认证、来源、版本和确认校验后的业务写入。内部服务使用匹配非空令牌；生产不能使用本机 Profile、测试入口或测试令牌。
-- 模型服务测试暂缓，普通本机启动不自动启动适配器或加载供应商凭据。语音提示“抱歉，该功能暂不可用”。规则验证不能称为供应商模型验证。
+- 模型服务测试暂缓，生产模型功能保持启用，本次上线未发送真实供应商测试请求。普通本机启动不自动启动适配器或加载供应商凭据。语音提示“抱歉，该功能暂不可用”。规则验证不能称为供应商模型验证。
 
 详细字段以 Controller、DTO、接口契约测试和详细设计为准；旧部署清单不是当前完整 API 定义。
 
@@ -51,7 +55,7 @@ Java 使用私有目录的 SHA256 固定快照，避免占用构建输出。默�
 
 在 `web/` 使用 Node.js 24.x，`npm ci` 安装锁定依赖。`npm run dev` 不启用线上代理；`npm run dev:online` 仅代理固定 HTTPS 公开菜库 GET，校验证书，剥离令牌/Cookie，不代理私人 API、数据库或写入。静态包需要同源后端，开发代理不进入包。
 
-本轮浏览器回归强制关闭代理，使用隔离响应。个人记录属于当前浏览器和站点来源，清空站点数据、更换浏览器或来源不会自动迁移，应先备份/导出。网页自动配餐保留自身证据门槛，不把 UNREVIEWED 伪升 VERIFIED。
+本地自动回归使用隔离响应；上线后另外完成公网只读页面与资源验收，范围见各次生产升级记录。个人记录属于当前浏览器和站点来源，清空站点数据、更换浏览器或来源不会自动迁移，应先备份/导出。网页现允许内容可用的公共菜谱参与普通推荐，仍排除明确拒绝/仅浏览记录；硬忌口、素食、数量换算分别保留事实门槛，不把 UNREVIEWED 伪升 VERIFIED。
 
 ```powershell
 cd web
@@ -79,9 +83,9 @@ npm run e2e -- --project=chromium
 
 依赖、数据库、JAR、日志、密钥、本机配置和测试输出不提交。提交前核对差异、业务契约、源码/构建物一致性，并记录实际结果与未覆盖范围；不能承诺没有任何潜在问题。
 
-## 后续部署准备
+## 生产更新与后续部署
 
-本轮没有整版生产升级授权，不运行上传、迁移、重启或小程序发布。历史 [线上设计](docs/planning/2026-10-07-online-v4-upgrade-design.md)、[实施计划](docs/superpowers/plans/2026-10-07-online-v4-upgrade.md) 和 [旧候选](docs/operations/2026-10-10-online-v4-candidate.md) 仅供比对，不代表本轮候选或现行指令。
+本次统一部署已在用户明确授权下完成，当前状态以 [生产升级记录](docs/operations/2026-10-10-production-release.md) 为准；小程序前端未上传或发布。历史 [线上设计](docs/planning/2026-10-07-online-v4-upgrade-design.md)、[实施计划](docs/superpowers/plans/2026-10-07-online-v4-upgrade.md) 和 [旧候选](docs/operations/2026-10-10-online-v4-candidate.md) 仅供比对，不代表新的生产操作授权。
 
 未来需要匹配 Java/Python/前端/配置、核对实际端口与服务管理，保留数据库/微信/Token 配置，内部令牌仅服务端私密保存。按真实旧迁移血缘生成桥接增量，禁止盲目套新版 V1–V7 或插入演示数据。公开白名单单独确认，备份含业务库、运行文件、私密配置和助手会话库，先做隔离恢复演练。
 

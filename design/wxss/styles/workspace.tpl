@@ -8,7 +8,7 @@
 .workspace-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
 .workspace-title-row .ew-heading { flex:1; min-width:0; font-size:{{font.page.em}}; line-height:1.4; }
 .workspace-meals { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:4px 0; }
-.workspace-meal { min-width:60px; min-height:44px; padding:8px 14px; margin:0; border:0; border-radius:24px; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; line-height:1.5; }
+.workspace-meals .workspace-meal { flex:0 0 auto; width:auto; min-width:60px; min-height:44px; padding:8px 14px; margin:0; border:0; border-radius:24px; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; font-weight:400; line-height:1.5; box-sizing:border-box; }
 .workspace-meal.is-active { background:{{brand}}; color:{{card}}; font-weight:600; }
 .workspace-other-day { display:flex; align-items:center; justify-content:space-between; gap:8px; color:{{muted}}; font-size:{{font.secondary.em}}; }
 .workspace-screen button.workspace-requirements-entry { display:flex; align-items:center; gap:8px; width:100%; min-height:48px; padding:8px 12px; margin:8px 0 0; border:1px solid {{border}}; border-radius:12px; background:{{card}}; color:{{text}}; text-align:left; line-height:1.5; box-sizing:border-box; }

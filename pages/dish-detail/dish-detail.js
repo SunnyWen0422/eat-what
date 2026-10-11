@@ -4,7 +4,7 @@ const { getDishById } = require('../../utils/api')
 
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    dish: null, targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
+    dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
     showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
     loading: true,
     error: false,
@@ -146,14 +146,14 @@ Page({
           dish.stepsList = []
         }
         // 转换 HTTP 图片为 HTTPS
-        if (dish.image) dish.image = dish.image.replace(/^http:/, 'https:')
+        dish.image = require('../../utils/dish-image').imageSource(dish.image)
         if (dish.stepImagesList) dish.stepImagesList = dish.stepImagesList.map(function(u) {
           return typeof u === 'string' ? u.replace(/^http:/, 'https:') : u
         })
 
         const user = wx.getStorageSync('userInfo') || {}
         const canEditCustom = !!user.id && dish.userId != null && String(dish.userId) === String(user.id)
-        this.setData({ dish, loading: false, canEditCustom }, () => this.measureDetailActions())
+        this.setData({ dish, dishImageFailed: false, dishPlaceholderIcon: require('../../utils/dish-image').placeholderIcon(dish.type), loading: false, canEditCustom }, () => this.measureDetailActions())
         this.checkFavoriteStatus(id)
         this.loadMealQuantities(id, scope, epoch)
       } else {
@@ -253,7 +253,11 @@ Page({
   },
   onRetry() { if (this._dishId) return this._loadAfterLogin(this._dishId) },
   onToggleQualitySources(){this.setData({qualitySourcesVisible:!this.data.qualitySourcesVisible})},
-  onDishImageError() { this.setData({ 'dish.image': '' }) },
+  onDishImageError(event) {
+    const source = event && event.currentTarget && event.currentTarget.dataset.url
+    if (!this.data.dish || (source != null && source !== this.data.dish.image)) return
+    this.setData({ dishImageFailed: true })
+  },
   onAddToShoppingList() {
     const dish = this.data.dish
     if (!dish || !dish.id || !this.current(this._scope)) return

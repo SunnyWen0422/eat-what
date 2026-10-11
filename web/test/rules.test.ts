@@ -123,8 +123,8 @@ describe('fail-closed generator boundaries', () => {
     const result = generated(generateMeal(input({ catalog: catalogOf([unsafe, ...rows]), hardExclusions: ['exclude'], draft: draft({ slots: [{ id: 'v1', type: 'vegetable' }, { id: 'v2', type: 'vegetable' }, { id: 'v3', type: 'vegetable' }, { id: 'v4', type: 'vegetable' }] }) })));
     expect(result.draft.dishes).toHaveLength(4); expect(result.missing).toEqual([]); expect(result.draft.dishes.every((d) => d.recipe.recipeId !== 'a:unsafe')).toBe(true);
   });
-  it('will not use an unverified candidate even with a generationEligible flag', () => {
-    const rows = candidates('vegetable'); rows.forEach((row) => { row.reviewStatus = 'UNREVIEWED'; });
+  it.each(['REJECTED', 'BROWSE_ONLY'] as const)('will not use an explicitly %s candidate even with a generationEligible flag', status => {
+    const rows = candidates('vegetable'); rows.forEach((row) => { row.reviewStatus = status; });
     const result = generated(generateMeal(input({ catalog: catalogOf(rows) }))); expect(result.draft.dishes).toEqual([]); expect(result.missing).toHaveLength(2);
   });
   it('retains every locked snapshot when a recipe was removed or a same-name lock conflicts', () => {
@@ -132,8 +132,8 @@ describe('fail-closed generator boundaries', () => {
     const result = generated(generateMeal(value)); expect(result.conflicts).toHaveLength(1); expect(result.draft).toEqual(value.draft);
     const removed = generated(generateMeal({ ...value, catalog: catalogOf([]) })); expect(removed.conflicts).toHaveLength(2); expect(removed.draft).toEqual(value.draft);
   });
-  it.each(['unknown-steps', 'missing-ingredients', 'unknown-identities'])('does not admit incomplete %s even if the eligibility flag is set', (problem) => {
-    const rows = candidates('vegetable'); rows.forEach((row) => { if (problem === 'unknown-steps') row.stepStatus = 'UNKNOWN'; else if (problem === 'missing-ingredients') row.ingredients = []; else row.ingredients[0]!.trust = 'unknown'; });
+  it.each(['missing-steps', 'missing-ingredients'])('does not admit incomplete %s even if the eligibility flag is set', (problem) => {
+    const rows = candidates('vegetable'); rows.forEach((row) => { if (problem === 'missing-steps') row.steps = []; else row.ingredients = []; });
     const result = generated(generateMeal(input({ catalog: catalogOf(rows) }))); expect(result.draft.dishes).toEqual([]);
   });
 
