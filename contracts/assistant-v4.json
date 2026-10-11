@@ -12,8 +12,10 @@
   "stepOutputs": [
     {"type":"need_input","question":"你想保存到哪一餐？"},
     {"type":"read_calls","readCalls":[{"callId":"call-1","name":"read_current_meal","arguments":{}}],"providerContinuation":{"assistantMessage":{"role":"assistant","content":null,"reasoning_content":"transient-only","tool_calls":[{"id":"call-1","type":"function","function":{"name":"read_current_meal","arguments":"{}"}}]}}},
+    {"type":"final","reply":"请查看查询结果，并核对本餐需求。","factSource":"recent_actual"},
     {"type":"final","reply":"请核对保存安排。","actionProposal":{"steps":[{"kind":"calendar_save","arguments":{}}]}}
   ],
+  "finalFactSource": {"optional":true,"allowed":["recent_actual"],"onlyFor":"final without actionProposal","source":"Java authorized ModelContext.recentActual only; model provides no rows or prose facts","range":"evidence.recentActualRange; truncated snapshots are partial, wider or incomplete queries require read_actual_diet_review","empty":"render actual-record empty state, never substitute current planned meal","compatibility":"omission keeps existing final/action contract; field is internal, not a public request"},
   "readResult": {"callId":"call-1","name":"read_current_meal","items":[],"nextCursor":null,"truncated":false,"sourceVersion":"0","unknownFields":[]},
   "providerContinuation": {"assistantMessage":"latest exact assistant frame","messages":"optional cumulative ordered assistant/tool frames within the current turn, ending with the latest assistant frame; next request appends readResults by callId; never persisted, logged or public"},
   "reads": ["search_dishes","search_by_ingredients","get_dish_details","get_dish_methods","read_current_meal","read_calendar","read_shopping","read_actual_diet_review"],

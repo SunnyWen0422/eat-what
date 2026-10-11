@@ -15,6 +15,7 @@ import java.util.*;
 
 @Service
 public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.ActionExecutor,ControlledToolHarnessService.Extension {
+ private final AssistantCapabilityService capabilities;
  private final ShoppingProcurementScopeService scopes;
  private final ShoppingPreviewService previews;
  private final ShoppingListService lists;
@@ -25,10 +26,11 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
  private final ObjectMapper json;
  public ShoppingAssistantToolAdapter(ShoppingProcurementScopeService scopes,ShoppingPreviewService previews,ShoppingListService lists,
    ControlledToolHarnessService harness,AssistantV4Store store,AssistantCapabilityService capabilities,ObjectProvider<AssistantV4TurnService> runner,TransactionTemplate tx,ObjectMapper json){
-  this.scopes=scopes;this.previews=previews;this.lists=lists;this.harness=harness;this.store=store;this.runner=runner;this.tx=tx;
+  this.capabilities=capabilities;this.scopes=scopes;this.previews=previews;this.lists=lists;this.harness=harness;this.store=store;this.runner=runner;this.tx=tx;
   this.json=json.copy().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,true).configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,true);
   harness.registerExtension(this);capabilities.registerPreview("shopping_preview",this);
  }
+ public boolean enabled(){return capabilities.capabilities().isEnabled();}
  public String tool(){return "add_meal_shopping";}
  public ControlledToolTask prepareShopping(Long user,ShoppingIntent intent,String requestId){return harness.previewExtension(user,tool(),arguments(intent,null,null),requestId);}
  public TurnResult execute(Long user,WorkflowStep step,TurnScope scope){

@@ -39,6 +39,14 @@ class AssistantV4StoreTest {
         when(db.reserve(anyLong(),anyString(),anyString(),anyLong())).thenAnswer(i->{TurnRecord r=turns.get(i.getArgument(1));if(!"running".equals(r.getStatus())||!Objects.equals(r.getLeaseToken(),i.getArgument(2))||r.getProviderCallsUsed()>=4||r.getModelDeadlineAt()<=(Long)i.getArgument(3))return 0;r.setProviderCallsUsed(r.getProviderCallsUsed()+1);return 1;});
         when(db.save(any(),anyString(),nullable(String.class))).thenAnswer(i->{TurnRecord n=i.getArgument(0),r=turns.get(n.getId());if(r==null||!r.getStatus().equals(i.getArgument(1)))return 0;String lease=i.getArgument(2);if(lease!=null&&!Objects.equals(r.getLeaseToken(),lease))return 0;turns.put(n.getId(),n);return 1;});
         when(db.activeSessionTurns(anyLong(),anyString())).thenAnswer(i->{List<TurnRecord> rows=new ArrayList<>();for(TurnRecord r:turns.values())if(r.getUserId().equals(i.getArgument(0))&&r.getSessionId().equals(i.getArgument(1))&&Arrays.asList("queued","running","awaiting_confirmation").contains(r.getStatus()))rows.add(r);return rows;});
+        when(db.latestPendingSessionTurn(anyLong(),anyString(),anyLong())).thenAnswer(i->{
+            TurnRecord latest=null;
+            for(TurnRecord row:turns.values())if(row.getUserId().equals(i.getArgument(0))&&row.getSessionId().equals(i.getArgument(1))&&"awaiting_confirmation".equals(row.getStatus())&&row.getCreatedAt()>(Long)i.getArgument(2)
+                    &&new ObjectMapper().readValue(row.getResultJson(),TurnResult.class).getPendingAction()!=null){
+                if(latest==null||row.getUpdatedAt()>latest.getUpdatedAt()||(row.getUpdatedAt()==latest.getUpdatedAt()&&row.getId().compareTo(latest.getId())>0))latest=row;
+            }
+            return latest;
+        });
         when(db.deleteSession(anyLong(),anyString())).thenAnswer(i->{String id=i.getArgument(1);for(TurnRecord r:turns.values())if(id.equals(r.getSessionId()))assertTrue(com.eatwhat.dto.AssistantV4Contract.terminal(r.getStatus()),"cancel active tasks before deletion");sessions.remove(id);turns.values().removeIf(r->id.equals(r.getSessionId()));return 1;});
         store=newStore();
     }
@@ -110,9 +118,11 @@ class AssistantV4StoreTest {
     @Test void retention_removes_text_not_business_receipts(){store.purgeExpired();verify(db).purgeMessageText(now-30L*86400000);verify(db).purgeTerminalInputs(now-7L*86400000);verify(db).purgeTerminalMetadata(now-90L*86400000);verifyNoInteractions(workspaces);}
     TurnResult initialPreview(String id,TurnRecord lease){
         ActionIntent a=new ActionIntent();a.setKind("calendar_save");a.getArguments().put("date","2026-10-12");ActionIntent b=new ActionIntent();b.setKind("shopping_preview");
-        WorkflowContinuation c=com.eatwhat.dto.AssistantV4Contract.workflow(id,Arrays.asList(a,b));store.checkpointContinuation(1L,id,lease.getLeaseToken(),c);c.getSteps().get(0).setStatus("awaiting_confirmation");
+        WorkflowContinuation c=com.eatwhat.dto.AssistantV4Contract.workflow(id,Arrays.asList(a,b));store.checkpointContinuation(1L,id,lease.getLeaseToken(),c);c.getSteps().get(0).setStatus("awaiting_confirmation");c.getSteps().get(0).setTaskId("calendar-task");
         PendingAction pending=new PendingAction();pending.setStepId("step-1");pending.setTaskId("calendar-task");pending.setPreviewToken("first-preview");pending.setExpiresAt(now+600000);
-        TurnResult preview=new TurnResult();preview.setStatus("awaiting_confirmation");preview.setContinuation(c);preview.setPendingAction(pending);store.completeTurn(1L,id,"running",lease.getLeaseToken(),preview);return preview;
+        TurnResult preview=new TurnResult();preview.setStatus("awaiting_confirmation");preview.setContinuation(c);preview.setPendingAction(pending);
+        Card card=new Card();card.setType("calendar_save");card.setTaskId("calendar-task");card.setPreviewToken("first-preview");card.setExpiresAt(now+600000);preview.getCards().add(card);
+        store.completeTurn(1L,id,"running",lease.getLeaseToken(),preview);return preview;
     }
     @Test void delayed_previous_preview_cannot_regress_completed_cursor_or_receipt(){
         String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);TurnResult stale=initialPreview(id,lease);
@@ -137,13 +147,15 @@ class AssistantV4StoreTest {
         doAnswer(i->{long before=i.getArgument(0);for(TurnRecord r:turns.values())if(r.getCreatedAt()<before){assertTrue(com.eatwhat.dto.AssistantV4Contract.terminal(r.getStatus()));r.setInputJson(null);r.setResultJson("{}");WorkflowContinuation c=new ObjectMapper().readValue(r.getContinuationJson(),WorkflowContinuation.class);for(WorkflowStep step:c.getSteps())step.getArguments().clear();r.setContinuationJson(new ObjectMapper().writeValueAsString(c));}return 1;}).when(db).purgeOldTurnText(anyLong());
         clearInvocations(workspaces);store.purgeExpired();assertTrue(sessions.containsKey(session));assertEquals("cancelled",store.findTurn(1L,id).getStatus());assertNull(turns.get(id).getInputJson());assertTrue(store.continuation(1L,id).getSteps().get(0).getArguments().isEmpty());assertEquals("calendar-receipt",store.continuation(1L,id).getSteps().get(0).getReceiptRef());verifyNoInteractions(workspaces);
     }
-    @Test void abandoned_queue_running_lease_and_expired_preview_are_cancelled_under_parent_guard() throws Exception {
+    @Test void abandoned_queue_and_running_lease_cancel_but_expired_preview_remains_renewable() throws Exception {
         String s=session();String queued=store.claimTurn(1L,s,request()).getTurnId();turns.get(queued).setCreatedAt(now-31L*86400000);
         String running=store.claimTurn(1L,s,request()).getTurnId();TurnRecord runLease=store.acquireTurn(1L,running);turns.get(running).setLeaseUntil(now-1);
         String awaiting=store.claimTurn(1L,s,request()).getTurnId();TurnRecord previewLease=store.acquireTurn(1L,awaiting);initialPreview(awaiting,previewLease);
         TurnRecord previewRow=turns.get(awaiting);ObjectMapper mapper=new ObjectMapper();TurnResult result=mapper.readValue(previewRow.getResultJson(),TurnResult.class);result.getPendingAction().setExpiresAt(now-1);previewRow.setResultJson(mapper.writeValueAsString(result));
         when(db.expiredActiveTurns(now,now-30L*86400000)).thenReturn(Arrays.asList(turns.get(queued),turns.get(running),previewRow));
-        store.purgeExpired();for(String id:Arrays.asList(queued,running,awaiting))assertEquals("cancelled",store.findTurn(1L,id).getStatus());
+        store.purgeExpired();for(String id:Arrays.asList(queued,running))assertEquals("cancelled",store.findTurn(1L,id).getStatus());
+        assertEquals("awaiting_confirmation",store.findTurn(1L,awaiting).getStatus());
+        assertEquals("renewed",store.withRepreviewParent(1L,awaiting,"step-1","calendar-task",()->"renewed"));
         assertThrows(ResponseStatusException.class,()->store.withActiveLease(1L,running,runLease.getLeaseToken(),()->"write"));assertThrows(ResponseStatusException.class,()->store.withActiveParent(1L,awaiting,"step-1",()->"write"));
     }
     @Test void completing_second_step_preserves_prior_real_receipt_cards() {
@@ -153,4 +165,55 @@ class AssistantV4StoreTest {
         Card shopping=new Card();shopping.setType("receipt");shopping.setReceiptRef("shopping-real");shopping.setId("shopping-card");
         TurnView done=store.completeWorkflowStep(1L,id,"step-2","shopping-real",shopping);
         assertEquals(2,done.getCards().size());assertEquals("calendar-real",done.getCards().get(0).getReceiptRef());assertEquals("shopping-real",done.getCards().get(1).getReceiptRef());
-    }}
+    }
+    @Test void expired_preview_renewal_cannot_extend_absolute_lifecycle_or_revive_cancelled_parent(){
+        String sessionId=session(),id=store.claimTurn(1L,sessionId,request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        AssistantV4Store afterToken=new AssistantV4Store(db,locks,workspaces,new ObjectMapper(),tx,Clock.fixed(Instant.ofEpochMilli(now+600001),ZoneOffset.UTC));
+        assertEquals("renewable",afterToken.withRepreviewParent(1L,id,"step-1","calendar-task",()->"renewable"));
+        AssistantV4Store afterLifecycle=new AssistantV4Store(db,locks,workspaces,new ObjectMapper(),tx,Clock.fixed(Instant.ofEpochMilli(now+30L*86400000),ZoneOffset.UTC));
+        assertThrows(ResponseStatusException.class,()->afterLifecycle.withRepreviewParent(1L,id,"step-1","calendar-task",()->"write"));
+        assertThrows(ResponseStatusException.class,()->afterLifecycle.withActiveParent(1L,id,"step-1",()->"write"));
+        store.cancelTurn(1L,id);
+        assertThrows(ResponseStatusException.class,()->afterToken.withRepreviewParent(1L,id,"step-1","calendar-task",()->"write"));
+        store.deleteSession(1L,sessionId);
+        assertThrows(ResponseStatusException.class,()->afterToken.withRepreviewParent(1L,id,"step-1","calendar-task",()->"write"));
+    }
+    @Test void pending_continuation_without_preview_survives_short_cleanup_window(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);store.completeWorkflowStep(1L,id,"step-1","calendar-real",null);
+        when(db.expiredActiveTurns(anyLong(),anyLong())).thenReturn(Collections.singletonList(turns.get(id)));
+        AssistantV4Store later=new AssistantV4Store(db,locks,workspaces,new ObjectMapper(),tx,Clock.fixed(Instant.ofEpochMilli(now+600001),ZoneOffset.UTC));
+        later.purgeExpired();assertEquals("awaiting_confirmation",later.findTurn(1L,id).getStatus());
+        assertEquals("next",later.withActiveParent(1L,id,"step-2",()->"next"));
+    }
+    @Test void context_uses_only_current_parent_preview_and_keeps_receipt_history() throws Exception {
+        String sessionId=session(),id=store.claimTurn(1L,sessionId,request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        Card stale=new Card();stale.setType("calendar_save");stale.setTaskId("replaced-task");stale.setPreviewToken("old");
+        Card current=new Card();current.setType("calendar_save");current.setTaskId("calendar-task");current.setPreviewToken("first-preview");
+        Card receipt=new Card();receipt.setType("receipt");receipt.setReceiptRef("real-receipt");
+        Map<String,Object> message=new HashMap<>();message.put("id","1");message.put("turnId",id);message.put("role","assistant");message.put("text","请核对");message.put("createdAt",now);
+        message.put("cardsJson",new ObjectMapper().writeValueAsString(Arrays.asList(stale,current,receipt)));
+        when(db.messages(eq(1L),eq(sessionId),anyLong(),anyInt(),anyLong())).thenReturn(Collections.singletonList(message));
+        List<Card> cards=store.sessionState(1L,sessionId).getMessages().get(0).getCards();assertEquals(2,cards.size());assertEquals("calendar-task",cards.get(0).getTaskId());
+        store.completeWorkflowStep(1L,id,"step-1","calendar-real",null);
+        cards=store.sessionState(1L,sessionId).getMessages().get(0).getCards();assertEquals(1,cards.size());assertEquals("real-receipt",cards.get(0).getReceiptRef());
+        store.cancelTurn(1L,id);cards=store.sessionState(1L,sessionId).getMessages().get(0).getCards();assertEquals(1,cards.size());
+    }
+
+    @Test void current_pending_outside_recent_text_window_is_still_context_and_cancel_does_not_revive_it(){
+        String sessionId=session(),id=store.claimTurn(1L,sessionId,request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        String older=store.claimTurn(1L,sessionId,request()).getTurnId();TurnRecord olderLease=store.acquireTurn(1L,older);initialPreview(older,olderLease);turns.get(older).setUpdatedAt(now-1);
+        turns.get(older).setResultJson(turns.get(older).getResultJson().replace("calendar-task","older-task"));turns.get(older).setContinuationJson(turns.get(older).getContinuationJson().replace("calendar-task","older-task"));
+        List<Map<String,Object>> recent=new ArrayList<>();
+        for(int i=12;i>=1;i--){Map<String,Object> row=new HashMap<>();row.put("id",String.valueOf(i));row.put("role",i%2==0?"assistant":"user");row.put("text","只读查询");row.put("createdAt",now);row.put("cardsJson","[]");recent.add(row);}
+        when(db.messages(eq(1L),eq(sessionId),anyLong(),anyInt(),anyLong())).thenReturn(recent);
+        SessionState state=store.sessionState(1L,sessionId);
+        assertEquals(12,state.getMessages().size());
+        assertEquals(1,state.getMessages().stream().flatMap(m->m.getCards().stream()).filter(c->"calendar-task".equals(c.getTaskId())).count());
+        assertFalse(state.getMessages().stream().flatMap(m->m.getCards().stream()).anyMatch(c->"older-task".equals(c.getTaskId())));
+        AssistantV4Store afterLifecycle=new AssistantV4Store(db,locks,workspaces,new ObjectMapper(),tx,Clock.fixed(Instant.ofEpochMilli(now+30L*86400000),ZoneOffset.UTC));
+        assertTrue(afterLifecycle.sessionState(1L,sessionId).getMessages().stream().allMatch(m->m.getCards().isEmpty()));
+        store.cancelTurn(1L,id);store.cancelTurn(1L,older);
+        assertTrue(store.sessionState(1L,sessionId).getMessages().stream().allMatch(m->m.getCards().isEmpty()));
+        store.deleteSession(1L,sessionId);assertThrows(ResponseStatusException.class,()->store.sessionState(1L,sessionId));
+    }
+}

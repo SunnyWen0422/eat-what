@@ -145,7 +145,7 @@ def message_diagnostic(message,payload=None):
     try:parsed=json.loads(message.get('content'))
     except (TypeError,ValueError):result['contentCategory']='not_json';return result
     result['contentCategory']='json';result['jsonShape']=type(parsed).__name__
-    result['jsonKeys']=safe_keys(parsed,{'type','question','reply','actionProposal','readCalls','status','message','tool_calls','actions','action','steps','arguments'})
+    result['jsonKeys']=safe_keys(parsed,{'type','question','reply','factSource','actionProposal','readCalls','status','message','tool_calls','actions','action','steps','arguments'})
     if isinstance(parsed,dict):
         result['jsonType']=parsed.get('type') if parsed.get('type') in ('need_input','final','read_calls') else 'unknown'
         if parsed.get('type')=='need_input':result['needInputCategory']=text_category(parsed.get('question'))
@@ -203,6 +203,52 @@ class LiveCompletion:
             self.diagnostics.append({'diagnosticFailure':'diagnostic_unavailable'})
         return message
 
+
+def require_saved_shopping_source(saved, binding, rows):
+    """Validate LIVE05 against the preceding confirmed calendar receipt."""
+    runner.require(saved is not None and saved.get('status')=='completed',
+                   'LIVE05 requires a completed LIVE04 calendar receipt')
+    step=saved['steps'][0];receipt=step['result']
+    runner.require(step['tool']=='save_meal_to_target' and receipt.get('executed') is True,
+                   'LIVE05 requires an executed calendar receipt')
+    expected={'kind':'plan','date':receipt['targetDate'],'mealType':receipt['targetMealType']}
+    source=binding['source']
+    for ref in (binding['sourceRef'],source['sourceRef']):
+        runner.require(all(ref.get(key)==value for key,value in expected.items())
+                       and ref.get('workspaceId') is None,'Live shopping selected a different saved meal')
+    runner.require(source.get('date')==expected['date'] and source.get('mealType')==expected['mealType']
+                   and source.get('planRevision')==receipt['targetPlanRevision'],
+                   'Live shopping saved-plan revision mismatch')
+    runner.require(rows and all(row.get('price') is None and row.get('quantity') is None
+                               and row.get('quantityText')=='按需' for row in rows),
+                   'Live shopping invented price or quantity')
+    runner.require(binding['groups'] and all(group['sourceDate']==expected['date']
+                   and group['sourceMealType']==expected['mealType'] for group in binding['groups']),
+                   'Live shopping submitted a different saved meal')
+    return expected
+
+
+def require_persisted_shopping(a,user,binding,expected):
+    """Read actual owned SQL rows by the confirmed selection identities."""
+    groups=binding['groups'];wanted=[]
+    runner.require(groups,'Live shopping has no submitted groups')
+    for group in groups:
+        runner.require(group['sourceDate']==expected['date'] and group['sourceMealType']==expected['mealType'],
+                       'Live shopping submitted a different saved meal')
+        for item in group['items']:
+            runner.require(all(item.get(key) is None for key in ('quantityValue','quantityMin','quantityMax')),
+                           'Live shopping submitted an invented quantity')
+            wanted.append((group['selectionKey'],item['sourceLineNo'],expected['date'],expected['mealType'],
+                           None,None,None,item.get('quantityText')))
+    keys=[group['selectionKey'] for group in groups]
+    actual=a.sql("SELECT d.selection_key,i.source_line_no,DATE_FORMAT(d.source_date,'%%Y-%%m-%%d'),"
+                 "d.source_meal_type,i.quantity_value,i.quantity_min,i.quantity_max,i.quantity_text "
+                 "FROM shopping_item i JOIN shopping_dish d ON d.id=i.shopping_dish_id "
+                 "JOIN shopping_list l ON l.id=d.shopping_list_id WHERE l.user_id=%s "
+                 "AND d.selection_key IN ("+','.join(['%s']*len(keys))+")",tuple([user]+keys))
+    runner.require(wanted and sorted(actual)==sorted(wanted),
+                   'Live shopping persisted source or quantity mismatch')
+
 class LiveExecution:
     provider_mode='live'
     def __init__(self,fields,budget):
@@ -216,6 +262,8 @@ class LiveExecution:
     def run_case(self,a,case,index):
         if self.budget_used()>=20:raise BudgetExhausted('Budget exhausted; scenario not evaluated')
         user=910001;mode=case['scenario']
+        if mode=='shopping':
+            runner.require(self.last_saved is not None,'LIVE05 requires successful LIVE04 first')
         if self.workspace is None:
             context={'date':str(a.day),'mealType':'lunch','people':2,
                 'compositionMode':'manual','counts':{'meat':1,'veg':1,'soup':1},'requirements':'','ownedIngredients':[]}
@@ -254,13 +302,16 @@ class LiveExecution:
                 binding=task['steps'][0]['binding'];target=str(date.today()+timedelta(days=1))
                 runner.require(binding['targetDate']==target and binding['targetMealType']=='dinner','Live tomorrow resolved against selected future date')
             else:
-                rows=turn['cards'][-1]['data']['items'];runner.require(rows and all(r['price'] is None for r in rows),'Live shopping invented price')
+                binding=task['steps'][0]['binding'];rows=turn['cards'][-1]['data']['items']
+                expected_source=require_saved_shopping_source(self.last_saved,binding,rows)
             saved=a.confirm(user,turn);runner.require(saved['status']=='completed','Live confirmed domain operation failed')
             after=a.counts(user);runner.require(after['meal_consumption']==before['meal_consumption'],'Live plan/shopping created eaten record')
             if mode=='save':
-                self.last_saved=saved
                 runner.require(a.sql('SELECT COUNT(*) FROM recipe_records WHERE user_id=%s AND record_date=%s AND meal_type=%s',(user,target,'dinner'))[0][0]==1,'Live save missing correct target')
-            else:runner.require(after['shopping_item']>before['shopping_item'],'Live shopping added no ingredients')
+                self.last_saved=saved
+            else:
+                runner.require(after['shopping_item']>before['shopping_item'],'Live shopping added no ingredients')
+                require_persisted_shopping(a,user,binding,expected_source)
         else:
             runner.require(turn['status']=='needs_input' and not turn.get('pendingAction') and not turn.get('retryable') and text_category(turn.get('reply')) in ('date','meal'),'Ambiguous live target was not genuinely clarified')
             runner.require(a.workspace(w,user)==w,'Live clarification changed workspace')

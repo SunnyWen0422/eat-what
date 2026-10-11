@@ -44,7 +44,35 @@ public class AssistantV4Store {
             workspaces.get(user,request.getWorkspaceId());SessionRecord r=new SessionRecord();r.setId(UUID.randomUUID().toString());r.setUserId(user);r.setWorkspaceId(request.getWorkspaceId());r.setRequestId(request.getRequestId());r.setRequestHash(hash);r.setCreatedAt(clock.millis());r.setUpdatedAt(clock.millis());db.insertSession(r);return sessionView(user,r.getId(),null,30);
         });
     }
-    public SessionState sessionState(Long user,String id){SessionRecord s=session(user,id);SessionState state=new SessionState();state.setSessionId(id);state.setUserId(user);state.setWorkspaceId(s.getWorkspaceId());state.setMessages(sessionView(user,id,null,12).getMessages());return state;}
+    public SessionState sessionState(Long user,String id){
+        SessionRecord s=session(user,id);SessionState state=new SessionState();state.setSessionId(id);state.setUserId(user);state.setWorkspaceId(s.getWorkspaceId());
+        List<Message> messages=sessionView(user,id,null,12).getMessages();
+        // One bounded, authoritative pending action survives the text window. Older
+        // pending turns remain recoverable in the UI, but do not crowd model context.
+        TurnRecord current=db.latestPendingSessionTurn(user,id,clock.millis()-30*DAY);TurnResult result=null;
+        if(current!=null&&Objects.equals(user,current.getUserId())&&id.equals(current.getSessionId())&&Objects.equals(s.getWorkspaceId(),current.getWorkspaceId())
+                &&"awaiting_confirmation".equals(current.getStatus())&&current.getCreatedAt()>clock.millis()-30*DAY&&current.getResultJson()!=null)result=decode(current.getResultJson(),TurnResult.class);
+        PendingAction pending=result==null?null:result.getPendingAction();
+        Message latestAssistant=null;boolean included=false;
+        // Message cards are historical snapshots. Only the latest durable parent
+        // can supply a pending preview, not a cancelled/replaced/completed snapshot.
+        for(Message message:messages){
+            if("assistant".equals(message.getRole()))latestAssistant=message;
+            List<Card> cards=new ArrayList<>();
+            for(Card card:message.getCards()){
+                if(card.getReceiptRef()!=null||card.getTaskId()==null){cards.add(card);continue;}
+                if(pending!=null&&Objects.equals(current.getId(),message.getTurnId())&&Objects.equals(pending.getTaskId(),card.getTaskId())&&Objects.equals(pending.getPreviewToken(),card.getPreviewToken())){cards.add(card);included=true;}
+            }
+            message.setCards(cards);
+        }
+        if(!included&&pending!=null&&pending.getTaskId()!=null)for(Card card:result.getCards())
+            if(card.getReceiptRef()==null&&pending.getTaskId().equals(card.getTaskId())&&Objects.equals(pending.getPreviewToken(),card.getPreviewToken())){
+                // This is a detached server-only context projection, never a new message.
+                if(latestAssistant==null){latestAssistant=new Message();latestAssistant.setRole("assistant");messages.add(latestAssistant);}
+                latestAssistant.getCards().add(card);break;
+            }
+        state.setMessages(messages);return state;
+    }
     public SessionView sessionView(Long user,String id,String cursor,int limit){
         SessionRecord s=session(user,id);if(limit<1||limit>50)throw new IllegalArgumentException("分页数量无效");long before=Long.MAX_VALUE;
         if(cursor!=null){try{before=Long.parseLong(cursor);if(before<=0)throw new NumberFormatException();}catch(NumberFormatException e){throw new IllegalArgumentException("分页标识无效");}}
@@ -157,7 +185,7 @@ public class AssistantV4Store {
     /** Confirmation adapters MUST put their domain write and receipt in this callback. */
     public <T>T withActiveParent(Long user,String turnId,String stepId,Supplier<T> work){return tx.execute(t->{
         lock(user);TurnRecord r=turnRecord(user,turnId);session(user,r.getSessionId());
-        if(!Arrays.asList("running","awaiting_confirmation").contains(r.getStatus()))throw conflict();
+        if(r.getCreatedAt()<=clock.millis()-30*DAY||!Arrays.asList("running","awaiting_confirmation").contains(r.getStatus()))throw conflict();
         if("running".equals(r.getStatus())&&(r.getLeaseUntil()<=clock.millis()||r.getModelDeadlineAt()<=clock.millis()))throw conflict();
         WorkflowContinuation c=continuation(user,turnId);if(c==null||c.getCursor()>=c.getSteps().size())throw conflict();WorkflowStep s=c.getSteps().get(c.getCursor());
         if(!Objects.equals(s.getStepId(),stepId)||!Arrays.asList("pending","awaiting_confirmation").contains(s.getStatus()))throw conflict();
@@ -167,7 +195,7 @@ public class AssistantV4Store {
     /** Explicit user repreview may renew an expired token, but never resurrect a cancelled parent. */
     public <T>T withRepreviewParent(Long user,String turnId,String stepId,String oldTaskId,Supplier<T> work){return tx.execute(t->{
         lock(user);TurnRecord row=turnRecord(user,turnId);session(user,row.getSessionId());
-        if(!"awaiting_confirmation".equals(row.getStatus()))throw conflict();
+        if(row.getCreatedAt()<=clock.millis()-30*DAY||!"awaiting_confirmation".equals(row.getStatus()))throw conflict();
         WorkflowContinuation c=continuation(user,turnId);if(c==null||c.getCursor()>=c.getSteps().size())throw conflict();
         WorkflowStep step=c.getSteps().get(c.getCursor());TurnResult result=decode(row.getResultJson(),TurnResult.class);PendingAction p=result.getPendingAction();
         if(!"awaiting_confirmation".equals(step.getStatus())||!Objects.equals(stepId,step.getStepId())||!Objects.equals(oldTaskId,step.getTaskId())||p==null||!Objects.equals(stepId,p.getStepId())||!Objects.equals(oldTaskId,p.getTaskId()))throw conflict();
@@ -195,9 +223,10 @@ public class AssistantV4Store {
         db.purgeMessageText(now-30*DAY);db.purgeTerminalInputs(now-7*DAY);db.purgeOldTurnText(now-30*DAY);db.purgeTerminalMetadata(now-90*DAY);
     }
     private boolean expired(TurnRecord r,long now){
-        if(r.getCreatedAt()<now-30*DAY)return true;
+        if(r.getCreatedAt()<=now-30*DAY)return true;
         if("running".equals(r.getStatus()))return r.getLeaseUntil()<=now;
-        if("awaiting_confirmation".equals(r.getStatus())){TurnResult result=r.getResultJson()==null?new TurnResult():decode(r.getResultJson(),TurnResult.class);PendingAction p=result.getPendingAction();return p!=null&&p.getExpiresAt()!=null?p.getExpiresAt()<=now:r.getUpdatedAt()+600000<=now;}
+        // Token expiry blocks confirmation, not an explicit repreview or validated continuation.
+        // The absolute createdAt bound above still ends sensitive workflow retention.
         return false;
     }
 }

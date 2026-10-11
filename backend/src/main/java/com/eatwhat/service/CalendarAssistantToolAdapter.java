@@ -12,13 +12,15 @@ import java.util.stream.Collectors;
 
 @Service
 public class CalendarAssistantToolAdapter implements AssistantCapabilityService.ActionExecutor,ControlledToolHarnessService.Extension {
+ private final AssistantCapabilityService capabilities;
  private final MealWorkspaceService workspaces;private final ControlledToolHarnessService harness;private final AssistantV4Store store;private final ObjectMapper json;
  private final ObjectProvider<AssistantV4TurnService> runner;private final ObjectProvider<CalendarSavedListener> listeners;
  public CalendarAssistantToolAdapter(MealWorkspaceService workspaces,ControlledToolHarnessService harness,AssistantV4Store store,ObjectMapper json,
    AssistantCapabilityService capabilities,ObjectProvider<AssistantV4TurnService> runner,ObjectProvider<CalendarSavedListener> listeners){
-  this.workspaces=workspaces;this.harness=harness;this.store=store;this.json=json.copy().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,true).configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,true);
+  this.capabilities=capabilities;this.workspaces=workspaces;this.harness=harness;this.store=store;this.json=json.copy().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,true).configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,true);
   this.runner=runner;this.listeners=listeners;harness.registerExtension(this);capabilities.registerPreview("calendar_save",this);
  }
+ public boolean enabled(){return capabilities.capabilities().isEnabled();}
  public String tool(){return ControlledToolRegistry.SAVE_MEAL_TO_TARGET;}
  public TurnResult execute(Long user,WorkflowStep step,TurnScope scope){
   if(!"calendar_save".equals(step.getKind())||user==null||!user.equals(scope.getUserId()))throw new IllegalArgumentException("保存操作无效");

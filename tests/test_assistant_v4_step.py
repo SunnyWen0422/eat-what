@@ -93,6 +93,35 @@ class AssistantV4StepTest(unittest.TestCase):
         self.assertEqual(history, [m for m in payload["messages"] if m["role"] in ("assistant", "tool")])
         self.assertNotIn("reasoning", json.dumps(value))
 
+    def test_recent_actual_source_survives_without_forwarding_model_prose(self):
+        request = body()
+        request["context"]["recentActual"] = [{"date": "2026-10-10", "status": "eaten",
+            "dishes": [{"name": "面条"}], "basis": "explicit_eaten"}]
+        status, value, requests = self.route(final({"type": "final", "reply": "已保存并采购",
+            "factSource": "recent_actual"}), request)
+        self.assertEqual(200, status)
+        self.assertEqual({"type": "final", "reply": "请查看查询结果，并核对本餐需求。",
+            "factSource": "recent_actual"}, value)
+        schema = json.loads(requests[0]["json"]["messages"][0]["content"].split("最终输出 JSON schema：", 1)[1])
+        final_schema = next(option for option in schema["anyOf"] if "factSource" in option["properties"])
+        self.assertEqual(["recent_actual"], final_schema["properties"]["factSource"]["enum"])
+        self.assertNotIn("actionProposal", final_schema["properties"])
+        self.assertIn("factSource", final_schema["required"])
+        self.assertIn("final必须设置factSource=recent_actual", requests[0]["json"]["messages"][0]["content"])
+
+    def test_recent_actual_source_rejects_payload_and_conflicting_actions(self):
+        for source in ("shopping", "receipt", {"dishes": [{"name": "fake"}]}, None):
+            _, value, _ = self.route(final({"type": "final", "reply": "x", "factSource": source}))
+            self.assertEqual("need_input", value["type"])
+            self.assertNotIn("factSource", value)
+        _, value, _ = self.route(final({"type": "final", "reply": "x", "factSource": "recent_actual",
+            "actionProposal": {"steps": [{"kind": "calendar_save", "arguments": {
+                "targetDate": "2026-10-12", "targetMealType": "dinner"}}]}}))
+        self.assertEqual("need_input", value["type"])
+        self.assertNotIn("actionProposal", value)
+        _, value, _ = self.route(final({"type": "need_input", "question": "哪天？", "factSource": "recent_actual"}))
+        self.assertEqual("本次智能理解暂不可用，请明确需求或稍后重试。", value["question"])
+
     def test_final_and_need_input_json_are_strict(self):
         for response in ({"type": "need_input", "question": "哪天？"},
                          {"type": "final", "reply": "请核对。", "actionProposal": {"steps": [

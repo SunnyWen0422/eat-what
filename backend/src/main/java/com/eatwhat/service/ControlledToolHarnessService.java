@@ -31,6 +31,7 @@ public class ControlledToolHarnessService {
     /** Internal registered writes. Public callers cannot provide their trusted arguments/bindings. */
     public interface Extension {
         String tool();
+        default boolean enabled() { return true; }
         Map<String,Object> bind(Long user,Map<String,Object> trustedArguments);
         String summary(Map<String,Object> binding);
         Map<String,Object> execute(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index);
@@ -118,6 +119,7 @@ public class ControlledToolHarnessService {
             lock(user);ControlledToolTask task=get(user,id);
             if(!Objects.equals(task.previewToken,token))throw new IllegalArgumentException("预览凭证无效");
             if(terminal(task))return task;
+            requirePendingExtensionsEnabled(task);
             if(hasPendingWrite(task)&&clock.millis()>task.expiresAt) {
                 fail(task,"PREVIEW_EXPIRED","预览已过期，请重新查看并确认",false);save(user,task);return task;
             }
@@ -165,7 +167,7 @@ public class ControlledToolHarnessService {
 
     private Map<String,Object> execute(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index) {
         Extension extension=extensions.get(step.tool);
-        if(extension!=null){if(clock.millis()>task.expiresAt)throw new PreviewExpired();return extension.execute(user,task,step,index);}
+        if(extension!=null){requireExtensionEnabled(extension);if(clock.millis()>task.expiresAt)throw new PreviewExpired();return extension.execute(user,task,step,index);}
         if(ControlledToolRegistry.CONFIRM_MEAL.equals(step.tool)) {
             if(clock.millis()>task.expiresAt)throw new PreviewExpired();
             Map<String,Object> current=mealBinding(user,step.arguments);
@@ -218,8 +220,10 @@ public class ControlledToolHarnessService {
     }
     private static String mealLabel(String meal){return "breakfast".equals(meal)?"早餐":"lunch".equals(meal)?"午餐":"晚餐";}
     private ControlledToolTask afterCommit(Long user,ControlledToolTask task){
+        // A disabled assistant may expose the durable receipt, but must not resume its workflow.
+        for(ControlledToolTask.Step step:task.steps)if(extensions.containsKey(step.tool)&&!extensions.get(step.tool).enabled())return task;
         boolean failed=false;
-        for(ControlledToolTask.Step step:task.steps)if("completed".equals(step.status)&&extensions.containsKey(step.tool)){
+        for(ControlledToolTask.Step step:task.steps)if("completed".equals(step.status)&&extensions.containsKey(step.tool)&&extensions.get(step.tool).enabled()){
             try{extensions.get(step.tool).afterCommit(user,task,step);}catch(RuntimeException error){
                 // The real write is already committed. Replaying this same token retries only the continuation.
                 failed=true;
@@ -229,6 +233,14 @@ public class ControlledToolHarnessService {
             final boolean pending=failed;
             return tx.execute(status->{lock(user);ControlledToolTask latest=get(user,task.id);latest.retryable=pending;latest.message=pending?"已保存，后续步骤暂未完成，可重试原确认继续":"已完成；保存计划不计入实际用餐";save(user,latest);return latest;});
         }return task;
+    }
+    private void requirePendingExtensionsEnabled(ControlledToolTask task) {
+        for(ControlledToolTask.Step step:task.steps)if(!"completed".equals(step.status)) {
+            Extension extension=extensions.get(step.tool);if(extension!=null)requireExtensionEnabled(extension);
+        }
+    }
+    private void requireExtensionEnabled(Extension extension) {
+        if(!extension.enabled())throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,"当前环境暂未开启助手");
     }
     private boolean hasPendingWrite(ControlledToolTask task){return task.steps.stream().anyMatch(s->(ControlledToolRegistry.CONFIRM_MEAL.equals(s.tool)||extensions.containsKey(s.tool))&&!"completed".equals(s.status));}
     private boolean terminal(ControlledToolTask task){return "completed".equals(task.status)||!task.retryable;}

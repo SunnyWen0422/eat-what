@@ -33,6 +33,15 @@ public class AssistantV4ContextService {
         List<Map<String,Object>> frames=new ArrayList<>();List<Message> messages=session.getMessages()==null?Collections.emptyList():session.getMessages();
         if(messages.size()>12)result.getEvidence().put("truncated",true);
         for(int i=Math.max(0,messages.size()-12);i<messages.size();i++){Message m=messages.get(i);if(m!=null&&Arrays.asList("user","assistant").contains(m.getRole())&&m.getText()!=null){frames.add(map("role",m.getRole(),"text",bounded(m.getText(),400)));if(m.getText().length()>400)result.getEvidence().put("truncated",true);}if(m!=null&&"assistant".equals(m.getRole()))for(Card card:orEmpty(m.getCards())){Map<String,Object> action=actionSummary(card);if(action!=null)result.getLastActions().add(action);}}
+        // Receipts recur in each continuation/repreview message. Keep each fact once,
+        // ordered by its latest occurrence, while retaining every current pending action.
+        LinkedHashMap<String,Map<String,Object>> actions=new LinkedHashMap<>();
+        for(Map<String,Object> action:result.getLastActions()){
+            String key=action.get("receiptRef")!=null?"receipt:"+action.get("receiptRef"):"task:"+action.get("taskId");
+            if(actions.remove(key)!=null)result.getEvidence().put("truncated",true);
+            actions.put(key,action);
+        }
+        result.setLastActions(new ArrayList<>(actions.values()));
         result.setConversation(map("recentText",frames,"roundLimit",6));
         List<Map<String,Object>> recent=new ArrayList<>();for(MealConsumption row:orEmpty(actual.range(user,start.toString(),today.toString()))){if(row==null||!"eaten".equals(row.getStatus())||row.getMealDate()==null||MealConsumptionService.date(row.getMealDate()).isAfter(today)||MealConsumptionService.date(row.getMealDate()).isBefore(start))continue;if(row.getUserId()!=null&&!Objects.equals(user,row.getUserId()))throw new IllegalArgumentException("用餐记录不可访问");recent.add(actual(row,json));}
         result.setRecentActual(recent);
@@ -41,8 +50,19 @@ public class AssistantV4ContextService {
         result.getConversation().put("savedMenus",optionalMenus);
         result.getConstraints().put("soft",map("preferredCuisineCodes",effective.getPreferredCuisineCodes(),"preferredTagCodes",effective.getPreferredTagCodes(),"avoidRecentDays",effective.getAvoidRecentDays()));
         // Structured optional removal retains the mandatory current meal, named refs, and constraints.
-        while(size(result)>CONTEXT_BUDGET){result.getEvidence().put("truncated",true);if(!optionalMenus.isEmpty())optionalMenus.remove(optionalMenus.size()-1);else if(!frames.isEmpty())frames.remove(0);else if(!recent.isEmpty())recent.remove(0);else if(result.getConstraints().containsKey("soft"))result.getConstraints().remove("soft");else throw new IllegalArgumentException("本餐与点名菜单内容过多，请缩小查询范围后重试");}
+        while(size(result)>CONTEXT_BUDGET){
+            result.getEvidence().put("truncated",true);
+            if(!optionalMenus.isEmpty())optionalMenus.remove(optionalMenus.size()-1);
+            else if(!frames.isEmpty())frames.remove(0);
+            else if(!recent.isEmpty())recent.remove(0);
+            else if(result.getConstraints().containsKey("soft"))result.getConstraints().remove("soft");
+            else if(!trimOldCompletedAction(result.getLastActions()))throw new IllegalArgumentException("本餐与点名菜单内容过多，请缩小查询范围后重试");
+        }
         return result;
+    }
+    private static boolean trimOldCompletedAction(List<Map<String,Object>> actions){
+        for(Iterator<Map<String,Object>> it=actions.iterator();it.hasNext();)if("completed".equals(it.next().get("outcome"))){it.remove();return true;}
+        return false;
     }
     static void checkVersions(MealWorkspace w,Long revision,Long plan){if(w==null||w.getDraft()==null||w.getContext()==null)throw new IllegalArgumentException("本餐不可访问");if(revision==null||plan==null||!Objects.equals(w.getRevision(),revision)||!Objects.equals(w.getDraft().getPlanVersion(),plan))throw new MealConsumptionService.VersionConflict("本餐已更新，请查看最新菜单后重试");}
     static Map<String,Object> activeMeal(MealWorkspace w,Long user){List<Map<String,Object>> list=new ArrayList<>();Set<Long> ids=new HashSet<>();for(Dish d:w.getDraft().getDishes()){checkDish(d,user);list.add(dishSummary(d));ids.add(d.getId());}if(!ids.containsAll(w.getDraft().getLockedDishIds()))throw new IllegalArgumentException("保留菜品不在本餐中，请核对菜单");MealContext c=w.getContext();return map("workspaceId",w.getId(),"workspaceRevision",w.getRevision(),"planVersion",w.getDraft().getPlanVersion(),"date",c.getDate(),"mealType",c.getMealType(),"people",c.getPeople(),"compositionMode",c.getCompositionMode(),"counts",c.getCounts(),"totalCookMinutes",c.getTotalCookMinutes(),"currentDishes",list,"lockedDishIds",new ArrayList<>(w.getDraft().getLockedDishIds()),"source",w.getDraft().getSource());}
