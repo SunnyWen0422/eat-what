@@ -1,10 +1,13 @@
 """Offline release preparation contracts; never opens a database connection."""
 import copy
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRATCH = ROOT / '.test-artifacts/legacy-v4-release'
@@ -55,9 +58,14 @@ class LegacyV4ReleaseTest(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('prepare_legacy_v4_release', ROOT / 'scripts/prepare_legacy_v4_release.py')
         cls.helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.helper)
 
-    def test_legacy_plan_is_only_fifteen_additive_tables_six_fields_and_counted_status(self):
+    def test_legacy_plan_is_only_nineteen_reviewed_additive_tables_six_fields_and_counted_status(self):
         plan = self.helper.build_plan([fixture()])
-        self.assertEqual(15, len(plan['newTables'])); self.assertEqual(6, len(plan['addedColumns']))
+        self.assertEqual(19, len(plan['newTables'])); self.assertEqual(6, len(plan['addedColumns']))
+        self.assertEqual({'meal_consumption', 'meal_mutation_log', 'shopping_mutation_log', 'user_avatar',
+            'meal_workspace', 'workspace_task', 'workspace_request_log', 'behavior_event', 'shopping_expense',
+            'ingredient_price_batch', 'ingredient_price', 'ingredient_price_mapping', 'ingredient_price_collection',
+            'custom_recipes', 'controlled_tool_task', 'assistant_v4_session', 'assistant_v4_turn',
+            'assistant_v4_message', 'shopping_scope_aliases'}, set(plan['newTables']))
         sql = '\n'.join(step['sql'] for step in plan['steps'])
         self.assertNotIn('INSERT INTO food', sql); self.assertNotIn('schema_migrations', sql)
         self.assertNotIn('last_login_time', sql); self.assertNotIn('DROP ', sql)
@@ -103,7 +111,7 @@ class LegacyV4ReleaseTest(unittest.TestCase):
             'indexes': [index('PRIMARY', ['id'], True), index('uq_workspace_slot', ['user_id', 'meal_date', 'meal_type'], True), index('ix_workspace_age', ['updated_at'])], 'foreignKeys': []}
         data['schemaContracts']['recipe_records'] = {'engine': 'InnoDB', 'collation': unicode, 'columns': {'revision': column('bigint', default='1')}, 'indexes': [], 'foreignKeys': []}
         plan = self.helper.build_plan([data])
-        self.assertEqual(14, len(plan['newTables'])); self.assertEqual(5, len(plan['addedColumns']))
+        self.assertEqual(18, len(plan['newTables'])); self.assertEqual(5, len(plan['addedColumns']))
         self.assertIn('meal_workspace', plan['skippedTables']); self.assertIn('recipe_records.revision', plan['skippedColumns'])
         bad = copy.deepcopy(data); bad['schemaContracts']['meal_workspace']['indexes'][1]['unique'] = False
         with self.assertRaises(ValueError): self.helper.build_plan([bad])
@@ -117,6 +125,56 @@ class LegacyV4ReleaseTest(unittest.TestCase):
     def test_zero_unknown_base_rows_produces_no_data_update(self):
         data = fixture(); data['results'][-1]['calculatedWithUnknownBase'] = 0
         plan = self.helper.build_plan([data]); self.assertFalse(any(step['sql'].startswith('UPDATE ') for step in plan['steps']))
+
+    def test_assistant_tables_keep_owner_foreign_keys_order_and_independent_scope_aliases(self):
+        plan = self.helper.build_plan([fixture()]); names = [step['name'] for step in plan['steps']]
+        sources = {row['file'] for row in plan['migrationSources']}
+        self.assertTrue({'V8__assistant_v4_conversations.sql', 'V8_10__assistant_shopping_scope_aliases.sql'}.issubset(sources))
+        for name in ('assistant_v4_turn', 'assistant_v4_message'):
+            self.assertLess(names.index('assistant_v4_session'), names.index(name))
+            foreign = plan['contracts'][name]['foreignKeys']
+            self.assertEqual(1, len(foreign)); self.assertEqual(['user_id', 'session_id'], foreign[0]['columns'])
+            self.assertEqual('assistant_v4_session', foreign[0]['targetTable'])
+            self.assertEqual(['user_id', 'id'], foreign[0]['targetColumns'])
+            self.assertEqual('CURRENT_DATABASE', foreign[0]['targetSchema']); self.assertEqual('CASCADE', foreign[0]['onDelete'])
+        scope = plan['contracts']['shopping_scope_aliases']
+        self.assertEqual([], scope['foreignKeys'], 'procurement scope must survive assistant session deletion')
+        self.assertEqual(['user_id', 'alias_key'], next(row for row in scope['indexes'] if row['name'] == 'PRIMARY')['columns'])
+        self.assertEqual('char(64)', scope['columns']['alias_key']['columnType'])
+        self.assertEqual('ascii_bin', plan['contracts']['assistant_v4_session']['columns']['id']['collation'])
+        for name in ('assistant_v4_session', 'assistant_v4_turn', 'assistant_v4_message', 'shopping_scope_aliases'):
+            self.assertTrue(next(step['sql'] for step in plan['steps'] if step['name'] == name).startswith('CREATE TABLE IF NOT EXISTS '))
+
+    def test_existing_assistant_or_alias_tables_need_exact_full_shapes(self):
+        original = fixture(); contracts = self.helper.build_plan([original])['contracts']
+        additions = ('assistant_v4_session', 'assistant_v4_turn', 'assistant_v4_message', 'shopping_scope_aliases')
+        for name in additions:
+            collision = copy.deepcopy(original); collision['tables'].append({'table': name, 'engine': 'InnoDB'})
+            with self.subTest(unattested=name), self.assertRaisesRegex(ValueError, name): self.helper.build_plan([collision])
+        data = copy.deepcopy(original)
+        for name in additions: data['schemaContracts'][name] = copy.deepcopy(contracts[name])
+        resumed = self.helper.build_plan([data]); self.assertEqual(15, len(resumed['newTables'])); self.assertEqual(set(additions), set(resumed['skippedTables']))
+        for mutation in ('column', 'owner-fk', 'target', 'delete-rule', 'unique-index', 'index-prefix'):
+            bad = copy.deepcopy(data)
+            if mutation == 'column': bad['schemaContracts']['shopping_scope_aliases']['columns']['alias_key']['columnType'] = 'char(8)'
+            if mutation == 'owner-fk': bad['schemaContracts']['assistant_v4_turn']['foreignKeys'][0]['columns'] = ['session_id']
+            if mutation == 'target': bad['schemaContracts']['assistant_v4_message']['foreignKeys'][0]['targetTable'] = 'controlled_tool_task'
+            if mutation == 'delete-rule': bad['schemaContracts']['assistant_v4_turn']['foreignKeys'][0]['onDelete'] = 'RESTRICT'
+            if mutation == 'unique-index': next(i for i in bad['schemaContracts']['assistant_v4_session']['indexes'] if i['name'] == 'uk_av4_session_request')['unique'] = False
+            if mutation == 'index-prefix': next(i for i in bad['schemaContracts']['shopping_scope_aliases']['indexes'] if i['name'] == 'PRIMARY')['prefixLengths'][1] = 8
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError): self.helper.build_plan([bad])
+
+    def test_a_checksummed_but_unreviewed_future_table_is_still_rejected(self):
+        with tempfile.TemporaryDirectory(dir=SCRATCH) as directory:
+            root = Path(directory); database = root / 'backend/db'; database.mkdir(parents=True)
+            shutil.copytree(ROOT / 'backend/db/migrations', database / 'migrations')
+            manifest = json.loads((ROOT / 'backend/db/migration-manifest.json').read_text(encoding='utf-8'))
+            ddl = b'CREATE TABLE IF NOT EXISTS unreviewed_release_table (id BIGINT NOT NULL PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n'
+            (database / 'migrations/V99__unreviewed_table.sql').write_bytes(ddl)
+            manifest['migrations'].append({'version': 'V99__unreviewed_table', 'file': 'V99__unreviewed_table.sql', 'checksumSha256': hashlib.sha256(ddl).hexdigest()})
+            (database / 'migration-manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+            with mock.patch.object(self.helper, 'ROOT', root), self.assertRaisesRegex(ValueError, 'Reviewed target table inventory differs'):
+                self.helper.build_plan([fixture()])
 
     def test_file_preparation_creates_immutable_sanitized_artifacts_and_preserves_existing_output(self):
         with tempfile.TemporaryDirectory(dir=SCRATCH) as directory:

@@ -17,7 +17,9 @@ LEGACY_VERSIONS = frozenset({'V1__production_hardening', 'V2__admin_console', 'V
 NEW_TABLES = ('meal_consumption', 'meal_mutation_log', 'shopping_mutation_log', 'user_avatar',
               'meal_workspace', 'workspace_task', 'workspace_request_log', 'behavior_event',
               'shopping_expense', 'ingredient_price_batch', 'ingredient_price', 'ingredient_price_mapping',
-              'ingredient_price_collection', 'custom_recipes', 'controlled_tool_task')
+              'ingredient_price_collection', 'custom_recipes', 'controlled_tool_task',
+              # V8/V8_10 additions: parent first; procurement aliases have independent domain retention.
+              'assistant_v4_session', 'assistant_v4_turn', 'assistant_v4_message', 'shopping_scope_aliases')
 QUALITY_TABLES = ('dish_quality_profile', 'dish_quality_revision')
 ADDITIONS = (('recipe_records', 'revision', 'BIGINT NOT NULL DEFAULT 1'),
              ('recipe_records', 'record_origin', "VARCHAR(16) NOT NULL DEFAULT 'legacy'"),

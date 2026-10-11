@@ -15,7 +15,7 @@
   <view wx:if="{{conversationError}}" class="ew-error" aria-role="alert">{{conversationError}}</view>
   <button wx:if="{{conversationRecoverable}}" class="ew-hit-target ew-link" disabled="{{conversationBusy}}" bindtap="onConversationRecover">恢复刚才的请求</button>
   <button wx:if="{{conversationCanStop && !conversationBusy}}" class="ew-hit-target ew-link" bindtap="onConversationStop">{{conversationStopLabel}}</button>
-  <view class="connected-input-row"><button class="ew-hit-target connected-voice" bindtap="onConversationVoice" aria-label="语音输入"><ui-icon name="mic" size="22" /></button><textarea class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="例如：第二道换清淡一点" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{conversationBusy || !conversationInput}}" bindtap="onConversationSend">发送</button></view>
+  <view class="connected-input-row"><button class="ew-hit-target connected-voice" bindtap="onConversationVoice" aria-label="语音输入"><ui-icon name="mic" size="22" /></button><textarea placeholder-class="ew-placeholder" class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="例如：第二道换清淡一点" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{conversationBusy || !conversationInput}}" bindtap="onConversationSend">发送</button></view>
  </view>
 </view>
 </block>
