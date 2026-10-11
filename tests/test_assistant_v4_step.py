@@ -387,6 +387,65 @@ class AssistantV4StepTest(unittest.TestCase):
             _, response, _ = self.route(final({"type": "need_input", "question": supplied}))
             self.assertEqual({"type": "need_input", "question": question}, response)
 
+    def test_provider_receives_current_batch_and_remaining_turn_read_budget(self):
+        request = body()
+        for used_before, batch_size in ((0, 4), (4, 3), (7, 1)):
+            message = tool_message(*[call("budget-" + str(i)) for i in range(used_before, used_before + batch_size)])
+            _, response, requests = self.route(message, request)
+            self.assertEqual("read_calls", response["type"])
+            system = requests[0]["json"]["messages"][0]["content"]
+            self.assertIn("工具循环预算（服务端）：", system)
+            budget = json.loads(system.split("工具循环预算（服务端）：", 1)[1].split("\n", 1)[0])
+            self.assertEqual(4, budget["maxProviderRequests"])
+            self.assertEqual(4, budget["maxReadCallsPerStep"])
+            self.assertEqual(8, budget["maxReadCallsPerTurn"])
+            self.assertEqual(used_before, budget["readCallsUsed"])
+            self.assertEqual(8 - used_before, budget["readCallsRemaining"])
+            self.assertEqual(min(4, 8 - used_before), budget["readCallsThisRoundMax"])
+            request["providerContinuation"] = response["providerContinuation"]
+            request["readResults"] = [read_result("budget-" + str(i)) for i in range(used_before, used_before + batch_size)]
+        request["finalRound"] = True
+        _, response, requests = self.route(final({"type": "final", "reply": "x"}), request)
+        self.assertEqual("final", response["type"])
+        budget = json.loads(requests[0]["json"]["messages"][0]["content"].split("工具循环预算（服务端）：", 1)[1].split("\n", 1)[0])
+        self.assertEqual(0, budget["readCallsRemaining"])
+        self.assertEqual(0, budget["readCallsThisRoundMax"])
+        self.assertEqual(4, budget["providerRequestNumber"])
+        self.assertEqual("none", requests[0]["json"]["tool_choice"])
+
+    def test_generation_prompt_reuses_fresh_context_and_advertises_balanced_search(self):
+        request = body()
+        request["context"]["activeMeal"].update({"workspaceId": "w", "workspaceRevision": 3, "planVersion": 2})
+        _, response, requests = self.route(tool_message(call("search", "search_dishes", {"top_k": 12})), request)
+        payload = requests[0]["json"]
+        system = payload["messages"][0]["content"]
+        self.assertIn("优先一次均衡候选查询", system)
+        self.assertIn("operation=generate", system)
+        budget = json.loads(system.split("工具循环预算（服务端）：", 1)[1].split("\n", 1)[0])
+        self.assertTrue(budget["activeMealSnapshotAvailable"])
+        descriptions = {tool["function"]["name"]: tool["function"]["description"] for tool in payload["tools"]}
+        self.assertIn("activeMeal", descriptions["read_current_meal"])
+        self.assertIn("避免重复", descriptions["read_current_meal"])
+        self.assertIn("均衡", descriptions["search_dishes"])
+        self.assertIn("无需按荤菜、素菜、汤各调用一次", descriptions["search_dishes"])
+        self.assertIn("用户明确查询", descriptions["read_actual_diet_review"])
+        request["providerContinuation"] = response["providerContinuation"]
+        request["readResults"] = [read_result("search", "search_dishes", [{"id": 2, "name": "豆腐"}, {"id": 3, "name": "菜汤"}])]
+        proposal = {"type": "final", "reply": "x", "actionProposal": {"steps": [
+            {"kind": "draft_update", "arguments": {"operation": "generate", "selectedDishIds": [2, 3]}}]}}
+        _, response, _ = self.route(final(proposal), request)
+        self.assertEqual(proposal["actionProposal"], response["actionProposal"])
+
+    def test_live_five_call_diagnostic_remains_rejected_without_silent_truncation(self):
+        diagnostic = tool_message(call("current"), call("meat", "search_dishes", {"filters": {"type": "meat"}}),
+            call("veg", "search_dishes", {"filters": {"type": "veg"}}), call("soup", "search_dishes", {"filters": {"type": "soup"}}),
+            call("actual", "read_actual_diet_review", {"startDate": "2026-10-05", "endDate": "2026-10-11"}))
+        _, response, requests = self.route(diagnostic)
+        self.assertEqual("need_input", response["type"])
+        self.assertNotIn("readCalls", response)
+        self.assertNotIn("providerContinuation", response)
+        self.assertEqual(1, len(requests))
+
 
 if __name__ == "__main__":
     unittest.main()

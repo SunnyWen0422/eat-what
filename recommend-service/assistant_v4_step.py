@@ -16,6 +16,13 @@ lastActions仅记录服务端持久卡片事实；completed/receiptRef代表既�
 绝不声称已保存、已采购、已完成或成功写入。需要澄清时返回 {"type":"need_input","question":"..."}。
 最后返回 {"type":"final","reply":"简短说明或待核对提示","actionProposal":{"steps":[...]}}；不需要动作时省略actionProposal。
 steps最多3项，仅允许下面已启用动作schema的kind和参数；没有动作schema时不提议任何动作。
+本turn最多4次供应商HTTP请求，只有前三次可以请求只读工具；第四次只能返回final或need_input JSON。
+每批tool_calls最多4项，整个turn最多8个读取；还必须遵守本轮readCallsThisRoundMax，超出时整批无效。
+已有足够事实就立即返回最终JSON，不要为填满预算而继续查询，也不能以超量并行调用规避限制。
+安排一餐时优先一次均衡候选查询，不要按每种类别重复搜索。现有食材明确时优先一次按食材查询。
+activeMeal含workspaceRevision、planVersion及currentDishes时，它已经是服务端本turn授权快照，避免重复读取当前餐。
+优先复用constraints、recentActual、references及本turn已返回的工具资料；仅缺少必要事实时继续读取。
+不要为普通生成方案额外读取日历、采购或实际回顾；仅用户明确查询或必要来源数据缺失时查询对应资料。
 目标菜的替换限制不改变全餐条件。所有菜品ID必须来自当前餐或此turn读出的真实菜谱。
 不允许身份、令牌、版本、价格、数量或假回执作为动作参数。不确定来源和目标时先澄清。"""
 
@@ -88,7 +95,21 @@ def prepare_step(value):
     context["capabilities"] = [name for name in READS + list(ACTION_ARGUMENTS) if name in enabled]
     # Context remains a user data frame, never interpolated into instruction authority.
     action_schemas = {name: schema for name, schema in ACTION_ARGUMENTS.items() if name in allowed_actions}
-    messages = [{"role": "system", "content": SYSTEM + "\n动作参数 JSON schema：" + bounded_json(action_schemas, 12000)},
+    previous_tool_rounds = sum(frame.get("role") == "assistant" for frame in history)
+    remaining_reads = max(0, 8 - len(seen))
+    budget = {"maxProviderRequests": 4, "maxReadCallsPerStep": 4, "maxReadCallsPerTurn": 8,
+              "providerRequestNumber": previous_tool_rounds + 1, "readCallsUsed": len(seen),
+              "readCallsRemaining": remaining_reads,
+              "readCallsThisRoundMax": 0 if value["finalRound"] or previous_tool_rounds >= 3 else min(4, remaining_reads),
+              "activeMealSnapshotAvailable": all(key in context.get("activeMeal", {})
+                  for key in ("workspaceRevision", "planVersion", "currentDishes"))}
+    generation_hint = ""
+    if "draft_update" in allowed_actions:
+        generation_hint = ("\n用户要求生成新方案且事实齐备时，第一步用draft_update，operation=generate；"
+            "selectedDishIds选1至10个已授权的真实候选ID，遵守保留菜和硬限制。"
+            "优先一次均衡候选查询后直接给出完整有界建议，不先创建空方案，不重复生成。")
+    messages = [{"role": "system", "content": SYSTEM + generation_hint + "\n工具循环预算（服务端）：" + bounded_json(budget, 2000)
+                 + "\n动作参数 JSON schema：" + bounded_json(action_schemas, 12000)},
                 {"role": "user", "content": "当前授权上下文资料(JSON)：" + bounded_json(context, 12000)}]
     messages.extend(copy.deepcopy(value["conversationFrames"]))
     messages.append({"role": "user", "content": value["message"]})
