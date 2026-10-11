@@ -2,6 +2,8 @@
 
 ## 当前有效方向：线上菜品，个人记录仅本地
 
+下述未启用生产及初始验收范围为 2026-10-09 的历史记录。后续普通推荐规则与前端暂停状态见 [2026-10-10 前端暂停记录](../operations/2026-10-10-frontend-update-paused.md)；该记录中的线上切换和测试数量是仓库记载，本次文档校正未重新验证生产。
+
 2026-10-09用户更正后，菜品来自线上数据库的安全只读公开API。个人收藏、菜单、计划、实际饮食、采购及自定义菜仍仅保存在当前浏览器。当前已实现专用公共GET接口（默认关闭且空allowlist）、网页传输、个人本地数据与四页闭环。没有启用或请求生产端点，没有核实线上菜谱数量、公开许可或质量覆盖。
 
 现有仓库/dishes读取需要登录，可含用户私房菜，不适合匿名网页直接调用。专用最小公共读取已实现；启用接口、实际放行哪批系统菜、其来源许可与质量状态，须另获明确授权。现有isPublished=1不是匿名公开或内容核验授权。
@@ -10,7 +12,7 @@
 
 - createPublicCatalogProvider接收注入transport，约束page/pageSize及可选现有type；provider本身无URL/fetch。网页另有固定同源GET transport，不带凭据或令牌。个人字符串/忌口/记录不得放进query，检索可在已读公开数据本地完成。
 - 最小PublicDish仅保留id/name/type、原材料/份量/做法文本、contentVersion和必要quality事实；过滤owner、用户、审核者、内证、任意图片及营养值。服务器仍必须先验证公开allowlist/系统/非私房/已发布条件，前端过滤不能代替暴露控制。
-- VERIFIED只取quality中的精确状态，且自动候选还需当前contentVersion、VERIFIED步骤、已识别原名及有效类型/正文。未知和browse-only记录保留安全纯文本浏览，不能凭发布标记提升。
+- 2026-10-10 后普通推荐不再要求 VERIFIED 或非空 contentVersion：公共目录中具有有效分类、食材正文和做法的菜谱可参与普通推荐，明确 REJECTED/BROWSE_ONLY 仍排除。VERIFIED 只取 quality 中的精确状态，未知审核、份量和用量保持未知，不能凭发布标记提升。硬忌口、素食及数量换算仍保留各自事实门槛；普通推荐不表示过敏或素食安全认证。
 - 数据库id生成eatwhat-db:<id>；schema无family/variant，family仅相同DB id回退，variant=null。不同DB id同名/近似菜可能重复，候选和菜单使用名称归一去重并解释不足；不能据此认定不同DB菜已经过完整变体核验。
 - DB meat/veg/soup/staple/dessert只映射至meat/vegetable/soup/staple/breakfastSnack；meat/veg/soup约定午晚餐，staple约定早餐/午餐/晚餐，dessert约定早餐/加餐。这是界面约定，不是逐菜餐次审核，也不是素食/过敏保证。
 - 来源URL、commit、license、reviewedAt及catalog-wide版本缺失时保持null；contentVersion单独记录真实菜品版本，不能伪造全目录revision。未知基准人数/数量为null。

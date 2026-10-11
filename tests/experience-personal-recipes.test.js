@@ -15,6 +15,7 @@ function fixture(route = 'customize', overrides = {}, enabled = false) {
   const account = { id: 'A', token: 'token-A' }, memory = new Map(), navigation = [], dialogs = [], calendarWrites = [], sent = [], leaveAlerts = []
   memory.set('A:activeMealTarget', target)
   const wx = {
+    getStorageInfoSync: () => ({ keys: [...memory.keys()] }),
     getStorageSync: key => key === 'userInfo' ? { id: account.id } : key === 'token' ? account.token : plain(memory.get(key)),
     setStorageSync: (key, value) => memory.set(key, plain(value)), removeStorageSync: key => memory.delete(key),
     enableAlertBeforeUnload: value => leaveAlerts.push(value), disableAlertBeforeUnload: () => leaveAlerts.push(null),

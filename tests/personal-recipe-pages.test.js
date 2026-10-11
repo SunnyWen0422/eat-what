@@ -16,6 +16,7 @@ function load(route, api = {}, extras = {}) {
   const account = { id: 'A', token: 'token-A' }
   const navigation = [], dialogs = [], timers = new Map(), storage = new Map()
   const wx = {
+    getStorageInfoSync: () => ({ keys: [...storage.keys()] }),
     getStorageSync: key => key === 'userInfo' ? { id: account.id } : key === 'token' ? account.token : storage.get(key),
     setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: key => storage.delete(key),
     showToast() {}, showLoading() {}, hideLoading() {}, vibrateShort() {}, stopPullDownRefresh() {},
