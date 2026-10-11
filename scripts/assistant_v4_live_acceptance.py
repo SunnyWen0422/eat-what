@@ -181,16 +181,20 @@ def approved_provider_fields(path):
 class LiveCompletion:
     def __init__(self, fields, ledger):
         import httpx
-        self.fields=fields;self.ledger=ledger;self.calls=[];self.scripts={};self.diagnostics=[]
+        self.fields=fields;self.ledger=ledger;self.calls=[];self.scripts={};self.diagnostics=[];self.denied_reservations=0
         self.post=ledger.wrap(httpx.post,self.calls)
     def register(self,message,*args,**kwargs):
         # Java's actual natural-language request is kept in memory only.
         self.scripts[message]={'calls':0}
     def complete(self,payload):
         payload=dict(payload,model=self.fields['DEEPSEEK_MODEL'])
-        response=self.post(self.fields['DEEPSEEK_BASE_URL'].rstrip('/')+'/v1/chat/completions',
-            headers={'Authorization':'Bearer '+self.fields['DEEPSEEK_API_KEY'],'Content-Type':'application/json'},
-            json=payload,timeout=10)
+        try:
+            response=self.post(self.fields['DEEPSEEK_BASE_URL'].rstrip('/')+'/v1/chat/completions',
+                headers={'Authorization':'Bearer '+self.fields['DEEPSEEK_API_KEY'],'Content-Type':'application/json'},
+                json=payload,timeout=10)
+        except BudgetExhausted:
+            self.denied_reservations+=1
+            raise
         if response.status_code>=400:return None
         message=response.json()['choices'][0]['message']
         try:self.diagnostics.append(message_diagnostic(message,payload))
@@ -225,11 +229,12 @@ class LiveExecution:
             'save':'把当前这餐保存到明天晚餐，给我确认预览。',
             'shopping':'为刚才已经保存的明天晚餐准备采购预览，未知价格和份量保持空着，不代表已经吃过。',
             'ambiguous':'把这餐保存到另一天，日期和餐次还没有选定，请先问我。'}
+        denied_before=a.model.denied_reservations
         turn=a.turn(user,w,self.session,messages[mode]+' [合成验收 '+a.run_id+']')
         self.turn_diagnostics.append(dict(caseId=case['id'],**turn_diagnostic(turn)))
         runner.require(a.counts(user)==before,'Unconfirmed live turn wrote persistent business state')
-        if self.budget_used()>=20 and turn['status'] in ('needs_input','failed'):
-            raise BudgetExhausted('Budget reached during scenario; no success claimed')
+        if a.model.denied_reservations>denied_before:
+            raise BudgetExhausted('A provider reservation was denied during scenario; no success claimed')
         if mode=='generate':
             runner.require(turn['status']=='completed','Live generation did not complete')
             actual=a.workspace(w,user)['draft']['dishes'];runner.require(len(actual)==3 and sorted(d['type'] for d in actual)==['meat','soup','veg'],'Live generated composition mismatch')

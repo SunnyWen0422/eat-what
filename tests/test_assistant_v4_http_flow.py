@@ -15,6 +15,11 @@ budget_spec=importlib.util.spec_from_file_location('assistant_provider_budget',R
 budget_module=importlib.util.module_from_spec(budget_spec);budget_spec.loader.exec_module(budget_module)
 
 class AcceptanceGuardsTest(unittest.TestCase):
+    def test_report_and_acceptance_share_one_controlled_correlation_id(self):
+        with patch.object(runner,'uid',side_effect=['11111111-1111-4111-8111-111111111111']) as ids:
+            report={'runId':runner.uid()}
+            acceptance=runner.Acceptance({},None,runner.MockCompletion(),run_id=report['runId'])
+            self.assertEqual(report['runId'],acceptance.run_id);self.assertEqual(1,ids.call_count)
     def test_owned_internal_endpoint_and_token_are_required_before_any_io(self):
         configurations=[
             'recommend:\n  service:\n    base-url: https://remote.invalid\nmeal-workspace:\n  service-token: synthetic-token\n',

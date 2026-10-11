@@ -15,6 +15,28 @@ SCRATCH=ROOT/'.test-artifacts/assistant-live-guards'
 SCRATCH.mkdir(parents=True,exist_ok=True)
 
 class LiveEntryGuardsTest(unittest.TestCase):
+    def test_valid_twentieth_reply_and_denied_twenty_first_have_distinct_outcomes(self):
+        for scenario in ('clarified','denied_next','business_failed'):
+            with self.subTest(scenario=scenario),tempfile.TemporaryDirectory(dir=SCRATCH) as tmp:
+                path=Path(tmp)/'budget.json';path.write_text(json.dumps({'limit':20,'used':19,'authorizationDate':'2026-10-11','scope':'new V4 assistant synthetic local integration tests','providerRequestsCountedPerHttpAttempt':True}),encoding='utf-8')
+                execution=live.LiveExecution({},path);workspace={'draft':{'dishes':[]}}
+                execution.workspace=workspace;execution.session='synthetic-session'
+                response=Mock(status_code=200);response.json.return_value={'choices':[{'message':{'role':'assistant','content':'{"type":"need_input","question":"请说明目标日期。"}'}}]}
+                with patch('httpx.post',return_value=response) as post,patch('socket.socket.connect',side_effect=AssertionError('external socket')):
+                    model=live.LiveCompletion({'DEEPSEEK_API_KEY':'synthetic','DEEPSEEK_BASE_URL':'https://fixture.invalid','DEEPSEEK_MODEL':'synthetic'},execution.ledger)
+                    def turn(*args):
+                        model.complete({'messages':[]})
+                        if scenario=='denied_next':
+                            with self.assertRaises(live.BudgetExhausted):model.complete({'messages':[]})
+                        return {'status':'failed' if scenario=='business_failed' else 'needs_input','retryable':False,'reply':'请说明目标日期。','cards':[]}
+                    a=Mock(model=model,run_id='synthetic-run');a.workspace.return_value=workspace;a.counts.return_value={'recipe_records':1};a.turn.side_effect=turn
+                    if scenario=='clarified':self.assertEqual('clarified',execution.run_case(a,{'scenario':'ambiguous','id':'LIVE06'},0)['businessOutcome'])
+                    elif scenario=='denied_next':
+                        with self.assertRaises(live.BudgetExhausted):execution.run_case(a,{'scenario':'ambiguous','id':'LIVE06'},0)
+                    else:
+                        with self.assertRaises(AssertionError):execution.run_case(a,{'scenario':'ambiguous','id':'LIVE06'},0)
+                    self.assertEqual(20,execution.budget_used());post.assert_called_once()
+                    self.assertEqual(1 if scenario=='denied_next' else 0,model.denied_reservations)
     def test_final_diagnostic_uses_only_trusted_recipe_facts_and_enabled_actions(self):
         context={'schemaVersion':'assistant.v4.1','capabilities':['draft_update','search_dishes','read_current_meal'],
             'activeMeal':{'currentDishes':[{'id':910000101}]}}

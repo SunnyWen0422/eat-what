@@ -155,9 +155,9 @@ def synthetic_python_app(provider_url, token):
     return module.app
 
 class Acceptance:
-    def __init__(self, state, connection, model):
+    def __init__(self, state, connection, model, run_id=None):
         self.state=state;self.db=connection;self.model=model;self.opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        self.turn_times={910001:[],910002:[]};self.outcomes=[];self.ids={};self.run_id=uid();self.day=date.today()+timedelta(days=1000+int(uuid.uuid4().hex[:8],16)%100000)
+        self.turn_times={910001:[],910002:[]};self.outcomes=[];self.ids={};self.run_id=run_id if run_id is not None else uid();self.day=date.today()+timedelta(days=1000+int(uuid.uuid4().hex[:8],16)%100000)
     def http(self, path, body=None, user=910001, method=None, allowed=(200,201,202,204)):
         request=urllib.request.Request(self.state['api']+path,data=None if body is None else json.dumps(body).encode(),
             headers={'Authorization':'Bearer '+bearer(self.state,user),'Content-Type':'application/json'},method=method)
@@ -408,7 +408,7 @@ def run_owned(manifest,jar,output,case_ids=None,execution=None):
                     print(json.dumps({'dbConnectionWaiting':report['dbConnectionDiagnostic']}),flush=True)
                 if time.monotonic()>deadline: raise RuntimeError('Owned MySQL connection unavailable') from None
                 time.sleep(.2)
-        model=MockCompletion() if execution is None else execution.create_model();a=Acceptance(state,connection,model)
+        model=MockCompletion() if execution is None else execution.create_model();a=Acceptance(state,connection,model,run_id=report['runId'])
         require(a.sql('SELECT DATABASE()')[0][0]==manifest['database'],'Connected database mismatch')
         require(a.sql("SELECT id,open_id FROM users ORDER BY id")==((910001,'local-v4-user'),(910002,'local-v4-second')),'Database is not the two-account synthetic fixture')
         require(a.sql('SELECT COUNT(*) FROM food WHERE user_id IS NOT NULL')[0][0]==0,'Non-fixture personal recipes exist')

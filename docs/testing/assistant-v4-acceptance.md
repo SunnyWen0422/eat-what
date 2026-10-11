@@ -12,6 +12,28 @@
 2. 显式启动真实 MySQL、最终 Java JAR、实际 FastAPI `main.py` 内部路由以及本机 mock completion HTTP，才计入 40 例业务链路验收。实际 `AssistantV4Provider`/httpx 被使用，真实外部模型次数为零。
 3. 真实供应商与微信原生／真机闭环须另有证据。编译器通过不证明键盘、安全区、登录切换、返回导航或真机可用。
 
+## 2026-10-11 最终证据
+
+真实隔离 MySQL → Java → 实际 FastAPI → 本机 mock completion → Java 业务 HTTP 验收 **40/40 通过**，共 **128 次本机 completion**。这些是实际业务状态和 SQL 断言，不是40次真实模型验收。
+
+| 检查范围 | 实际结果 |
+|---|---|
+| 小程序前端 | 926 项通过 |
+| 网页 | 504 项通过 |
+| Java | 423 项通过，58 份测试 XML |
+| Python | 203 项，含 1 项显式 opt-in 跳过 |
+| 微信原生编译器 | 50 个 WXML、52 个 WXSS 编译通过 |
+
+新增验收 helper 的定向结果单独列示，不与上述全量结果相加：HTTP guard **11 通过、1 项 opt-in 跳过**；live guard **11 通过**；持久回读发现规则 **4 通过**。
+
+本轮真实供应商预算已耗尽：**20/20 次 HTTP 请求均返回200**，其中包含早期协议诊断和业务失败，不能将20次都计为业务成功。最终核心链路中，生成、第二道替换、日历预览后确认、采购预览后确认四项业务断言通过。最后一次日期澄清因验收器把有效第20次回复误判为预算拒绝，另以 `t07-live-core-readback-corrected.json` 独立持久回读 **1/1 通过**：确认非重试的日期澄清、无待办、请求后的工作区版本未变，四项已有业务结果及回执保留。该回读新增模型调用和外部供应商请求均为 **0**，20/20账本未变；原 live 报告和首次失败的回读报告保留。**LIVE03 独立只读真实模型场景未验收**。
+
+20次请求的 token 字段覆盖均为20/20：输入 **103076**、输出 **5262**、合计 **108338**。单次供应商 HTTP 耗时 P50 为 **1718.5 ms**，P95 为 **2687 ms**（nearest-rank）；这是包含诊断请求的 HTTP 耗时，不是完整业务流程耗时。
+
+最终集成 JAR SHA256：`2b91613d71e276c625ccd620d64d6e117d47dcb93f35c883693a4b11bc1df3f6`。
+
+官方微信 CLI 尝试因访问 UserData 下 `.cli` 通信文件出现 EPERM 而失败，所需许可未获授予。用户已打开开发者工具，但没有成功的原生运行或真机验收证据；编译通过不替代这些门槛。新助手默认保持 `ASSISTANT_V4_ENABLED=false`，既有 V4 保留；未推送、部署、上传或发布。
+
 ## 显式隔离运行
 
 私有 manifest 必须提供 `purpose=assistant-v4-synthetic-acceptance`、`syntheticOnly=true`、`isolatedApiBase=http://127.0.0.1:<port>/api`、`database=eatwhat_v4_local_<8 hex>`、两专用用户 `[910001,910002]`、任务专属 `.local-maturity-assistant-*` 目录以及最终 JAR 的 `jarSha256`。拒绝生产域名、`food` 库、普通已有运行目录和 live 参数。
@@ -42,7 +64,7 @@ python scripts/assistant_v4_acceptance.py --manifest <private-manifest.json> --j
 python scripts/assistant_v4_live_acceptance.py --approved-live --manifest <private-live-manifest.json> --jar <pinned.jar> --budget <approved-budget.json> --output <private-live-result.json>
 ```
 
-真实场景按同一工作区依次执行生成、第二道替换、只读、明晚保存、采购和歧义澄清；两个持久操作分别明确确认。结果使用 `providerMode=live` 和 `providerHttpCalls`，累计次数按持久账本计算，超时或尚未返回的请求仍计数；token 与 P50/P95 仅来自已有真实返回，缺失统计不补值。
+入口提供生成、第二道替换、只读、明晚保存、采购和歧义澄清场景，可按同一工作区顺序选择执行；本轮实际覆盖范围见上面的最终证据，不能由入口存在推断全部已验收。两个持久操作分别明确确认。结果使用 `providerMode=live` 和 `providerHttpCalls`，累计次数按持久账本计算，超时或尚未返回的请求仍计数；token 与 P50/P95 仅来自已有真实返回，缺失统计不补值。本轮20次已用完，上述 live 命令不能在当前账本下继续请求。
 
 Token 字段只有覆盖本次全部已预留请求时才给总量，否则为 `null`。`tokenUsageCoverage` 逐字段列出有数据的请求数、总请求数、已知小计与 complete／partial／unknown，未返回、失败或 HTTP 200 缺少 usage 都不能按零填补。供应商明确返回的零仍保留为零。
 

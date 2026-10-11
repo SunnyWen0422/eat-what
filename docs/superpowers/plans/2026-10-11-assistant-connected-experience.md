@@ -16,7 +16,7 @@
 - 首批仅包括报告 A 组；B/C 组按末尾任务单另批执行。网页匿名服务与小程序私人助手分离，不新增匿名私有 API。
 - 小程序前端生产发布仍暂停。此计划不包含生产升级；迁移、构建和联调先在隔离环境完成。
 - 已有 API 保持兼容；新入口必须按后端能力开启，不从旧工具名称推断支持情况。默认部署开关 `ASSISTANT_V4_ENABLED=false`，这是新助手开关，不关闭现有 V4 工作区。
-- 当前真实模型预算累计 `20/20`，后续供应商测试须先取得新的次数／费用授权。每一次 HTTP 请求都计数，工具轮次也计数；离线测试默认阻断网络。
+- 历史真实模型预算累计 `20/20`；用户在本轮另行批准最多 20 次真实 HTTP 请求，用于本机合成场景联调。新增预算独立计数，每一次 HTTP 请求与工具轮次都计数；离线测试默认阻断网络。
 - 当前餐最多 10 道、人数 1–50；当前支持类别使用服务端规范代码，不使用展示文案替代代码。
 - 只读无确认；草稿修改可撤销；每个确认任务最多 1 个持久业务写操作，预览有效期沿用 10 分钟。
 - 保存计划不记成已吃；采购不代表吃过；缺价不补 0，未知份数不默认 2 人，未知用量不缩放，模型建议不变成 VERIFIED。
@@ -69,11 +69,11 @@
 
 **Interfaces:** 新增 `agent_tools.v4_model_catalog()`，仅 V4 调用它。V4 的 `search_by_ingredients({ingredients, filters?, top_k?})` 与 search_dishes 共用明确 filters Schema；只允许 type/cuisine_codes/include_tag_codes/exclude_tag_codes/excluded_ingredients/max_cook_minutes。type 从现有服务端枚举提供；未知字段拒绝。原 `model_catalog()` 保持旧 Runtime 合同，不把 V4 的 type/excluded_ingredients 直接发送给使用 types/exclude_ingredients 的旧 RAG；旧食材工具不增加它不会执行的 filters。
 
-- [ ] 增加 `test_ingredient_filters_survive_real_route`：授权 catalog 中有鸡蛋与非鸡蛋，组合食材+排除条件仅返回允许 ID；未知 filter、bool 数量、越权 ID 均拒绝。
-- [ ] 原样运行并保存当前失败；修正旧 model_transport 测试的合法 agentContext，保留 `missing_context_is_rejected`，模拟 HTTP 不发外网。
-- [ ] 实施版本化 schema 和必要的类型校验，验证未知嵌套字段没有被悄悄忽略；增加 `legacy_catalog_and_exclusions_unchanged` 回归，旧 Runtime 仍使用原参数命名，不修改本餐业务限制。
-- [ ] 运行：`python -m unittest discover -s tests -p 'test_assistant_v4_tool_contract.py' -v` 及原 `test_workspace_model_transport.py`、`test_authorized_catalog.py`，预期全部通过且外网次数 0。
-- [ ] 审阅最小差异并提交，说明“工具契约修复”，不宣称新对话功能完成。
+- [x] 增加 `test_ingredient_filters_survive_real_route`：授权 catalog 中有鸡蛋与非鸡蛋，组合食材+排除条件仅返回允许 ID；未知 filter、bool 数量、越权 ID 均拒绝。
+- [x] 原样运行并保存当前失败；修正旧 model_transport 测试的合法 agentContext，保留 `missing_context_is_rejected`，模拟 HTTP 不发外网。
+- [x] 实施版本化 schema 和必要的类型校验，验证未知嵌套字段没有被悄悄忽略；增加 `legacy_catalog_and_exclusions_unchanged` 回归，旧 Runtime 仍使用原参数命名，不修改本餐业务限制。
+- [x] 运行：`python -m unittest discover -s tests -p 'test_assistant_v4_tool_contract.py' -v` 及原 `test_workspace_model_transport.py`、`test_authorized_catalog.py`，预期全部通过且外网次数 0。
+- [x] 审阅最小差异并提交，说明“工具契约修复”，不宣称新对话功能完成。
 
 ## T01：冻结合同、能力与持久任务基础
 
@@ -88,7 +88,7 @@
 - `TurnView={turnId,status,reply,cards,workspaceRef,pendingAction?,continuation?,retryable}`；status 为 queued/running/needs_input/awaiting_confirmation/completed/partially_completed/failed/cancelled。客户端 status 不得直接显示给用户。
 - `ToolRead={callId,name,arguments}`；`ActionProposal={steps:ActionIntent[]}`，最多 3 步。`ActionIntent={kind,arguments}`，首批 kind 仅 draft_update/calendar_save/shopping_preview。
 - `StepOutput` 三选一：need_input（问题）、read_calls（1–4 个 ToolRead 与内部 ProviderContinuation）、final（短回复+可选 ActionProposal）。不能用 final 字符串标记业务写入成功。
-- `ProviderContinuation={assistantMessage}` 原样承接供应商本轮 tool_calls、全部 callId 和必要的 reasoning_content；仅限服务间瞬时传递，不发客户端、不落日志或任务库。下一轮按 callId 原顺序带回工具结果，字段名不能翻译或丢弃。
+- `ProviderContinuation={assistantMessage,messages}` 原样承接供应商本轮 tool_calls、全部 callId 和必要的 reasoning_content；messages 是当前 turn 完整的瞬时 assistant/tool 帧，以最新 assistantMessage 结束。下一轮按 callId 原顺序追加本轮工具结果，再请求模型，不能丢掉较早帧。两字段仅服务间瞬时传递，不发客户端、不落日志或任务库；兼容只含 assistantMessage 的单轮夹具。
 - `WorkflowContinuation={id,steps,cursor}`：服务器把已验证意图规范化为稳定 stepId、requestId、kind、arguments、dependsOn、status、taskId/receiptRef 并持久保存。steps 最多 3，step.status 为 pending/awaiting_confirmation/completed/failed/cancelled；每步 requestId 使用固定命名空间与 turnId/stepId 生成合法 UUID，重复恢复不重建。确认成功后自动准备下一步预览，但绝不代替用户确认第二个写入。
 - `AssistantV4Store.claimTurn(user,session,request) -> TurnView`；`findTurn(user,id)`；`completeTurn(user,id,expectedStatus,result)`。账号 ID 只由认证注入。
 
@@ -98,11 +98,11 @@
 
 新会话生命周期：文本按 createdAt 最多 30 天，单会话保留最近 200 条；终态任务输入／临时数据 7 天后清理，只保留必要状态、请求 hash、业务引用至多 90 天。闲置 30 天会话级联删除消息和助手任务；用户显式删除立即执行同样清理。业务域菜单、清单和幂等回执按原域策略独立保留，不因会话清理删除；活动任务先条件取消，防止清理后迟到回写。不能把新策略套用到旧会话，需新增相应测试。
 
-- [ ] 写合同夹具，测试 `same_key_same_turn`、`same_key_different_body_409`、`foreign_session_404`、`client_user_id_rejected`、`restart_recovers_without_new_command`、`provider_reservation_survives_timeout_and_restart`、`retention_removes_text_not_business_receipts`。
-- [ ] 先运行新测试观察缺实现失败；在隔离数据库实施增量 SQL，验证重复执行策略、索引与旧表数据不变。
-- [ ] 实现 DTO 严格字段白名单、认证及持久状态；能力目录仅返回已实现且开关启用的项，缺接口时不显示新前端入口。
-- [ ] 运行：`mvn -f backend/pom.xml -Dtest=AssistantV4ContractTest,AssistantV4StoreTest test`。用该项目的隔离测试配置，确认没有生产数据源；迁移测试另用新建专属库，记录建库和应用结果。
-- [ ] 冻结合同提交；交给其他 agent 的是该提交和合同文件，不能只用口头字段名。
+- [x] 写合同夹具，测试 `same_key_same_turn`、`same_key_different_body_409`、`foreign_session_404`、`client_user_id_rejected`、`restart_recovers_without_new_command`、`provider_reservation_survives_timeout_and_restart`、`retention_removes_text_not_business_receipts`。
+- [x] 先运行新测试观察缺实现失败；在隔离数据库实施增量 SQL，验证重复执行策略、索引与旧表数据不变。
+- [x] 实现 DTO 严格字段白名单、认证及持久状态；能力目录仅返回已实现且开关启用的项，缺接口时不显示新前端入口。
+- [x] 运行：`mvn -f backend/pom.xml -Dtest=AssistantV4ContractTest,AssistantV4StoreTest test`。用该项目的隔离测试配置，确认没有生产数据源；迁移测试另用新建专属库，记录建库和应用结果。
+- [x] 冻结合同提交；交给其他 agent 的是该提交和合同文件，不能只用口头字段名。
 
 ## T02：Context V2 和授权只读工具
 
@@ -112,12 +112,12 @@
 
 首批读目录：四个现有查菜工具，加 read_current_meal/read_calendar/read_shopping/read_actual_diet_review。详情最多 30 IDs；列表每页最多 30；日历／回顾调用日期跨度最多 367 天、每次结果按最多 7 天分页；购物默认待买。Scope 限定认证用户、可见数据、相关工作区，模型参数不包含身份或 URL。
 
-- [ ] 写测试断言：`context.activeMeal.currentDishes[1].id` 等于当前第二道；存在 planVersion/workspaceRevision；未来 selectedTarget 不改变 now；owner/token 等字段不进入模型视图。
-- [ ] 写 `plan_is_not_eaten`、`foreign_private_recipe_rejected`、`reference_outside_first_200_is_authorized_on_demand`、`category_coverage`、`unknown_quantity_stays_null`、`budget_trim_keeps_constraints`。
-- [ ] 实现显式白名单与按任务加载。旧临时 current catalog 可复用；进一步详情／搜索由 Java 认证读取，不退回公共 RAG。当前、锁定、点名项优先；分类型召回，仍先执行硬筛选。
-- [ ] 业务上下文目标 6000 字符、工具事实累计 12000 字符，结构化裁剪且标记分页；最近最多 6 轮文本，7 天已发生实吃摘要。长做法单独查；剔除两份重复 options/requirements。
-- [ ] 运行：`mvn -f backend/pom.xml -Dtest=AssistantV4ContextTest,AssistantReadToolTest,WorkspaceAgentContextRequestTest,WorkspaceQualityReadScopeTest test`；日志只保留字段名、长度、来源版本和计数。
-- [ ] 审阅并提交上下文合同与实现；不在普通测试夹具复制真实用户资料。
+- [x] 写测试断言：`context.activeMeal.currentDishes[1].id` 等于当前第二道；存在 planVersion/workspaceRevision；未来 selectedTarget 不改变 now；owner/token 等字段不进入模型视图。
+- [x] 写 `plan_is_not_eaten`、`foreign_private_recipe_rejected`、`reference_outside_first_200_is_authorized_on_demand`、`category_coverage`、`unknown_quantity_stays_null`、`budget_trim_keeps_constraints`。
+- [x] 实现显式白名单与按任务加载。旧临时 current catalog 可复用；进一步详情／搜索由 Java 认证读取，不退回公共 RAG。当前、锁定、点名项优先；分类型召回，仍先执行硬筛选。
+- [x] 业务上下文目标 6000 字符、工具事实累计 12000 字符，结构化裁剪且标记分页；最近最多 6 轮文本，7 天已发生实吃摘要。长做法单独查；剔除两份重复 options/requirements。
+- [x] 运行：`mvn -f backend/pom.xml -Dtest=AssistantV4ContextTest,AssistantReadToolTest,WorkspaceAgentContextRequestTest,WorkspaceQualityReadScopeTest test`；日志只保留字段名、长度、来源版本和计数。
+- [x] 审阅并提交上下文合同与实现；不在普通测试夹具复制真实用户资料。
 
 ## T03：有界模型工具循环和恢复
 
@@ -127,13 +127,13 @@
 
 `StepInput` 必须包含 schemaVersion、白名单 ModelContext、当前请求文本、受控 conversationFrames、readResults、ProviderContinuation、finalRound。模型续接帧只来自本 turn 已校验的供应商响应与工具结果，不能接收客户端伪造的 tool 消息。服务内部身份用于归属校验但从最终 model messages 剔除。Python 不连接业务数据库，不执行写操作；工具目录来自合同与启用能力交集。
 
-- [ ] 用真实 FastAPI 内存请求及模拟 provider 写四类结果测试：read_calls/final/need_input/invalid；断言未知工具、伪造执行结果、owner/token 字段、菜谱注入指令均不触发业务写入。
-- [ ] 实现 Java 编排：每 turn 最多 4 次供应商 HTTP、总时限 30 秒、单次最多 10 秒且不超过剩余时间；无自动网络重试。最多前三轮读取，最后一轮只请求最终结果／澄清；客户端须支持最终 JSON 请求不再广告工具，并单独验证兼容。
-- [ ] 每批 1–4 个读请求，整 turn 最多 8 个工具调用；并行 tool_calls 全部校验后按界限执行，不能像现客户端一样静默只消费第一条。工具结果按对应 callId 返回，瞬时 ProviderContinuation 完整续接；新增独立 v4 解析函数或兼容可选字段，不破坏旧调用方。超限返回澄清，不能漏执行后宣称完成。
-- [ ] 模型不得把未查询 ID 用作动作对象；Java 只接受本轮事实或最新 activeMeal 中已授权 ID。短回复与卡片分开，业务完成状态来自域回执。
-- [ ] 写 `cancel_before_late_result`、`timeout_keeps_input_and_draft`、`restart_does_not_replay_applied_command`、`two_provider_tools_not_silently_dropped`、`reasoning_metadata_only_transient`；确保取消／租约失效后不更新草稿，HTTP 请求计数含所有模型轮次。
-- [ ] 运行 Python `test_assistant_v4_step.py` 与 Maven `AssistantV4TurnServiceTest`，全程模拟 HTTP、真实模型次数 0；供应商联调留到 T07 取得新的预算后。
-- [ ] 审阅并提交。旧 `/internal/v4/meal-task` 保持可用，新链路按独立能力开关启用。
+- [x] 用真实 FastAPI 内存请求及模拟 provider 写四类结果测试：read_calls/final/need_input/invalid；断言未知工具、伪造执行结果、owner/token 字段、菜谱注入指令均不触发业务写入。
+- [x] 实现 Java 编排：每 turn 最多 4 次供应商 HTTP、总时限 30 秒、单次最多 10 秒且不超过剩余时间；无自动网络重试。最多前三轮读取，最后一轮只请求最终结果／澄清；客户端须支持最终 JSON 请求不再广告工具，并单独验证兼容。
+- [x] 每批 1–4 个读请求，整 turn 最多 8 个工具调用；并行 tool_calls 全部校验后按界限执行，不能像现客户端一样静默只消费第一条。工具结果按对应 callId 返回，瞬时 ProviderContinuation 完整续接；新增独立 v4 解析函数或兼容可选字段，不破坏旧调用方。超限返回澄清，不能漏执行后宣称完成。
+- [x] 模型不得把未查询 ID 用作动作对象；Java 只接受本轮事实或最新 activeMeal 中已授权 ID。短回复与卡片分开，业务完成状态来自域回执。
+- [x] 写 `cancel_before_late_result`、`timeout_keeps_input_and_draft`、`restart_does_not_replay_applied_command`、`two_provider_tools_not_silently_dropped`、`reasoning_metadata_only_transient`；确保取消／租约失效后不更新草稿，HTTP 请求计数含所有模型轮次。
+- [x] 运行 Python `test_assistant_v4_step.py` 与 Maven `AssistantV4TurnServiceTest`，全程模拟 HTTP、真实模型次数 0；供应商联调留到 T07 取得新的预算后。
+- [x] 审阅并提交。旧 `/internal/v4/meal-task` 保持可用，新链路按独立能力开关启用。
 
 ## T04：草稿调整与跨目标日历保存
 
@@ -153,12 +153,12 @@ CalendarSaveIntent 仅 sourceWorkspaceId/targetDate/targetMealType，所有版�
 
 新增工具名 `save_meal_to_target`，保持旧 confirm_current_meal 不变。绑定 sourceWorkspaceId/workspaceRevision/planVersion/dishContentVersions/targetDate/targetMealType/targetPlanRevision 及 parentTurnId/continuationStepId。确认 API 继续只收不透明 previewToken，不重新接收可变 payload；事务内重查会话、turn 与 step 未取消／删除，旧工具无 parent 绑定的行为保持兼容。
 
-- [ ] 写 `replace_second_keeps_other_dishes_and_locks`、`undo_only_latest_draft_change`、`context_patch_then_generate_then_undo_restores_context_and_fingerprint`、`stale_revision_cannot_modify_new_menu`；操作使用确定 requestId 与现有命令回执。
-- [ ] 写 `tomorrow_uses_now_not_selected_target`、`occupied_target_shows_diff`、`source_or_target_changed_requires_preview`、`same_confirm_returns_same_receipt`、`plan_save_never_marks_eaten`、`cancelled_turn_preview_cannot_confirm`、`deleted_session_preview_cannot_confirm`、`confirm_after_60_seconds_before_10_minutes_is_valid`。
-- [ ] 草稿结果提交共享域状态与历史；“它／第二道”解析到有版本 ID，歧义先澄清。增加 `target_limit_does_not_change_whole_meal`、`context_patch_requires_valid_regeneration`、`assistant_generation_never_calls_legacy_agent`，确认一次 turn 不递归产生模型请求。
-- [ ] 保存生成服务器预览；来源、目标和菜品内容再校验；回执和写入同事务。若 continuation 已有 shopping_preview，保存成功后自动准备采购卡，新的采购写入仍等待单独确认；无续办意图才仅显示采购入口。
-- [ ] 运行：`mvn -f backend/pom.xml -Dtest=AssistantWorkspaceActionTest,AssistantCalendarActionTest,WorkspaceTargetSaveTest,ControlledToolHarnessServiceTest test`。
-- [ ] 审阅并提交；用日期／菜名／人数生成用户卡片，不用“版本 7”等内部信息。
+- [x] 写 `replace_second_keeps_other_dishes_and_locks`、`undo_only_latest_draft_change`、`context_patch_then_generate_then_undo_restores_context_and_fingerprint`、`stale_revision_cannot_modify_new_menu`；操作使用确定 requestId 与现有命令回执。
+- [x] 写 `tomorrow_uses_now_not_selected_target`、`occupied_target_shows_diff`、`source_or_target_changed_requires_preview`、`same_confirm_returns_same_receipt`、`plan_save_never_marks_eaten`、`cancelled_turn_preview_cannot_confirm`、`deleted_session_preview_cannot_confirm`、`confirm_after_60_seconds_before_10_minutes_is_valid`。
+- [x] 草稿结果提交共享域状态与历史；“它／第二道”解析到有版本 ID，歧义先澄清。增加 `target_limit_does_not_change_whole_meal`、`context_patch_requires_valid_regeneration`、`assistant_generation_never_calls_legacy_agent`，确认一次 turn 不递归产生模型请求。
+- [x] 保存生成服务器预览；来源、目标和菜品内容再校验；回执和写入同事务。若 continuation 已有 shopping_preview，保存成功后自动准备采购卡，新的采购写入仍等待单独确认；无续办意图才仅显示采购入口。
+- [x] 运行：`mvn -f backend/pom.xml -Dtest=AssistantWorkspaceActionTest,AssistantCalendarActionTest,WorkspaceTargetSaveTest,ControlledToolHarnessServiceTest test`。
+- [x] 审阅并提交；用日期／菜名／人数生成用户卡片，不用“版本 7”等内部信息。
 
 ## T05：采购预览快照与加入清单
 
@@ -172,12 +172,12 @@ CalendarSaveIntent 仅 sourceWorkspaceId/targetDate/targetMealType，所有版�
 
 Scope 服务接口：`resolveScope(Long user, ShoppingSourceRef source) -> String`、`linkSavedPlan(Long user, ShoppingSourceRef draft, SavedPlanReceipt receipt) -> String`；读取、创建和绑定使用唯一约束及事务，返回的 scope 不接受模型指定。T04 保存回执成功后调用 linkSavedPlan；调用失败不撤销已保存日历，采购预览暂停并可按同一步恢复。
 
-- [ ] 写 `unknown_servings_do_not_default_to_two`、`no_price_stays_empty`、`same_dish_two_meals_keeps_two_sources`、`user_quantity_and_purchased_rows_preserved`。
-- [ ] 写 `recipe_changed_after_preview`、`selection_changed_invalidates_token`、`list_changed_before_confirm`、`draft_shopping_does_not_create_calendar`、`draft_change_invalidates_shopping_preview`、`draft_then_same_meal_plan_does_not_double_quantities`、`different_meals_keep_distinct_procurement`；变化后重新预览，不悄悄换内容。
-- [ ] 确认走带 requestId 的 batchAdd；重复返回首次 added/merged 回执。餐次保存成功后采购失败，结果明确保留保存成功，不自动重复第一步。
-- [ ] 写 `calendar_done_shopping_failed_resume_only_shopping`、`confirmation_auto_prepares_pending_shopping_but_does_not_add`、`lost_response_returns_original_receipt`、`same_key_different_body_conflict`；服务重启从持久 continuation 与真实回执继续。
-- [ ] 运行：`mvn -f backend/pom.xml -Dtest=AssistantShoppingPreviewTest,ShoppingAddReceiptTest,ShoppingListReliabilityTest,V4ShoppingContractTest test`。
-- [ ] 审阅并提交；采购卡显示可信数量或按需，不能展示默认“2 人份推算”冒充事实。
+- [x] 写 `unknown_servings_do_not_default_to_two`、`no_price_stays_empty`、`same_dish_two_meals_keeps_two_sources`、`user_quantity_and_purchased_rows_preserved`。
+- [x] 写 `recipe_changed_after_preview`、`selection_changed_invalidates_token`、`list_changed_before_confirm`、`draft_shopping_does_not_create_calendar`、`draft_change_invalidates_shopping_preview`、`draft_then_same_meal_plan_does_not_double_quantities`、`different_meals_keep_distinct_procurement`；变化后重新预览，不悄悄换内容。
+- [x] 确认走带 requestId 的 batchAdd；重复返回首次 added/merged 回执。餐次保存成功后采购失败，结果明确保留保存成功，不自动重复第一步。
+- [x] 写 `calendar_done_shopping_failed_resume_only_shopping`、`confirmation_auto_prepares_pending_shopping_but_does_not_add`、`lost_response_returns_original_receipt`、`same_key_different_body_conflict`；服务重启从持久 continuation 与真实回执继续。
+- [x] 运行：`mvn -f backend/pom.xml -Dtest=AssistantShoppingPreviewTest,ShoppingAddReceiptTest,ShoppingListReliabilityTest,V4ShoppingContractTest test`。
+- [x] 审阅并提交；采购卡显示可信数量或按需，不能展示默认“2 人份推算”冒充事实。
 
 ## T06：可见助手入口、连续会话和业务卡片
 
@@ -187,11 +187,11 @@ Scope 服务接口：`resolveScope(Long user, ShoppingSourceRef source) -> Strin
 
 入口：今天页标题区一个标明“助手”的次入口；日历入口带明确餐次；“本餐要求”仍是轻量条件编辑。新功能不可用时保留现有工作区体验，不出现点后才发现没接通的入口。
 
-- [ ] 写 `home_and_chat_share_workspace`、`cross_account_late_response_ignored`、`capability_absent_hides_new_entry`、`restore_input_after_failed_turn`。
-- [ ] 写 `read_has_no_confirmation`、`draft_has_undo`、`write_card_confirms_once`、`unknown_confirmation_recovers_same_request`，每个卡片直接链接真实对象。
-- [ ] 实施温暖餐桌风格：字号／按钮／间距复用现有 tokens；菜图优先、圆角、无图线稿；顶部仅当前餐必要信息；不展示工具状态和重复菜数文本。
-- [ ] 首批卡片类型：menu/recipe/calendar_save/shopping_preview/receipt/clarification；clarification 一次问一个必要问题。成功保存后给“查看日历”，采购给“查看清单”。
-- [ ] 运行：`node --test tests/assistant-conversation.test.js tests/assistant-cards.test.js tests/workspace-navigation.test.js tests/workspace-page.test.js tests/controlled-harness.test.js`。
+- [x] 写 `home_and_chat_share_workspace`、`cross_account_late_response_ignored`、`capability_absent_hides_new_entry`、`restore_input_after_failed_turn`。
+- [x] 写 `read_has_no_confirmation`、`draft_has_undo`、`write_card_confirms_once`、`unknown_confirmation_recovers_same_request`，每个卡片直接链接真实对象。
+- [x] 实施温暖餐桌风格：字号／按钮／间距复用现有 tokens；菜图优先、圆角、无图线稿；顶部仅当前餐必要信息；不展示工具状态和重复菜数文本。
+- [x] 首批卡片类型：menu/recipe/calendar_save/shopping_preview/receipt/clarification；clarification 一次问一个必要问题。成功保存后给“查看日历”，采购给“查看清单”。
+- [x] 运行：`node --test tests/assistant-conversation.test.js tests/assistant-cards.test.js tests/workspace-navigation.test.js tests/workspace-page.test.js tests/controlled-harness.test.js`。
 - [ ] 用隔离 API 逐页检查 390×844、320 宽、大字号、长菜名、键盘、安全区、失败重试、返回首页。浏览器预览通过后仍需微信原生与真机证据；审阅后提交。
 
 ## T07：整体验收与可部署候选
@@ -200,12 +200,12 @@ Scope 服务接口：`resolveScope(Long user, ShoppingSourceRef source) -> Strin
 
 **Interfaces:** 验收程序输入显式 isolatedApiBase、测试库标识和两测试账号；仅允许回环或已批准专属测试环境，拒绝线上域名／真实 food 库。模型默认 mock；live 参数还必须检查新批准的预算账本。
 
-- [ ] 建 40 条固定中文场景集：生成 8、指代／调整 8、日期／保存 8、采购 6、只读查询 4、歧义／拒绝／恢复 6。每例包含初态、输入、期望域操作、禁止操作和终态断言。
-- [ ] 在隔离数据库运行真实 Java→Python→模拟供应商→Java 业务 HTTP 链路；覆盖报告发布门槛全部 10 行，特别是并发／断网／跨账号／重复确认／部分完成。
-- [ ] 修复本轮引入的问题，再运行 `scripts/verify.ps1 -Offline -SkipModelServiceTests`（按本机验证文档配置 Maven 缓存与独立构建目录）。新助手离线测试不得被 SkipModelServiceTests 一并跳过；该开关仅阻止真实外部模型请求。
-- [ ] 新预算授权到位后才跑供应商场景。统计真实 HTTP 次数／token／最终业务成功／澄清／失败、P50/P95 和失败原因；预算不足的场景标未验收，不用 mock 补写“真实通过”。
+- [x] 建 40 条固定中文场景集：生成 8、指代／调整 8、日期／保存 8、采购 6、只读查询 4、歧义／拒绝／恢复 6。每例包含初态、输入、期望域操作、禁止操作和终态断言。
+- [x] 在隔离数据库运行真实 Java→Python→模拟供应商→Java 业务 HTTP 链路；覆盖报告发布门槛全部 10 行，特别是并发／断网／跨账号／重复确认／部分完成。
+- [x] 修复本轮引入的问题，再运行 `scripts/verify.ps1 -Offline -SkipModelServiceTests`（按本机验证文档配置 Maven 缓存与独立构建目录）。新助手离线测试不得被 SkipModelServiceTests 一并跳过；该开关仅阻止真实外部模型请求。
+- [x] 新预算授权到位后才跑供应商场景。统计真实 HTTP 次数／token／最终业务成功／澄清／失败、P50/P95 和失败原因；预算不足的场景标未验收，不用 mock 补写“真实通过”。
 - [ ] 微信工具和真机验收 T06 全流程、最终构建来源与接口版本；同时跑旧端兼容和网页既有边界测试。生产前端仍暂停时只产本地候选。
-- [ ] 生成候选清单：Git SHA、Java JAR SHA256、Python 文件清单、合同版本、增量 SQL 及恢复说明、服务开关、前端来源与每项验收证据。不得只交一个新 JAR 宣称齐备。
+- [x] 生成候选清单：Git SHA、Java JAR SHA256、Python 文件清单、合同版本、增量 SQL 及恢复说明、服务开关、前端来源与每项验收证据。不得只交一个新 JAR 宣称齐备。
 - [ ] 开启新助手的门槛：硬忌口违规／越权写入／未确认持久写入／重复写入／虚假成功均为 0；核心 40 例离线业务断言全部通过；真实供应商和微信关键闭环另有通过证据。没有完成则保留原 V4，隐藏新增能力。
 
 ## 首批之后的独立任务单
@@ -226,4 +226,5 @@ Scope 服务接口：`resolveScope(Long user, ShoppingSourceRef source) -> Strin
 - 报告上下文矩阵映射 T02，实际复现的 schema/夹具问题映射 T00。
 - 查询、草稿、持久写入、组合任务四类行为分别有任务与断言；5 条 Review Focus 均指定责任任务。
 - 合同先冻结；Python 只做单步解释，Java 掌握身份与业务工具循环，避免双草稿和网络期间持有写事务。
-- 目前仅完成本计划及报告；所有实施项未勾选。没有本轮生产发布、真实业务写入或完整新助手上线结论。
+- T00–T05 与 T06 代码／审阅／自动化验证已完成；T07 的 40 条真实隔离业务 HTTP、供应商预算与证据整理完成。T06/T07 原生运行及真机验收尚未完成，新助手仍默认关闭。未进行生产变更、前端发布或 GitHub 推送。
+- 真实供应商预算已用满 20/20，最终四条核心业务成功；日期澄清经独立零调用持久回读核验，LIVE03 独立只读真实模型场景未验。完整证据见 docs/release/assistant-v4-local-candidate.md。
