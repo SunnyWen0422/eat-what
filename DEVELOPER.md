@@ -1,6 +1,6 @@
 # 吃什么：开发者手册
 
-2026-10-11 本地后续复核：复制改为编辑保存时创建，使用新 `/dishes/{id}/copy-edited`；修复预加载缺图、弱网误清登录、页面全宽覆盖与冗余文案。新接口尚未部署，前端仍暂停上线。见 [本轮产品与代码复核](docs/testing/2026-10-11-branch-product-review.md)。
+2026-10-11 后续复核：复制改为编辑保存时创建，使用新 `/dishes/{id}/copy-edited`；修复预加载缺图、弱网误清登录、页面全宽覆盖与冗余文案。对应 Java 后端已于 11:05 更新，前端仍暂停上线。见 [本轮产品与代码复核](docs/testing/2026-10-11-branch-product-review.md) 与 [后端更新记录](docs/operations/2026-10-11-edited-copy-backend-update.md)。
 
 2026-10-11：已按用户要求刷新线上 Java/Python 后端，健康和访问边界检查通过。后端运行源码与已验证部署一致，本轮未替换运行包、配置或数据库；前端继续暂停上线。图片旧域名的证书不匹配也已从服务器复现。见 [后端刷新与图片证书核对](docs/operations/2026-10-11-backend-refresh.md)。
 
