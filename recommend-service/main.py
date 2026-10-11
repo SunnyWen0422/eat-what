@@ -1,5 +1,5 @@
 """FastAPI 入口 - 菜谱推荐服务"""
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Body
 from pydantic import BaseModel
 from typing import Optional, List, Any, Dict
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -348,6 +348,21 @@ def cancel_assistant_task(task_id: str, req: Optional[AssistantTaskRequest] = No
 class WorkspaceTaskRequest(BaseModel):
     workspace: Dict[str, Any]
     userId: int
+
+
+@app.post("/internal/v4/assistant/step")
+def assistant_v4_step(req: Any = Body(...), x_service_token: Optional[str] = Header(default=None)):
+    import hmac
+    import os
+    from assistant_v4_schema import StepValidationError
+    from assistant_v4_step import run_step
+    configured = os.getenv("MEAL_WORKSPACE_SERVICE_TOKEN", "")
+    if not configured or not x_service_token or not hmac.compare_digest(x_service_token, configured):
+        raise HTTPException(status_code=403, detail="internal service authorization required")
+    try:
+        return run_step(req)
+    except StepValidationError:
+        raise HTTPException(status_code=400, detail="invalid assistant step") from None
 
 
 @app.post("/internal/v4/meal-task")
