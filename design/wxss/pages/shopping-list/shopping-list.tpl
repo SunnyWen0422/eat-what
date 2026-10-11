@@ -71,3 +71,4 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-page .quantity-warning { background:transparent; padding:0 8px 6px; margin-top:0; font-size:0.8125em; }
 .shopping-page .dish-header { margin:0; white-space:normal; }
 .shopping-page .view-count { font-size:0.8125em; }
+.shopping-page button.dish-header { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }

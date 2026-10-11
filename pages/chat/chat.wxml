@@ -18,7 +18,7 @@
     <view wx:if="{{!messages.length}}" class="welcome-block">
       
       <view class="welcome-title">今天这一餐，交给我一起想</view>
-      <view class="welcome-text">说说人数、口味和手边食材，我会从菜库里排出一套能直接执行的方案。</view>
+      <view class="welcome-text">说说人数、口味和手边食材，我会从菜谱里帮你搭配，也可以逐道调整。</view>
     </view>
     <block wx:for="{{messages}}" wx:key="id">
       <view class="msg-row {{item.role === 'user' ? 'row-right' : 'row-left'}}">
@@ -37,7 +37,7 @@
       </view>
     </block>
     <view wx:if="{{plan && plan.meals && plan.meals.length}}" class="plan-block">
-      <view class="plan-heading"><text>这次安排</text><text class="plan-version">方案 {{plan.version}}</text></view>
+      <view class="plan-heading"><text>这次安排</text></view>
       <view wx:for="{{plan.meals}}" wx:for-item="meal" wx:key="index" class="meal-group">
         <view class="meal-heading"><text>{{meal.date}}</text><text>{{meal.label}}</text></view>
         <view aria-role="button" wx:for="{{meal.dishes}}" wx:key="index" wx:for-item="dish" class="ew-hit-target plan-dish" bindtap="onTapDish" data-id="{{dish.id}}">

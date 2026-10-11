@@ -48,7 +48,7 @@
 
       <view class="type-row">
         <text class="type-label">分类：</text>
-        <view aria-role="button" class="ew-hit-target type-options" wx:for="{{['meat','veg','soup','staple','dessert']}}" wx:key="*this" data-type="{{item}}" bindtap="onCustomTypeChange">
+        <view aria-role="button" class="ew-hit-target type-options" wx:for="{{tabs}}" wx:key="*this" data-type="{{item}}" bindtap="onCustomTypeChange">
           <text class="type-opt {{customForm.type === item ? 'opt-active' : ''}}">{{tabNames[item]}}</text>
         </view>
       </view>

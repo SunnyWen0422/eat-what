@@ -37,3 +37,4 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .calendar-action-row::after { border:0; }
 .calendar-action-row > ui-icon { flex:0 0 auto; }
 .calendar-heading .ew-heading { font-size:1.5em; }
+.ew-page button.calendar-action-row { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }

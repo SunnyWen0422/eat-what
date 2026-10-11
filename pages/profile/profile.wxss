@@ -3,7 +3,7 @@
 page { background:#F8F7F2; }
 .profile-page { min-height:100vh; box-sizing:border-box; padding:16px 16px calc(20px + env(safe-area-inset-bottom)); background:#F8F7F2; }
 .profile-page .ew-heading { margin-bottom:8px; }
-.profile-page button { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:1em; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
+.profile-page button.ew-hit-target { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:1em; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
 .profile-page button::after { border:0; }
 .user-card { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 0; background:transparent; color:#25332B; border-bottom:1px solid #E6EAE1; border-radius:0; }
 .user-avatar { width:48px; height:48px; flex:0 0 48px; }

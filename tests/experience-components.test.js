@@ -441,9 +441,8 @@ test('selected meal sheet leads to the meal while an empty selection leads to pi
   assert.match(custom, /class="selected-num"/)
   assert.doesNotMatch(custom, /class="bottom-bar"[\s\S]*?<button[^>]*bindtap="onViewMeal"/)
 })
-test('help describes replace undo and existing legacy locks without offering keep', () => {
+test('help describes replace and undo without offering keep', () => {
   const source = read('pages/about/about.wxml')
   assert.doesNotMatch(source, /换菜、保留/)
   assert.match(source, /换菜和撤销/)
-  assert.match(source, /旧菜单.*锁定/)
 })

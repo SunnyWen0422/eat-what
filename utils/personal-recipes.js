@@ -46,10 +46,24 @@ function menuHandoff(menu) {
   if (new Set(menu.dishIds).size !== menu.dishIds.length) throw new Error('菜单菜品重复，请重新读取')
   return { date: menu.menuDate, mealType: menu.menuMealType, menuId: menu.menuId, menuVersion: menu.menuVersion, menuDate: menu.menuDate, menuMealType: menu.menuMealType, people: menu.people, dishIds: [...menu.dishIds] }
 }
+function readableRecipeLine(item) {
+  if (typeof item === 'string') return item
+  if (!item || typeof item !== 'object') return item == null ? '' : String(item)
+  const text = value => typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''
+  // Render recipe content, never internal JSON, media URLs or evidence fields.
+  const step = text(item.text) || text(item.instruction) || text(item.description) || text(item.step)
+  if (step) return step
+  const name = text(item.name) || text(item.ingredientName) || text(item.ingredient)
+  if (!name) return '请补充这一项'
+  const amount = text(item.quantityText) || text(item.quantity) || text(item.amount) || text(item.rawQuantity)
+  const unit = amount && !text(item.quantityText) ? text(item.unit) || text(item.rawUnit) : ''
+  const note = text(item.note) || text(item.preparation)
+  return name + (amount ? ' ' + amount + unit : '') + (note ? '（' + note + '）' : '')
+}
 function editableRecipeText(value) {
   let source = value
   if (typeof source === 'string') { try { source = JSON.parse(source) } catch (_) {} }
-  if (Array.isArray(source)) return source.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join('\n')
+  if (Array.isArray(source)) return source.map(readableRecipeLine).join('\n')
   return String(value || '').replace(/###|#/g, '\n')
 }
 // Only untouched JSON structures bypass the legacy plain-text separator representation.
@@ -73,6 +87,9 @@ function recipeEditBody(dish, form, type) {
   if (String(form.image || '') !== String(dish.image || '')) Object.assign(body, { editImage: true, image: String(form.image || '').trim() || null })
   return body
 }
+function recipeCopyBody(dish, form, type) {
+  return { ...recipeEditBody(dish, form, type), editCopy: true }
+}
 function recipeValidation(form, original) {
   for (const [field, label] of [['name','菜品名称'],['ingredients','食材用料'],['steps','烹饪步骤']]) if (!String(form[field] || '').trim()) return { field, message: '请输入' + label }
   const minutes = String(form.cookMinutes || '').trim()
@@ -80,4 +97,4 @@ function recipeValidation(form, original) {
   if (form.image && (!original || String(form.image) !== String(original.image || '')) && !/^https:\/\/[^\s]+$/i.test(String(form.image).trim())) return { field: 'image', message: '图片请填写 HTTPS 地址，也可以留空' }
   return null
 }
-module.exports = { createWriteJournal, menuHandoff, editableRecipeText, recipeFieldPayload, recipeForm, recipeEditBody, recipeValidation }
+module.exports = { createWriteJournal, menuHandoff, editableRecipeText, recipeFieldPayload, recipeForm, recipeEditBody, recipeCopyBody, recipeValidation }

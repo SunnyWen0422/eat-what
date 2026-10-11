@@ -28,5 +28,16 @@ function buildActualEntries(text, meal, usePlanIdentity = true) {
   })
 }
 function requestId(prefix) { return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}` }
-function errorMessage(error, fallback = '操作失败，请重试') { return error && error.statusCode === 409 ? (error.data && error.data.message || '内容已更新，请重新加载并确认修改') : error && error.data && (error.data.message || error.data.error) || fallback }
+function errorMessage(error, fallback = '操作失败，请重试') {
+  const conflict = error && error.statusCode === 409
+  const defaultMessage = conflict ? '内容已更新，请重新读取后确认修改' : fallback
+  // Page errors must explain an actionable outcome, never expose transport,
+  // stack traces, SQL, server paths or diagnostic identifiers to the user.
+  const value = error && ((error.data && (error.data.message || error.data.error)) || error.message)
+  if (typeof value !== 'string') return defaultMessage
+  const message = value.trim()
+  const technical = /https?:\/\/|[A-Za-z]:[\\/]|\/[A-Za-z_.][\w.-]*(?:\/[\w.-]+)+|[{}<>\n\r]|(?:^|\s)at\s|\b(?:HTTP|SQL|SELECT|INSERT|UPDATE|DELETE|JSON|TypeError|ReferenceError|Exception|undefined|null|requestId|workspaceId|planVersion|token|password|secret)\b|接口|数据库|服务器内部|诊断|指纹|请求体|缺少参数/i
+  if (!message || message.length > 160 || !/[\u3400-\u9fff]/.test(message) || technical.test(message) || /\b[A-Z][A-Z_]{5,}\b|\b[\w.$]*(?:Exception|Error)\b/.test(message)) return defaultMessage
+  return message
+}
 module.exports = { mealNames, parseDay, formatDay, today, shiftDay, monthRange, weekRange, mealViews, buildActualEntries, requestId, errorMessage }

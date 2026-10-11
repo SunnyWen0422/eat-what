@@ -21,7 +21,7 @@ Page({
       const draft=wx.getStorageSync(key)
       if(!draft || !(draft.dirty || draft.pending || ['offline','unknown','conflict'].includes(draft.syncStatus)))continue
       const parts=key.slice(prefix.length).split(':');if(parts.length!==2)continue
-      workspaceDrafts.push({date:parts[0],mealType:parts[1],mealName:flow.mealNames[parts[1]] || parts[1],label:draft.pending?'保存结果待确认':draft.syncStatus==='conflict'?'版本冲突':'本机输入未同步'})
+      workspaceDrafts.push({date:parts[0],mealType:parts[1],mealName:flow.mealNames[parts[1]] || parts[1],label:draft.pending?'保存结果待确认':draft.syncStatus==='conflict'?'这餐已有更新，请重新核对':'输入已保留，尚未保存'})
     }
     this.setData({ workspaceDrafts, pendingSync: pending, shoppingDraftCount: store.loadPendingOperations().length })
   },

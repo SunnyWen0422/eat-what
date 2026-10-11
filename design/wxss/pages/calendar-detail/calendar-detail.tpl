@@ -42,3 +42,4 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .sheet-explanation { display:block; padding:8px 0; }
 .calendar-detail-page .ew-reading,.original-plan { overflow-wrap:anywhere; white-space:normal; }
 .calendar-detail-page .ew-heading { font-size:1.5em; }
+.calendar-detail-page button.meal-action-row { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }

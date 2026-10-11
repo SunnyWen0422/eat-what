@@ -1,6 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const rules=require('../utils/meal-workspace');
 function fixture(api){let account='A',factory;const ctx={module:{exports:{}},require:name=>{
  if(name==='./meal-actual-entry')return require('../utils/meal-actual-entry')
+ if(name==='./meal-workflow')return require('../utils/meal-workflow')
  if(name==='./workspace-voice')return require('../utils/workspace-voice')
  if(name==='./meal-workspace-presentation')return require('../utils/meal-workspace-presentation')
  if(name==='./meal-save-target')return require('../utils/meal-save-target')

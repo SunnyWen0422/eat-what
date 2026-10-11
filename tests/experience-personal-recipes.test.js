@@ -83,6 +83,7 @@ test('clean create exit is immediate; dirty create exit offers keep or discard',
 test('structured rename sends exact rich recipe content without losing object fields', async () => {
   const f = fixture('custom-dishes'), rich = { ...dish, ingredientsAmounts: '[{"name":"鱼","quantity":1,"unit":"条","note":"去鳞"}]', steps: '[{"text":"蒸熟","image":"https://example.com/step.jpg","minutes":8}]' }
   f.page.edit(rich); f.page.onInput(event('name', '我的鱼')); await f.page.saveEdit()
+  assert.equal(f.page.data.form.ingredients, '鱼 1条（去鳞）'); assert.equal(f.page.data.form.steps, '蒸熟')
   assert.equal(f.sent[0].cl, rich.ingredientsAmounts); assert.equal(f.sent[0].step, rich.steps)
   assert.match(f.navigation[0] || '', /dish-detail.*id=7/)
 })
@@ -104,14 +105,19 @@ test('recipe changes revoke verified preview without changing original quality e
   assert.doesNotMatch(f.page.data.editQualityNotice || '', /已核对/); assert.match(f.page.data.editQualityNotice || '', /核实/)
   assert.equal(verified.quality.reviewStatus, 'VERIFIED')
 })
-test('public copy delegates authenticated ownership to server, preserves source and opens own editor', async () => {
-  const authenticatedUserId = 'A'; let createdDish, request
+test('public copy enters a draft without creating; only saving sends one edited copy request', async () => {
+  let request, copies = 0, updates = 0
   const source = { ...dish, userId: null }, before = plain(source)
-  const f = fixture('dish-detail', { copyPersonalDish: async (id, body) => { request = body; createdDish = { id: 22, ownerId: authenticatedUserId }; return createdDish } })
+  const f = fixture('dish-detail', { copyPersonalDish: async () => { copies++; return { id: 22 } } })
   f.page.data.dish = source; await f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal()
-  assert.equal(createdDish.ownerId, authenticatedUserId)
-  assert.equal(request.ownerId, undefined); assert.equal(request.expectedVersion, 'v1'); assert.deepEqual(source, before)
-  assert.match(f.navigation[0], /edit=22/); assert.match(f.page.data.copyMessage || '', /我的菜谱/)
+  assert.equal(copies, 0); assert.deepEqual(source, before); assert.match(f.navigation[0], /copy=7&version=v1/)
+  const editor = fixture('custom-dishes', { getDishById: async () => plain(source), copyEditedPersonalDish: async (id, body) => { copies++; request = plain(body); return { id: 22 } }, copyPersonalDish: async () => { throw Error('new draft cannot use legacy endpoint') }, updateCustomDish: async () => { updates++ } })
+  editor.page.onLoad({ copy: '7', version: 'v1' }); await editor.page.onShow()
+  assert.equal(editor.page.data.copyDraft, true); assert.equal(copies, 0)
+  editor.page.onInput(event('name', '我的清蒸鱼')); await editor.page.saveEdit()
+  assert.equal(copies, 1); assert.equal(updates, 0); assert.equal(request.editCopy, true)
+  assert.equal(request.ownerId, undefined); assert.equal(request.expectedVersion, 'v1'); assert.equal(request.name, '我的清蒸鱼')
+  assert.match(editor.navigation[0], /dish-detail.*id=22/)
 })
 
 test('copy preview and cancellation never create a recipe or navigate', async () => {
@@ -124,13 +130,11 @@ test('copy preview and cancellation never create a recipe or navigate', async ()
   await f.page.onConfirmCopyPersonal(); assert.equal(copies, 0); assert.equal(f.navigation.length, 0)
 })
 
-test('copy confirmation rejects account or recipe version drift and retry reuses original request', async () => {
-  const sent = []
-  const f = fixture('dish-detail', { copyPersonalDish: async (id, body) => { sent.push(plain(body)); if (sent.length === 1) throw { isNetworkError: true }; return { id: 22 } } })
+test('entering a copy draft rejects account or preview version drift without writes', async () => {
+  const f = fixture('dish-detail')
   f.page.data.dish = plain(dish); f.page.onCopyPersonal(); f.page.data.dish.contentVersion = 'v2'
-  await f.page.onConfirmCopyPersonal(); assert.equal(sent.length, 0)
-  f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal(); await f.page.onConfirmCopyPersonal()
-  assert.deepEqual(sent[1], sent[0]); assert.equal(sent.length, 2)
+  await f.page.onConfirmCopyPersonal(); assert.equal(f.navigation.length, 0)
+  f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal(); assert.equal(f.navigation.length, 1)
   const other = fixture('dish-detail', { copyPersonalDish: async () => { throw Error('must not create') } })
   other.page.data.dish = plain(dish); other.page.onCopyPersonal(); other.account.id = 'B'; await other.page.onConfirmCopyPersonal()
   assert.equal(other.navigation.length, 0)
@@ -184,19 +188,101 @@ test('summary detail and management cannot retain another account or a stale men
   own.account.id = 'B'; own.dialogs[0].success({ tapIndex: 0 }); assert.equal(own.page.data.editing, false)
 })
 
-test('copy pending cancellation can reopen and recover exactly the original request', async () => {
-  const sent = [], f = fixture('dish-detail', { copyPersonalDish: async (id, body) => { sent.push(plain(body)); if (sent.length === 1) throw { isNetworkError: true }; return { id: 22 } } })
-  f.page.data.dish = plain(dish); f.page.onCopyPersonal(); await f.page.onConfirmCopyPersonal()
-  assert.equal(f.page.data.copyPending, true); f.page.onCancelCopyPersonal(); assert.equal(sent.length, 1)
-  f.page.onCopyPersonal(); assert.equal(f.page.data.copyPending, true); await f.page.onConfirmCopyPersonal()
-  assert.equal(sent.length, 2); assert.deepEqual(sent[1], sent[0]); assert.match(f.navigation[0], /edit=22/)
+test('copy save unknown result locks input and retries original request, including reentry', async () => {
+  const sent = [], f = fixture('custom-dishes', { copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); if (sent.length === 1) throw { isNetworkError: true }; return { id: 22 } } })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); f.page.onInput(event('name', '我的鱼')); await f.page.saveEdit()
+  assert.equal(f.page.data.editPending, true); f.page.cancelEdit(); assert.equal(f.page.data.editing, true)
+  f.page.onInput(event('name', '不能更改')); assert.equal(f.page.data.form.name, '我的鱼')
+  f.page._writeJournal = null; f.page.onLoad({ copy: '7', version: 'v1' }); f.page.data.editing = false; await f.page.onShow()
+  assert.equal(f.page.data.form.name, '我的鱼'); await f.page.saveEdit()
+  assert.equal(sent.length, 2); assert.deepEqual(sent[1], sent[0]); assert.match(f.navigation[0], /id=22/)
 })
 
-test('late copy receipt after a new recipe read cannot navigate or expose old result', async () => {
-  const pending = deferred(), f = fixture('dish-detail', { copyPersonalDish: () => pending.promise })
-  f.page.data.dish = plain(dish); f.page._epoch = 1; f.page.onCopyPersonal(); const operation = f.page.onConfirmCopyPersonal()
-  f.page._epoch = 2; f.page._copyPreviewBinding = null; f.page.data.dish = { ...dish, id: 8 }
-  pending.resolve({ id: 22 }); await operation; assert.equal(f.navigation.length, 0); assert.equal(f.page.data.copyMessage, '')
+test('late copy save receipt after account switch cannot navigate or expose old result', async () => {
+  const pending = deferred(), f = fixture('custom-dishes', { copyEditedPersonalDish: () => pending.promise })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); const operation = f.page.saveEdit()
+  f.account.id = 'B'; f.page.ensureOwner(); pending.resolve({ id: 22 }); await operation
+  assert.equal(f.navigation.length, 0); assert.equal(f.page.data.personalSaveMessage, '')
+})
+
+test('canceling clean or changed copy draft never creates a recipe', async () => {
+  let copies = 0
+  const f = fixture('custom-dishes', { copyEditedPersonalDish: async () => { copies++; return { id: 22 } } })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); f.page.cancelEdit()
+  await f.page.saveEdit(); assert.equal(f.page.data.editing, false); assert.equal(copies, 0); assert.equal(f.sent.length, 0)
+  f.page.edit(dish, true); f.page.onInput(event('steps', '蒸十分钟')); f.page.cancelEdit()
+  f.dialogs[0].success({ confirm: true }); assert.equal(f.page.data.editing, false); assert.equal(copies, 0)
+})
+
+test('source version changed before copy editor read is blocked, and explicit reload accepts latest', async () => {
+  const f = fixture('custom-dishes', { getDishById: async () => ({ ...dish, contentVersion: 'v2' }) })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow()
+  assert.equal(f.page.data.editing, false); assert.match(f.page.data.errorMessage, /变化/)
+  await f.page.loadCopyDraft(true); assert.equal(f.page.data.editing, true); assert.equal(f.page._original.contentVersion, 'v2')
+})
+
+test('historical unedited copy receipt is recovered unchanged and its returned copy opens for editing', async () => {
+  const sent = [], f = fixture('custom-dishes', { copyPersonalDish: async (id, body) => { sent.push(plain(body)); return { ...dish, id: 22 } } })
+  const prior = { expectedVersion: 'v1', requestId: 'legacy-copy' }
+  f.wx.setStorageSync('A:personalRecipeWrite:dish:copy:7', prior)
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); await f.page.saveEdit()
+  assert.deepEqual(sent[0], prior); assert.equal(f.page._original.id, 22); assert.equal(f.page.data.copyDraft, false)
+  assert.equal(f.page.data.editing, true); assert.equal(f.navigation.length, 0)
+})
+
+test('copy receipt can be reconciled after source disappears without sending a replacement request', async () => {
+  const sent = [], f = fixture('custom-dishes', { getDishById: async () => { throw { statusCode: 404 } }, copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); return { id: 22 } } })
+  const prior = { expectedVersion: 'v1', requestId: 'saved-copy', editCopy: true, name: '我的鱼', type: 'meat', cl: '鱼', step: '蒸' }
+  f.wx.setStorageSync('A:personalRecipeWrite:dish:copy:7', prior)
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); assert.equal(f.page.data.editPending, true)
+  await f.page.saveEdit(); assert.deepEqual(sent[0], prior); assert.match(f.navigation[0], /id=22/)
+})
+test('unknown copy retains originally reviewed version after the source changes and known conflict', async () => {
+  const sent = [], f = fixture('custom-dishes', { getDishById: async () => ({ ...dish, contentVersion: 'v2' }), copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); throw { statusCode: 409 } } })
+  f.wx.setStorageSync('A:personalRecipeWrite:dish:copy:7', { expectedVersion: 'v1', requestId: 'pending-old-copy', editCopy: true, name: '我的鱼', type: 'meat', cl: '鱼', step: '蒸' })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); await f.page.saveEdit()
+  assert.equal(f.page.data.editPending, false); assert.equal(f.page._original.contentVersion, 'v1')
+  await f.page.saveEdit(); assert.equal(sent[1].expectedVersion, 'v1', 'latest source must require an explicit reread')
+})
+for (const receipt of [null, {}, { id: 0 }, { id: 7 }]) test(`invalid copy receipt ${JSON.stringify(receipt)} remains recoverable`, async () => {
+  const sent = [], f = fixture('custom-dishes', { copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); return sent.length === 1 ? receipt : { id: 22 } } })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); await f.page.saveEdit()
+  assert.equal(f.page.data.editPending, true); assert.equal(f.navigation.length, 0)
+  await f.page.saveEdit(); assert.deepEqual(sent[1], sent[0]); assert.match(f.navigation[0], /id=22/)
+})
+test('late copy source read cannot expose another account recipe', async () => {
+  const pending = deferred(), f = fixture('custom-dishes', { getDishById: () => pending.promise })
+  f.page.onLoad({ copy: '7', version: 'v1' }); const operation = f.page.onShow(); f.account.id = 'B'
+  pending.resolve(plain(dish)); await operation; assert.equal(f.page.data.editing, false); assert.deepEqual(plain(f.page.data.form), {})
+})
+test('old discard confirmation cannot abandon a new editor or a now-pending save', async () => {
+  const f = fixture('custom-dishes'); f.page.edit(dish, true); f.page.onInput(event('name', '旧草稿')); f.page.cancelEdit()
+  f.page.edit({ ...dish, id: 8 }, true); f.page.onInput(event('name', '新草稿')); f.dialogs[0].success({ confirm: true })
+  assert.equal(f.page.data.editing, true); assert.equal(f.page.data.form.name, '新草稿')
+  f.page.cancelEdit(); f.page.data.editPending = true; f.dialogs[1].success({ confirm: true }); assert.equal(f.page.data.editing, true)
+})
+test('side recipes retain their actual category when copied or edited and are reachable in personal browse', async () => {
+  const side = { ...dish, type: 'side', name: '凉拌黄瓜' }, sent = []
+  const f = fixture('custom-dishes', { getDishById: async () => plain(side), copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); return { id: 22 } } })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); assert.equal(f.page.data.types[f.page.data.typeIndex], '配餐')
+  await f.page.saveEdit(); assert.equal(sent[0].type, 'side')
+  const edit = fixture('custom-dishes'); edit.page.edit(side); await edit.page.saveEdit(); assert.equal(edit.sent[0].type, 'side')
+  const browse = fixture('customize', { getCustomDishes: async () => [plain(side), plain(dish)] }); browse.page.data.recipeSource = 'mine'
+  assert.ok(browse.page.data.tabs.includes('side')); assert.equal(browse.page.data.tabNames.side, '配餐')
+  await browse.page.loadPage('side', 1); assert.deepEqual(plain(browse.page.data.currentDishes.map(d => d.name)), ['凉拌黄瓜'])
+  browse.page.data.customForm = form(); browse.page.onCustomTypeChange({ currentTarget: { dataset: { type: 'side' } } }); await browse.page.onSaveCustomDish()
+  assert.equal(browse.sent[0].type, 'side')
+})
+test('an old backend with no edited-copy route cannot falsely save or discard the edited draft', async () => {
+  let legacyCopies = 0
+  const sent = [], f = fixture('custom-dishes', {
+    copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); throw { statusCode: 404 } },
+    copyPersonalDish: async () => { legacyCopies++; return { id: 22 } }
+  })
+  f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); f.page.onInput(event('steps', '按我的改法蒸熟'))
+  await f.page.saveEdit(); assert.equal(sent.length, 1); assert.equal(legacyCopies, 0); assert.equal(f.page.data.editing, true)
+  assert.equal(f.page.data.form.steps, '按我的改法蒸熟'); assert.equal(f.page.data.editPending, false); assert.equal(f.navigation.length, 0)
+  assert.match(f.page.data.formError, /保存/)
 })
 test('saving reusable menu only writes a template and preserves historical snapshots', async () => {
   const f = fixture(), historyBeforeTemplateEdit = [{ date: '2026-10-01', dishes: [plain(dish)] }]

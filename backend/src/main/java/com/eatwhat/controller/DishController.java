@@ -163,6 +163,16 @@ public class DishController {
         return ResponseEntity.ok(customDishService.copyDish((Long) user, id, body));
     }
 
+    /** A distinct capability prevents old servers from silently ignoring edited-copy fields. */
+    @PostMapping("/{id}/copy-edited")
+    public ResponseEntity<Dish> copyEditedDish(@PathVariable Long id, @RequestBody DishWriteRequest body,
+                                              HttpServletRequest request) {
+        Object user = request.getAttribute("currentUserId");
+        if (!(user instanceof Long)) return ResponseEntity.status(401).build();
+        body.setEditCopy(true);
+        return ResponseEntity.ok(customDishService.copyDish((Long) user, id, body));
+    }
+
     /**
      * 根据ID获取菜品
      * GET /api/dishes/{id}

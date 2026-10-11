@@ -30,7 +30,7 @@ public class CustomDishService {
     private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
 
     private static final Set<String> ALLOWED_TYPES = new HashSet<>(
-            Arrays.asList("meat", "veg", "soup", "staple", "dessert"));
+            Arrays.asList("meat", "veg", "soup", "staple", "dessert", "side"));
 
     private final DishMapper dishMapper;
     private final RecommendationMetadataService metadataService;
@@ -79,9 +79,13 @@ public class CustomDishService {
         Dish source = readable(sourceId, userId);
         expected(source, request.getExpectedVersion());
         Dish copy = copyContent(source);
+        if (Boolean.TRUE.equals(request.getEditCopy())) applyPersonalEdits(userId, source, copy, request);
         copy.setUserId(userId); copy.setIsCustom(1);
         personalDishes.insert(copy);
-        if (quality != null) quality.inheritCopy(source, copy);
+        if (quality != null) {
+            if (Boolean.TRUE.equals(request.getEditCopy())) quality.inheritEditedCopy(source, copy);
+            else quality.inheritCopy(source, copy);
+        }
         writes.save(userId, request.getRequestId(), hash, copy);
         return copy;
     }
@@ -94,7 +98,17 @@ public class CustomDishService {
         Dish current = owned(dishId, userId);
         expected(current, request.getExpectedVersion());
         Dish next = copyContent(current);
-        next.setId(dishId); next.setName(request.getName()); next.setType(request.getType());
+        next.setId(dishId);
+        applyPersonalEdits(userId, current, next, request);
+        if (personalDishes.update(next) != 1) throw new MealConsumptionService.VersionConflict("菜品已删除或更新，请重新读取");
+        if (quality != null) quality.reconcileEdit(current, next);
+        writes.save(userId, request.getRequestId(), hash, next);
+        return next;
+    }
+
+    /** Merge an editor payload onto a trusted server source before its single insert/update. */
+    private void applyPersonalEdits(Long userId, Dish current, Dish next, DishWriteRequest request) {
+        next.setName(request.getName()); next.setType(request.getType());
         next.setCl(request.getCl()); next.setStep(request.getStep()); next.setCookMinutes(request.getCookMinutes());
         // Optional fields change only with explicit intent; older clients preserve copied content.
         if (Boolean.TRUE.equals(request.getEditServingDescription())) next.setFl(request.getFl());
@@ -108,10 +122,6 @@ public class CustomDishService {
         prepareDish(userId, next); preserveUnchangedRecipeContent(current, next);
         if (!Objects.equals(current.getCookMinutes(), next.getCookMinutes()))
             next.setCookTime(next.getCookMinutes() == null ? null : next.getCookMinutes() + "分钟");
-        if (personalDishes.update(next) != 1) throw new MealConsumptionService.VersionConflict("菜品已删除或更新，请重新读取");
-        if (quality != null) quality.reconcileEdit(current, next);
-        writes.save(userId, request.getRequestId(), hash, next);
-        return next;
     }
 
     @Transactional

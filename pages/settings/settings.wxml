@@ -1,6 +1,6 @@
 <view class="ew-page settings-page" style="font-size:{{fontBase * fontScale}}px">
-  <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">关闭菜单、操作反馈和底部面板的过渡动画。这是当前账号的本机设置。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
-  <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><view class="sync-row">
+  <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">减少页面过渡动画，只在这台设备生效。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
+  <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><view wx:if="{{statusText}}" class="sync-row">
     <text class="sync-dot {{synced ? 'online' : 'offline'}}"></text>
     <text>{{statusText}}</text>
   </view>
@@ -11,10 +11,10 @@
   </view>
 
   <block wx:else>
-<view class="section"><view class="section-title">常用用餐人数</view><view class="section-desc">只影响新餐默认值；本餐临时人数不会修改此设置。</view><ui-field label="人数（1–50）" type="number" value="{{preferences.defaultPeople}}" disabled="{{saving || loading}}" bind:change="onDefaultPeople" /></view>
+<view class="section"><view class="section-title">常用用餐人数</view><view class="section-desc">用于新建的一餐，本餐人数可单独调整。</view><ui-field label="人数（1–50）" type="number" value="{{preferences.defaultPeople}}" disabled="{{saving || loading}}" bind:change="onDefaultPeople" /></view>
   <view class="section">
     <view class="section-title">偏好菜系</view>
-    <view class="section-desc">这是推荐加分项，不会排除其他菜系。</view>
+    <view class="section-desc">优先推荐，不排除其他菜系。</view>
     <view class="chip-grid">
       <view aria-role="button" class="ew-hit-target choice-chip {{item.selected ? 'selected' : ''}}" wx:for="{{cuisineOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCuisineTap">{{item.label}}</view>
     </view>
@@ -22,7 +22,7 @@
 
   <view class="section">
     <view class="section-title">喜欢的标签</view>
-    <view class="section-desc">选中的口味、场景和做法会优先出现。</view>
+    <view class="section-desc">推荐时优先考虑。</view>
     <view class="chip-grid">
       <view aria-role="button" class="ew-hit-target choice-chip {{item.preferred ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onPreferredTagTap">{{item.label}}</view>
     </view>
@@ -30,7 +30,7 @@
 
   <view class="section">
     <view class="section-title">不想看到的标签</view>
-    <view class="section-desc">这里是硬性排除，会覆盖上面的喜欢设置。</view>
+    <view class="section-desc">推荐时排除。</view>
     <view class="chip-grid">
       <view aria-role="button" class="ew-hit-target choice-chip danger {{item.excluded ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onExcludedTagTap">{{item.label}}</view>
     </view>
@@ -56,13 +56,12 @@
 
   <view class="section">
     <view class="section-title">默认单菜最长用时</view>
-    <view class="section-desc">作为长期限制，即使临时关闭偏好加权也会保留。</view>
     <view class="chip-grid">
       <view aria-role="button" class="ew-hit-target choice-chip {{(item === null && !preferences.maxCookMinutes) || preferences.maxCookMinutes === item ? 'selected' : ''}}" wx:for="{{durationOptions}}" wx:key="*this" data-value="{{item === null ? 'none' : item}}" bindtap="onDurationTap">{{item === null ? '不限' : item + '分钟'}}</view>
     </view>
   </view>
 
-  <button class="ew-hit-target save-btn" bindtap="onSave" disabled="{{loading || saving}}" loading="{{saving}}">{{dirty ? '保存偏好' : '再次保存'}}</button>
-  <view class="section"><view class="section-title">偏好记忆</view><view class="section-desc">这些设置会用于之后的推荐。助手会话草稿可在助手中单独清空。</view><button class="ew-hit-target ew-button secondary" disabled="{{saving || loading}}" bindtap="onResetMemory">重置偏好记忆</button></view>
+  <button class="ew-hit-target save-btn" bindtap="onSave" disabled="{{loading || saving}}" loading="{{saving}}">保存偏好</button>
+  <view class="section"><view class="section-title">偏好记忆</view><button class="ew-hit-target ew-button secondary" disabled="{{saving || loading}}" bindtap="onResetMemory">重置偏好记忆</button></view>
   </block>
 </view>

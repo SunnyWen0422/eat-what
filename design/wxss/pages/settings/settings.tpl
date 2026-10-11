@@ -45,3 +45,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .appearance-copy .section-title, .appearance-copy .section-desc { overflow-wrap:anywhere; }
 .motion-switch { min-width:44px; min-height:44px; display:flex; align-items:center; }
 .motion-status { display:block; margin-top:{{space.1.px}}; font-size:{{font.secondary.em}}; line-height:1.5; color:{{muted}}; overflow-wrap:anywhere; }
+.settings-page .section-title { font-weight:600; }
+.settings-page button.save-btn { width:100%; max-width:100%; height:auto; line-height:1.5; white-space:normal; margin:20px 0; font-family:inherit; font-weight:600; box-sizing:border-box; }

@@ -1,6 +1,7 @@
 const api = require('../../utils/api')
 const {getUserStorageKey} = require('../../utils/util')
 const {mealsFromSession} = require('../../utils/legacy-meal-import')
+const flow = require('../../utils/meal-workflow')
 Page({
   data: {fontBase:require('../../utils/font-scale').base,fontScale:require('../../utils/font-scale')(),sessions:[],messages:[],meals:[],sessionId:'',nextCursor:null,loading:false,errorMessage:''},
   onLoad(options={}) { this._alive=true;this._target=options },
@@ -19,7 +20,7 @@ Page({
       const byId=new Map((more?this.data.sessions:[]).map(s=>[s.sessionId,s]))
       for(const session of response.sessions||[])byId.set(session.sessionId,{...session,label:new Date(session.updatedAt*1000).toLocaleString('zh-CN')})
       this.setData({sessions:[...byId.values()],nextCursor:response.nextCursor||null})
-    } catch(error) {if(this.current(scope,epoch))this.setData({errorMessage:error.message||'历史暂未读取，请重试'})}
+    } catch(error) {if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'历史暂未读到，请重新读取。')})}
     finally {if(this.current(scope,epoch))this.setData({loading:false})}
   },
   async onOpenSession(e) {
@@ -30,7 +31,7 @@ Page({
       const session=await api.getAssistantSession(id)
       if(!this.current(scope,epoch)||session.session_id!==id)return
       this.setData({messages:(session.messages||[]).filter(m=>['user','assistant'].includes(m.role)).map(m=>({role:m.role,content:String(m.content||'')})),meals:mealsFromSession(session)})
-    } catch(error) {if(this.current(scope,epoch))this.setData({errorMessage:error.message||'会话已失效或暂不可读'})}
+    } catch(error) {if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'这段会话暂未读到，请重新读取。')})}
     finally {if(this.current(scope,epoch))this.setData({loading:false})}
   },
   async onImportMeal(e) {
@@ -44,7 +45,7 @@ Page({
       if(!fresh||fresh.version!==meal.version){this.setData({meals:mealsFromSession(latest)});throw Error('旧草稿已更新，请重新核对后导入')}
       wx.setStorageSync(getUserStorageKey('pendingLegacyMealImport'),{sessionId:id,date:meal.date,mealType:meal.mealType,planVersion:meal.version})
       wx.navigateTo({url:`/pages/chat/chat?date=${meal.date}&mealType=${meal.mealType}&import=history`})
-    } catch(error) {if(this.current(scope,epoch))this.setData({errorMessage:error.message||'导入未准备好，旧草稿仍保留'})}
+    } catch(error) {if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'导入暂未完成，原草稿仍保留，请重新核对。')})}
     finally {if(this.current(scope,epoch))this.setData({loading:false})}
   },
 })

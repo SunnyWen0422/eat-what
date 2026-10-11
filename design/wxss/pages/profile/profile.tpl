@@ -2,7 +2,7 @@
 page { background:{{background}}; }
 .profile-page { min-height:100vh; box-sizing:border-box; padding:{{space.3.px}} {{space.3.px}} calc({{space.4.px}} + env(safe-area-inset-bottom)); background:{{background}}; }
 .profile-page .ew-heading { margin-bottom:{{space.1.px}}; }
-.profile-page button { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:{{font.body.em}}; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
+.profile-page button.ew-hit-target { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:{{font.body.em}}; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
 .profile-page button::after { border:0; }
 .user-card { display:flex; align-items:center; flex-wrap:wrap; gap:{{space.2.px}}; padding:{{space.3.px}} 0; background:transparent; color:{{text}}; border-bottom:1px solid {{divider}}; border-radius:0; }
 .user-avatar { width:48px; height:48px; flex:0 0 48px; }

@@ -72,11 +72,11 @@ test('personal create retries one request ID and preserves form after unknown ou
   await page.onSaveCustomDish(); assert.equal(page.data.customForm.name, '鱼'); await page.onSaveCustomDish()
   assert.ok(sent[0].requestId); assert.equal(sent[0].requestId, sent[1].requestId)
 })
-test('detail copy checks content version and opens its own editable copy', async () => {
-  let body
-  const { page, navigation } = load('pages/dish-detail/dish-detail', { copyPersonalDish: async (id, value) => { body = value; return { id: 9 } } })
+test('detail copy checks content version and opens an unsaved source draft', async () => {
+  let copies = 0
+  const { page, navigation } = load('pages/dish-detail/dish-detail', { copyPersonalDish: async () => { copies++; return { id: 9 } } })
   page._scope = 'A:dishView'; page.data.dish = { id: 1, name: '鱼', contentVersion: 'v1' }
-  await page.onCopyPersonal(); await page.onConfirmCopyPersonal(); assert.equal(body.expectedVersion, 'v1'); assert.ok(body.requestId); assert.match(navigation[0].url, /edit=9/)
+  await page.onCopyPersonal(); await page.onConfirmCopyPersonal(); assert.equal(copies, 0); assert.match(navigation[0].url, /copy=1&version=v1/)
 })
 test('menu apply binds resolved target/version/people and only opens a draft', async () => {
   const requests = []
@@ -96,7 +96,7 @@ test('menu late resolve cannot write target or navigate for another account', as
 })
 test('copied rich recipe editor uses detailed steps and retries the exact versioned edit', async () => {
   const sent = [], dish = { id: 9, name: '鱼', type: 'meat', ingredientsAmounts: '鱼#姜', step: '旧简略', steps: '洗鱼###蒸熟', contentVersion: 'v1', cookMinutes: 20 }
-  const { page } = load('pages/custom-dishes/custom-dishes', { updateCustomDish: async (id, body) => { sent.push(body); if (sent.length === 1) throw { isNetworkError: true }; return {} }, getCustomDishes: async () => [dish] })
+  const { page } = load('pages/custom-dishes/custom-dishes', { updateCustomDish: async (id, body) => { sent.push(body); if (sent.length === 1) throw { isNetworkError: true }; return { id } }, getCustomDishes: async () => [dish] })
   page.onLoad(); page.edit(dish); assert.equal(page.data.form.steps, '洗鱼\n蒸熟')
   await page.saveEdit(); assert.equal(page.data.editPending, true); await page.saveEdit()
   assert.equal(sent[0].expectedVersion, 'v1'); assert.equal(sent[0].requestId, sent[1].requestId); assert.equal(sent[0].step, '洗鱼#蒸熟')

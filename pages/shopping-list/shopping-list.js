@@ -154,7 +154,7 @@ Page({
     } catch (error) {
       if (!this.current(scope) || !stillPending()) return
       if (error.isNetworkError || !error.statusCode || error.statusCode >= 500 || [401, 403, 408, 429].includes(error.statusCode)) {
-        this.setData({ drafts: store.loadPendingOperations(), offline: true, formError: '已保存待确认草稿，尚未确认云端结果。可在下方重试。', errorMessage: '网络中断，云端结果待确认，清单没有被误标为已同步。', feedback: { requestId: operation.payload.requestId, state: 'unknown', message: '云端结果待确认，请按原草稿重试。', undoAvailable: false } })
+        this.setData({ drafts: store.loadPendingOperations(), offline: true, formError: '本次修改已保留，保存结果待确认，可在下方重试。', errorMessage: '网络暂未连接，仍显示上次清单。本次修改的保存结果待确认。', feedback: { requestId: operation.payload.requestId, state: 'unknown', message: '保存结果待确认，请按原草稿重试。', undoAvailable: false } })
       } else {
         if (error.statusCode !== 409) {
           store.removePendingOperation(null, operation.payload.requestId)

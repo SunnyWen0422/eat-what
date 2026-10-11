@@ -118,3 +118,24 @@ test('successful prefetch creates source-labelled global and persistent rows for
   assert.equal(values[0].source, ONLINE)
   assert.equal(values[0].dishes.length, 4)
 })
+
+test('prefetched cover images survive memory, persisted cache and offline recommendation loading', async () => {
+  const covers = { meat: 'https://images.example.com/meat.jpg', veg: 'https://images.example.com/veg.jpg', soup: 'https://images.example.com/soup.jpg', dessert: 'https://images.example.com/dessert.jpg' }
+  const f = fixture({ getDishesLiteByType: async type => [{ id: Object.keys(covers).indexOf(type) + 1, name: `菜${type}`, type, image: covers[type] }] })
+  f.load('app.js'); await f.app.precacheDishes()
+  const persisted = [...f.storage.values()][0]
+  assert.deepEqual(Array.from(f.app.globalData.allDishes, row => row.image), Object.values(covers))
+  assert.deepEqual(Array.from(persisted.dishes, row => row.image), Object.values(covers))
+
+  // A cold app must recover the full image field from persistent, source-bound rows.
+  f.app.globalData.allDishes = null
+  const loaded = await f.load('utils/recommend.js').getAllDishes()
+  assert.deepEqual(Array.from(loaded, row => row.image), Object.values(covers))
+  const flow = f.load('utils/recommendation-flow.js').createRecommendationFlow({
+    api: { getRecommendations: async () => { throw new Error('offline') } },
+    localRecommend: async (_, rows) => [{ dishes: rows }], wx: f.wx, appProvider: () => f.app,
+  })
+  const result = await flow.generate({ people: 2 })
+  assert.equal(result.source, 'cache')
+  assert.deepEqual(Array.from(result.plans[0].dishes, row => row.image), Object.values(covers))
+})

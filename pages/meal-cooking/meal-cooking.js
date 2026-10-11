@@ -41,9 +41,9 @@ Page({
    const plan=flow.mealViews(overview,this._target.date).find(m=>m.mealType===this._target.mealType).plan
    if(!plan||plan.revision!==this._target.planRevision)throw Error('本餐安排已变化，请返回核对后重新进入做饭模式。')
    const dishes=(plan.dishDetails||[]).map(d=>({...d,stepsList:Array.isArray(d.steps)?d.steps.map(String):String(d.steps||d.step||'').split(/###|#|\n/).map(s=>s.trim()).filter(Boolean)}))
-   if(!dishes.length || (plan.dishIds||[]).some(id=>!dishes.some(d=>Number(d.id||d.dishId)===Number(id))))throw Error('计划快照不完整，请返回核对做法。')
+   if(!dishes.length || (plan.dishIds||[]).some(id=>!dishes.some(d=>Number(d.id||d.dishId)===Number(id))))throw Error('本餐做法信息不完整，请返回核对菜谱。')
    this._progressContext={...this._target,scope};this._progress=progress.loadProgress(wx,this._progressContext);this.setData({dishes});this.onChooseDish({currentTarget:{dataset:{index:0}}})
-  }catch(error){if(this._alive&&scope===getUserStorageKey('cooking')&&epoch===this._epoch)this.setData({errorMessage:error.message||'做法暂未读取，请重试',planChanged:!!(error.message&&/安排已变化|快照不完整/.test(error.message))})}
+  }catch(error){if(this._alive&&scope===getUserStorageKey('cooking')&&epoch===this._epoch)this.setData({errorMessage:flow.errorMessage(error,'做法暂未读到，请重新读取。'),planChanged:!!(error.message&&/安排已变化|做法信息不完整/.test(error.message))})}
   finally{if(this._alive&&scope===getUserStorageKey('cooking')&&epoch===this._epoch)this.setData({loading:false})}
  },
  onChooseDish(e){const index=Number(e.currentTarget.dataset.index),dish=this.data.dishes[index];if(!dish)return;const steps=dish.stepsList;this.setData({dishIndex:index,dishName:dish.name,steps,stepIndex:Math.min(Math.max(0,Number(this._progress[String(dish.id||dish.dishId)])||0),Math.max(0,steps.length-1))})},

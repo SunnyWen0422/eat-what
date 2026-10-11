@@ -32,13 +32,14 @@ Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',recipeSource:'all',browseScrollTop:0,selectionMode:true,selectionTargetLabel:'',showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionLoading:false,selectionBusy:false,selectionBlocked:true,
     personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],activeMenu:null,showMenuTarget:false,menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, menuDate: '', menuMealIndex: 2, menuMealLabels: ['早餐','午餐','晚餐'], customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
-    tabs: ['meat', 'veg', 'soup', 'staple', 'dessert'],
+    tabs: ['meat', 'veg', 'soup', 'staple', 'dessert', 'side'],
     tabNames: {
       'meat': '荤菜',
       'veg': '素菜',
       'soup': '汤品',
       'staple': '主食',
       'dessert': '甜品',
+      'side': '配餐',
       'custom': '定制'
     },
     currentDishes: [],
@@ -364,7 +365,7 @@ Page({
       if (!this.isBrowseCurrent(identity, epoch)) return
       this.setData({ showCustomForm: false, customForm: emptyCustomForm(), customFocus: '', personalSaveMessage: '已保存到我的菜谱，正在打开菜谱详情。' }); this._customInitial = null; this.syncCustomLeaveAlert()
       wx.showToast({ title: '已保存到我的菜谱', icon: 'success' }); wx.navigateTo({ url: '/pages/dish-detail/dish-detail?id=' + Number(saved.id) })
-    } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ customError: require('../../utils/meal-workflow').errorMessage(error, error.message || '保存失败，输入仍保留，请重试。') }) }
+    } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ customError: require('../../utils/meal-workflow').errorMessage(error, '保存暂未完成，输入仍保留，请重试。') }) }
     finally { if (this.isBrowseCurrent(identity, epoch)) { this.setData({ savingCustom: false, customPending: !!this.writeJournal().pending('dish:create') }); this.syncCustomLeaveAlert() } }
   },
 
@@ -804,7 +805,7 @@ Page({
       wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: handoff.date, mealType: handoff.mealType })
       this.setData({ personalSaveMessage: '常用菜单将用作本餐草稿，保存到日历还需单独确认。' })
       wx.navigateTo({ url: '/pages/result/result?date=' + handoff.date + '&mealType=' + handoff.mealType })
-    } catch (error) { if (current()) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, error.message || '菜单未应用，原安排保留，请重试') }) }
+    } catch (error) { if (current()) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '菜单暂未应用，原安排保留，请重试。') }) }
     finally { if (this.isBrowseCurrent(identity, epoch) && applyEpoch === this._menuApplyEpoch && this._visible !== false) { this._menuApplying = false; this.setData({ menuBusy: false }) } }
   },
   onDeleteMenu(e) {

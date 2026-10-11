@@ -30,7 +30,7 @@ Page({
     } catch (error) {
       if (current()) {
         this.clearReport()
-        this.setData({ errorMessage: flow.errorMessage(error, error && error.message || '读取失败，请联网后重试。') })
+        this.setData({ errorMessage: flow.errorMessage(error, '回顾暂未读到，请联网后重试。') })
       }
     } finally { if (current()) this.setData({ loading: false }) }
   },

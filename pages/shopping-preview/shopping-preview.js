@@ -68,7 +68,7 @@ Page({
     const unknown = shoppingView.groups.flatMap(group => group.items).filter(item => !item.userOverride && !isSafeQuantity(item)).length
     const contexts=[...new Set(this.data.dishes.map(dish=>dish.sourceDate?`${Number(dish.sourceDate.slice(5,7))}月${Number(dish.sourceDate.slice(8,10))}日 ${flow.mealNames[dish.sourceMealType] || ''}`.trim():'本次菜单'))]
     const people=[...new Set(this.data.dishes.map(dish=>dish.targetPeople).filter(Boolean))]
-    this.setData({ shoppingView, itemCount: shoppingView.pendingCount,contextLabel:`${contexts.length===1?contexts[0]:contexts.length+'餐'} · ${this.data.dishes.length}道菜`,peopleLabel:people.length===1?people[0]+'人':'各餐人数', unknownMessage: unknown ? `${unknown}项待确认，可先加入` : '' }, () => this.measurePreviewActions())
+    this.setData({ shoppingView, itemCount: shoppingView.pendingCount,showGroupContext:contexts.length>1,showGroupPeople:people.length>1,contextLabel:`${contexts.length===1?contexts[0]:contexts.length+'餐'} · ${this.data.dishes.length}道菜`,peopleLabel:people.length===1?people[0]+'人':'各餐人数', unknownMessage: unknown ? `${unknown}项待确认，可先加入` : '' }, () => this.measurePreviewActions())
     this.persist()
   },
   onViewMode(e) { const mode = e.currentTarget.dataset.mode; if (mode === 'summary' || mode === 'dish') {this.setData({ viewMode: mode });this.persist()} },

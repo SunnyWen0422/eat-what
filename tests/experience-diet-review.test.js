@@ -68,11 +68,10 @@ test('replacement Page and real store submit a one-time command without permanen
   assert.equal(permanentPreferenceWrites.length, 0)
   assert.equal(page.data.errorMessage,'版本变化')
 })
-test('review and workspace expose generic evidence limits without per-dish causal claims',()=>{
+test('review retains coverage while workspace avoids research jargon and per-dish causal claims',()=>{
   const review=fs.readFileSync('pages/statistics/statistics.wxml','utf8'),workspace=fs.readFileSync('templates/meal-workspace.wxml','utf8')
   assert.match(review,/coverageNotice/);assert.match(review,/showReviewDetails/)
-  assert.match(workspace,/已记录的用餐可参与近期重复推荐判断/)
-  assert.match(workspace,/不等于推荐效果已验证/)
+  assert.doesNotMatch(workspace,/不等于推荐效果已验证|跨模块操作/)
   assert.doesNotMatch(review+workspace,/本次已因昨日鸡肉调整/)
 })
 

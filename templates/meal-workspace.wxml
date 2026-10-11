@@ -49,10 +49,8 @@
     <picker class="ew-hit-target workspace-save-field" mode="date" disabled="{{loading || busy}}" value="{{context.date}}" bindchange="onDateTarget"><view class="workspace-save-field"><text>切换安排日期</text><text>{{context.date}}</text></view></picker>
     <ui-button label="用时与已有食材" variant="tertiary" disabled="{{contextLocked}}" bind:action="onOpenMealSettings" />
     <ui-button label="存为常用菜单" variant="secondary" disabled="{{busy || !draft.dishes.length}}" bind:action="onSaveReusableMenu" />
-    <text class="ew-muted">保存可复用模板，日历中的安排与实际记录保留。</text>
     <ui-button label="查看助手历史" variant="tertiary" disabled="{{busy}}" bind:action="onOpenAdvancedAssistant" />
-    <text class="ew-title">保存计划与周回顾</text><text class="ew-muted">跨模块操作会先预览并确认。保存计划不会算作实际吃过。</text>
-    <text class="ew-muted">已记录的用餐可参与近期重复推荐判断，不等于推荐效果已验证。</text>
+    <text class="ew-title">保存计划与周回顾</text><text class="ew-muted">先核对保存日期，再查看这一周的实际记录。保存计划不会算作实际吃过。</text>
     <ui-button label="预览保存计划与周回顾" variant="secondary" disabled="{{busy || !canConfirm}}" bind:action="onSaveAndReview" />
     <view wx:if="{{harnessMessage}}" class="ew-notice" role="status">{{harnessTargetLabel}} {{harnessMessage}}</view>
     <ui-button wx:if="{{harnessRetryable}}" label="查询并恢复原任务" variant="tertiary" disabled="{{busy}}" bind:action="onRecoverControlledTask" />
@@ -60,13 +58,11 @@
     <ui-button slot="footer" label="完成" bind:action="onCloseMore" />
   </ui-sheet>
   <ui-sheet visible="{{peopleVisible}}" title="用餐人数" busy="{{busy}}" bind:close="onClosePeople">
-    <text class="ew-muted">只用于当前这一餐，手动搭配不会随人数变化。</text>
     <view class="workspace-people"><view class="workspace-stepper"><button class="ew-hit-target ew-link" aria-label="减少一人" disabled="{{loading || contextLocked || context.people <= 1}}" data-delta="-1" bindtap="onPeopleStep">−</button><input class="workspace-people-input" aria-label="用餐人数，1 至 50 人" type="number" value="{{peopleInput}}" disabled="{{loading || contextLocked}}" bindinput="onPeopleInput" /><text>人</text><button class="ew-hit-target ew-link" aria-label="增加一人" disabled="{{loading || contextLocked || context.people >= 50}}" data-delta="1" bindtap="onPeopleStep">+</button></view></view>
     <view wx:if="{{peopleError}}" class="ew-error" role="alert">{{peopleError}}</view><ui-button slot="footer" label="完成" disabled="{{peopleError}}" bind:action="onClosePeople" />
   </ui-sheet>
   <ui-sheet visible="{{compositionVisible}}" title="本餐搭配" busy="{{compositionSaving || busy}}" bind:close="onCloseComposition">
-    <text class="ew-title">{{compositionDraftModeLabel}} · 合计 {{compositionTotal}} 道</text>
-    <text class="ew-muted">每类 0 至 10 道，一餐合计 1 至 10 道。应用后保留当前菜单，换一套后生效。</text>
+    <text class="ew-muted">应用后保留这份搭配配置。</text>
     <view class="workspace-composition-presets"><button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" data-id="one-meat-two-veg" bindtap="onCompositionPreset">一荤两素</button><button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" data-id="two-meat-one-veg" bindtap="onCompositionPreset">两荤一素</button><button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" data-id="one-meat-one-veg-soup" bindtap="onCompositionPreset">一荤一素一汤</button></view>
     <view class="workspace-composition-row" wx:for="{{compositionRows}}" wx:key="type"><text>{{item.label}}</text><view class="workspace-stepper"><button class="ew-hit-target ew-link" aria-label="减少一道{{item.label}}" disabled="{{compositionSaving || contextLocked || item.minusDisabled}}" data-type="{{item.type}}" data-delta="-1" bindtap="onCompositionStep">−</button><input class="workspace-people-input" aria-label="{{item.label}}数量，0 至 10 道" type="number" value="{{item.count}}" disabled="{{compositionSaving || contextLocked}}" data-type="{{item.type}}" bindinput="onCompositionInput" /><button class="ew-hit-target ew-link" aria-label="增加一道{{item.label}}" disabled="{{compositionSaving || contextLocked || item.plusDisabled}}" data-type="{{item.type}}" data-delta="1" bindtap="onCompositionStep">+</button></view></view>
     <button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" bindtap="onCompositionAuto">恢复按人数自动搭配</button>
@@ -75,11 +71,11 @@
     <ui-button slot="footer" label="应用搭配" loading="{{compositionSaving}}" disabled="{{compositionApplyDisabled || compositionSaving || contextLocked || peopleError}}" bind:action="onApplyComposition" />
   </ui-sheet>
   <ui-sheet visible="{{requirementsVisible}}" title="本餐要求（选填）" busy="{{voicePhase !== 'idle' || requirementsSaving}}" bind:close="onCancelRequirements">
-    <text class="ew-muted">{{hardExclusionSummary}}</text>
+    <text wx:if="{{hasHardExclusions || hardExclusionsUnavailable}}" class="ew-muted">{{hardExclusionSummary}}</text>
     <textarea class="ew-input workspace-requirements" placeholder-class="ew-placeholder" value="{{requirementsDraft}}" maxlength="2000" placeholder="口味、忌口，或你想保留的菜" bindinput="onRequirementsDraftInput" adjust-position cursor-spacing="24" />
     <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view><view class="workspace-light-actions"><ui-button label="清空本餐要求" variant="tertiary" disabled="{{requirementsSaving}}" bind:action="onClearRequirements" /></view>
     <ui-button label="继续本餐对话" variant="secondary" disabled="{{contextLocked || requirementsSaving}}" bind:action="onContinueMealConversation" />
-    <text class="ew-muted">可留空，只影响本餐。应用后才更新，长期忌口仍然保留。</text><ui-button slot="footer" label="应用本餐要求" loading="{{requirementsSaving}}" disabled="{{voicePhase !== 'idle' || requirementsSaving || contextLocked}}" bind:action="onApplyRequirements" />
+    <ui-button slot="footer" label="应用本餐要求" loading="{{requirementsSaving}}" disabled="{{voicePhase !== 'idle' || requirementsSaving || contextLocked}}" bind:action="onApplyRequirements" />
   </ui-sheet>
   <ui-sheet visible="{{settingsVisible}}" title="本餐设置" busy="{{busy}}" bind:close="onCloseMealSettings">
     <ui-field label="整餐用时上限（分钟，可留空）" value="{{settingsContext && settingsContext.totalCookMinutes != null ? '' + settingsContext.totalCookMinutes : ''}}" type="number" bind:change="onTimeSetting" /><ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />

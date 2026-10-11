@@ -72,9 +72,20 @@ test('compact summary and by-dish use the same source counts without auto inputs
 })
 test('by-dish groups start folded, retain fold choice on return and do not mutate preparation',async()=>{
  const h=await loaded();const original=clone(h.page.data.dishes),group=h.page.data.shoppingView.groups[0];assert.equal(group.expanded,false);assert.equal(group.sourceCount,3);assert.equal(h.page.data.peopleVisible,false)
+ assert.equal(h.page.data.showGroupContext,false);assert.equal(h.page.data.showGroupPeople,false)
  h.page.onToggleDish({currentTarget:{dataset:{key:group.selectionKey}}});assert.equal(h.page.data.shoppingView.groups[0].expanded,true);assert.deepEqual(clone(h.page.data.dishes),original);h.page.onUnload()
  const returned=await loaded({storage:h.storage,selection:null});assert.equal(returned.page.data.shoppingView.groups[0].expanded,true);assert.equal(returned.page.data.itemCount,3)
  returned.page.onToggleDish({currentTarget:{dataset:{key:group.selectionKey}}});assert.equal(returned.page.data.shoppingView.groups[0].expanded,false)
+})
+
+test('multiple meals and differing people retain the context needed to check each recipe', async () => {
+ const h=await loaded(),first=clone(h.page.data.dishes[0]),second=clone(first)
+ Object.assign(first,{sourceDate:'2026-10-09',sourceMealType:'dinner'})
+ Object.assign(second,{sourceDate:'2026-10-10',sourceMealType:'lunch',targetPeople:3,selectionKey:'another-meal'})
+ h.page.setData({dishes:[first,second]});h.page.refreshView()
+ assert.equal(h.page.data.showGroupContext,true);assert.equal(h.page.data.showGroupPeople,true)
+ assert.equal(h.page.data.itemCount,6)
+ assert.equal(new Set(h.page.data.shoppingView.groups.map(group=>group.contextLabel)).size,2)
 })
 test('read-only single quantity opens only that source; multi-source quantity opens sources without redistribution',async()=>{
  const h=await loaded();h.page.onEditRow({currentTarget:{dataset:{key:h.page.data.shoppingView.rows[0].key}}});assert.equal(h.page.data.formVisible,true);assert.equal(h.page._edit.itemIndex,0);h.page.closeForm()

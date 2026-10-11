@@ -20,10 +20,23 @@ public class DishQualityService {
         inherited.setCopiedFromVersion(source.getContentVersion());
         persist(copy,inherited);
     }
+    /** Persist only the final edited copy's evidence, without creating an intermediate profile. */
+    public void inheritEditedCopy(Dish source,Dish copy) {
+        if(source.getQuality()==null)return;
+        CatalogQuality inherited=json.convertValue(source.getQuality(),CatalogQuality.class);
+        inherited.setCopiedFromDishId(source.getId());
+        inherited.setCopiedFromVersion(source.getContentVersion());
+        applyEditEvidence(source,copy,inherited);
+        persist(copy,inherited);
+    }
     /** Rebind benign edits; changed recipe facts must not retain the source's review assertion. */
     public void reconcileEdit(Dish current,Dish next) {
         if(current.getQuality()==null)return;
         CatalogQuality q=json.convertValue(current.getQuality(),CatalogQuality.class);
+        applyEditEvidence(current,next,q);
+        persist(next,q);
+    }
+    private void applyEditEvidence(Dish current,Dish next,CatalogQuality q) {
         boolean amountsChanged=!Objects.equals(current.getIngredientsAmounts(),next.getIngredientsAmounts());
         boolean ingredientsChanged=amountsChanged||!Objects.equals(current.getCl(),next.getCl());
         boolean stepsChanged=!Objects.equals(current.getStep(),next.getStep())||!Objects.equals(current.getSteps(),next.getSteps())
@@ -40,7 +53,6 @@ public class DishQualityService {
         if(!Objects.equals(current.getCookMinutes(),next.getCookMinutes())||!Objects.equals(current.getCookTime(),next.getCookTime()))q.setTimeStatus("ESTIMATED");
         if(!Objects.equals(current.getImage(),next.getImage()))q.setImageRightsStatus("UNKNOWN");
         if(!Objects.equals(current.getKcal(),next.getKcal())){q.setNutritionKcal(null);q.setNutritionStatus("UNKNOWN");}
-        persist(next,q);
     }
     private List<CatalogQuality.Ingredient> editedIngredients(String text,CatalogQuality prior) {
         Set<String> rejected=new HashSet<>();

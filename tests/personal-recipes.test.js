@@ -42,6 +42,17 @@ test('editable recipe text preserves rich arrays as readable lines', () => {
   assert.equal(editableRecipeText('["洗鱼","蒸熟"]'), '洗鱼\n蒸熟')
   assert.equal(editableRecipeText('鱼|1|条###姜|2|片'), '鱼|1|条\n姜|2|片')
 })
+test('rich objects are shown as human-readable lines while untouched edits retain original JSON', () => {
+  const { editableRecipeText, recipeFieldPayload } = require('../utils/personal-recipes')
+  const ingredients = '[{"name":"鱼","quantity":1,"unit":"条","note":"去鳞","source":"catalog"},{"name":"盐","quantity":null,"unit":"克"}]'
+  const steps = '[{"text":"蒸熟","image":"https://example.com/step.jpg","minutes":8},{"instruction":"装盘"}]'
+  assert.equal(editableRecipeText(ingredients), '鱼 1条（去鳞）\n盐')
+  assert.equal(editableRecipeText(steps), '蒸熟\n装盘')
+  assert.equal(recipeFieldPayload(ingredients, editableRecipeText(ingredients)), ingredients)
+  assert.equal(recipeFieldPayload(steps, editableRecipeText(steps)), steps)
+  assert.equal(recipeFieldPayload(ingredients, '鱼 1条\n盐 适量'), '鱼 1条#盐 适量')
+  assert.equal(editableRecipeText('[{"name":"盐","quantityText":"适量"}]'), '盐 适量')
+})
 for (const statusCode of [401, 403]) test(`unknown create then ${statusCode} retains original request for authenticated recovery`, async () => {
   const f = fixture(), sent = []
   await assert.rejects(f.journal.run('create', { name: 'original' }, async body => { sent.push(body); throw { isNetworkError: true } }))

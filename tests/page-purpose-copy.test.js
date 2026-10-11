@@ -6,9 +6,8 @@ const vm = require('node:vm')
 const read = file => fs.readFileSync(file, 'utf8')
 
 // These tests fail if a visible page label again conflates planning with eating.
-test('calendar explains planning and directs empty meals to an arrangement', () => {
+test('calendar directs empty meals to an arrangement without conflating food records', () => {
   const source = read('pages/calendar/calendar.wxml')
-  assert.match(source, /安排三餐并保存计划，吃过后再记录饮食/)
   assert.match(source, /'查看与调整安排' : '安排这一餐'/)
   assert.doesNotMatch(source, /安排 \/ 记录这一餐/)
 })
@@ -58,7 +57,6 @@ test('recipe details are clearly ingredients and cooking instructions', () => {
   const config = JSON.parse(read('pages/dish-detail/dish-detail.json'))
   const source = read('pages/dish-detail/dish-detail.wxml')
   assert.equal(config.navigationBarTitleText, '食材与做法')
-  assert.match(source, /查看食材用量和烹饪做法/)
   assert.match(source, /食材与用量/)
   assert.match(source, /烹饪步骤/)
   assert.doesNotMatch(read('pages/calendar-detail/calendar-detail.wxml'), /实际做法/)

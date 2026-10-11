@@ -61,3 +61,4 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .preview-bottom > ui-button { width:100%; flex:1; min-width:0; }
 .shopping-preview-page { padding-bottom:calc(176px + env(safe-area-inset-bottom)); }
 .shopping-preview-page .ew-heading { font-size:1.5em; }
+.shopping-preview-page button.dish-header { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }

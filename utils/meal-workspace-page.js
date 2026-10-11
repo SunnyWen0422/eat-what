@@ -8,6 +8,7 @@ const { createWorkspaceStore, defaultTarget, resolveActiveTarget, normalizeConte
 const { freezeSaveSnapshot, matchesSaveSnapshot, hasUnfinishedSource, saveTargetView, validateMealTarget } = require('./meal-save-target')
 const { deriveActionFeedback, legacyLockNotice, interactionCommand } = require('./meal-action-feedback')
 const { beginShoppingSelection } = require('./shopping-list')
+const { errorMessage: userError } = require('./meal-workflow')
 const clone = value => JSON.parse(JSON.stringify(value))
 const MEALS = ['breakfast', 'lunch', 'dinner']
 const LABELS = ['早餐', '午餐', '晚餐']
@@ -49,7 +50,7 @@ module.exports = function workspacePage(options = {}) {
     },
     showControlledState(state) {
       const target=state.target
-      this.setData({harnessStatus:state.status,harnessMessage:state.message||'',harnessReport:state.report||null,
+      this.setData({harnessStatus:state.status,harnessMessage:state.message?userError({message:state.message},'上次操作尚未完成，请查看并恢复'): '',harnessReport:state.report||null,
         harnessRetryable:!!state.retryable,harnessTarget:target||null,
         harnessTargetLabel:target?`${target.date} ${LABELS[MEALS.indexOf(target.mealType)]||''}`:''})
     },
@@ -72,7 +73,7 @@ module.exports = function workspacePage(options = {}) {
         if(['completed','partial_failed'].includes(result.status))wx.setStorageSync(getUserStorageKey('needRefreshCalendar'),Date.now())
         await this.readWorkspace(this.data.context)
       } catch(error) {
-        if(current())this.setData({harnessMessage:error.message||'操作结果待查询，请恢复原任务',harnessRetryable:true,harnessStatus:'unknown'})
+        if(current())this.setData({harnessMessage:userError(error,'操作结果待确认，请恢复上次操作'),harnessRetryable:true,harnessStatus:'unknown'})
       } finally { if(current())this.setWorkspaceBusy(false) }
     },
     onControlledReport() {
@@ -151,7 +152,7 @@ module.exports = function workspacePage(options = {}) {
             wx.setStorageSync(getUserStorageKey('activeMealTarget'),importedTarget);this._params=importedTarget
             wx.removeStorageSync(key);store.edit({...this.data.context,people:meal.people});this.renderWorkspace()
             await this.runCommand('select',{dishIds:meal.dishIds})
-          } catch(error) {if(this.current()&&initEpoch===this._initEpoch&&store===this.store)this.setData({errorMessage:error.message||'导入未完成，当前方案仍保留'})}
+          } catch(error) {if(this.current()&&initEpoch===this._initEpoch&&store===this.store)this.setData({errorMessage:userError(error,'导入未完成，当前方案仍保留')})}
         }
       }
       const selectionKey=getUserStorageKey('workspaceSelectedDishes')
@@ -196,7 +197,7 @@ module.exports = function workspacePage(options = {}) {
         if(!meal || meal.version!==row.version){this.setData({legacyMeals:latest,legacyNotice:'旧草稿已更新，请检查后再导入'});return}
         await this.switchTarget({date:meal.date,mealType:meal.mealType});if(!this.current() || scope!==this._scope)return
         this.store.edit({...this.data.context,people:meal.people});this.renderWorkspace();return this.runCommand('select',{dishIds:meal.dishIds})
-      } catch(error) {if(this.current() && scope===this._scope)this.setData({errorMessage:error.message || '导入未完成，旧草稿仍保留'})}
+      } catch(error) {if(this.current() && scope===this._scope)this.setData({errorMessage:userError(error,'导入未完成，旧草稿仍保留')})}
     },
     current() { return this._alive && this._scope === getCurrentUserIdentity() },
     async onShow() {
@@ -233,7 +234,7 @@ module.exports = function workspacePage(options = {}) {
       if (!this.store || !this.current()) return
       const store = this.store
       try { const result=await store.load(target.date, target.mealType, defaults); if (result && result.superseded || !this.current() || store !== this.store) return; this.setData({ errorMessage: '' }) }
-      catch (error) { if(error.superseded)return; if (this.current() && store === this.store) this.setData({ errorMessage: error.message || '本餐暂未同步，可重试' }) }
+      catch (error) { if(error.superseded)return; if (this.current() && store === this.store) this.setData({ errorMessage: userError(error,'本餐暂未读到，请重试') }) }
       if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ loading: false }); this.pollTask() }
     },
     setWorkspaceBusy(busy) {
@@ -255,7 +256,7 @@ module.exports = function workspacePage(options = {}) {
       this.setData({actionFeedback,legacyLockNotice:legacyLockNotice(draft)})
       this.setData({ context: state.context || this.data.context, draft: { ...draft, dishes: (draft.dishes || []).map(d => ({ ...d, locked: (draft.lockedDishIds || []).includes(d.id), actionBusy:d.id===rowBusy, actionMessage:actionFeedback && actionFeedback.state==='success' && actionFeedback.dishId===d.id ? actionFeedback.message : '' })) },
         status: w && w.status==='planned' && confirmation && (!savedTarget || savedTarget.date===source.date && savedTarget.mealType===source.mealType) && confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
-        linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message || '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
+        linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message ? userError({message:w.message},w.status==='generating'?'正在挑选合适的菜品':w.status==='needs_input'?'请补充本餐要求后继续':'请核对本餐条件后重新安排') : '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
         canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced',
         saveState,savedTarget,savedMessage:savedView ? `已保存到${savedView.label}` : '',saveTargetLocked:!!this.data.busy || !!state.pending,saveRecoveryPending:!!state.pending && state.pending.type==='confirm' })
       const context=this.data.context
@@ -313,7 +314,7 @@ module.exports = function workspacePage(options = {}) {
       this.cancelVoiceInput();this.store.edit({...this.data.context,requirements:submitted});this.setData({requirementsSaving:true});this.renderWorkspace()
       const ownsSheet=()=>this.current() && this.store===store && this._requirementsOperation===operation && this._requirementsBinding===binding && binding.scope===this._scope && binding.date===this.data.context.date && binding.meal===this.data.context.mealType
       try {await this.flushDraft();if(!ownsSheet())return;if(this.data.requirementsDraft!==submitted){this.setData({errorMessage:'先前的内容已保存，新输入仍保留，请再次应用'});this.renderWorkspace();return}this.setData({requirementsVisible:false});this._requirementsBinding=null;this.renderWorkspace();return operation}
-      catch(error){if(ownsSheet()){this.renderWorkspace();this.setData({errorMessage:error.message || '文字已保留，请重试同步'})}}
+      catch(error){if(ownsSheet()){this.renderWorkspace();this.setData({errorMessage:userError(error,'文字已保留，请重试保存')})}}
       finally{if(ownsSheet() || this._requirementsOperation===operation && this._requirementsBinding===null && this.store===store && this.current())this.setData({requirementsSaving:false})}
     },
     async pollTask() {
@@ -340,7 +341,7 @@ module.exports = function workspacePage(options = {}) {
       this._draftTimer = setTimeout(async () => {
         if (!this.current() || store !== this.store || ['offline', 'unknown', 'conflict'].includes(store.state().syncStatus)) return
         try { await this.flushDraft(); if (this.current() && store === this.store) { this.renderWorkspace(); if (store.state().dirty) this.scheduleDraftSave() } }
-        catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '输入已保留，请重试同步' }) } }
+        catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: userError(error,'输入已保留，请重试保存') }) } }
       }, 500)
     },
     async flushDraft() {
@@ -358,7 +359,7 @@ module.exports = function workspacePage(options = {}) {
       clearTimeout(this._draftTimer); const store = this.store
       this._actionError=null;this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
       try { await this.flushDraft(); if(!this.current() || store!==this.store)return false; const operation=store.command(command, interactionCommand(command,extra));this.renderWorkspace();await operation; if (this.current() && store === this.store) { this.renderWorkspace(); this.pollTask(); return true } }
-      catch (error) { if (this.current() && store === this.store) { this._actionError=error;this.renderWorkspace(); this.setData({ errorMessage: error.message || '安排未完成，输入和原方案已保留' }) } }
+      catch (error) { if (this.current() && store === this.store) { this._actionError=error;this.renderWorkspace(); this.setData({ errorMessage: userError(error,'安排未完成，输入和原方案已保留') }) } }
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onSuggestedTarget() {
@@ -385,7 +386,7 @@ module.exports = function workspacePage(options = {}) {
         this._confirmation={scope:this._scope,store:this.store,snapshot,target:{...snapshot.sourceTarget},planRevision:state.linked.planRevision || 0,plan:state.linked.plan || null}
         this.setData({confirmationVisible:true,saveTarget:{...snapshot.sourceTarget},saveDishSummary:this.data.draft.dishes.map(d=>d.name).join('、'),saveError:'',saveTargetLoading:false,saveReplacementApproved:false})
         this.renderSaveTarget()
-      } catch(error) {this.setData({errorMessage:error.message})}
+      } catch(error) {this.setData({errorMessage:userError(error,'菜单暂未准备好，请核对后重试')})}
     },
     savePanelCurrent(capture=this._confirmation) {return !!capture && this.data.confirmationVisible && this.current() && capture.scope===this._scope && capture.store===this.store && capture===this._confirmation},
     restoreSavePreview(state) {
@@ -397,7 +398,7 @@ module.exports = function workspacePage(options = {}) {
         this._confirmation={scope:this._scope,store:this.store,snapshot,target,planRevision:body.expectedPlanRevision,plan:null}
         this.setData({confirmationVisible:true,saveDishSummary:w.draft.dishes.map(d=>d.name).join('、'),saveReplacementApproved:false,saveError:'上次保存结果待确认，请查询并重试原保存',saveTargetLoading:false,saveTargetLocked:true})
         this.renderSaveTarget()
-      } catch(error) {this.setData({errorMessage:error.message || '原保存信息暂未恢复，请重试原请求'})}
+      } catch(error) {this.setData({errorMessage:userError(error,'上次保存信息暂未恢复，请重试这次保存')})}
     },
     renderSaveTarget() {
       const capture=this._confirmation
@@ -413,7 +414,7 @@ module.exports = function workspacePage(options = {}) {
     async changeSaveTarget(target) {
       const capture=this._confirmation
       if(!this.savePanelCurrent(capture) || this.data.saveTargetLocked)return
-      try {capture.target=validateMealTarget(target)} catch(error) {this.setData({saveError:error.message});return}
+      try {capture.target=validateMealTarget(target)} catch(error) {this.setData({saveError:userError(error,'请选择有效的日期和餐次')});return}
       capture.plan=null;capture.planRevision=null;this.setData({saveError:'',saveReplacementApproved:false});this.renderSaveTarget()
       return this.readSaveTarget(capture)
     },
@@ -426,7 +427,7 @@ module.exports = function workspacePage(options = {}) {
         if(!this.savePanelCurrent(capture) || ticket!==capture.readTicket)return
         capture.plan=result.plan || null;capture.planRevision=result.planRevision || 0
         this.setData({saveReplacementApproved:false});this.renderSaveTarget()
-      } catch(error) {if(this.savePanelCurrent(capture) && ticket===capture.readTicket){capture.planRevision=null;this.setData({saveError:error.message || '目标安排暂未读到，请重新核对'})}}
+      } catch(error) {if(this.savePanelCurrent(capture) && ticket===capture.readTicket){capture.planRevision=null;this.setData({saveError:userError(error,'目标安排暂未读到，请重新核对')})}}
       finally {if(this.savePanelCurrent(capture) && ticket===capture.readTicket)this.setData({saveTargetLoading:false})}
     },
     async onRefreshSaveTarget() {
@@ -438,7 +439,7 @@ module.exports = function workspacePage(options = {}) {
         if(!this.savePanelCurrent(capture))return
         this.store.revalidateConfirmation(capture.snapshot,result.workspace);this.renderWorkspace()
         await this.readSaveTarget(capture)
-      } catch(error) {if(this.savePanelCurrent(capture))this.setData({saveError:error.message || '原菜单暂未核对，请保留当前面板'})}
+      } catch(error) {if(this.savePanelCurrent(capture))this.setData({saveError:userError(error,'原菜单暂未核对，请保留当前面板')})}
       finally {if(this.savePanelCurrent(capture))this.setData({saveTargetLoading:false})}
     },
     onApproveReplacement() {
@@ -460,14 +461,14 @@ module.exports = function workspacePage(options = {}) {
       const store = this.store; this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
       try { const result=await store.confirm(revision,target,snapshot); if (this.current() && store === this.store) {
         this.completeCalendarSave(result); await this.readWorkspace(this.data.context)
-      } } catch (error) { if (this.current() && store === this.store) {this.renderWorkspace();this.setData({saveError:error.message || '保存结果待确认，请重试原请求',errorMessage:error.message || '保存结果待确认，请重试原请求',saveReplacementApproved:false})} }
+      } } catch (error) { if (this.current() && store === this.store) {this.renderWorkspace();this.setData({saveError:userError(error,'保存结果待确认，请重试这次保存'),errorMessage:userError(error,'保存结果待确认，请重试这次保存'),saveReplacementApproved:false})} }
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onRetryWorkspace() {
       if (!this.store || this.data.busy || !this.current()) return
       const store = this.store,pending=store.state().pending; this.setWorkspaceBusy(true)
       try { this._actionError=null;const result=await store.retry(); if (this.current() && store === this.store) {if(pending && pending.type==='confirm')this.completeCalendarSave(result,pending.body);this.setData({ errorMessage: '' }); await this.readWorkspace(this.data.context) } }
-      catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: error.message || '重试未完成，输入仍保留' }) } }
+      catch (error) { if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: userError(error,'重试未完成，输入仍保留') }) } }
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     async onLoadLatest() {
@@ -475,7 +476,7 @@ module.exports = function workspacePage(options = {}) {
       const store = this.store, localContext = clone(this.data.context)
       this.setWorkspaceBusy(true); this._preservedContext = localContext
       try { await store.reloadLatest(); if (this.current() && store === this.store) { this.renderWorkspace(); this.setData({ errorMessage: '', conflictDraftAvailable: true }) } }
-      catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: error.message }) }
+      catch (error) { if (this.current() && store === this.store) this.setData({ errorMessage: userError(error,'原菜单暂未读到，请重试') }) }
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },
     onRestoreLocalDraft() { if (this.current() && this._preservedContext) { this.store.edit(this._preservedContext); this.renderWorkspace(); this.setData({ conflictDraftAvailable: false }); this.scheduleDraftSave() } },
@@ -553,7 +554,7 @@ module.exports = function workspacePage(options = {}) {
           catch(error){this.setData({compositionPreferenceNotice:'本餐搭配已应用，本机常用搭配暂未记住'})}
         }
         this.setData({compositionVisible:false,compositionContext:null});this._compositionBinding=null;this.renderWorkspace()
-      } catch(error) {if(owns()){this.renderWorkspace();this.setData({errorMessage:error.message || '搭配已保留，请重试同步'})}}
+      } catch(error) {if(owns()){this.renderWorkspace();this.setData({errorMessage:userError(error,'搭配已保留，请重试保存')})}}
       finally {if(owns() || this.current() && store===this.store && this._compositionBinding===null){this.setData({compositionSaving:false});this.setWorkspaceBusy(false)}}
     },
     onPeopleInput(e) {
@@ -589,12 +590,12 @@ module.exports = function workspacePage(options = {}) {
       if (c.mealType !== 'breakfast') c.counts = { meat: c.counts.meat || 0, veg: c.counts.veg || 0, soup: c.counts.soup || 0, staple: c.counts.staple || 0, dessert: c.counts.dessert || 0 }
       this.setData({ settingsContext: c }); this.renderCounts()
     },
-    onRestoreAuto() { try { const c = normalizeContext({ ...this.data.settingsContext, compositionMode: 'auto' }); this.setData({ settingsContext: c }); this.renderCounts() } catch (error) { this.setData({ settingsError: error.message }) } },
+    onRestoreAuto() { try { const c = normalizeContext({ ...this.data.settingsContext, compositionMode: 'auto' }); this.setData({ settingsContext: c }); this.renderCounts() } catch (error) { this.setData({ settingsError: userError(error,'请核对人数和搭配数量') }) } },
     async onApplyMealSettings() {
       if (!this.current() || this.data.contextLocked) return
       try { const c = normalizeContext({ ...this.data.settingsContext, totalCookMinutes: this.data.settingsContext.totalCookMinutes ? Number(this.data.settingsContext.totalCookMinutes) : null, ownedIngredients: this.data.ownedText.split(/[、,，\n]/).map(s => s.trim()).filter(Boolean) });
         this.store.edit(c); this.setData({ settingsVisible: false, settingsContext: null }); this.renderWorkspace(); this.scheduleDraftSave()
-      } catch (error) { this.setData({ settingsError: error.message }) }
+      } catch (error) { this.setData({ settingsError: userError(error,'请核对本餐设置') }) }
     },
     onToggleExtraActions(){if(this.current() && !this.data.busy)this.setData({moreVisible:true})},
     onCloseMore(){if(!this.data.busy)this.setData({moreVisible:false})},
@@ -636,7 +637,7 @@ module.exports = function workspacePage(options = {}) {
       if(!this.current() || this.data.busy)return
       const scope=this._scope,store=this.store
       try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}?date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
-      catch(error){if(this.current() && this.store===store)this.setData({errorMessage:error.message || '本餐尚未保存，内容已保留'})}
+      catch(error){if(this.current() && this.store===store)this.setData({errorMessage:userError(error,'本餐尚未保存，内容已保留')})}
     },
     onOpenMealResult(){return this.openWorkspaceRoute('/pages/result/result')},
     onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},

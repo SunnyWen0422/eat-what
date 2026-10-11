@@ -192,7 +192,7 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
       lastError = { statusCode, data: resData }
       console.error(`❌ 请求失败(HTTP ${statusCode}):`, resData)
       if (!silent && resData && resData.message) {
-        wx.showToast({ title: resData.message, icon: 'none', duration: 2000 })
+        wx.showToast({ title: require('./meal-workflow').errorMessage(lastError,'暂未完成，请稍后重试'), icon: 'none', duration: 2000 })
       }
       throw lastError
 
@@ -286,7 +286,7 @@ function autoReLogin() {
             wx.removeStorageSync('token')
             wx.removeStorageSync('userInfo')
             wx.showToast({
-              title: (result && result.message) || '自动登录失败',
+              title: require('./meal-workflow').errorMessage({data:result},'登录未完成，请重试'),
               icon: 'none'
             })
             reject(new Error((result && result.message) || '自动登录失败'))
@@ -771,6 +771,7 @@ module.exports = {
   getControlledTaskByRequest: requestId => assistantRequest('/assistant/tool-tasks/by-request/'+encodeURIComponent(requestId),'GET'),
   confirmControlledTask: (id,previewToken) => assistantRequest('/assistant/tool-tasks/'+encodeURIComponent(id)+'/confirm','POST',{previewToken}),
   copyPersonalDish: (id, body) => doRequest(`/dishes/${encodeURIComponent(id)}/copy`, 'POST', body, { silent: true, maxRetries: 0 }),
+  copyEditedPersonalDish: (id, body) => doRequest(`/dishes/${encodeURIComponent(id)}/copy-edited`, 'POST', body, { silent: true, maxRetries: 0 }),
   getPersonalMenus: () => requestSilent('/menus', 'GET'),
   getPersonalMenu: id => requestSilent(`/menus/${encodeURIComponent(id)}`, 'GET'),
   createPersonalMenu: body => doRequest('/menus', 'POST', body, { silent: true, maxRetries: 0 }),

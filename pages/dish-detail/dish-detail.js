@@ -230,20 +230,15 @@ Page({
     this._copyPreviewBinding = null
     this.setData({ showCopyPreview: false, copyPreview: null })
   },
-  async onConfirmCopyPersonal() {
+  onConfirmCopyPersonal() {
     const binding = this._copyPreviewBinding, dish = this.data.dish, scope = binding && binding.scope
     if (!binding || !this.data.showCopyPreview || !dish || !this.current(scope) || this.data.copyBusy || binding.epoch !== this._epoch || binding.id !== dish.id) return
     const pending = this._copyJournal.pending('dish:copy:' + dish.id)
     if (!pending && binding.version !== dish.contentVersion) return this.setData({ copyError: '原菜谱已变化，请关闭预览后重新核对。' })
-    this.setData({ copyBusy: true, copyError: '' })
-    try {
-      const copy = await this._copyJournal.run('dish:copy:' + dish.id, { expectedVersion: binding.version }, body => require('../../utils/api').copyPersonalDish(dish.id, body))
-      if (!this.current(scope) || this._copyPreviewBinding !== binding || binding.epoch !== this._epoch) return
-      this.setData({ showCopyPreview: false, copyPreview: null, copyMessage: '已复制到我的菜谱，接下来可编辑自己的副本；原菜谱保留。' })
-      this._copyPreviewBinding = null
-      wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(copy.id) })
-    } catch (error) { if (this.current(scope) && this._copyPreviewBinding === binding) this.setData({ copyError: require('../../utils/meal-workflow').errorMessage(error, '复制结果未确认，请重试原操作') }) }
-    finally { if (this.current(scope) && binding.epoch === this._epoch) this.setData({ copyBusy: false, copyPending: !!this._copyJournal.pending('dish:copy:' + dish.id) }) }
+    // This handoff only opens an editor. The edited copy is created on its Save action.
+    this.setData({ showCopyPreview: false, copyPreview: null, copyError: '' })
+    this._copyPreviewBinding = null
+    wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?copy=' + encodeURIComponent(dish.id) + '&version=' + encodeURIComponent(pending ? pending.expectedVersion : binding.version) })
   },
 
   onEditCustom() {

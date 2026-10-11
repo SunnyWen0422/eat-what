@@ -49,7 +49,7 @@
       <text class="ew-section-title">常吃与重复菜品</text>
       <view class="ew-row ew-between ranking" wx:for="{{reportView.frequentDishes.dishes}}" wx:key="dishId"><text>{{item.name}}</text><text class="ew-muted">{{item.count}} 餐出现</text></view>
       <text wx:if="{{!reportView.frequentDishes.dishes.length}}" class="ew-muted">暂无已识别的菜品。自由填写内容仍保留在实际用餐明细中。</text>
-      <text class="ew-muted">按已知菜品 ID 统计；同一道菜在同一餐出现多次只计一餐，不根据菜名猜测身份。</text>
+      <text class="ew-muted">同一道菜在同一餐只计一次。自由填写的菜名可在用餐明细中查看。</text>
     </view>
     <view class="ew-card" data-report-block="planExecution">
       <text class="ew-section-title">计划执行对照</text>
@@ -58,10 +58,10 @@
     </view>
     <view class="ew-card" data-report-block="completeness">
       <text class="ew-section-title">记录完整性与缺失</text>
-      <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有任何实际记录行。</text><text class="ew-muted">记录行包含吃过、明确取消或撤销为未记录的状态。缺失天数不能推断是否用餐。</text></view>
+      <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有用餐记录。</text><text class="ew-muted">吃过、明确取消和更正为未记录都算有记录。没有记录不代表没有吃饭。</text></view>
       <view class="record"><text>明确取消 {{reportView.completeness.explicitSkippedMeals}} 餐；明确标记未记录 {{reportView.completeness.explicitUnrecordedMeals}} 餐。</text><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已吃但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
       <text class="ew-muted">没有可靠的实际食用份量，暂不计算热量、营养分数或每日用餐完成率。</text>
-      <button class="ew-hit-target ew-link" bindtap="onToggleProvenance">{{showProvenance ? '收起计算依据' : '查看计算依据'}}</button><view wx:if="{{showProvenance}}" class="record report-provenance"><text>报告编号：{{reportView.metadata.reportId}}</text><text>计算版本：{{reportView.metadata.calculationVersion}}</text><text>生成时间：{{reportView.metadata.generatedAt}}</text><text>日期时区：{{reportView.metadata.timezone}}</text><text selectable="{{true}}">来源指纹：{{reportView.metadata.sourceFingerprint}}</text><text class="ew-muted">这是当前记录的即时回顾。更正来源记录会重新计算；相同编号不代表已保存历史报告。</text></view>
+      <button class="ew-hit-target ew-link" bindtap="onToggleProvenance">{{showProvenance ? '收起计算说明' : '查看计算说明'}}</button><view wx:if="{{showProvenance}}" class="record report-provenance"><text>按北京时间对应的用餐日期整理。</text><text class="ew-muted">这份回顾根据当前记录即时整理；更正用餐记录后会重新计算。</text></view>
     </view>
     </block>
   </block>

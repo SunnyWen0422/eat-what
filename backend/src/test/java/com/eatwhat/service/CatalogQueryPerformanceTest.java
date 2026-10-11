@@ -88,6 +88,22 @@ class CatalogQueryPerformanceTest {
         RequestParam limit = method.getParameters()[2].getAnnotation(RequestParam.class);
         assertEquals("500", limit.defaultValue());
     }
+    @Test void liteRecipesRetainCoverImageThroughTheQueryAndJsonContract() throws Exception {
+        org.apache.ibatis.session.Configuration config = new org.apache.ibatis.session.Configuration(); config.addMapper(DishMapper.class);
+        java.lang.reflect.Method method = DishMapper.class.getMethod("selectDishesLite", String.class, String.class, int.class);
+        Object params = new org.apache.ibatis.reflection.ParamNameResolver(config, method).getNamedParams(new Object[]{"veg", null, 5});
+        String sql = config.getMappedStatement(DishMapper.class.getName() + ".selectDishesLite").getBoundSql(params).getSql();
+        assertTrue(sql.toUpperCase(java.util.Locale.ROOT).matches("(?s).*\\bIMAGE\\s+AS\\s+IMAGE\\b.*"),
+                "The prefetched recipe contract must retain a cover URL for cached recommendations");
+        assertFalse(sql.toUpperCase(java.util.Locale.ROOT).contains("STEP_IMAGES"), "Cover URLs do not require prefetching step media");
+
+        Dish recipe = dish(8L, "青菜", "LIGHT", "青菜"); recipe.setImage("https://images.example.com/veg.jpg");
+        DishMapper mapper = mock(DishMapper.class);
+        when(mapper.selectDishesLite("veg", null, 5)).thenReturn(Collections.singletonList(recipe));
+        List<Dish> queried = new DishQueryService(mapper).getDishesLite("veg", null, 5);
+        assertEquals(recipe.getImage(), new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(queried)).get(0).get("image").asText());
+        verify(mapper).selectDishesLite("veg", null, 5);
+    }
     @Test void liteMapperBindsTypeKeywordAndLimitWithoutPuttingInputInSql() throws Exception {
         org.apache.ibatis.session.Configuration config = new org.apache.ibatis.session.Configuration(); config.addMapper(DishMapper.class);
         java.lang.reflect.Method method = DishMapper.class.getMethod("selectDishesLite", String.class, String.class, int.class);

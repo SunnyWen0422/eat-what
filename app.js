@@ -72,16 +72,22 @@ App({
 
   // 后台静默验证 token 有效性
   async _verifyTokenLazy(token) {
+    const environment = config.getApiBaseUrl(), epoch = this._loginEpoch
     try {
       await require('./utils/api').requestSilent('/users/info', 'GET')
       console.log('✅ Token 验证有效')
     } catch (e) {
+      // Network/server failure is not evidence that a cached login expired.
+      // A late result also cannot invalidate a newer account/environment.
+      if (!e || ![401,403].includes(e.statusCode) || e.isAccountChanged ||
+          config.getApiBaseUrl() !== environment || this._loginEpoch !== epoch || wx.getStorageSync('token') !== token) return
       console.log('⚠️ 缓存 Token 已失效，清除后下次启动重新登录')
-      if (wx.getStorageSync('token') !== token) return
       try {
         wx.removeStorageSync('token')
         wx.removeStorageSync('userInfo')
       } catch (_) {}
+      this.globalData.userInfo = null
+      this.globalData.isLoggedIn = false
     }
   },
 

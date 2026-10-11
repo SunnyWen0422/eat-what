@@ -66,7 +66,7 @@ Page({
     if (this._recipeSelection) return require('../../utils/dish-workspace-handoff').changeSelectionPage(this, 'append', id, this.selectionOptions())
     this.setData({addingId:id,mealAddError:''})
     try{await require('../../utils/dish-workspace-handoff').addDishToWorkspace(id,{api:require('../../utils/api'),wx,storageKey:getUserStorageKey,current,session:this._recipeSelection});if(current()&&this._recipeSelection)require('../../utils/dish-workspace-handoff').renderSelectionPage(this)}
-    catch(error){if(current())this.setData({mealAddError:error.message||'暂未加入，请重试'})}
+    catch(error){if(current())this.setData({mealAddError:require('../../utils/meal-workflow').errorMessage(error,'暂未加入本餐，原选择仍保留，请重试。')})}
     finally{if(current())this.setData({addingId:null})}
   },
 

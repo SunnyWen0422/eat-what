@@ -17,7 +17,6 @@
 
   <!-- 菜品信息 -->
   <view class="dish-info with-hero">
-    <text class="ew-subtitle">查看食材用量和烹饪做法。</text>
     <view class="dish-header">
       <view class="dish-title-row">
         <text class="dish-name">{{dish.name}}</text>
@@ -60,7 +59,7 @@
     </view>
 
     <!-- 食材与用量 -->
-    <view wx:if="{{qualityView}}" class="section"><text class="ew-muted">{{qualityView.statusLabel}} · {{qualityView.nutritionText}}</text><button wx:if="{{qualityView.sourceLines.length}}" class="ew-hit-target ew-link" bindtap="onToggleQualitySources">{{qualitySourcesVisible ? '收起来源记录' : '查看用料来源记录'}}</button><view wx:if="{{qualitySourcesVisible}}"><view wx:for="{{qualityView.sourceLines}}" wx:key="name"><text class="ew-muted">{{item.name}} · {{item.status}}</text><text class="section-content" user-select>{{item.text}}</text></view></view></view>
+    <view wx:if="{{qualityView && (qualityView.nutritionAvailable || qualityView.sourceLines.length)}}" class="section"><text wx:if="{{qualityView.nutritionAvailable}}" class="ew-muted">{{qualityView.nutritionText}}</text><button wx:if="{{qualityView.sourceLines.length}}" class="ew-hit-target ew-link" bindtap="onToggleQualitySources">{{qualitySourcesVisible ? '收起来源' : '查看用料来源'}}</button><view wx:if="{{qualitySourcesVisible}}"><view wx:for="{{qualityView.sourceLines}}" wx:key="name"><text class="ew-muted">{{item.name}} · {{item.status}}</text><text class="section-content" user-select>{{item.text}}</text></view></view></view>
     <view class="section" wx:if="{{dish.ingredientsList && dish.ingredientsList.length > 0}}">
       <view class="section-title">
         <text class="section-title-text">食材与用量</text>
@@ -146,13 +145,13 @@
   </ui-sheet>
   <ui-sheet visible="{{showCopyPreview}}" title="复制为我的菜谱" busy="{{copyBusy}}" bind:close="onCancelCopyPersonal">
     <view class="ew-title">{{copyPreview.name}}</view>
-    <view class="ew-notice">确认后会在我的菜谱中创建副本，再进入编辑页。原菜谱和来源记录保留；取消预览不会创建菜谱。</view>
     <view class="ew-label">食材与用量</view><text class="section-content copy-preview-text" user-select>{{copyPreview.ingredients}}</text>
     <view class="ew-label">做法</view><text class="section-content copy-preview-text" user-select>{{copyPreview.steps}}</text>
-    <view wx:if="{{copyPending}}" class="ew-notice">上次复制结果待确认，重试使用原请求，不会另建副本。</view>
+    <view class="ew-muted">编辑后保存到我的菜谱，取消不会创建副本。</view>
+    <view wx:if="{{copyPending}}" class="ew-notice">上次保存尚未确认，请进入后重试。</view>
     <view wx:if="{{copyError}}" class="ew-error">{{copyError}}</view>
     <ui-button label="取消预览" variant="tertiary" disabled="{{copyBusy}}" bind:action="onCancelCopyPersonal" />
-    <ui-button slot="footer" label="{{copyPending ? '核对原复制' : '确认创建副本并编辑'}}" loading="{{copyBusy}}" bind:action="onConfirmCopyPersonal" />
+    <ui-button slot="footer" label="{{copyPending ? '查看待确认保存' : '编辑副本'}}" loading="{{copyBusy}}" bind:action="onConfirmCopyPersonal" />
   </ui-sheet>
   <include src="../../templates/recipe-selected-sheet.wxml" />
 </view>

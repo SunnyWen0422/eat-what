@@ -113,7 +113,7 @@ public interface DishMapper {
     /** Bounded public cache query; optional filters and row limit are SQL parameters. */
     @Select({"<script>",
             "SELECT ID as id, NAME as name, TYPE as type, ",
-            "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, ",
+            "TAGS as tags, IMAGE as image, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, ",
             "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, ",
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
             "FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1 ",
