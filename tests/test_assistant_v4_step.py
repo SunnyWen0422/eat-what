@@ -330,8 +330,10 @@ class AssistantV4StepTest(unittest.TestCase):
                     payload = requests[0]["json"]
                     context = json.loads(payload["messages"][1]["content"].split("：", 1)[1])
                     self.assertEqual(["read_current_meal"] + enabled, context["capabilities"])
-                    schemas = json.loads(payload["messages"][0]["content"].split("动作参数 JSON schema：", 1)[1])
-                    self.assertEqual(set(enabled), set(schemas))
+                    schema = json.loads(payload["messages"][0]["content"].split("最终输出 JSON schema：", 1)[1])
+                    final_schema = next(option for option in schema["anyOf"] if option["properties"]["type"]["enum"] == ["final"])
+                    options = final_schema["properties"].get("actionProposal", {}).get("properties", {}).get("steps", {}).get("items", {}).get("anyOf", [])
+                    self.assertEqual(set(enabled), {option["properties"]["kind"]["enum"][0] for option in options})
                     self.assertEqual(["read_current_meal"], [tool["function"]["name"] for tool in payload["tools"]])
                     if kind in enabled:
                         self.assertEqual("final", response["type"])
@@ -478,6 +480,49 @@ class AssistantV4StepTest(unittest.TestCase):
         self.assertIn("query仅用于字面菜名或食材名称", description)
         self.assertIn("一般组餐请省略query", description)
         self.assertIn("不要填写整段需求或一荤一素一汤", description)
+
+    def test_provider_output_schema_has_complete_enabled_step_envelope(self):
+        for enabled in ([], ["draft_update"], ["calendar_save"], ACTIONS):
+            request = body(); request["context"]["capabilities"] = ["read_current_meal"] + enabled
+            _, _, requests = self.route(final({"type": "final", "reply": "x"}), request)
+            system = requests[0]["json"]["messages"][0]["content"]
+            self.assertIn("最终输出 JSON schema：", system)
+            schema = json.loads(system.split("最终输出 JSON schema：", 1)[1])
+            final_schema = next(option for option in schema["anyOf"] if option["properties"]["type"]["enum"] == ["final"])
+            if not enabled:
+                self.assertNotIn("actionProposal", final_schema["properties"])
+                continue
+            proposal = final_schema["properties"]["actionProposal"]
+            self.assertEqual(["steps"], proposal["required"])
+            self.assertFalse(proposal["additionalProperties"])
+            steps = proposal["properties"]["steps"]
+            self.assertEqual(3, steps["maxItems"])
+            self.assertEqual(1, steps["minItems"])
+            alternatives = steps["items"]["anyOf"]
+            self.assertEqual(set(enabled), {option["properties"]["kind"]["enum"][0] for option in alternatives})
+            for option in alternatives:
+                self.assertEqual({"kind", "arguments"}, set(option["properties"]))
+                self.assertEqual({"kind", "arguments"}, set(option["required"]))
+                self.assertFalse(option["additionalProperties"])
+                self.assertFalse(option["properties"]["arguments"]["additionalProperties"])
+            self.assertIn("动作参数必须放在arguments内", system)
+            self.assertIn("禁止平铺到步骤对象", system)
+
+    def test_observed_flattened_generate_is_rejected_but_nested_sourced_ids_work(self):
+        request = body()
+        _, response, _ = self.route(tool_message(call("candidate", "search_dishes", {"top_k": 12})), request)
+        request["providerContinuation"] = response["providerContinuation"]
+        request["readResults"] = [read_result("candidate", "search_dishes", [{"id": i, "name": "真实候选"} for i in range(2, 14)])]
+        flat = {"type": "final", "reply": "x", "actionProposal": {"steps": [{"kind": "draft_update",
+            "operation": "generate", "contextPatch": {"people": 2}, "selectedDishIds": [2, 3, 4]}]}}
+        _, response, _ = self.route(final(flat), request)
+        self.assertEqual("need_input", response["type"])
+        self.assertNotIn("actionProposal", response)
+        nested = {"type": "final", "reply": "x", "actionProposal": {"steps": [{"kind": "draft_update", "arguments": {
+            "operation": "generate", "contextPatch": {"people": 2}, "selectedDishIds": [2, 3, 4]}}]}}
+        _, response, _ = self.route(final(nested), request)
+        self.assertEqual("final", response["type"])
+        self.assertEqual(nested["actionProposal"], response["actionProposal"])
 
 
 if __name__ == "__main__":

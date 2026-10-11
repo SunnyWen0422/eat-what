@@ -117,6 +117,22 @@ ACTION_ARGUMENTS = {
         "selectedSourceKeys": array(string(200, nonempty=True), 100), "excludedOwnedIngredients": STRINGS}, ["sourceRef"]),
 }
 
+
+def model_output_schema(capabilities=()):
+    """Complete provider JSON envelope; each enabled action nests its arguments."""
+    enabled = set(capabilities) & set(ACTION_ARGUMENTS)
+    final_properties = {"type": string(20, ["final"]), "reply": string(2000, nonempty=True)}
+    if enabled:
+        steps = [{"type": "object", "properties": {
+            "kind": string(30, [kind]), "arguments": copy.deepcopy(arguments)},
+            "required": ["kind", "arguments"], "additionalProperties": False}
+            for kind, arguments in ACTION_ARGUMENTS.items() if kind in enabled]
+        final_properties["actionProposal"] = obj({"steps": array({"anyOf": steps}, 3, 1)}, ["steps"])
+    return {"anyOf": [
+        obj({"type": string(20, ["need_input"]), "question": string(2000, nonempty=True)}, ["type", "question"]),
+        obj(final_properties, ["type", "reply"]),
+    ]}
+
 # These nested shapes mirror AssistantV4ContextService's explicit Java view.
 DISH = obj({"id": ID, "name": nullable(string(200)), "type": nullable(string(40, TYPES)),
     "cuisineCode": nullable(string(40)), "tagCodes": nullable(string(2000)), "cookMinutes": nullable(integer(1, 480)),
