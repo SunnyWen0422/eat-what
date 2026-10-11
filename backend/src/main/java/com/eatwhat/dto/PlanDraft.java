@@ -6,6 +6,8 @@ import java.util.*;
 
 @Data
 public class PlanDraft {
+    /** Present on a history checkpoint only; old history remains compatible. */
+    private MealContext contextSnapshot;
     private boolean adjustedBeforeConfirmation;
     private String contextFingerprint;
     private String requirementsFingerprint;

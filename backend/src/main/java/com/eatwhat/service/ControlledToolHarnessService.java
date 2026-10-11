@@ -28,6 +28,34 @@ public class ControlledToolHarnessService {
     private final ObjectMapper json;
     private final TransactionTemplate tx;
     private final Clock clock;
+    /** Internal registered writes. Public callers cannot provide their trusted arguments/bindings. */
+    public interface Extension {
+        String tool();
+        Map<String,Object> bind(Long user,Map<String,Object> trustedArguments);
+        String summary(Map<String,Object> binding);
+        Map<String,Object> execute(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index);
+        default void afterCommit(Long user,ControlledToolTask task,ControlledToolTask.Step step) { }
+    }
+    private final Map<String,Extension> extensions=new java.util.concurrent.ConcurrentHashMap<>();
+    public void registerExtension(Extension extension){
+        if(extension==null||!Arrays.asList("save_meal_to_target","add_meal_shopping").contains(extension.tool())||extensions.putIfAbsent(extension.tool(),extension)!=null)throw new IllegalArgumentException("工具扩展无效或已注册");
+    }
+    public ControlledToolTask previewExtension(Long user,String tool,Map<String,Object> trustedArguments,String requestId){
+        requireUser(user);RequestIdValidator.requireValid(requestId);Extension extension=extensions.get(tool);if(extension==null)throw new IllegalArgumentException("工具尚未启用");
+        String requestHash=hash(Arrays.asList(tool,trustedArguments));
+        return tx.execute(status->{lock(user);Map<String,Object> prior=db.byRequest(user,requestId);
+            if(prior!=null){if(!requestHash.equals(prior.get("requestHash")))throw conflict("请求标识已用于不同内容");return decode(prior);}
+            ControlledToolTask task=new ControlledToolTask();task.id=UUID.randomUUID().toString();task.requestId=requestId;task.previewToken=UUID.randomUUID().toString();task.expiresAt=clock.millis()+PREVIEW_TTL_MILLIS;
+            ControlledToolTask.Step step=new ControlledToolTask.Step();step.tool=tool;step.arguments=new LinkedHashMap<>(trustedArguments);step.binding=extension.bind(user,step.arguments);step.contentHash=hash(step.binding);task.steps.add(step);
+            task.summary=extension.summary(step.binding);task.message="请核对服务器预览后确认";
+            if(db.insert(task.id,user,requestId,requestHash,encode(task))!=1)throw new IllegalStateException("预览未保存");return task;});
+    }
+    public void invalidateExtensionPreview(Long user,String taskId){
+        requireUser(user);RequestIdValidator.requireValid(taskId);
+        tx.execute(status->{lock(user);ControlledToolTask task=get(user,taskId);
+            if(task.steps.size()!=1||!"add_meal_shopping".equals(task.steps.get(0).tool)||!extensions.containsKey("add_meal_shopping")||task.steps.stream().anyMatch(step->"completed".equals(step.status)))throw new IllegalArgumentException("此预览不能替换");
+            task.status="failed";task.retryable=false;task.errorCode="PREVIEW_REPLACED";task.message="已准备新的预览，请确认最新内容";save(user,task);return null;});
+    }
 
     @Autowired
     public ControlledToolHarnessService(ControlledToolTaskMapper db,MealConsumptionMapper locks,
@@ -95,7 +123,7 @@ public class ControlledToolHarnessService {
             }
             task.confirmed=true;task.status="running";task.errorCode=null;task.message="正在执行已确认的步骤";save(user,task);return task;
         });
-        if(terminal(accepted))return accepted;
+        if(terminal(accepted))return afterCommit(user,accepted);
         for(int index=0;index<accepted.steps.size();index++) {
             final int stepIndex=index;
             try {
@@ -114,7 +142,7 @@ public class ControlledToolHarnessService {
                     latest.message=complete?"已完成；保存计划不计入实际用餐，回顾仅统计实际记录":"已完成部分步骤，继续处理";
                     save(user,latest);return latest;
                 });
-                if(terminal(task))return task;
+                if(terminal(task))return afterCommit(user,task);
             } catch(RuntimeException error) {
                 // A failed domain transaction has rolled back before this failure receipt is saved.
                 // If persistence itself is unavailable, the caller gets an unknown outcome and queries this task.
@@ -122,8 +150,8 @@ public class ControlledToolHarnessService {
                     lock(user);ControlledToolTask task=get(user,id);
                     if("completed".equals(task.steps.get(stepIndex).status))return task;
                     task.steps.get(stepIndex).status="failed";
-                    boolean conflict=error instanceof MealConsumptionService.VersionConflict;
-                    boolean invalid=error instanceof IllegalArgumentException;
+                    boolean conflict=error instanceof MealConsumptionService.VersionConflict||error instanceof org.springframework.web.server.ResponseStatusException&&((org.springframework.web.server.ResponseStatusException)error).getRawStatusCode()==409;
+                    boolean invalid=error instanceof IllegalArgumentException||error instanceof org.springframework.web.server.ResponseStatusException&&((org.springframework.web.server.ResponseStatusException)error).getRawStatusCode()==404;
                     boolean expired=error instanceof PreviewExpired;
                     fail(task,expired?"PREVIEW_EXPIRED":conflict?"WORKFLOW_VERSION_CONFLICT":invalid?"TOOL_ARGUMENT_INVALID":"TOOL_EXECUTION_FAILED",
                             expired?"预览已过期，请重新查看并确认":conflict?"本餐或原安排已变化，请重新预览确认":invalid?"当前内容无法执行，请重新查看本餐":"部分步骤暂未完成，可查询原任务后继续",
@@ -136,6 +164,8 @@ public class ControlledToolHarnessService {
     }
 
     private Map<String,Object> execute(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index) {
+        Extension extension=extensions.get(step.tool);
+        if(extension!=null){if(clock.millis()>task.expiresAt)throw new PreviewExpired();return extension.execute(user,task,step,index);}
         if(ControlledToolRegistry.CONFIRM_MEAL.equals(step.tool)) {
             if(clock.millis()>task.expiresAt)throw new PreviewExpired();
             Map<String,Object> current=mealBinding(user,step.arguments);
@@ -187,7 +217,20 @@ public class ControlledToolHarnessService {
         return "保存 "+binding.get("date")+" "+mealLabel((String)binding.get("mealType"))+"，"+binding.get("people")+" 人："+names+"。\n"+replaced+"（安排版本 "+binding.get("planRevision")+"）。";
     }
     private static String mealLabel(String meal){return "breakfast".equals(meal)?"早餐":"lunch".equals(meal)?"午餐":"晚餐";}
-    private boolean hasPendingWrite(ControlledToolTask task){return task.steps.stream().anyMatch(s->ControlledToolRegistry.CONFIRM_MEAL.equals(s.tool)&&!"completed".equals(s.status));}
+    private ControlledToolTask afterCommit(Long user,ControlledToolTask task){
+        boolean failed=false;
+        for(ControlledToolTask.Step step:task.steps)if("completed".equals(step.status)&&extensions.containsKey(step.tool)){
+            try{extensions.get(step.tool).afterCommit(user,task,step);}catch(RuntimeException error){
+                // The real write is already committed. Replaying this same token retries only the continuation.
+                failed=true;
+            }
+        }
+        if("completed".equals(task.status)&&(failed||task.retryable)){
+            final boolean pending=failed;
+            return tx.execute(status->{lock(user);ControlledToolTask latest=get(user,task.id);latest.retryable=pending;latest.message=pending?"已保存，后续步骤暂未完成，可重试原确认继续":"已完成；保存计划不计入实际用餐";save(user,latest);return latest;});
+        }return task;
+    }
+    private boolean hasPendingWrite(ControlledToolTask task){return task.steps.stream().anyMatch(s->(ControlledToolRegistry.CONFIRM_MEAL.equals(s.tool)||extensions.containsKey(s.tool))&&!"completed".equals(s.status));}
     private boolean terminal(ControlledToolTask task){return "completed".equals(task.status)||!task.retryable;}
     private void fail(ControlledToolTask task,String code,String message,boolean retryable) {
         boolean partial=task.steps.stream().anyMatch(s->"completed".equals(s.status));

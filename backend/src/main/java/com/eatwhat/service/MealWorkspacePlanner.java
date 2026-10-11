@@ -111,15 +111,29 @@ public class MealWorkspacePlanner {
         return MealWorkspaceRules.advance(prior,next);
     }
     public PlanDraft lockAndValidate(Long user,MealWorkspace w,List<Long> ids) {
+        return lockAndValidate(user,w,ids,false);
+    }
+    public PlanDraft lockAndValidateAssistant(Long user,MealWorkspace w,List<Long> ids) {
+        return lockAndValidate(user,w,ids,true);
+    }
+    private PlanDraft lockAndValidate(Long user,MealWorkspace w,List<Long> ids,boolean strictContent) {
         // Compare the locking current read; ordinary reads may use an earlier InnoDB snapshot.
         Map<Long,Dish> snapshots=enrich(dishes.lockReadableDishes(ids,user)).stream().collect(Collectors.toMap(Dish::getId,d->d));
         if(!snapshots.keySet().containsAll(ids))throw new MealConsumptionService.VersionConflict("菜品可用状态已变化，请重新安排");
         for(Dish reviewed:w.getDraft().getDishes()) if(!MealWorkspaceRules.sameRecipe(reviewed,snapshots.get(reviewed.getId())))throw new MealConsumptionService.VersionConflict("菜品信息已更新，请查看新方案后确认");
+        if(strictContent)for(Dish reviewed:w.getDraft().getDishes())if(!Objects.equals(reviewed.getContentVersion(),snapshots.get(reviewed.getId()).getContentVersion()))throw new MealConsumptionService.VersionConflict("菜品内容版本已更新，请重新预览");
         // This source is read from the server-owned persisted draft, never WorkspaceRequest.
         return validateSelection(user,w,ids,"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC);
     }
     public PlanDraft validateAgent(Long user,MealWorkspace w,List<Long> ids) {
         return validateSelection(user,w,ids,SelectionOrigin.AUTOMATIC);
+    }
+    public void validateRestoredDraft(Long user,MealWorkspace w,boolean completeContext) {
+        List<Long> ids=w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList());
+        if(completeContext){lockAndValidateAssistant(user,w,ids);return;}
+        Map<Long,Dish> readable=enrich(dishes.lockReadableDishes(ids,user)).stream().collect(Collectors.toMap(Dish::getId,d->d));
+        Set<Long> allowed=eligible(user,w.getContext(),"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC).stream().map(Dish::getId).collect(Collectors.toSet());
+        for(Dish dish:w.getDraft().getDishes())if(!allowed.contains(dish.getId())||!MealWorkspaceRules.sameRecipe(dish,readable.get(dish.getId())))throw new MealConsumptionService.VersionConflict("撤销内容已不可用或不符合当前限制");
     }
     private PlanDraft validateSelection(Long user,MealWorkspace w,List<Long> ids,SelectionOrigin origin) {
         MealWorkspace validation=new com.fasterxml.jackson.databind.ObjectMapper().convertValue(w,MealWorkspace.class);

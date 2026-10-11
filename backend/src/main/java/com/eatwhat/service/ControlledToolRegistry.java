@@ -11,6 +11,7 @@ public final class ControlledToolRegistry {
     public static final String READ_MEAL = "read_current_meal";
     public static final String CONFIRM_MEAL = "confirm_current_meal";
     public static final String READ_REVIEW = "read_actual_diet_review";
+    public static final String SAVE_MEAL_TO_TARGET = "save_meal_to_target";
     private ControlledToolRegistry() { }
 
     public static List<ControlledToolTask.Step> validate(Map<String,Object> request) {
