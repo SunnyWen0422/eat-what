@@ -72,7 +72,7 @@ public final class AssistantV4Contract {
     @Data public static class StepInput {
         private String schemaVersion=SCHEMA_VERSION;private ModelContext context;private String message;
         private List<ConversationFrame> conversationFrames=new ArrayList<>();private List<ReadResult> readResults=new ArrayList<>();
-        private ProviderContinuation providerContinuation;private boolean finalRound;
+        private ProviderContinuation providerContinuation;private boolean finalRound;private double timeoutSeconds=10;
     }
     @Data public static class StepOutput {
         private String type,question,reply;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;

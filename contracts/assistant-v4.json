@@ -8,7 +8,7 @@
   },
   "statuses": ["queued","running","needs_input","awaiting_confirmation","completed","partially_completed","failed","cancelled"],
   "turnView": {"turnId":"turn-id","status":"queued","reply":null,"cards":[],"workspaceRef":{"workspaceId":"workspace-id","workspaceRevision":0,"planVersion":0},"retryable":false},
-  "stepInput": {"schemaVersion":"assistant.v4.1","context":{"schemaVersion":"assistant.v4.1","requestContext":{},"activeMeal":{},"constraints":{},"conversation":{},"lastActions":[],"references":[],"recentActual":[],"calendarSnapshot":{},"shoppingSnapshot":{},"capabilities":[],"evidence":{}},"message":"看看本餐","conversationFrames":[],"readResults":[],"providerContinuation":null,"finalRound":false},
+  "stepInput": {"schemaVersion":"assistant.v4.1","context":{"schemaVersion":"assistant.v4.1","requestContext":{},"activeMeal":{},"constraints":{},"conversation":{},"lastActions":[],"references":[],"recentActual":[],"calendarSnapshot":{},"shoppingSnapshot":{},"capabilities":[],"evidence":{}},"message":"看看本餐","conversationFrames":[],"readResults":[],"providerContinuation":null,"finalRound":false,"timeoutSeconds":10},
   "stepOutputs": [
     {"type":"need_input","question":"你想保存到哪一餐？"},
     {"type":"read_calls","readCalls":[{"callId":"call-1","name":"read_current_meal","arguments":{}}],"providerContinuation":{"assistantMessage":{"role":"assistant","content":null,"reasoning_content":"transient-only","tool_calls":[{"id":"call-1","type":"function","function":{"name":"read_current_meal","arguments":"{}"}}]}}},

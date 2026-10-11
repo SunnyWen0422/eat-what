@@ -1,0 +1,214 @@
+package com.eatwhat.service;
+
+import com.eatwhat.dto.AssistantV4Contract;
+import com.eatwhat.dto.AssistantV4Contract.*;
+import com.eatwhat.entity.Dish;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import javax.annotation.PreDestroy;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
+
+/** Bounded orchestration. Only server reads confer provenance, and only adapters confer success. */
+@Service
+public class AssistantV4TurnService {
+    // Must match server-authored questions in assistant_v4_schema.py / assistant_v4_step.py.
+    private static final String SAFE_QUESTION="请说明要查询或调整的菜品、餐次。";
+    private static final String UNAVAILABLE="本次智能理解暂不可用，请明确需求或稍后重试。";
+    private static final Set<String> QUESTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("这餐安排几个人用餐？","请说明目标日期。","请说明目标餐次：早餐、午餐或晚餐。","请说明要查询或调整哪道菜。","请说明使用当前餐还是已有的日历安排。",SAFE_QUESTION,UNAVAILABLE)));
+    private final AssistantV4Store store;
+    private final AssistantV4ContextService contexts;
+    private final AssistantCapabilityService registry;
+    private final AssistantV4ModelGateway model;
+    private final AiProtectionService protection;
+    private final DishQueryService dishes;
+    private final ObjectMapper json;
+    private final Clock clock;
+    private final Executor executor;
+    private final Set<String> scheduled=ConcurrentHashMap.newKeySet();
+    @Autowired public AssistantV4TurnService(AssistantV4Store store,AssistantV4ContextService contexts,AssistantCapabilityService registry,AssistantV4ModelGateway model,AiProtectionService protection,DishQueryService dishes,ObjectMapper json){
+        this(store,contexts,registry,model,protection,dishes,json,Clock.systemUTC(),new ThreadPoolExecutor(2,2,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(16),r->{Thread t=new Thread(r,"assistant-v4");t.setDaemon(true);return t;},new ThreadPoolExecutor.AbortPolicy()));
+    }
+    AssistantV4TurnService(AssistantV4Store store,AssistantV4ContextService contexts,AssistantCapabilityService registry,AssistantV4ModelGateway model,AiProtectionService protection,DishQueryService dishes,ObjectMapper json,Clock clock,Executor executor){this.store=store;this.contexts=contexts;this.registry=registry;this.model=model;this.protection=protection;this.dishes=dishes;this.json=json;this.clock=clock;this.executor=executor;registry.registerTurnExecutor(this::enqueue);}
+    @PreDestroy public void close(){if(executor instanceof ExecutorService)((ExecutorService)executor).shutdown();}
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay=15000,initialDelay=15000)
+    public void recoverInterrupted(){if(!registry.capabilities().isEnabled())return;for(TurnRecord row:store.recoverable()){try{if("queued".equals(row.getStatus()))enqueue(row.getUserId(),row.getId());else store.recoverExpired(row.getUserId(),row.getId());}catch(RuntimeException stale){/* Another worker, cancellation, or retention won. */}}}
+    public TurnView startTurn(Long user,String sessionId,TurnRequest request){registry.requireEnabled();TurnView view=store.claimTurn(user,sessionId,request);if("queued".equals(view.getStatus()))enqueue(user,view.getTurnId());return store.findTurn(user,view.getTurnId());}
+    public TurnView cancelTurn(Long user,String turnId){return store.cancelTurn(user,turnId);}
+    public void enqueue(Long user,String turnId){
+        String key=user+":"+turnId;if(!scheduled.add(key))return;
+        try{executor.execute(()->{try{runTurn(user,turnId);}finally{scheduled.remove(key);}});}catch(RuntimeException ex){scheduled.remove(key);try{store.completeTurn(user,turnId,"queued",result("failed","请求较多，请稍后重试",true));}catch(RuntimeException stale){/* Another claimant owns it. */}}
+    }
+    public void runTurn(Long user,String turnId){
+        TurnRecord lease;try{lease=store.acquireTurn(user,turnId);}catch(RuntimeException alreadyClaimed){return;}
+        boolean acquired=false;
+        try {
+            TurnRequest request=store.turnRequest(user,turnId);
+            AiProtectionService.Decision decision=protection.acquire(user,"assistant-v4",request.getMessage().getBytes(StandardCharsets.UTF_8).length);
+            if(!decision.isAllowed()){finish(user,lease,result("failed","请求较多，请稍后重试",true));return;}acquired=true;
+            TurnScope scope=scope(user,lease,request);ModelContext context=contexts.build(user,request,store.sessionState(user,lease.getSessionId()));
+            Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());context.setCapabilities(actual);boundContext(context);
+            authorizeCurrent(context.getActiveMeal(),scope);
+            StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
+            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();int readCount=0,factChars=0;
+            for(int round=0;round<4;round++){
+                active(user,lease);int used=store.reserveProviderCall(user,turnId,lease.getLeaseToken());
+                long remaining=lease.getModelDeadlineAt()-clock.millis();if(remaining<=0)throw new IllegalStateException("请求超时");
+                input.setTimeoutSeconds(Math.min(10,remaining/1000.0));input.setFinalRound(used==4||readCount==8);
+                StepOutput output=model.step(input);active(user,lease);
+                validateOutput(output);
+                if("read_calls".equals(output.getType())){
+                    List<ToolRead> calls=output.getReadCalls();if(input.isFinalRound()||calls==null||calls.isEmpty()||calls.size()>4||readCount+calls.size()>8)throw new IllegalArgumentException("查询超出本次范围");
+                    validateContinuation(output.getProviderContinuation(),calls,input.getProviderContinuation(),input.getReadResults());
+                    Set<String> batch=new HashSet<>();for(ToolRead call:calls){if(call==null||call.getCallId()==null||call.getCallId().length()>100||call.getCallId().isEmpty()||usedCalls.contains(call.getCallId())||!batch.add(call.getCallId())||!caps.getReads().contains(call.getName()))throw new IllegalArgumentException("查询内容无效");registry.readExecutor(call.getName());}
+                    List<ReadResult> results=new ArrayList<>();
+                    for(ToolRead call:calls){active(user,lease);ReadResult read=registry.readExecutor(call.getName()).read(user,call,scope);active(user,lease);
+                        if(read==null||!Objects.equals(read.getCallId(),call.getCallId())||!Objects.equals(read.getName(),call.getName()))throw new IllegalArgumentException("查询结果不匹配");
+                        int length=encode(read).length();if(factChars+length>12000){TurnResult stopped=result("needs_input","查询内容较多，请缩小日期范围或菜品范围",false);stopped.setCards(facts);stopped.setWorkspaceRef(reference(scope));finish(user,lease,stopped);return;}
+                        factChars+=length;readCount++;usedCalls.add(call.getCallId());authorizeRead(read,scope);mergeFacts(facts,factCards(user,read));results.add(read);
+                    }
+                    input.setReadResults(results);input.setProviderContinuation(output.getProviderContinuation());continue;
+                }
+                if("need_input".equals(output.getType())){String question=QUESTIONS.contains(output.getQuestion())?output.getQuestion():SAFE_QUESTION;TurnResult r=result("needs_input",question,UNAVAILABLE.equals(question));r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;}
+                if(!"final".equals(output.getType()))throw new IllegalArgumentException("无法理解本次请求");
+                if(output.getActionProposal()==null||output.getActionProposal().getSteps().isEmpty()){
+                    if(facts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());facts.addAll(factCards(user,current));}
+                    TurnResult r=result("completed",facts.isEmpty()?"请说明想查询的菜品、日期或餐次":"已查到以下内容",false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
+                }
+                validateActions(output.getActionProposal(),scope);WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
+                if(executeStep(user,lease,scope,true,c))resumeWorkflow(user,turnId);return;
+            }
+            throw new IllegalArgumentException("本次查询未完成");
+        }catch(RuntimeException ex){failRunning(user,lease);}finally{if(acquired)protection.release();}
+    }
+    private void failRunning(Long user,TurnRecord lease){try{TurnRecord current=store.turnRecord(user,lease.getId());if(!"running".equals(current.getStatus()))return;if(current.getLeaseUntil()<=clock.millis()){store.recoverExpired(user,lease.getId());return;}TurnResult r=result("failed","本次处理未完成，请重新发送；已有内容仍保留",true);r.setContinuation(store.continuation(user,lease.getId()));r.setWorkspaceRef(store.findTurn(user,lease.getId()).getWorkspaceRef());finish(user,lease,r);}catch(RuntimeException stale){/* Cancellation/deletion wins over a late result. */}}
+    private void finish(Long user,TurnRecord lease,TurnResult result){store.completeTurn(user,lease.getId(),"running",lease.getLeaseToken(),result);}
+    private void active(Long user,TurnRecord lease){store.withActiveLease(user,lease.getId(),lease.getLeaseToken(),()->Boolean.TRUE);}
+    /** Resume durable validated intent after a committed receipt; never requests the model again. */
+    public TurnView resumeWorkflow(Long user,String turnId){
+        for(int attempt=0;attempt<3;attempt++){
+            TurnRecord row=store.turnRecord(user,turnId);if(!"awaiting_confirmation".equals(row.getStatus()))return store.findTurn(user,turnId);
+            WorkflowContinuation c=store.continuation(user,turnId);if(c==null||c.getCursor()>=c.getSteps().size()||!"pending".equals(c.getSteps().get(c.getCursor()).getStatus()))return store.findTurn(user,turnId);
+            TurnRequest request=store.turnRequest(user,turnId);TurnScope scope=scope(user,row,request);WorkspaceRef ref=store.findTurn(user,turnId).getWorkspaceRef();if(ref!=null){scope.setExpectedWorkspaceRevision(ref.getWorkspaceRevision());scope.setExpectedPlanVersion(ref.getPlanVersion());}
+            try{if(!executeStep(user,row,scope,false,c))return store.findTurn(user,turnId);}catch(RuntimeException failure){
+                // A competing confirmation may already have advanced the durable revision. Never regress it.
+                TurnRecord latest=store.turnRecord(user,turnId);WorkflowContinuation current=store.continuation(user,turnId);
+                if(!"awaiting_confirmation".equals(latest.getStatus())||current==null||current.getRevision()!=c.getRevision())return store.findTurn(user,turnId);
+                TurnView old=store.findTurn(user,turnId);TurnResult retry=result("awaiting_confirmation","已完成的内容仍保留，下一步准备失败，请重试",true);retry.setContinuation(current);retry.setCards(old.getCards());retry.setWorkspaceRef(old.getWorkspaceRef());
+                try{store.completeTurn(user,turnId,"awaiting_confirmation",retry);}catch(RuntimeException conflict){/* concurrent resume won */}return store.findTurn(user,turnId);
+            }
+        }return store.findTurn(user,turnId);
+    }
+    private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected){
+        final long revision=expected.getRevision();final int cursor=expected.getCursor();final String stepId=expected.getSteps().get(cursor).getStepId();
+        Supplier<Boolean> work=()->{
+            WorkflowContinuation c=store.continuation(user,row.getId());
+            // Resume-only guard under the same parent lock as the adapter. Confirmation
+            // also accepts awaiting_confirmation, so withActiveParent alone is insufficient.
+            if(c==null||c.getRevision()!=revision||c.getCursor()!=cursor||cursor>=c.getSteps().size())return false;
+            WorkflowStep step=c.getSteps().get(cursor);if(!stepId.equals(step.getStepId())||!"pending".equals(step.getStatus()))return false;
+            TurnView before=store.findTurn(user,row.getId());
+            TurnResult outcome=registry.actionExecutor(step.getKind()).execute(user,step,scope);if(outcome==null)throw new IllegalStateException("缺少业务结果");
+            if("completed".equals(outcome.getStatus())){
+                String receipt=null;for(Card card:outcome.getCards())if(card.getReceiptRef()!=null&&!card.getReceiptRef().trim().isEmpty())receipt=card.getReceiptRef();if(receipt==null)throw new IllegalStateException("缺少业务回执");step.setStatus("completed");step.setReceiptRef(receipt);c.setCursor(c.getCursor()+1);outcome.setStatus(c.getCursor()==c.getSteps().size()?"completed":"awaiting_confirmation");
+                String feedback="draft_update".equals(step.getKind())?"已更新本餐":"calendar_save".equals(step.getKind())?"已保存计划":"已加入采购清单";outcome.setReply(feedback+(c.getCursor()==c.getSteps().size()?"":"，正在准备下一步"));
+            }else if("awaiting_confirmation".equals(outcome.getStatus())){PendingAction p=outcome.getPendingAction();if(p==null||!step.getStepId().equals(p.getStepId())||p.getTaskId()==null||p.getPreviewToken()==null||p.getExpiresAt()==null||p.getExpiresAt()<=clock.millis())throw new IllegalStateException("缺少确认预览");step.setStatus("awaiting_confirmation");step.setTaskId(p.getTaskId());outcome.setReply("请核对以下内容后确认");
+            }else throw new IllegalStateException("业务结果无效");
+            List<Card> cards=new ArrayList<>();for(Card card:before.getCards())if(card.getReceiptRef()!=null)cards.add(card);cards.addAll(outcome.getCards());outcome.setCards(cards);outcome.setContinuation(c);if(outcome.getWorkspaceRef()==null)outcome.setWorkspaceRef(before.getWorkspaceRef());
+            if(running)store.completeTurn(user,row.getId(),"running",row.getLeaseToken(),outcome);else store.completeTurn(user,row.getId(),"awaiting_confirmation",outcome);return true;
+        };
+        return running?store.withActiveLease(user,row.getId(),row.getLeaseToken(),work):store.withActiveParent(user,row.getId(),stepId,work);
+    }
+    private TurnScope scope(Long user,TurnRecord row,TurnRequest request){TurnScope s=new TurnScope();s.setUserId(user);s.setTurnId(row.getId());s.setSessionId(row.getSessionId());s.setWorkspaceId(row.getWorkspaceId());s.setExpectedWorkspaceRevision(request.getExpectedWorkspaceRevision());s.setExpectedPlanVersion(request.getExpectedPlanVersion());return s;}
+    private WorkspaceRef reference(TurnScope scope){WorkspaceRef ref=new WorkspaceRef();ref.setWorkspaceId(scope.getWorkspaceId());ref.setWorkspaceRevision(scope.getExpectedWorkspaceRevision());ref.setPlanVersion(scope.getExpectedPlanVersion());return ref;}
+    private TurnResult result(String status,String reply,boolean retry){TurnResult r=new TurnResult();r.setStatus(status);r.setReply(reply);r.setRetryable(retry);return r;}
+    private String encode(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalArgumentException("数据无效");}}
+    private void boundContext(ModelContext context){List<Map<String,Object>> text=new ArrayList<>(rows(context.getConversation().get("recentText")));while(encode(context).length()>6000&&!text.isEmpty()){text.remove(0);context.getConversation().put("recentText",text);context.getEvidence().put("truncated",true);}if(encode(context).length()>6000)throw new IllegalArgumentException("本餐必要信息较多，请缩小请求范围");}
+    private void validateOutput(StepOutput output){if(output==null||!Arrays.asList("read_calls","final","need_input").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");if("read_calls".equals(output.getType())){if(output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null)throw new IllegalArgumentException("结果内容冲突");}else{if(!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("结果内容冲突");if("need_input".equals(output.getType())&&output.getActionProposal()!=null)throw new IllegalArgumentException("澄清不能附带操作");}}
+    private List<ConversationFrame> frames(ModelContext context){List<ConversationFrame> out=new ArrayList<>();for(Map<String,Object> item:rows(context.getConversation().get("recentText"))){if(!Arrays.asList("user","assistant").contains(item.get("role")))continue;ConversationFrame f=new ConversationFrame();f.setRole((String)item.get("role"));f.setContent(String.valueOf(item.get("text")));out.add(f);}return out.size()>12?new ArrayList<>(out.subList(out.size()-12,out.size())):out;}
+    private void authorizeCurrent(Map<String,Object> active,TurnScope scope){for(Map<String,Object> dish:rows(active.get("currentDishes")))addDishId(dish.get("id"),scope);}
+    private void authorizeRead(ReadResult read,TurnScope scope){if(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods").contains(read.getName()))for(Map<String,Object> item:read.getItems())addDishId(item.get("id"),scope);else if("read_current_meal".equals(read.getName()))for(Map<String,Object> item:read.getItems())authorizeCurrent(item,scope);}
+    private void addDishId(Object value,TurnScope scope){if(value instanceof Number&&((Number)value).longValue()>0)scope.getAuthorizedDishIds().add(((Number)value).longValue());}
+    private void validateActions(ActionProposal proposal,TurnScope scope){
+        if(proposal.getSteps().isEmpty()||proposal.getSteps().size()>3)throw new IllegalArgumentException("操作数量无效");
+        for(int i=0;i<proposal.getSteps().size();i++){ActionIntent a=proposal.getSteps().get(i);if(a==null||a.getArguments()==null)throw new IllegalArgumentException("操作无效");registry.actionExecutor(a.getKind());Map<String,Object> args=a.getArguments();
+            if("draft_update".equals(a.getKind())){if(i!=0)throw new IllegalArgumentException("请先调整本餐再确认保存");fields(args,"operation","contextPatch","targetDishId","targetConstraints","replacementDishId","selectedDishIds","keepDishIds","releaseDishIds");validateDraftShape(args);if(!Arrays.asList("generate","regenerate","adjust","undo").contains(args.get("operation")))throw new IllegalArgumentException("操作无效");for(String key:Arrays.asList("targetDishId","replacementDishId","selectedDishIds","keepDishIds","releaseDishIds")){Object value=args.get(key);if(value!=null){List<?> ids=value instanceof List?(List<?>)value:Collections.singletonList(value);if(ids.size()>10)throw new IllegalArgumentException("菜品过多");for(Object id:ids)if(!(id instanceof Integer||id instanceof Long)||!scope.getAuthorizedDishIds().contains(((Number)id).longValue()))throw new IllegalArgumentException("请先查询需要使用的菜品");}}}
+            else if("calendar_save".equals(a.getKind())){fields(args,"sourceWorkspaceId","targetDate","targetMealType");if(args.containsKey("sourceWorkspaceId")&&!scope.getWorkspaceId().equals(args.get("sourceWorkspaceId")))throw new IllegalArgumentException("本餐来源无效");dateMeal(args,"targetDate","targetMealType");}
+            else if("shopping_preview".equals(a.getKind())){fields(args,"sourceRef","selectedSourceKeys","excludedOwnedIngredients");if(args.containsKey("selectedSourceKeys"))stringList(args.get("selectedSourceKeys"),100,200);if(args.containsKey("excludedOwnedIngredients"))stringList(args.get("excludedOwnedIngredients"),30,40);Map<String,Object> source=map(args.get("sourceRef"));if("draft".equals(source.get("kind"))){fields(source,"kind","workspaceId");if(!scope.getWorkspaceId().equals(source.get("workspaceId")))throw new IllegalArgumentException("本餐来源无效");}else if("plan".equals(source.get("kind"))){fields(source,"kind","date","mealType");dateMeal(source,"date","mealType");}else throw new IllegalArgumentException("采购来源无效");}
+            else throw new IllegalArgumentException("操作无效");
+        }
+    }
+    private void dateMeal(Map<String,Object> args,String date,String meal){Object d=args.get(date);if(!(d instanceof String)||!java.time.LocalDate.parse((String)d).toString().equals(d)||!Arrays.asList("breakfast","lunch","dinner").contains(args.get(meal)))throw new IllegalArgumentException("日期或餐次无效");}
+    private void validateDraftShape(Map<String,Object> args){
+        for(String key:Arrays.asList("targetDishId","replacementDishId"))if(args.containsKey(key)&&!(args.get(key) instanceof Integer||args.get(key) instanceof Long))throw new IllegalArgumentException("菜品编号无效");
+        if(args.containsKey("contextPatch")){Map<String,Object> patch=map(args.get("contextPatch"));fields(patch,"people","counts","compositionMode","criteria","totalCookMinutes","requirements","ownedIngredients");if(patch.containsKey("people"))integer(patch.get("people"),1,50);if(patch.get("totalCookMinutes")!=null)integer(patch.get("totalCookMinutes"),1,480);if(patch.containsKey("compositionMode")&&!Arrays.asList("auto","manual").contains(patch.get("compositionMode")))throw new IllegalArgumentException("人数和菜数设置无效");if(patch.containsKey("requirements"))boundedText(patch.get("requirements"),2000);if(patch.containsKey("ownedIngredients"))stringList(patch.get("ownedIngredients"),30,40);if(patch.containsKey("counts")){Map<String,Object> counts=map(patch.get("counts"));fields(counts,"meat","veg","soup","staple","dessert","side");int total=0;for(Object value:counts.values())total+=integer(value,0,10);if(total>10)throw new IllegalArgumentException("本餐最多十道菜");}if(patch.containsKey("criteria"))criteria(map(patch.get("criteria")));}
+        if(args.containsKey("targetConstraints"))criteria(map(args.get("targetConstraints")));
+        for(String key:Arrays.asList("selectedDishIds","keepDishIds","releaseDishIds"))if(args.containsKey(key)&&!(args.get(key) instanceof List))throw new IllegalArgumentException("菜品列表无效");
+    }
+    private void criteria(Map<String,Object> value){fields(value,"cuisineCodes","includeTagCodes","excludeTagCodes","excludedIngredients","maxCookMinutes");for(String key:Arrays.asList("cuisineCodes","includeTagCodes","excludeTagCodes","excludedIngredients"))if(value.get(key)!=null)stringList(value.get(key),30,40);if(value.get("maxCookMinutes")!=null)integer(value.get("maxCookMinutes"),1,240);}
+    private int integer(Object value,int min,int max){if(!(value instanceof Integer||value instanceof Long)||((Number)value).longValue()<min||((Number)value).longValue()>max)throw new IllegalArgumentException("数值范围无效");return ((Number)value).intValue();}
+    private void boundedText(Object value,int limit){if(!(value instanceof String)||((String)value).length()>limit)throw new IllegalArgumentException("文字内容无效");}
+    private void stringList(Object value,int limit,int length){if(!(value instanceof List)||((List<?>)value).size()>limit)throw new IllegalArgumentException("列表内容无效");for(Object item:(List<?>)value){boundedText(item,length);if(((String)item).trim().isEmpty())throw new IllegalArgumentException("列表内容无效");}}
+    private void fields(Map<String,Object> value,String... fields){if(!new HashSet<>(Arrays.asList(fields)).containsAll(value.keySet()))throw new IllegalArgumentException("操作字段无效");}
+    @SuppressWarnings("unchecked") private Map<String,Object> map(Object value){if(!(value instanceof Map))throw new IllegalArgumentException("操作内容无效");return (Map<String,Object>)value;}
+    @SuppressWarnings("unchecked") private List<Map<String,Object>> rows(Object value){return value instanceof List?(List<Map<String,Object>>)value:Collections.emptyList();}
+    private void validateContinuation(ProviderContinuation next,List<ToolRead> calls,ProviderContinuation previous,List<ReadResult> results){
+        if(next==null||next.getMessages()==null||next.getMessages().isEmpty()||next.getMessages().size()>16||encode(next).length()>300000)throw new IllegalArgumentException("续接内容无效");
+        List<Map<String,Object>> frames=next.getMessages();if(!frames.get(frames.size()-1).equals(next.getAssistantMessage()))throw new IllegalArgumentException("续接内容无效");
+        List<Map<String,Object>> prefix=new ArrayList<>();if(previous!=null){prefix.addAll(previous.getMessages());for(ReadResult result:results){Map<String,Object> f=new LinkedHashMap<>();f.put("role","tool");f.put("tool_call_id",result.getCallId());f.put("content",encode(result));prefix.add(f);}}
+        if(frames.size()!=prefix.size()+1)throw new IllegalArgumentException("续接内容不完整");for(int i=0;i<prefix.size();i++){Map<String,Object> expected=prefix.get(i),actual=frames.get(i);if("tool".equals(expected.get("role"))){if(!Objects.equals(expected.get("role"),actual.get("role"))||!Objects.equals(expected.get("tool_call_id"),actual.get("tool_call_id")))throw new IllegalArgumentException("工具续接不匹配");try{if(!json.readTree((String)expected.get("content")).equals(json.readTree((String)actual.get("content"))))throw new IllegalArgumentException();}catch(Exception ex){throw new IllegalArgumentException("工具结果被修改");}}else if(!expected.equals(actual))throw new IllegalArgumentException("续接内容被修改");}
+        Map<String,Object> assistant=next.getAssistantMessage();if(!"assistant".equals(assistant.get("role")))throw new IllegalArgumentException("续接角色无效");List<Map<String,Object>> protocol=rows(assistant.get("tool_calls"));if(protocol.size()!=calls.size())throw new IllegalArgumentException("工具数量不一致");for(int i=0;i<calls.size();i++){ToolRead call=calls.get(i);Map<String,Object> p=protocol.get(i),function=map(p.get("function"));if(!Objects.equals(call.getCallId(),p.get("id"))||!Objects.equals(call.getName(),function.get("name")))throw new IllegalArgumentException("工具不一致");try{if(!json.readTree((String)function.get("arguments")).equals(json.valueToTree(call.getArguments())))throw new IllegalArgumentException();}catch(Exception ex){throw new IllegalArgumentException("工具参数不一致");}}
+    }
+    private List<Card> factCards(Long user,ReadResult read){
+        Card card=new Card();card.setId("read-"+read.getCallId());card.setType("receipt");card.getData().put("kind","readonly_fact");card.getData().put("truncated",read.isTruncated());card.setText(read.isTruncated()?"以下为部分查询结果，可继续缩小范围查询":null);
+        if(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods").contains(read.getName())){card.setType("recipe");card.setTitle(Arrays.asList("get_dish_details","get_dish_methods").contains(read.getName())?"菜谱详情与做法":"菜谱查询");List<Map<String,Object>> display=displayDishes(user,read.getItems());if(display.size()>12){display=new ArrayList<>(display.subList(0,12));card.getData().put("truncated",true);card.setText("以下为部分查询结果，可缩小范围继续查询");}card.getData().put("dishes",display);}
+        else if("read_current_meal".equals(read.getName())){card.setType("menu");card.setTitle("当前餐");if(!read.getItems().isEmpty()){Map<String,Object> meal=read.getItems().get(0);card.getData().put("dishes",displayDishes(user,rows(meal.get("currentDishes"))));copyFields(meal,card.getData(),"date","mealType","people");}}
+        else if("read_shopping".equals(read.getName())){card.setTitle("采购清单");List<Map<String,Object>> items=new ArrayList<>();for(Map<String,Object> source:read.getItems()){Map<String,Object> item=new LinkedHashMap<>();copyFields(source,item,"name","quantityText","quantityProvenance");item.put("quantity",source.get("quantityValue"));item.put("unit",source.get("unitCode"));item.put("price",null);item.put("selected",false);item.put("checked",source.get("checked"));items.add(item);}card.getData().put("items",items);}
+        else if(Arrays.asList("read_calendar","read_actual_diet_review").contains(read.getName())){card.setTitle("read_calendar".equals(read.getName())?"日历记录":"实际用餐记录");if("read_actual_diet_review".equals(read.getName()))card.setText("仅统计明确记录为已吃的餐次"+(read.isTruncated()?"，以下为部分日期结果":""));List<Map<String,Object>> meals=new ArrayList<>();for(Map<String,Object> day:read.getItems()){
+            for(Map<String,Object> plan:rows(day.get("plans"))){Map<String,Object> meal=new LinkedHashMap<>();meal.put("date",day.get("date"));copyFields(plan,meal,"mealType","people","name");meal.put("status","planned");List<Map<String,Object>> refs=new ArrayList<>();Object ids=plan.get("dishIds");if(ids instanceof List)for(Object id:(List<?>)ids){Map<String,Object> ref=new LinkedHashMap<>();ref.put("id",id);refs.add(ref);}meal.put("dishes",displayDishes(user,refs));meals.add(meal);}
+            for(Map<String,Object> actual:rows(day.get("actual"))){Map<String,Object> meal=new LinkedHashMap<>();meal.put("date",day.get("date"));copyFields(actual,meal,"mealType");meal.put("people",null);meal.put("status","eaten");meal.put("dishes",displayDishes(user,rows(actual.get("dishes"))));meals.add(meal);}
+        }card.getData().put("meals",meals);}
+        else return Collections.emptyList();
+        if(read.getItems().isEmpty())card.setText("这个范围内暂无记录");return Collections.singletonList(card);
+    }
+    private List<Map<String,Object>> displayDishes(Long user,List<Map<String,Object>> source){
+        List<Long> ids=new ArrayList<>();for(Map<String,Object> row:source){Object id=row.containsKey("id")?row.get("id"):row.get("dishId");if(id instanceof Number&&((Number)id).longValue()>0)ids.add(((Number)id).longValue());}
+        Map<Long,Dish> fetched=new HashMap<>();if(!ids.isEmpty())for(Dish dish:dishes.getDishesByIdsForUser(ids,user)){AssistantV4ContextService.checkDish(dish,user);if(ids.contains(dish.getId()))fetched.put(dish.getId(),dish);}
+        List<Map<String,Object>> out=new ArrayList<>();for(Map<String,Object> row:source){Map<String,Object> display=new LinkedHashMap<>();copyFields(row,display,"id","dishId","name","type");Object id=row.containsKey("id")?row.get("id"):row.get("dishId");Dish dish=id instanceof Number?fetched.get(((Number)id).longValue()):null;display.put("image",dish==null?null:dish.getImage());if(dish!=null&&display.get("name")==null)display.put("name",dish.getName());
+            List<Map<String,Object>> ingredients=new ArrayList<>();for(Map<String,Object> fact:rows(row.get("ingredientFacts"))){Map<String,Object> ingredient=new LinkedHashMap<>();copyFields(fact,ingredient,"name","unit");ingredient.put("quantity",fact.get("quantityValue"));ingredients.add(ingredient);}if(ingredients.isEmpty()&&row.get("ingredients") instanceof String){Map<String,Object> ingredient=new LinkedHashMap<>();ingredient.put("name",row.get("ingredients"));ingredient.put("quantity",null);ingredient.put("unit",null);ingredients.add(ingredient);}display.put("ingredients",ingredients);
+            Object steps=row.get("steps");if(!(steps instanceof String)||((String)steps).trim().isEmpty())steps=row.get("methods");display.put("steps",stepLines(steps));out.add(display);
+        }return out;
+    }
+    private List<String> stepLines(Object value){if(!(value instanceof String)||((String)value).trim().isEmpty())return Collections.emptyList();String text=(String)value;try{com.fasterxml.jackson.databind.JsonNode node=json.readTree(text);if(node.isArray()){List<String> out=new ArrayList<>();for(com.fasterxml.jackson.databind.JsonNode n:node)if(n.isTextual())out.add(n.asText());if(!out.isEmpty())return out;}}catch(Exception ignored){}return Arrays.asList(text.split("\\r?\\n"));}
+    private void copyFields(Map<String,Object> from,Map<String,Object> to,String... keys){for(String key:keys)if(from.containsKey(key))to.put(key,from.get(key));}
+    private void mergeFacts(List<Card> existing,List<Card> incoming){
+        for(Card next:incoming){
+            boolean explicit="recipe".equals(next.getType())&&"菜谱详情与做法".equals(next.getTitle());
+            Card old=null;
+            if("recipe".equals(next.getType()))for(Card card:existing)
+                if("recipe".equals(card.getType())&&Objects.equals(next.getTitle(),card.getTitle())){old=card;break;}
+            // Explicitly requested answers have their own bounded card. Search candidates
+            // cannot consume the space needed by a later detail/method response.
+            if(old==null){existing.add(next);continue;}
+            List<Map<String,Object>> merged=rows(old.getData().get("dishes"));
+            for(Map<String,Object> dish:rows(next.getData().get("dishes"))){
+                Map<String,Object> previous=null;for(Map<String,Object> candidate:merged)
+                    if(Objects.equals(candidate.get("id"),dish.get("id"))){previous=candidate;break;}
+                if(previous!=null){
+                    for(Map.Entry<String,Object> field:dish.entrySet())if(field.getValue()!=null&&(!(field.getValue() instanceof List)||!((List<?>)field.getValue()).isEmpty()))previous.put(field.getKey(),field.getValue());
+                }else{
+                    if(merged.size()>=12){
+                        old.getData().put("truncated",true);old.setText("以下为部分查询结果，可缩小范围继续查询");
+                        if(explicit)merged.remove(0);else continue;
+                    }
+                    merged.add(dish);
+                }
+            }
+            if(Boolean.TRUE.equals(next.getData().get("truncated"))){old.getData().put("truncated",true);old.setText(next.getText());}
+        }
+    }
+}
