@@ -51,6 +51,22 @@ class JsonVerificationTest(unittest.TestCase):
         config = json.loads((ROOT / 'project.config.json').read_text(encoding='utf-8'))
         self.assertIn({'type': 'folder', 'value': 'web'}, config['packOptions']['ignore'])
 
+    def test_plan_evidence_is_excluded_but_invalid_source_still_fails(self):
+        helper = self.helper()
+        with tempfile.TemporaryDirectory(dir=SCRATCH) as directory:
+            root = Path(directory)
+            evidence = root / '.superpowers/sdd/plan/native-compile'
+            evidence.mkdir(parents=True)
+            (evidence / 'compiler-output.json').write_text('generated non-JSON diagnostic', encoding='utf-8')
+            source = root / 'contracts'
+            source.mkdir()
+            (source / 'valid.json').write_text('{}', encoding='utf-8')
+            self.assertEqual((1, []), helper.check(root))
+            (source / 'invalid.json').write_text('{broken', encoding='utf-8')
+            count, errors = helper.check(root)
+            self.assertEqual(2, count)
+            self.assertEqual(['contracts/invalid.json: JSONDecodeError'], errors)
+
 
 if __name__ == '__main__':
     unittest.main()

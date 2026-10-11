@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 
-EXCLUDED = {'.git', 'target', 'node_modules', 'dist', 'release', 'coverage', 'playwright-report', 'test-results',
+EXCLUDED = {'.git', '.superpowers', 'target', 'node_modules', 'dist', 'release', 'coverage', 'playwright-report', 'test-results',
             '.mysql-test-data', '.local-v4', '.test-artifacts', '.test-venv', '__pycache__', '.pytest_cache'}
 
 

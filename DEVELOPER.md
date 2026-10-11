@@ -81,6 +81,8 @@ npm run e2e -- --project=chromium
 
 ## 验证与交付
 
+2026-10-11 新助手本地候选使用独立 `assistant.v4.1` 合同与 `ASSISTANT_V4_ENABLED` 开关；发布默认关闭，既有 V4 本餐不受影响。固定 40 例、同进程树隔离 Java→Python→模拟供应商→MySQL、真实供应商预算及候选哈希说明见 [新助手隔离验收](docs/testing/assistant-v4-acceptance.md)。默认单元测试不会连接数据库或真实供应商；显式隔离验收的通过数量以实际结果文件为准，编译、mock 或局部测试不替代微信真机和正式发布门槛。
+
 根入口 `scripts/verify.ps1 -Offline -SkipModelServiceTests` 保留小程序、Python、迁移、网页与 Java 检查。网页锁定依赖、Maven 缓存提前准备；Windows TEMP/TMP 使用任务可写目录，Python/Cairo 使用独立环境。具体命令见 [验证说明](docs/testing/local-verification.md)。
 
 依赖、数据库、JAR、日志、密钥、本机配置和测试输出不提交。提交前核对差异、业务契约、源码/构建物一致性，并记录实际结果与未覆盖范围；不能承诺没有任何潜在问题。

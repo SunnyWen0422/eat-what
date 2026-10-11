@@ -20,7 +20,7 @@ Write-Host 'Checking JSON files...'
 & $python (Join-Path $PSScriptRoot 'check_json_files.py') $root
 if ($LASTEXITCODE -ne 0) { throw 'Source JSON validation failed.' }
 # Apply the same dependency/output/private-runtime boundary to all source scans.
-$excludedTrees = '\\(?:\.git|target|node_modules|dist|release|coverage|playwright-report|test-results|\.mysql-test-data|\.local-v4|\.local-maturity[^\\]*|\.test-artifacts|\.test-venv|__pycache__|\.pytest_cache|tmppytest-[^\\]+)\\'
+$excludedTrees = '\\(?:\.git|\.superpowers|target|node_modules|dist|release|coverage|playwright-report|test-results|\.mysql-test-data|\.local-v4|\.local-maturity[^\\]*|\.test-artifacts|\.test-venv|__pycache__|\.pytest_cache|tmppytest-[^\\]+)\\'
 
 Write-Host 'Checking for known embedded credentials...'
 $forbidden = @(
