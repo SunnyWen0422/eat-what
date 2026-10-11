@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "assistant.v4.1",
+  "publicRequests": {
+    "session": {"workspaceId":"workspace-id","requestId":"00000000-0000-4000-8000-000000000001"},
+    "turn": {"requestId":"00000000-0000-4000-8000-000000000002","message":"把这餐保存到明晚，再准备食材","workspaceId":"workspace-id","expectedWorkspaceRevision":0,"expectedPlanVersion":0,"entryScene":"chat"},
+    "additionalProperties": false,
+    "entryScenes": ["home","calendar","chat"]
+  },
+  "statuses": ["queued","running","needs_input","awaiting_confirmation","completed","partially_completed","failed","cancelled"],
+  "turnView": {"turnId":"turn-id","status":"queued","reply":null,"cards":[],"workspaceRef":{"workspaceId":"workspace-id","workspaceRevision":0,"planVersion":0},"retryable":false},
+  "stepInput": {"schemaVersion":"assistant.v4.1","context":{"schemaVersion":"assistant.v4.1","requestContext":{},"activeMeal":{},"constraints":{},"conversation":{},"lastActions":[],"references":[],"recentActual":[],"calendarSnapshot":{},"shoppingSnapshot":{},"capabilities":[],"evidence":{}},"message":"看看本餐","conversationFrames":[],"readResults":[],"providerContinuation":null,"finalRound":false},
+  "stepOutputs": [
+    {"type":"need_input","question":"你想保存到哪一餐？"},
+    {"type":"read_calls","readCalls":[{"callId":"call-1","name":"read_current_meal","arguments":{}}],"providerContinuation":{"assistantMessage":{"role":"assistant","content":null,"reasoning_content":"transient-only","tool_calls":[{"id":"call-1","type":"function","function":{"name":"read_current_meal","arguments":"{}"}}]}}},
+    {"type":"final","reply":"请核对保存安排。","actionProposal":{"steps":[{"kind":"calendar_save","arguments":{}}]}}
+  ],
+  "readResult": {"callId":"call-1","name":"read_current_meal","items":[],"nextCursor":null,"truncated":false,"sourceVersion":"0","unknownFields":[]},
+  "providerContinuation": {"assistantMessage":"latest exact assistant frame","messages":"optional cumulative ordered assistant/tool frames within the current turn, ending with the latest assistant frame; next request appends readResults by callId; never persisted, logged or public"},
+  "reads": ["search_dishes","search_by_ingredients","get_dish_details","get_dish_methods","read_current_meal","read_calendar","read_shopping","read_actual_diet_review"],
+  "actionKinds": ["draft_update","calendar_save","shopping_preview"],
+  "cardTypes": ["menu","recipe","calendar_save","shopping_preview","receipt","clarification"],
+  "limits": {"messageCharacters":2000,"providerRequests":4,"modelDeadlineSeconds":30,"singleRequestSeconds":10,"readCallsPerStep":4,"readCallsPerTurn":8,"workflowSteps":3,"previewTtlSeconds":600},
+  "workflow": {"revision":"internal monotonic integer; caller supplies current stored revision, server increments accepted transitions; omitted in public projection","stepFields":["stepId","requestId","kind","arguments","dependsOn","status","taskId","receiptRef"],"stepStatuses":["pending","awaiting_confirmation","completed","failed","cancelled"],"requestIdNamespace":"e77ed89c-e3bd-433f-b00b-a979a2694268","requestIdAlgorithm":"UUID.nameUUIDFromBytes(UTF-8(namespace + '|' + turnId + '|' + stepId))","publicStepFields":["stepId","requestId","kind","status","taskId","receiptRef"]},
+  "security": {"identity":"authenticated server only","providerContinuation":"internal transient only; preserve assistantMessage including tool_calls order, all call IDs, and reasoning_content; never persist or expose","publicNeverIncludes":["userId","inputJson","requestHash","leaseToken","providerCallsUsed","modelDeadlineAt","providerContinuation","action arguments"],"unknownFields":"reject","modelTextIsReceipt":false},
+  "retention": {"messageDays":30,"messagesPerSession":200,"terminalInputDays":7,"terminalMetadataDays":90,"idleSessionDays":30,"businessReceipts":"independent retention; never cascade from assistant tables"}
+}

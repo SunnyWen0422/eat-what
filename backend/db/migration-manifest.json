@@ -61,6 +61,13 @@
       "description": "Independent recipe evidence and immutable quality revisions",
       "checksumSha256": "dccf21c80c12392dec6cf427f0ca123694274047a52c3a7d173f7b0e8c64f950",
       "rollback": "Keep quality tables and evidence; restore a reviewed backup only if needed."
+    },
+    {
+      "version": "V8__assistant_v4_conversations",
+      "file": "V8__assistant_v4_conversations.sql",
+      "description": "Owner-scoped V4 assistant sessions, durable turn budgets and validated workflow continuations",
+      "checksumSha256": "d756ce7ca8a58ebad8cc33895e5dd5e1dfe09785eba9cf804689fc3cc8370ebf",
+      "rollback": "Disable ASSISTANT_V4_ENABLED; retain assistant tables and business domain receipts. Restore only a reviewed backup; never drop live data."
     }
   ]
 }

@@ -79,6 +79,10 @@ meal-workspace:
   enabled: ${MEAL_WORKSPACE_ENABLED:false}
   service-token: ${MEAL_WORKSPACE_SERVICE_TOKEN:}
 
+# Independent assistant rollout; also requires real executor registrations and V8 schema.
+assistant-v4:
+  enabled: ${ASSISTANT_V4_ENABLED:false}
+
 # Web uses only this anonymous catalog. Enable with a separately reviewed list
 # of published system dish IDs; an empty list intentionally exposes no dishes.
 public-catalog:

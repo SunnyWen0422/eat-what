@@ -27,6 +27,13 @@ public class MealWorkspaceService {
     private <T> T decode(String value,Class<T> type) {try{return json.readValue(value,type);}catch(Exception e){throw new IllegalStateException("工作区读取失败",e);}}
     private void lock(Long user) {if(user==null||locks.lockUser(user)==null)throw new IllegalArgumentException("用户不存在");}
     private MealWorkspace read(WorkspaceRow row) {if(row==null)return null;MealWorkspace w=decode(row.getStateJson(),MealWorkspace.class);if(row.getRevision()!=null)w.setRevision(row.getRevision());return w;}
+    /** Owner-scoped read for server-side assistant context and session binding. */
+    public MealWorkspace get(Long user,String id) {
+        if(user==null)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
+        MealWorkspace w=read(db.find(id,user));
+        if(w==null)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,"工作区不存在或不可访问");
+        return w;
+    }
     public MealWorkspace current(Long user,String date,String meal) {
         MealContext c=new MealContext();c.setDate(date);c.setMealType(meal);MealWorkspaceRules.normalize(c);
         return read(db.slot(user,date,meal));
