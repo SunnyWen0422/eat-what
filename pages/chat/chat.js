@@ -17,7 +17,7 @@ function currentUser() {
   return globalUser || {}
 }
 
-Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'assistant'}) : {
+Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/assistant-page')(require('../../utils/meal-workspace-page')({mode: 'assistant'})) : {
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     settingsVisible: false, settingDate: flow.today(), settingPeople: '2', settingMealIndex: 2, mealLabels: ['早餐','午餐','晚餐'], settingsError: '',
     messages: [], inputText: '', loading: false, errorMessage: '', userAvatar: '',

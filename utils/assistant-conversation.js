@@ -1,0 +1,204 @@
+const clone = value => value == null ? value : JSON.parse(JSON.stringify(value))
+const capabilities = new Map()
+const valueOf = value => typeof value === 'function' ? value() : value
+const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {const n=Math.floor(Math.random()*16);return (c==='x'?n:(n&3)|8).toString(16)})
+function scopeOf(options) { return `${valueOf(options.source || (()=>require('./config').getApiBaseUrl()))}|${valueOf(options.identity || (()=>require('./util').getCurrentUserIdentity()))}` }
+async function probeAssistantCapability(options = {}) {
+ const api=options.api || require('./api'),scope=scopeOf(options),now=Date.now(),cached=capabilities.get(scope)
+ if(cached && cached.until>now){const enabled=await Promise.resolve(cached.promise || cached.enabled);return scope===scopeOf(options)&&enabled}
+ if(!api.getAssistantV4Capabilities)return false
+ const entry={until:now+300000,enabled:false}
+ entry.promise=Promise.resolve().then(()=>scope===scopeOf(options)?api.getAssistantV4Capabilities():null).then(result=>{
+  entry.enabled=!!(result && result.enabled===true && result.schemaVersion==='assistant.v4.1' && Array.isArray(result.reads) && Array.isArray(result.draftCommands) && Array.isArray(result.previewActions));return entry.enabled
+ }).catch(()=>false).finally(()=>{delete entry.promise})
+ capabilities.set(scope,entry)
+ const enabled=await entry.promise
+ return scope===scopeOf(options) && enabled
+}
+function createAssistantConversation(options = {}) {
+ const api=options.api || require('./api'),store=options.workspaceStore,scope=scopeOf(options),read=options.read || (key=>wx.getStorageSync(key)),write=options.write || ((key,v)=>wx.setStorageSync(key,v)),makeId=options.uuid || uuid
+ let active=true,key='',record=null,running=null
+ let view={sessionId:null,messages:[],input:'',error:'',busy:false,recoverable:false,turn:null,nextCursor:null}
+ const current=()=>active && scope===scopeOf(options)
+ const state=()=>current()?clone({...view,selectionPending:!!(record&&record.renewal),confirmationPending:!!(record&&record.confirmation&&record.confirmation.unknown)}):{sessionId:null,messages:[],input:'',error:'请重新进入这一餐',busy:false,recoverable:false,turn:null}
+ const notify=()=>{if(current()&&options.onChange)options.onChange(state())}
+ const persist=()=>{if(current()&&key){record.input=view.input;write(key,clone(record))}notify()}
+ const exclusive=action=>{if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
+ const workspace=()=>store && store.state().workspace
+ const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&record.pending)view.input=record.pending.body.message;persist();return state()}
+ const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&turn.retryable===true&&!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending'
+ function adopt(turn) {
+  if(!current())return
+  view.turn=clone(turn);view.busy=['queued','running'].includes(turn.status);view.recoverable=view.busy||!!canResume(turn)
+  const message={id:turn.turnId,turnId:turn.turnId,role:'assistant',text:turn.reply || '',cards:clone(turn.cards || [])}
+  const index=view.messages.findIndex(m=>m.id===turn.turnId || (m.role==='assistant'&&m.turnId===turn.turnId))
+  if(index>=0)view.messages[index]=message;else view.messages.push(message)
+  if(['failed','cancelled','partially_completed'].includes(turn.status)){view.input=record.pending && record.pending.body.message || view.input;view.error=turn.status==='cancelled'?'已停止这次请求，输入仍保留':turn.status==='partially_completed'?'已完成的安排仍保留。请调整输入，重新说明尚未完成的部分':'这次未完成，输入已保留，可以调整后再发';view.recoverable=false}
+  else view.error=''
+  if(!view.busy && turn.status!=='awaiting_confirmation'){record.pending=null;record.renewal=null;view.recoverable=false}
+  record.lastTurn=clone(turn)
+  record.messages=clone(view.messages);persist()
+ }
+ async function refreshWorkspace(turn) {
+  if(!current() || !turn.workspaceRef || !store)return
+  const w=workspace(),ref=turn.workspaceRef
+  if(w && ref.workspaceId===w.id && (ref.workspaceRevision>w.revision || ref.planVersion>(w.draft && w.draft.planVersion || 0))) {
+   await store.reloadLatest();if(!current())return
+   if(options.onWorkspaceChange)options.onWorkspaceChange(store.state())
+  }
+ }
+ async function poll(id) {
+  const turn=await api.getAssistantV4Turn(id);if(!current())return state()
+  if(!turn || turn.turnId!==id)throw Error('invalid turn')
+  adopt(turn);await refreshWorkspace(turn);return state()
+ }
+ async function dispatch() {
+  if(!current())return state()
+  const pending=record.pending
+  if(pending.turnId)return poll(pending.turnId)
+  view.busy=true;persist()
+  let result
+  try{result=await api.sendAssistantV4Turn(record.sessionId,clone(pending.body))}
+  catch(error){
+   if(current()&&record.pending===pending&&!pending.turnId&&error&&error.statusCode===409){
+    view.input=pending.body.message;record.pending=null;view.busy=false;view.recoverable=false;view.error='本餐已变化，请核对最新菜单后重新说明要调整的菜。输入仍保留';persist()
+    try{
+     const local=store.state()
+     if(local.dirty||local.pending){view.error='本餐已变化，还有内容未同步，请回到今天核对。输入仍保留';persist();return state()}
+     await store.reloadLatest();if(!current())return state()
+     if(options.onWorkspaceChange)options.onWorkspaceChange(store.state())
+    }catch(refreshError){if(current()){view.error='最新菜单暂未读到，请回到今天核对后再发。输入仍保留';persist()}}
+    return state()
+   }
+   throw error
+  }
+  if(!current())return state()
+  if(!result || !result.turnId)throw Error('missing turn')
+  pending.turnId=result.turnId;persist();return poll(result.turnId)
+ }
+ async function loadRecord(workspaceRef) {
+  const w=workspace(),id=workspaceRef && workspaceRef.workspaceId || w && w.id
+  if(!id)return fail('请先回到今天，准备这一餐的菜单')
+  key=`assistant-v4:${encodeURIComponent(scope)}:${id}`;record=clone(read(key)) || {sessionBody:{workspaceId:id,requestId:makeId()},sessionId:null,pending:null,messages:[],input:'',confirmedTasks:[]}
+  view.input=record.input || '';view.messages=clone(record.messages || []);view.recoverable=!!(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown)
+  try {
+   const result=record.sessionId ? await api.getAssistantV4Session(record.sessionId) : await api.createAssistantV4Session(clone(record.sessionBody))
+   if(!current())return state()
+   if(!result || !result.sessionId)throw Error('invalid session')
+   record.sessionId=result.sessionId;view.sessionId=result.sessionId;view.nextCursor=result.nextCursor || null
+   if(Array.isArray(result.messages)&&result.messages.length)view.messages=clone(result.messages)
+   record.messages=clone(view.messages)
+   if(record.pending)view.input=record.pending.body.message
+   persist();return state()
+  }catch(error){return fail('对话暂未连接，输入已保留，请重新进入或重试')}
+ }
+ function load(workspaceRef){return exclusive(()=>loadRecord(workspaceRef))}
+ function send(text) {return exclusive(async()=>{
+  if(!record || !record.sessionId)return fail('对话尚未连接，请重新进入这一餐')
+  if(record.pending)return fail('刚才的结果还待确认，请先恢复原请求')
+  const message=String(text || '').trim(),w=workspace(),local=store.state()
+  if(!message || message.length>2000)return fail('请用两千字以内说说这一餐的想法')
+  if(!w || local.dirty || local.pending)return fail('本餐还有未同步内容，请回到今天先同步后再试')
+  record.pending={body:{requestId:makeId(),message,workspaceId:w.id,expectedWorkspaceRevision:w.revision,expectedPlanVersion:w.draft && w.draft.planVersion || 0,entryScene:options.entryScene || 'chat'}}
+  view.input='';view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
+  try{return await dispatch()}catch(error){return fail()}
+ })}
+ function recover(turnId) {return exclusive(async()=>{
+  if(!record || !record.sessionId)return loadRecord()
+  try {
+   if(record.confirmation && record.confirmation.unknown){
+    if(!await resolveConfirmation())return state()
+    return resumeCurrent()
+   }
+   if(record.renewal)return resolveRenewal(true)
+   if(turnId)return poll(turnId)
+   if(record.pending){await dispatch();if(!current())return state();return resumeCurrent()}
+   return state()
+  }catch(error){return fail('结果暂未核对，原请求已保留，请稍后恢复')}
+ })}
+ async function resolveConfirmation(){
+  const confirmation=record.confirmation
+  const task=await api.getControlledTask(confirmation.taskId);if(!current())return false
+  if(!task){fail('刚才的保存结果还待核对，请稍后恢复');return false}
+  if(task.status==='completed'){if(!record.confirmedTasks.includes(confirmation.taskId))record.confirmedTasks.push(confirmation.taskId);confirmation.unknown=false}
+  else if(task.status==='awaiting_confirmation'||task.status==='cancelled'||task.status==='failed'&&task.retryable===false)confirmation.unknown=false
+  else {fail('刚才的保存结果还待核对，请稍后恢复');return false}
+  persist();await poll(confirmation.turnId);return current()
+ }
+ function confirm(cardId) {return exclusive(async()=>{
+  const turn=view.turn,card=turn && (turn.cards || []).find(c=>c.id===cardId),pending=turn && turn.pendingAction
+  if(!turn || turn.status!=='awaiting_confirmation' || !card || !['calendar_save','shopping_preview'].includes(card.type) || card.data&&card.data.kind==='readonly_fact' || !pending || card.taskId!==pending.taskId || card.previewToken!==pending.previewToken || !card.previewToken)return state()
+  if(record.renewal)return fail('食材选择结果还待核对，请先恢复原请求')
+  if(record.confirmedTasks.includes(card.taskId))return state()
+  if(record.confirmation && record.confirmation.unknown)return fail('刚才的保存结果还待核对，请先恢复原请求')
+  if(!card.expiresAt || Number(card.expiresAt)<=Date.now())return fail('这份预览已过期，请重新核对后再确认')
+  record.confirmation={taskId:card.taskId,turnId:turn.turnId,unknown:true};view.busy=true;persist()
+  try {
+   const result=await api.confirmControlledTask(card.taskId,card.previewToken);if(!current())return state()
+   if(!result || result.status!=='completed')return fail('保存结果待核对，请恢复刚才的请求')
+   record.confirmedTasks.push(card.taskId);record.confirmation.unknown=false;persist()
+   return await poll(turn.turnId)
+  }catch(error){return fail('保存结果待核对，请恢复刚才的请求')}
+ })}
+ async function resumeCurrent(){
+  if(!current() || !canResume(view.turn) || !api.resumeAssistantV4Turn)return state()
+  const id=view.turn.turnId;view.busy=true;persist()
+  const turn=await api.resumeAssistantV4Turn(id);if(!current())return state()
+  if(!turn || turn.turnId!==id)throw Error('invalid resume')
+  adopt(turn);await refreshWorkspace(turn);return state()
+ }
+ async function resolveRenewal(queryFirst){
+  const renewal=record.renewal;if(!renewal || !current())return state()
+  view.busy=true;persist()
+  let task
+  if(queryFirst){
+   try{task=await api.getControlledTaskByRequest(renewal.body.requestId)}catch(error){if(error.statusCode!==404)throw error}
+   if(!current())return state()
+  }
+  if(!task){task=await api.repreviewAssistantShopping(renewal.taskId,clone(renewal.body));if(!current())return state()}
+  if(!task || !task.id)throw Error('invalid renewal')
+  renewal.newTaskId=task.id;persist()
+  const turn=await api.getAssistantV4Turn(renewal.turnId);if(!current())return state()
+  if(!turn || turn.turnId!==renewal.turnId)throw Error('invalid parent')
+  if(['completed','cancelled','failed','partially_completed'].includes(turn.status)){record.renewal=null;adopt(turn);await refreshWorkspace(turn);return state()}
+  const card=(turn.cards || []).find(c=>c.taskId===task.id),pending=turn.pendingAction
+  if(turn.status!=='awaiting_confirmation' || !pending || pending.taskId!==task.id || !task.previewToken || pending.previewToken!==task.previewToken || !card || card.previewToken!==task.previewToken)throw Error('renewal mismatch')
+  record.renewal=null;adopt(turn);return state()
+ }
+ function selectShopping(cardId,selectedSourceKeys,excludedOwnedIngredients){return exclusive(async()=>{
+  if(record&&record.renewal)return fail('上次食材选择还待核对，请先恢复原请求')
+  if(record&&record.confirmation&&record.confirmation.unknown)return fail('刚才的加入结果还待核对，请先恢复原请求')
+  const turn=view.turn,card=turn&&(turn.cards || []).find(c=>c.id===cardId),pending=turn&&turn.pendingAction
+  if(!api.repreviewAssistantShopping || !turn || turn.status!=='awaiting_confirmation' || !card || card.type!=='shopping_preview' || card.receiptRef || card.data&&card.data.kind==='readonly_fact' || !pending || card.taskId!==pending.taskId || card.previewToken!==pending.previewToken || record.confirmedTasks.includes(card.taskId))return state()
+  const keys=new Set((card.data&&card.data.items || []).map(i=>i.sourceKey).filter(k=>typeof k==='string'))
+  if(selectedSourceKeys!==undefined&&(!Array.isArray(selectedSourceKeys)||selectedSourceKeys.some(k=>!keys.has(k))||new Set(selectedSourceKeys).size!==selectedSourceKeys.length))return fail('食材选择已变化，请核对当前预览')
+  if(excludedOwnedIngredients!==undefined&&(!Array.isArray(excludedOwnedIngredients)||excludedOwnedIngredients.some(k=>typeof k!=='string'||!k.trim())||new Set(excludedOwnedIngredients).size!==excludedOwnedIngredients.length))return fail('请核对家里已有的食材')
+  const body={requestId:makeId()};if(selectedSourceKeys!==undefined)body.selectedSourceKeys=clone(selectedSourceKeys);if(excludedOwnedIngredients!==undefined)body.excludedOwnedIngredients=clone(excludedOwnedIngredients)
+  record.renewal={turnId:turn.turnId,taskId:card.taskId,body};view.busy=true;view.error='';persist()
+  try{return await resolveRenewal(false)}catch(error){return fail('食材选择结果待核对，请恢复刚才的请求后再确认')}
+ })}
+ function cancelTurn() {return exclusive(async()=>{
+  try{
+   if(record&&record.confirmation&&record.confirmation.unknown){if(!await resolveConfirmation())return state()}
+   if(!current())return state()
+   const turn=view.turn
+   if(turn&&!['queued','running','awaiting_confirmation'].includes(turn.status))return state()
+   const id=turn&&turn.turnId || record&&record.pending&&record.pending.turnId
+   if(!id)return fail('原请求结果待核对，请先恢复后再停止')
+   await api.cancelAssistantV4Turn(id);if(!current())return state();return await poll(id)
+  }catch(error){return fail('停止前还需核对原结果，请恢复刚才的请求')}
+ })}
+ function loadOlder(){return exclusive(async()=>{
+  if(!record || !record.sessionId || !view.nextCursor)return state()
+  try {
+   const page=await api.getAssistantV4Session(record.sessionId,{cursor:view.nextCursor,limit:30});if(!current())return state()
+   if(!page || page.sessionId!==record.sessionId)return fail('先前的对话暂未读到，请稍后再试')
+   const seen=new Set(),combined=[...(page.messages || []),...view.messages]
+   view.messages=combined.filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true});view.nextCursor=page.nextCursor || null;record.messages=clone(view.messages);persist();return state()
+  }catch(error){return fail('先前的对话暂未读到，请稍后再试')}
+ })}
+ function setInput(input){if(current()){view.input=String(input || '');if(record)persist()}}
+ function dispose(){active=false}
+ return {load,loadOlder,send,confirm,selectShopping,cancelTurn,recover,state,setInput,dispose}
+}
+module.exports={createAssistantConversation,probeAssistantCapability,clearCapabilityCache:()=>capabilities.clear(),uuid}

@@ -81,7 +81,7 @@ module.exports = function workspacePage(options = {}) {
       wx.navigateTo({url:`/pages/statistics/statistics?period=week&anchor=${encodeURIComponent(this.data.harnessTarget.date)}`})
     },
     data: {
-      actionFeedback:null,legacyLockNotice:'',moreVisible:false,harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:'',
+      assistantAvailable:false,actionFeedback:null,legacyLockNotice:'',moreVisible:false,harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:'',
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
       conversationNotice:'',pageTitle:options.mode==='assistant'?'本餐对话':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'生成本餐菜单', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       peopleVisible:false,compositionVisible:false,compositionContext:null,compositionRows:[],compositionTotal:0,compositionHint:'',compositionSaving:false,compositionApplyDisabled:true,conditionsNotice:'',compositionPreferenceNotice:'',filterSummary:'',
@@ -104,6 +104,8 @@ module.exports = function workspacePage(options = {}) {
       if(this.disposeMealActual)this.disposeMealActual();this.setData({actualVisible:false,actualBusy:false});if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this._requirementsOperation=null;this._compositionBinding=null;this.setData({peopleVisible:false,compositionVisible:false,compositionContext:null,compositionSaving:false,conditionsNotice:'',compositionPreferenceNotice:'',requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null;this._actionError=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
       this._scope = getCurrentUserIdentity(); const initEpoch = this._initEpoch = (this._initEpoch || 0) + 1; const initScope = this._scope
+      this.setData({assistantAvailable:false})
+      this.probeConnectedAssistant(initEpoch)
       const savedTarget=wx.getStorageSync(getUserStorageKey('activeMealTarget'))
       const target = resolveActiveTarget(options.mode || 'today', params, savedTarget)
       // The existing account-scoped cache remains the source of truth. A new
@@ -200,6 +202,12 @@ module.exports = function workspacePage(options = {}) {
       } catch(error) {if(this.current() && scope===this._scope)this.setData({errorMessage:userError(error,'导入未完成，旧草稿仍保留')})}
     },
     current() { return this._alive && this._scope === getCurrentUserIdentity() },
+    async probeConnectedAssistant(epoch=this._initEpoch) {
+      if(!api.getAssistantV4Capabilities)return
+      const scope=this._scope
+      const enabled=await require('./assistant-conversation').probeAssistantCapability({api,identity:getCurrentUserIdentity})
+      if(this.current()&&scope===this._scope&&epoch===this._initEpoch)this.setData({assistantAvailable:enabled})
+    },
     async onShow() {
       if (!this._scope) return
       if (!this.current()) return this.initializeWorkspace(this._params || {})
@@ -636,11 +644,12 @@ module.exports = function workspacePage(options = {}) {
     async openWorkspaceRoute(route){
       if(!this.current() || this.data.busy)return
       const scope=this._scope,store=this.store
-      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}?date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
+      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}${route.includes('?')?'&':'?'}date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
       catch(error){if(this.current() && this.store===store)this.setData({errorMessage:userError(error,'本餐尚未保存，内容已保留')})}
     },
     onOpenMealResult(){return this.openWorkspaceRoute('/pages/result/result')},
     onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},
+    onOpenConnectedAssistant(){if(this.data.assistantAvailable)return this.openWorkspaceRoute('/pages/chat/chat?entryScene=home')},
     onOpenAdvancedAssistant() { if(this.current())wx.navigateTo({ url: `/pages/assistant-history/assistant-history?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
     onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
     onReview() { if(this.current())wx.navigateTo({ url: '/pages/statistics/statistics?period=week&anchor='+encodeURIComponent(this.data.context.date) }) },

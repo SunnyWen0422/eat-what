@@ -1,6 +1,8 @@
 {
-  "navigationBarTitleText": "本餐对话",
-  "usingComponents": {},
+  "navigationBarTitleText": "助手",
+  "usingComponents": {
+    "assistant-card": "/components/assistant-card/index"
+  },
   "navigationBarBackgroundColor": "#F8F7F2",
   "navigationBarTextStyle": "black"
 }

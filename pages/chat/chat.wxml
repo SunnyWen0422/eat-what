@@ -1,3 +1,25 @@
+<block wx:if="{{assistantConnected}}">
+<view class="connected-assistant" style="font-size:{{fontBase * fontScale}}px;padding-bottom:{{keyboardHeight}}px">
+ <view class="connected-header"><view><text class="ew-heading">一起安排这一餐</text><text class="connected-target">{{context.date}} {{mealName}}{{context.people ? ' · '+context.people+'人' : ''}}</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">回到今天</button></view>
+ <scroll-view class="connected-messages" scroll-y enhanced scroll-into-view="{{conversationScrollTarget}}">
+  <button wx:if="{{conversationHasOlder}}" class="ew-hit-target ew-link" bindtap="onConversationOlder">查看更早的对话</button>
+  <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><ui-icon name="servings" size="40" /><text class="ew-title">说说你这一餐的想法</text><text class="ew-muted">可以换道菜、看看做法，或把菜单保存到指定餐次。</text></view>
+  <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">
+   <text wx:if="{{item.text}}" class="connected-bubble" user-select>{{item.text}}</text>
+   <assistant-card wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy}}" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
+  </view>
+  <view wx:if="{{conversationBusy}}" class="connected-progress" aria-role="status"><text>正在帮你核对这一餐…</text><button class="ew-hit-target ew-link" bindtap="onConversationStop">停止</button></view>
+  <view id="conversation-end"></view>
+ </scroll-view>
+ <view class="connected-composer">
+  <view wx:if="{{conversationError}}" class="ew-error" aria-role="alert">{{conversationError}}</view>
+  <button wx:if="{{conversationRecoverable}}" class="ew-hit-target ew-link" disabled="{{conversationBusy}}" bindtap="onConversationRecover">恢复刚才的请求</button>
+  <button wx:if="{{conversationCanStop && !conversationBusy}}" class="ew-hit-target ew-link" bindtap="onConversationStop">{{conversationStopLabel}}</button>
+  <view class="connected-input-row"><button class="ew-hit-target connected-voice" bindtap="onConversationVoice" aria-label="语音输入"><ui-icon name="mic" size="22" /></button><textarea class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="例如：第二道换清淡一点" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{conversationBusy || !conversationInput}}" bindtap="onConversationSend">发送</button></view>
+ </view>
+</view>
+</block>
+<block wx:else>
 <block wx:if="{{workspaceEnabled}}"><include src="../../templates/meal-workspace.wxml" /></block>
 <block wx:else>
 <view class="ew-page page" style="font-size:{{fontBase * fontScale}}px">
@@ -83,5 +105,7 @@
   <view class="input-bar"><input placeholder-class="ew-placeholder" class="chat-input" value="{{inputText}}" placeholder="告诉我你想怎么吃" bindinput="onInput" confirm-type="send" bindconfirm="onSend" /><button class="ew-hit-target send-btn" bindtap="onSend" disabled="{{loading || !inputText}}" loading="{{loading}}" aria-label="发送消息">发送</button></view>
 <ui-confirm visible="{{settingsVisible}}" title="本次用餐" busy="{{loading}}" confirm-label="应用到输入" bind:cancel="onCloseSettings" bind:confirm="onApplySettings"><view class="ew-field"><text class="ew-label">日期</text><picker class="ew-hit-target" mode="date" value="{{settingDate}}" bindchange="onSettingDate"><view class="ew-input">{{settingDate}}</view></picker></view><view class="ew-field"><text class="ew-label">餐次</text><picker class="ew-hit-target" range="{{mealLabels}}" value="{{settingMealIndex}}" bindchange="onSettingMeal"><view class="ew-input">{{mealLabels[settingMealIndex]}}</view></picker></view><ui-field disabled="{{loading}}" label="人数" type="number" value="{{settingPeople}}" maxlength="2" bind:change="onSettingPeople" /><view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view></ui-confirm>
 </view>
+
+</block>
 
 </block>

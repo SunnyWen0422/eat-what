@@ -194,5 +194,9 @@
   {
     "source": "design/wxss/styles/recipe-selection.tpl",
     "output": "styles/recipe-selection.wxss"
+  },
+  {
+    "source": "design/wxss/components/assistant-card/index.tpl",
+    "output": "components/assistant-card/index.wxss"
   }
 ]

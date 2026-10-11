@@ -20,7 +20,21 @@ Page({
   sendMealActual(...args){return actual.sendMealActual.call(this,...args)},
   data: { actualVisible:false,actualBusy:false,actualText:'',actualMode:'changed',copyUnknown:false,copyPendingMeal:'',copyMealType:'',copyMealOptions:['早餐','午餐','晚餐'],copyMealIndex:2,sheetMode:'',sheetMeal:null,fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
   onLoad(options) { const day=options.date || flow.today();this.setData({ dateHeading:`${Number(day.slice(5,7))}月${Number(day.slice(8,10))}日${flow.mealNames[options.mealType]?' '+flow.mealNames[options.mealType]:''}`,focusedMeal:flow.mealNames[options.mealType]?options.mealType:'', selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
-  onShow() { this.loadMealRecords() },
+  onShow() { this.loadMealRecords();this.probeCalendarAssistant() },
+  async probeCalendarAssistant() {
+    if(!api.getAssistantV4Capabilities)return
+    this.setData({assistantAvailable:false})
+    const scope=getUserStorageKey('mealView'),date=this.data.selectedDate
+    const app=typeof getApp==='function'?getApp():null;if(app&&app.waitForLogin)await app.waitForLogin()
+    if(this._unloaded || scope!==getUserStorageKey('mealView'))return
+    const enabled=await require('../../utils/assistant-conversation').probeAssistantCapability({api})
+    if(!this._unloaded&&scope===getUserStorageKey('mealView')&&date===this.data.selectedDate)this.setData({assistantAvailable:enabled})
+  },
+  onCalendarAssistant(event) {
+    const meal=event.currentTarget.dataset.meal
+    if(!this.data.assistantAvailable || this._unloaded || this._viewScope!==getUserStorageKey('mealView') || !flow.mealNames[meal])return
+    wx.navigateTo({url:`/pages/chat/chat?date=${encodeURIComponent(this.data.selectedDate)}&mealType=${encodeURIComponent(meal)}&entryScene=calendar`})
+  },
   openMealSheet(type, mode) { const meal=this.meal(type);if(!meal || this.data.mutating || this.data.actualBusy || this._viewScope!==getUserStorageKey('mealView'))return;this.setData({sheetMode:mode,sheetMeal:meal}) },
   closeMealSheet() { if(!this.data.mutating)this.setData({sheetMode:'',sheetMeal:null}) },
   onAdjustMeal(e) { const type=e.currentTarget.dataset.meal;if(this.meal(type)?.plan)this.openMealSheet(type,'adjust') },

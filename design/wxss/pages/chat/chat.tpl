@@ -40,3 +40,13 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+.connected-assistant{display:flex;flex-direction:column;height:100vh;box-sizing:border-box;background:{{background}};color:{{text}};line-height:1.5;overflow:hidden}
+.connected-header{display:flex;flex:none;align-items:center;gap:{{space.2.px}};padding:{{space.4.px}} {{space.4.px}} {{space.3.px}};border-bottom:1px solid {{divider}}}
+.connected-header>view{flex:1;min-width:0}.connected-header .ew-heading{display:block;font-size:{{font.section.em}}}.connected-target{display:block;font-size:{{font.secondary.em}};color:{{muted}};margin-top:{{space.1.px}}}
+.connected-messages{flex:1;min-height:0;width:100%;box-sizing:border-box;padding:{{space.4.px}}}
+.connected-welcome{display:flex;flex-direction:column;gap:{{space.2.px}};padding:{{space.5.px}} 0;align-items:flex-start}.connected-welcome .ew-muted{font-size:{{font.secondary.em}}}
+.connected-message{display:flex;flex-direction:column;gap:{{space.2.px}};margin-bottom:{{space.4.px}};min-width:0}.connected-bubble{white-space:pre-wrap;overflow-wrap:anywhere;padding:{{space.2.px}} {{space.3.px}};border-radius:{{radius.2.px}};background:{{card}};max-width:100%;box-sizing:border-box;align-self:flex-start}
+.connected-user .connected-bubble{background:{{brandSoft}};align-self:flex-end}.connected-progress{display:flex;flex-wrap:wrap;align-items:center;font-size:{{font.secondary.em}};color:{{muted}}}
+.connected-composer{flex:none;padding:{{space.2.px}} {{space.3.px}} calc({{space.2.px}} + env(safe-area-inset-bottom));border-top:1px solid {{divider}};background:{{card}}}
+.connected-input-row{display:flex;align-items:flex-end;gap:{{space.1.px}};min-width:0}.connected-input{flex:1;min-width:0;width:0;min-height:{{controls.touchSize.px}};max-height:160px;box-sizing:border-box;padding:{{space.2.px}};border-radius:{{radius.1.px}};background:{{surfaceSoft}};font-size:1em;line-height:1.5}.connected-send{flex:none;background:{{brand}};color:{{card}};border-radius:{{radius.1.px}};font-size:{{font.secondary.em}};padding:{{space.2.px}} {{space.2.px}};margin:0;min-height:{{controls.touchSize.px}}}.connected-send[disabled]{background:{{disabled}};color:{{muted}}}.connected-voice{flex:none;padding:{{space.1.px}};margin:0;background:transparent;border:0;color:{{brand}}}.connected-voice::after,.connected-send::after{border:0}

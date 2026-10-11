@@ -59,7 +59,7 @@ test('all registered routes have valid event handlers, dark titles and the share
   assert.equal(app.pages.length,27)
   assert.deepEqual(app.tabBar.list.map(tab => tab.text), ['今天','菜谱','日历','我的'])
   for (const route of app.pages) {
-    const source = fs.readFileSync(route + '.js','utf8') + fs.readFileSync('utils/meal-workspace-page.js','utf8'), template = fs.readFileSync(route + '.wxml','utf8') + (['pages/index/index','pages/result/result','pages/chat/chat'].includes(route) ? fs.readFileSync('templates/meal-workspace.wxml','utf8') : '')
+    const source = fs.readFileSync(route + '.js','utf8') + fs.readFileSync('utils/meal-workspace-page.js','utf8') + (route === 'pages/chat/chat' ? fs.readFileSync('utils/assistant-page.js','utf8') : ''), template = fs.readFileSync(route + '.wxml','utf8') + (['pages/index/index','pages/result/result','pages/chat/chat'].includes(route) ? fs.readFileSync('templates/meal-workspace.wxml','utf8') : '')
     assert.ok(fs.readFileSync(route + '.wxss','utf8').includes('styles/theme.wxss'), route)
     assert.equal(JSON.parse(fs.readFileSync(route + '.json','utf8')).navigationBarTextStyle,'black',route)
     for (const binding of template.matchAll(/(?:bind|catch)(?::)?(?:tap|input|change|blur|confirm|cancel|action|open|error|scrolltolower|chooseavatar|longpress)="([A-Za-z][A-Za-z0-9_]*)"/g)) {

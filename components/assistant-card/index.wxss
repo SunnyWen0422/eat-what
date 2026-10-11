@@ -1,0 +1,6 @@
+/* Generated token bindings; edit corresponding design/wxss template. */
+@import "../../styles/component-theme.wxss";
+.assistant-card{background:#FFFFFF;border:1px solid #D9E1D5;border-radius:14px;padding:16px;min-width:0;box-sizing:border-box;font-size:inherit;color:#25332B;line-height:1.5}
+.card-title{display:block;font-size:1em;font-weight:600}.card-meta{display:block;font-size:0.8125em;color:#56645B;margin-top:4px}.card-text{display:block;font-size:1em;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.card-row{margin-top:12px;min-width:0}.card-dish{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:8px 0;background:transparent;border:0;margin:0;text-align:left;font-size:inherit;color:#25332B;line-height:1.5}.card-dish::after{border:0}.card-dish-disabled{color:#25332B;background:transparent}.card-picture{flex:none;width:64px;height:64px;border-radius:10px;overflow:hidden}.card-fallback{display:flex;align-items:center;justify-content:center;background:#F5F6F0}.card-name{flex:1;min-width:0;overflow-wrap:anywhere}.card-name-text{display:block}.card-step{font-size:0.8125em}.card-action{display:block;margin-top:12px}
+
+.card-check-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 0;font-size:inherit;line-height:1.5;min-width:0}

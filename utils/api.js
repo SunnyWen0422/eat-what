@@ -132,13 +132,14 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
   const {
     silent = false,
     maxRetries = RETRY_CONFIG.maxRetries,
-    isAuthRetry = false
+    isAuthRetry = false,
+    acceptedStatuses = [200]
   } = options
 
   let lastError = null
 
   // 请求去重：如果同一个请求已经在进行中，复用其结果
-  const reqKey = getRequestKey(url, method, data) + (isAuthRetry ? ':auth-retry' : '')
+  const reqKey = getRequestKey(url, method, data) + ':' + acceptedStatuses.join(',') + (isAuthRetry ? ':auth-retry' : '')
   const originalIdentity = requestIdentity()
   if (inFlightRequests[reqKey]) {
     console.log('复用进行中的请求')
@@ -152,7 +153,7 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
       if (originalIdentity !== requestIdentity()) throw { statusCode: 401, isAccountChanged: true }
 
       // 成功
-      if (statusCode === 200) {
+      if (acceptedStatuses.includes(statusCode)) {
         return resData
       }
 
@@ -168,7 +169,8 @@ function doRequest(url, method = 'GET', data = null, options = {}) {
           return await doRequest(url, method, data, {
             silent,
             maxRetries: 0,       // 401 重试不再走网络重试
-            isAuthRetry: true
+            isAuthRetry: true,
+            acceptedStatuses
           })
         } catch (authErr) {
           if (authErr && authErr.isAccountChanged) throw authErr
@@ -243,8 +245,8 @@ function requestSilent(url, method = 'GET', data = null) {
 // Assistant operations are user-visible tasks. Retrying a timed-out message
 // can append the same turn twice, so these calls fail fast and let the page
 // keep the current plan while offering an explicit retry button.
-function assistantRequest(url, method = 'GET', data = null) {
-  return doRequest(url, method, data, { silent: true, maxRetries: 0 })
+function assistantRequest(url, method = 'GET', data = null, options = {}) {
+  return doRequest(url, method, data, { ...options, silent: true, maxRetries: 0 })
 }
 
 /**
@@ -340,13 +342,14 @@ function getDishes(params = {}) {
 
 // 请求去重键必须按账号隔离，但不能把 token 写入日志或键名输出。
 function requestIdentity() {
+  const source = `source:${encodeURIComponent(config.getApiBaseUrl())}:`
   const user = wx.getStorageSync('userInfo') || {}
-  if (user.id) return `id:${user.id}`
-  if (user.openId) return `open:${user.openId}`
+  if (user.id) return source + `id:${user.id}`
+  if (user.openId) return source + `open:${user.openId}`
   const token = String(wx.getStorageSync('token') || '')
   let hash = 2166136261
   for (let index = 0; index < token.length; index += 1) hash = Math.imul(hash ^ token.charCodeAt(index), 16777619)
-  return token ? `token:${hash >>> 0}` : 'anonymous'
+  return source + (token ? `token:${hash >>> 0}` : 'anonymous')
 }
 
 /**
@@ -766,6 +769,15 @@ function getAdminAuditLogs(params = {}) {
 // ========================================
 
 module.exports = {
+  getAssistantV4Capabilities: () => assistantRequest('/assistant/v4/capabilities','GET'),
+  createAssistantV4Session: body => assistantRequest('/assistant/v4/sessions','POST',body),
+  getAssistantV4Session: (id,{cursor,limit=30}={}) => assistantRequest('/assistant/v4/sessions/'+encodeURIComponent(id)+'?limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''),'GET'),
+  sendAssistantV4Turn: (id,body) => assistantRequest('/assistant/v4/sessions/'+encodeURIComponent(id)+'/turns','POST',body,{acceptedStatuses:[200,202]}),
+  getAssistantV4Turn: id => assistantRequest('/assistant/v4/turns/'+encodeURIComponent(id),'GET'),
+  resumeAssistantV4Turn: id => assistantRequest('/assistant/v4/turns/'+encodeURIComponent(id)+'/resume','POST'),
+  repreviewAssistantShopping: (id,body) => assistantRequest('/assistant/v4/shopping/tasks/'+encodeURIComponent(id)+'/repreview','POST',body),
+  cancelAssistantV4Turn: id => assistantRequest('/assistant/v4/turns/'+encodeURIComponent(id)+'/cancel','POST',{}),
+  deleteAssistantV4Session: id => assistantRequest('/assistant/v4/sessions/'+encodeURIComponent(id),'DELETE',null,{acceptedStatuses:[200,204]}),
   previewControlledTask: body => assistantRequest('/assistant/tool-tasks/preview','POST',body),
   getControlledTask: id => assistantRequest('/assistant/tool-tasks/'+encodeURIComponent(id),'GET'),
   getControlledTaskByRequest: requestId => assistantRequest('/assistant/tool-tasks/by-request/'+encodeURIComponent(requestId),'GET'),
