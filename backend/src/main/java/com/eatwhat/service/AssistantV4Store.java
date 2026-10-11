@@ -132,7 +132,24 @@ public class AssistantV4Store {
     private void validateWorkflow(String turnId,WorkflowContinuation c){if(c==null)return;if(c.getSteps()==null||c.getSteps().isEmpty()||c.getSteps().size()>3||c.getCursor()<0||c.getCursor()>c.getSteps().size())throw new IllegalArgumentException("续办步骤无效");List<ActionIntent> actions=new ArrayList<>();for(WorkflowStep s:c.getSteps()){ActionIntent a=new ActionIntent();a.setKind(s.getKind());a.setArguments(s.getArguments());actions.add(a);}WorkflowContinuation expected=AssistantV4Contract.workflow(turnId,actions);if(!expected.getId().equals(c.getId()))throw new IllegalArgumentException("续办标识无效");for(int i=0;i<c.getSteps().size();i++){WorkflowStep s=c.getSteps().get(i),e=expected.getSteps().get(i);if(!Objects.equals(e.getStepId(),s.getStepId())||!Objects.equals(e.getRequestId(),s.getRequestId())||!Objects.equals(e.getDependsOn(),s.getDependsOn())||!Arrays.asList("pending","awaiting_confirmation","completed","failed","cancelled").contains(s.getStatus()))throw new IllegalArgumentException("续办步骤标识无效");}}
     private TurnView view(TurnRecord r){TurnResult result=r.getResultJson()==null?new TurnResult():decode(r.getResultJson(),TurnResult.class);TurnView v=new TurnView();v.setTurnId(r.getId());v.setStatus(r.getStatus());v.setReply(result.getReply());v.setCards(result.getCards());v.setWorkspaceRef(result.getWorkspaceRef());if(v.getWorkspaceRef()==null){WorkspaceRef ref=new WorkspaceRef();ref.setWorkspaceId(r.getWorkspaceId());v.setWorkspaceRef(ref);}v.setPendingAction(result.getPendingAction());v.setRetryable(result.isRetryable());if(r.getContinuationJson()!=null)v.setContinuation(AssistantV4Contract.publicWorkflow(decode(r.getContinuationJson(),WorkflowContinuation.class)));return v;}
     public TurnView cancelTurn(Long user,String id){return tx.execute(t->{lock(user);return cancelLocked(turnRecord(user,id),true);});}
-    private TurnView cancelLocked(TurnRecord r,boolean touchSession){if(AssistantV4Contract.terminal(r.getStatus()))return view(r);TurnResult result=r.getResultJson()==null?new TurnResult():decode(r.getResultJson(),TurnResult.class);result.setStatus("cancelled");result.setReply("已停止，已保存的内容仍保留");result.setPendingAction(null);result.setCards(new ArrayList<>());result.setRetryable(false);if(r.getContinuationJson()!=null){WorkflowContinuation c=decode(r.getContinuationJson(),WorkflowContinuation.class);for(WorkflowStep s:c.getSteps())if(Arrays.asList("pending","awaiting_confirmation").contains(s.getStatus()))s.setStatus("cancelled");result.setContinuation(c);}return saveResult(r,r.getStatus(),r.getLeaseToken(),result,false,touchSession);}
+    private TurnView cancelLocked(TurnRecord r,boolean touchSession){
+        if(AssistantV4Contract.terminal(r.getStatus()))return view(r);
+        TurnResult result=r.getResultJson()==null?new TurnResult():decode(r.getResultJson(),TurnResult.class);
+        Set<String> completedReceipts=new HashSet<>();
+        if(r.getContinuationJson()!=null){
+            WorkflowContinuation c=decode(r.getContinuationJson(),WorkflowContinuation.class);
+            for(WorkflowStep step:c.getSteps()){
+                if("completed".equals(step.getStatus())&&step.getReceiptRef()!=null&&!step.getReceiptRef().trim().isEmpty())completedReceipts.add(step.getReceiptRef());
+                else if(Arrays.asList("pending","awaiting_confirmation").contains(step.getStatus()))step.setStatus("cancelled");
+            }
+            result.setContinuation(c);
+        }
+        // Only durable acknowledged operations survive; a card alone is not evidence of success.
+        List<Card> receipts=new ArrayList<>();
+        for(Card card:result.getCards())if(card!=null&&completedReceipts.contains(card.getReceiptRef())&&card.getPreviewToken()==null)receipts.add(card);
+        result.setCards(receipts);result.setStatus("cancelled");result.setReply("已停止，已保存的内容仍保留");result.setPendingAction(null);result.setRetryable(false);
+        return saveResult(r,r.getStatus(),r.getLeaseToken(),result,false,touchSession);
+    }
     public void deleteSession(Long user,String id){tx.execute(t->{lock(user);session(user,id);List<TurnRecord> active=db.activeSessionTurns(user,id);if(active!=null)for(TurnRecord r:active)cancelTurn(user,r.getId());db.deleteSession(user,id);return null;});}
     private void activeLease(TurnRecord r,String lease){if(!"running".equals(r.getStatus())||lease==null||!lease.equals(r.getLeaseToken())||r.getLeaseUntil()<=clock.millis()||r.getModelDeadlineAt()<=clock.millis())throw conflict();}
     /** Draft mutation and turn finalization must execute inside this transaction, with the same user lock. */

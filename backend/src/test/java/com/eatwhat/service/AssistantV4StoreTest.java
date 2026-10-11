@@ -80,6 +80,28 @@ class AssistantV4StoreTest {
         store.completeWorkflowStep(1L,id,"step-1","domain-receipt",null);store.cancelTurn(1L,id);
         WorkflowContinuation recovered=newStore().continuation(1L,id);assertEquals("completed",recovered.getSteps().get(0).getStatus());assertEquals("domain-receipt",recovered.getSteps().get(0).getReceiptRef());assertEquals("cancelled",recovered.getSteps().get(1).getStatus());
     }
+    @Test void cancel_after_calendar_keeps_real_draft_and_calendar_cards_but_removes_shopping_preview() throws Exception {
+        String sessionId=session(),id=store.claimTurn(1L,sessionId,request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);
+        List<ActionIntent> actions=new ArrayList<>();for(String kind:Arrays.asList("draft_update","calendar_save","shopping_preview")){ActionIntent action=new ActionIntent();action.setKind(kind);actions.add(action);}
+        WorkflowContinuation workflow=com.eatwhat.dto.AssistantV4Contract.workflow(id,actions);store.checkpointContinuation(1L,id,lease.getLeaseToken(),workflow);
+        Card draft=new Card();draft.setId("draft-card");draft.setType("recipe");draft.setReceiptRef("draft:actual-operation");draft.setTitle("本餐已调整");
+        store.completeWorkflowStep(1L,id,"step-1",draft.getReceiptRef(),draft);
+        Card calendar=new Card();calendar.setId("calendar-card");calendar.setType("receipt");calendar.setReceiptRef("calendar:actual-operation");calendar.setTitle("安排已保存");
+        WorkspaceRef reference=new WorkspaceRef();reference.setWorkspaceId("w");reference.setWorkspaceRevision(5L);reference.setPlanVersion(3L);calendar.setWorkspaceRef(reference);
+        store.completeWorkflowStep(1L,id,"step-2",calendar.getReceiptRef(),calendar);
+        workflow=store.continuation(1L,id);String completedBefore=new ObjectMapper().writeValueAsString(workflow.getSteps().subList(0,2));workflow.getSteps().get(2).setStatus("awaiting_confirmation");workflow.getSteps().get(2).setTaskId("shopping-task");
+        PendingAction pending=new PendingAction();pending.setStepId("step-3");pending.setTaskId("shopping-task");pending.setPreviewToken("shopping-preview");pending.setExpiresAt(now+600000);
+        Card preview=new Card();preview.setId("shopping-card");preview.setType("shopping_preview");preview.setTaskId("shopping-task");preview.setPreviewToken("shopping-preview");
+        Card unacknowledged=new Card();unacknowledged.setId("unacknowledged");unacknowledged.setType("receipt");unacknowledged.setReceiptRef("not-a-completed-operation");unacknowledged.setTitle("模型声称成功");
+        TurnResult waiting=new TurnResult();waiting.setStatus("awaiting_confirmation");waiting.setContinuation(workflow);waiting.setPendingAction(pending);waiting.setWorkspaceRef(reference);waiting.setCards(Arrays.asList(draft,calendar,preview,unacknowledged));store.completeTurn(1L,id,"awaiting_confirmation",waiting);
+        clearInvocations(workspaces);TurnView cancelled=store.cancelTurn(1L,id);
+        assertEquals("cancelled",cancelled.getStatus());assertNull(cancelled.getPendingAction());assertFalse(cancelled.isRetryable());assertEquals(2,cancelled.getCards().size());
+        assertEquals(Arrays.asList(draft.getReceiptRef(),calendar.getReceiptRef()),Arrays.asList(cancelled.getCards().get(0).getReceiptRef(),cancelled.getCards().get(1).getReceiptRef()));
+        assertTrue(cancelled.getCards().stream().allMatch(card->card.getPreviewToken()==null));assertEquals(reference,cancelled.getWorkspaceRef());
+        WorkflowContinuation after=store.continuation(1L,id);assertEquals(completedBefore,new ObjectMapper().writeValueAsString(after.getSteps().subList(0,2)));assertEquals("cancelled",after.getSteps().get(2).getStatus());
+        assertEquals(cancelled.getCards(),newStore().findTurn(1L,id).getCards());verifyNoInteractions(workspaces);
+        store.deleteSession(1L,sessionId);assertFalse(sessions.containsKey(sessionId));assertFalse(turns.containsKey(id));verifyNoInteractions(workspaces);
+    }
     @Test void retention_removes_text_not_business_receipts(){store.purgeExpired();verify(db).purgeMessageText(now-30L*86400000);verify(db).purgeTerminalInputs(now-7L*86400000);verify(db).purgeTerminalMetadata(now-90L*86400000);verifyNoInteractions(workspaces);}
     TurnResult initialPreview(String id,TurnRecord lease){
         ActionIntent a=new ActionIntent();a.setKind("calendar_save");a.getArguments().put("date","2026-10-12");ActionIntent b=new ActionIntent();b.setKind("shopping_preview");
