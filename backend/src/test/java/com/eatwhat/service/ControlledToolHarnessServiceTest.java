@@ -174,4 +174,17 @@ class ControlledToolHarnessServiceTest {
         assertEquals(1,committedWrites[0]);assertEquals(2,domainRequests.size());assertEquals(domainRequests.get(0),domainRequests.get(1));
     }
 
+    @Test void disabled_assistant_extension_does_not_disable_legacy_workspace_tools() {
+        Fixture f=fixture();
+        f.service.registerExtension(new ControlledToolHarnessService.Extension() {
+            public String tool(){return "save_meal_to_target";}
+            public boolean enabled(){return false;}
+            public Map<String,Object> bind(Long user,Map<String,Object> arguments){throw new AssertionError("unused assistant extension");}
+            public String summary(Map<String,Object> binding){throw new AssertionError("unused assistant extension");}
+            public Map<String,Object> execute(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index){throw new AssertionError("disabled assistant extension");}
+        });
+        ControlledToolTask preview=f.service.preview(1L,request("legacy-with-disabled-assistant"));
+        assertEquals("completed",f.service.confirm(1L,preview.id,preview.previewToken).status);
+        verify(f.workspaces,times(1)).mutate(anyLong(),anyString(),eq("confirm"),any());
+    }
 }

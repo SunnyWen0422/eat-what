@@ -75,7 +75,7 @@ public final class AssistantV4Contract {
         private ProviderContinuation providerContinuation;private boolean finalRound;private double timeoutSeconds=10;
     }
     @Data public static class StepOutput {
-        private String type,question,reply;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;
+        private String type,question,reply,factSource;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;
         private ProviderContinuation providerContinuation;
     }
     @Data public static class WorkflowStep {

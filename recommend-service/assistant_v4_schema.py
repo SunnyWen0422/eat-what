@@ -131,6 +131,8 @@ def model_output_schema(capabilities=()):
     return {"anyOf": [
         obj({"type": string(20, ["need_input"]), "question": string(2000, nonempty=True)}, ["type", "question"]),
         obj(final_properties, ["type", "reply"]),
+        obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
+             "factSource": string(30, ["recent_actual"])}, ["type", "reply", "factSource"]),
     ]}
 
 # These nested shapes mirror AssistantV4ContextService's explicit Java view.
@@ -317,8 +319,11 @@ def final_output(value, authorized_ids, allowed_actions=()):
         validate(value, obj({"type": string(20, ["need_input"]), "question": string(2000, nonempty=True)}, ["type", "question"]))
         return {"type": "need_input", "question": clarification_question(value["question"])}
     validate(value, obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
+        "factSource": string(30, ["recent_actual"]),
         "actionProposal": obj({"steps": array(obj({"kind": string(30, list(ACTION_ARGUMENTS)), "arguments": {"type": "object"}},
             ["kind", "arguments"]), 3, 1)}, ["steps"])}, ["type", "reply"]))
+    if "factSource" in value and "actionProposal" in value:
+        raise StepValidationError("conflicting final intent")
     for action in (value.get("actionProposal") or {}).get("steps", []):
         if action["kind"] not in allowed_actions: raise StepValidationError("action not enabled")
         arguments = action["arguments"]
@@ -336,6 +341,8 @@ def final_output(value, authorized_ids, allowed_actions=()):
     # authenticated read-result cards and replaces action headers only after
     # domain execution/confirmation receipts. No phrase classifier is relied on.
     result = {"type": "final", "reply": "请查看查询结果，并核对本餐需求。"}
+    if "factSource" in value:
+        result["factSource"] = value["factSource"]
     if "actionProposal" in value:
         result["actionProposal"] = copy.deepcopy(value["actionProposal"])
         result["reply"] = "请核对本餐操作建议。"

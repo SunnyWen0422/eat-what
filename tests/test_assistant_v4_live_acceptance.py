@@ -1,4 +1,5 @@
 """Live-entry safeguards tested only with synthetic files and mocked transport."""
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -15,6 +16,63 @@ SCRATCH=ROOT/'.test-artifacts/assistant-live-guards'
 SCRATCH.mkdir(parents=True,exist_ok=True)
 
 class LiveEntryGuardsTest(unittest.TestCase):
+    def shopping_fixture(self):
+        receipt={'status':'completed','steps':[{'tool':'save_meal_to_target','result':{
+            'executed':True,'targetDate':'2026-10-12','targetMealType':'dinner','targetPlanRevision':3}}]}
+        ref={'kind':'plan','date':'2026-10-12','mealType':'dinner'}
+        group={'selectionKey':'meal-synthetic-0','sourceDate':ref['date'],'sourceMealType':'dinner',
+               'items':[{'sourceLineNo':1,'quantityValue':None,'quantityMin':None,'quantityMax':None,
+                         'quantityText':'用量待核实'}]}
+        binding={'sourceRef':dict(ref),'source':dict(ref,sourceRef=dict(ref),planRevision=3),'groups':[group]}
+        rows=[{'price':None,'quantity':None,'quantityText':'按需'}]
+        return receipt,binding,rows
+
+    def test_live_shopping_rejects_wrong_source_before_confirmation(self):
+        receipt,binding,rows=self.shopping_fixture()
+        workspace={'draft':{'dishes':[]}}
+        for field,value in (('kind','draft'),('date','2026-10-13'),('mealType','lunch')):
+            with self.subTest(field=field):
+                wrong=copy.deepcopy(binding);wrong['sourceRef'][field]=value
+                execution=object.__new__(live.LiveExecution)
+                execution.workspace=workspace;execution.session='synthetic';execution.last_saved=receipt
+                execution.turn_diagnostics=[];execution.budget_used=lambda:0
+                a=Mock(run_id='synthetic',model=Mock(denied_reservations=0))
+                a.workspace.return_value=workspace;a.counts.return_value={'recipe_records':1}
+                a.turn.return_value={'status':'awaiting_confirmation','cards':[{'data':{'items':rows}}]}
+                a.task.return_value={'steps':[{'tool':'add_meal_shopping','binding':wrong}]}
+                with self.assertRaisesRegex(AssertionError,'different saved meal'):
+                    execution.run_case(a,{'scenario':'shopping','id':'LIVE05'},0)
+                a.confirm.assert_not_called()
+
+    def test_live_shopping_requires_receipt_revision_and_unknown_quantity(self):
+        receipt,binding,rows=self.shopping_fixture()
+        expected=live.require_saved_shopping_source(receipt,binding,rows)
+        self.assertEqual('2026-10-12',expected['date'])
+        for change in ('missing_receipt','revision','resolved_date','quantity','quantity_text'):
+            with self.subTest(change=change):
+                saved=copy.deepcopy(receipt);bound=copy.deepcopy(binding);items=copy.deepcopy(rows)
+                if change=='missing_receipt':saved=None
+                elif change=='revision':bound['source']['planRevision']=4
+                elif change=='resolved_date':bound['source']['date']='2026-10-13'
+                elif change=='quantity':items[0]['quantity']=2
+                else:items[0]['quantityText']='2克'
+                with self.assertRaises(AssertionError):live.require_saved_shopping_source(saved,bound,items)
+
+    def test_live_shopping_reads_persisted_source_and_unknown_quantities(self):
+        receipt,binding,rows=self.shopping_fixture()
+        expected=live.require_saved_shopping_source(receipt,binding,rows)
+        persisted=('meal-synthetic-0',1,'2026-10-12','dinner',None,None,None,'用量待核实')
+        a=Mock();a.sql.return_value=(persisted,)
+        live.require_persisted_shopping(a,910001,binding,expected)
+        self.assertEqual((910001,'meal-synthetic-0'),a.sql.call_args.args[1])
+        for index,value in ((0,'meal-wrong-0'),(2,'2026-10-13'),(3,'lunch'),(4,2),(5,1),(6,3),(7,'2克')):
+            with self.subTest(index=index):
+                wrong=list(persisted);wrong[index]=value;a.sql.return_value=(tuple(wrong),)
+                with self.assertRaisesRegex(AssertionError,'persisted source or quantity'):
+                    live.require_persisted_shopping(a,910001,binding,expected)
+        a.sql.return_value=()
+        with self.assertRaises(AssertionError):live.require_persisted_shopping(a,910001,binding,expected)
+
     def test_valid_twentieth_reply_and_denied_twenty_first_have_distinct_outcomes(self):
         for scenario in ('clarified','denied_next','business_failed'):
             with self.subTest(scenario=scenario),tempfile.TemporaryDirectory(dir=SCRATCH) as tmp:

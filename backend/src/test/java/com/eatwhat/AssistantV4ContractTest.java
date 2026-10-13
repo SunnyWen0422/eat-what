@@ -13,6 +13,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AssistantV4ContractTest {
     private final ObjectMapper json = new ObjectMapper();
+    @Test void fact_source_is_internal_optional_step_metadata() throws Exception {
+        StepOutput read=json.readValue("{\"type\":\"final\",\"reply\":\"safe\",\"factSource\":\"recent_actual\"}",StepOutput.class);
+        assertEquals("recent_actual",read.getFactSource());assertNull(read.getActionProposal());
+        StepOutput legacy=json.readValue("{\"type\":\"final\",\"reply\":\"safe\"}",StepOutput.class);
+        assertNull(legacy.getFactSource());
+        String turn="{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"message\":\"最近实际吃了什么\",\"workspaceId\":\"w\",\"expectedWorkspaceRevision\":0,\"expectedPlanVersion\":0,\"entryScene\":\"chat\"}";
+        assertDoesNotThrow(()->AssistantV4Contract.parseTurn(json.readTree(turn)));
+        String forged=turn.substring(0,turn.length()-1)+",\"factSource\":\"recent_actual\"}";
+        assertThrows(IllegalArgumentException.class,()->AssistantV4Contract.parseTurn(json.readTree(forged)));
+    }
     @Test void client_user_id_rejected() {
         assertThrows(Exception.class, () -> AssistantV4Contract.parseTurn(json.readTree("{\"userId\":7}")));
     }

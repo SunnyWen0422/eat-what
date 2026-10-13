@@ -76,6 +76,7 @@ public class AssistantV4TurnService {
                 if("need_input".equals(output.getType())){String question=QUESTIONS.contains(output.getQuestion())?output.getQuestion():SAFE_QUESTION;TurnResult r=result("needs_input",question,UNAVAILABLE.equals(question));r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;}
                 if(!"final".equals(output.getType()))throw new IllegalArgumentException("无法理解本次请求");
                 if(output.getActionProposal()==null||output.getActionProposal().getSteps().isEmpty()){
+                    if("recent_actual".equals(output.getFactSource()))facts.addAll(recentActualCards(user,context));
                     if(facts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());facts.addAll(factCards(user,current));}
                     TurnResult r=result("completed",facts.isEmpty()?"请说明想查询的菜品、日期或餐次":"已查到以下内容",false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
@@ -128,7 +129,7 @@ public class AssistantV4TurnService {
     private TurnResult result(String status,String reply,boolean retry){TurnResult r=new TurnResult();r.setStatus(status);r.setReply(reply);r.setRetryable(retry);return r;}
     private String encode(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalArgumentException("数据无效");}}
     private void boundContext(ModelContext context){List<Map<String,Object>> text=new ArrayList<>(rows(context.getConversation().get("recentText")));while(encode(context).length()>6000&&!text.isEmpty()){text.remove(0);context.getConversation().put("recentText",text);context.getEvidence().put("truncated",true);}if(encode(context).length()>6000)throw new IllegalArgumentException("本餐必要信息较多，请缩小请求范围");}
-    private void validateOutput(StepOutput output){if(output==null||!Arrays.asList("read_calls","final","need_input").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");if("read_calls".equals(output.getType())){if(output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null)throw new IllegalArgumentException("结果内容冲突");}else{if(!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("结果内容冲突");if("need_input".equals(output.getType())&&output.getActionProposal()!=null)throw new IllegalArgumentException("澄清不能附带操作");}}
+    private void validateOutput(StepOutput output){if(output==null||!Arrays.asList("read_calls","final","need_input").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");if(output.getFactSource()!=null&&(!"final".equals(output.getType())||!"recent_actual".equals(output.getFactSource())||output.getActionProposal()!=null))throw new IllegalArgumentException("查询来源无效");if("read_calls".equals(output.getType())){if(output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null)throw new IllegalArgumentException("结果内容冲突");}else{if(!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("结果内容冲突");if("need_input".equals(output.getType())&&output.getActionProposal()!=null)throw new IllegalArgumentException("澄清不能附带操作");}}
     private List<ConversationFrame> frames(ModelContext context){List<ConversationFrame> out=new ArrayList<>();for(Map<String,Object> item:rows(context.getConversation().get("recentText"))){if(!Arrays.asList("user","assistant").contains(item.get("role")))continue;ConversationFrame f=new ConversationFrame();f.setRole((String)item.get("role"));f.setContent(String.valueOf(item.get("text")));out.add(f);}return out.size()>12?new ArrayList<>(out.subList(out.size()-12,out.size())):out;}
     private void authorizeCurrent(Map<String,Object> active,TurnScope scope){for(Map<String,Object> dish:rows(active.get("currentDishes")))addDishId(dish.get("id"),scope);}
     private void authorizeRead(ReadResult read,TurnScope scope){if(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods").contains(read.getName()))for(Map<String,Object> item:read.getItems())addDishId(item.get("id"),scope);else if("read_current_meal".equals(read.getName()))for(Map<String,Object> item:read.getItems())authorizeCurrent(item,scope);}
@@ -174,6 +175,24 @@ public class AssistantV4TurnService {
         }card.getData().put("meals",meals);}
         else return Collections.emptyList();
         if(read.getItems().isEmpty())card.setText("这个范围内暂无记录");return Collections.singletonList(card);
+    }
+    /** Only a source selector crosses the model boundary; rows remain server-authorized context facts. */
+    private List<Card> recentActualCards(Long user,ModelContext context){
+        ReadResult read=new ReadResult();read.setCallId("context-recent-actual");read.setName("read_actual_diet_review");
+        read.setTruncated(Boolean.TRUE.equals(context.getEvidence().get("truncated")));
+        for(Map<String,Object> actual:context.getRecentActual()){
+            if(!"eaten".equals(actual.get("status")))continue;
+            Map<String,Object> day=new LinkedHashMap<>();day.put("date",actual.get("date"));
+            day.put("actual",Collections.singletonList(actual));read.getItems().add(day);
+        }
+        List<Card> cards=factCards(user,read);
+        for(Card card:cards){
+            card.getData().put("factSource","recent_actual");
+            Object range=context.getEvidence().get("recentActualRange");
+            if(range instanceof Map)card.getData().put("range",new LinkedHashMap<>((Map<?,?>)range));
+            if(read.isTruncated())card.setText("以下为部分实际用餐记录，可缩小日期范围继续查询");
+        }
+        return cards;
     }
     private List<Map<String,Object>> displayDishes(Long user,List<Map<String,Object>> source){
         List<Long> ids=new ArrayList<>();for(Map<String,Object> row:source){Object id=row.containsKey("id")?row.get("id"):row.get("dishId");if(id instanceof Number&&((Number)id).longValue()>0)ids.add(((Number)id).longValue());}

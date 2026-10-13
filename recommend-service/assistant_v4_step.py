@@ -23,6 +23,9 @@ actionProposal中只有steps，每个步骤只能有kind和arguments两个字段
 安排一餐时优先一次均衡候选查询，不要按每种类别重复搜索。现有食材明确时优先一次按食材查询。
 activeMeal含workspaceRevision、planVersion及currentDishes时，它已经是服务端本turn授权快照，避免重复读取当前餐。
 优先复用constraints、recentActual、references及本turn已返回的工具资料；仅缺少必要事实时继续读取。
+实际用餐查询复用recentActual时，final必须设置factSource=recent_actual，且不得附带actionProposal。
+该来源只代表evidence.recentActualRange内的授权摘要；truncated为true或查询范围超出时必须读取read_actual_diet_review。
+reply不直接展示；服务端只按factSource或本turn工具事实生成查询卡片，不得仅在reply里给出实际回顾。
 不要为普通生成方案额外读取日历、采购或实际回顾；仅用户明确查询或必要来源数据缺失时查询对应资料。
 目标菜的替换限制不改变全餐条件。所有菜品ID必须来自当前餐或此turn读出的真实菜谱。
 不允许身份、令牌、版本、价格、数量或假回执作为动作参数。不确定来源和目标时先澄清。"""
