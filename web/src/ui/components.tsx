@@ -1,8 +1,13 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import type { DishType, ErrorCode, Meal, RecipeSnapshot } from '../domain/types.ts';
+import type { DishType, ErrorCode, Meal, PersonalStore, RecipeSnapshot, TrashEntry } from '../domain/types.ts';
 import categoryIcons from '../assets/category-icons.svg?no-inline';
 export const MEAL_LABELS: Record<Meal, string> = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' };
+const PERSONAL_STORE_LABELS: Record<PersonalStore, string> = { customRecipes: '自定义菜谱', favorites: '收藏', menuTemplates: '菜单模板', plans: '日历计划', actualMeals: '实际饮食', shoppingLists: '采购清单' };
+export function trashEntryLabel(entry: TrashEntry): string {
+  const name = entry.store === 'customRecipes' || entry.store === 'favorites' ? entry.data.snapshot.name : entry.store === 'menuTemplates' ? entry.data.name : entry.store === 'shoppingLists' ? entry.data.createdAt : entry.data.snapshots.map(snapshot => snapshot.name).join('、');
+  return `${PERSONAL_STORE_LABELS[entry.store]} · ${name}`;
+}
 export function errorMessage(code: ErrorCode): string {
   if (code === 'FUTURE_DATE') return '未来日期只能保存计划，实际记录输入已保留。';
   if (code === 'QUOTA') return '存储空间不足，输入已保留。请导出已有记录、清理可恢复内容或重试。';

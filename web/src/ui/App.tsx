@@ -253,9 +253,13 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     const servings = change.servings ?? current.servings;
     const meal = change.meal ?? current.meal;
     const vegetarian = change.vegetarian ?? preferences.softPreferences.includes('vegetarian');
+    const vegetarianChanged = vegetarian !== preferences.softPreferences.includes('vegetarian');
+    const sizeOrMealChanged = servings !== current.servings || meal !== current.meal;
     let slots = change.slots ?? current.slots;
-    if (change.vegetarian !== undefined) slots = slots.map((slot) => ({ ...slot, type: vegetarian && slot.type === 'meat' ? 'vegetable' : slot.type }));
-    else if (change.slots === undefined && (change.servings !== undefined || change.meal !== undefined)) {
+    const slotsChanged = slots.length !== current.slots.length || slots.some((slot, index) => slot.id !== current.slots[index]?.id || slot.type !== current.slots[index]?.type);
+    if (!sizeOrMealChanged && !vegetarianChanged && !slotsChanged) return;
+    if (vegetarianChanged) slots = slots.map((slot) => ({ ...slot, type: vegetarian && slot.type === 'meat' ? 'vegetable' : slot.type }));
+    else if (change.slots === undefined && sizeOrMealChanged) {
       const defaults = defaultSlots(servings, meal, vegetarian);
       if (!defaults.ok) { setNotice(defaults.error.message); setError(true); return; }
       if (!defaults.value.requiresConfirmation) slots = defaults.value.slots;

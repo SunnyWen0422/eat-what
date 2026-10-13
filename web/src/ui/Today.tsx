@@ -51,7 +51,7 @@ export function Today(props: TodayProps) {
     setServingsEdited(false); setCountEdited(false);
   }
   return <section className="dish-surface today-page" aria-labelledby="today-title">
-    <h2 id="today-title">{draft?.dishes.length ? '本餐菜单' : '今天吃什么？'}</h2><div className="meal-tabs" aria-label="本餐餐次">{Object.entries(MEAL_LABELS).map(([key, label]) => <button key={key} aria-pressed={settings.meal === key} disabled={disabled} onClick={() => props.onSettings({meal:key as Meal})}>{label}</button>)}</div>
+    <h2 id="today-title">{draft?.dishes.length ? '本餐菜单' : '今天吃什么？'}</h2><div className="meal-tabs" aria-label="本餐餐次">{Object.entries(MEAL_LABELS).map(([key, label]) => <button key={key} aria-pressed={settings.meal === key} disabled={disabled} onClick={() => { if (settings.meal !== key) props.onSettings({meal:key as Meal}); }}>{label}</button>)}</div>
     <div className="today-workspace"><div className="meal-settings"><details className="settings-disclosure"><summary>人数与本餐搭配 <strong>{settings.servings} 人 · {settings.slots.length} 道菜</strong></summary><div className="settings-content">
 
       <label>用餐人数<input type="number" min="1" max="50" step="1" value={servingsInput} disabled={disabled} onChange={(event) => { const value = event.target.value; setServingsInput(value); setServingsEdited(value !== String(settings.servings)); }} /></label>
