@@ -50,3 +50,23 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-user .connected-bubble{background:{{brandSoft}};align-self:flex-end}.connected-progress{display:flex;flex-wrap:wrap;align-items:center;font-size:{{font.secondary.em}};color:{{muted}}}
 .connected-composer{flex:none;padding:{{space.2.px}} {{space.3.px}} calc({{space.2.px}} + env(safe-area-inset-bottom));border-top:1px solid {{divider}};background:{{card}}}
 .connected-input-row{display:flex;align-items:flex-end;gap:{{space.1.px}};min-width:0}.connected-input{flex:1;min-width:0;width:0;min-height:{{controls.touchSize.px}};max-height:160px;box-sizing:border-box;padding:{{space.2.px}};border-radius:{{radius.1.px}};background:{{surfaceSoft}};font-size:1em;line-height:1.5}.connected-send{flex:none;background:{{brand}};color:{{card}};border-radius:{{radius.1.px}};font-size:{{font.secondary.em}};padding:{{space.2.px}} {{space.2.px}};margin:0;min-height:{{controls.touchSize.px}}}.connected-send[disabled]{background:{{disabled}};color:{{muted}}}.connected-voice{flex:none;padding:{{space.1.px}};margin:0;background:transparent;border:0;color:{{brand}}}.connected-voice::after,.connected-send::after{border:0}
+
+/* Approved F assistant: readable glass, with no blur per message. */
+.connected-assistant.ew-dish-surface { background:linear-gradient(145deg,{{glassStart}},{{glassMid}} 60%,{{glassEnd}}); }
+.connected-header, .assistant-head { background:{{glassChrome}}; border-bottom:1px solid {{glassBorder}}; padding:16px; }
+.connected-header .ew-heading { font-size:{{font.section.em}}; }
+.connected-messages { padding:16px; }
+.connected-bubble, .bubble-left { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px 16px 16px 4px; color:{{text}}; line-height:1.65; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+.connected-user .connected-bubble, .bubble-right { background:{{brand}}; color:{{card}}; border:1px solid {{brand}}; border-radius:16px 16px 4px 16px; }
+.connected-bubble { max-width:94%; }.connected-user .connected-bubble { max-width:88%; }
+.connected-composer, .input-bar, .quick-bar, .action-bar { background:{{glassChrome}}; border-top-color:{{glassBorder}}; }
+.connected-input, .chat-input { background:{{card}}; border:1px solid {{controlBorder}}; border-radius:14px; }
+.connected-voice { border:1px solid {{controlBorder}}; border-radius:14px; background:{{glassSurface}}; }
+.dish-card, .plan-block, .howto-block, .alternatives-block { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; padding:10px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+.dc-img, .dc-img-fb { width:56px; height:56px; border-radius:14px; }.dc-name, .plan-dish-name { white-space:normal; }
+.connected-welcome { padding:24px 0; }.connected-welcome .ew-title { font-size:{{font.section.em}}; }
+.connected-header .ew-hit-target { width:auto; flex:0 0 auto; margin:0; padding:8px; border:1px solid {{controlBorder}}; border-radius:10px; background:{{glassSurface}}; font-size:{{font.secondary.em}}; }
+.connected-input-row .connected-voice { width:auto; flex:0 0 auto; min-width:48px; min-height:48px; margin:0; padding:8px; font-size:{{font.secondary.em}}; line-height:1.5; white-space:nowrap; }
+.connected-input-row .connected-send { width:auto; flex:0 0 auto; min-width:56px; min-height:48px; margin:0; padding:12px; line-height:1.5; }
+.connected-input-row .connected-input { width:0; flex:1 1 0%; min-width:0; min-height:48px; }
+.connected-assistant .connected-input-row .connected-send[disabled] { opacity:1; background:{{disabled}}; color:{{muted}}; }

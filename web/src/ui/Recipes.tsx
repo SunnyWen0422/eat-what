@@ -1,7 +1,14 @@
+import { RecipeImage } from './RecipeImage.tsx';
 import { useState } from 'react';
 import { manualWarnings } from '../menu/rules.ts';
 import type { Catalog, CatalogRecipe, DishType, Favorite, PersonalData, RecipeSnapshot, Result } from '../domain/types.ts';
-import { CategoryIcon, Dialog, Notice, RecipeFacts, SourceLink, TYPE_LABELS } from './components.tsx';
+import { Dialog, Notice, RecipeFacts, TYPE_LABELS } from './components.tsx';
+const REVIEW_LABELS = { VERIFIED:'有审核记录', UNREVIEWED:'尚未审核', UNKNOWN:'审核情况未知', BROWSE_ONLY:'仅供浏览', REJECTED:'未通过审核' };
+const ISSUE_LABELS: Record<string,string> = {
+  FAMILY_DATABASE_ID_FALLBACK:'相近菜谱可能是同一道菜的不同做法。', MEALS_LOCAL_CONVENTION:'餐次分类供搭配参考。',
+  STANDARD_INGREDIENT_IDS_UNKNOWN:'食材名称尚未完成统一核对。', COMPOUND_COMPOSITION_UNKNOWN:'复合食材的完整配料尚未核实。',
+  UNMAPPED_TYPE:'暂未明确菜品分类。', AUTOMATIC_SELECTION_UNAVAILABLE:'这道菜暂不参与自动推荐。', BASE_SERVINGS_UNKNOWN:'原配方人数尚未明确。',
+};
 export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favorites, writable, pending, preferences }: {
   catalog: Result<Catalog> | null; loading: boolean; onRetry: () => void; onSelect: (recipe: CatalogRecipe) => void; onFavorite: (recipe: RecipeSnapshot) => void; favorites: Favorite[]; writable: boolean; pending: boolean; preferences: PersonalData['preferences'];
 }) {
@@ -18,22 +25,22 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
     return <div className="actions"><button onClick={() => { onSelect(recipe); if (detail) setSelected(null); }} disabled={pending} aria-label={`手选 ${recipe.name}`}>手选这道菜</button>
       <button disabled={pending || !writable} aria-label={`${favorite ? '取消收藏' : '收藏'} ${recipe.name}`} onClick={() => { if (detail) setSelected(null); onFavorite(recipe); }}>{favorite ? '取消收藏' : '收藏'}</button></div>;
   }
-  return <section aria-labelledby="recipes-title">
-    <h2 id="recipes-title">菜谱</h2><p className="muted">从在线数据库读取菜谱，按餐次和分类推荐，也可以自己选菜。个人记录保存在当前浏览器。</p>
+  return <section className="dish-surface recipes-page" aria-labelledby="recipes-title">
+    <h2 id="recipes-title">菜谱</h2>
     <div className="card filters"><label>搜索名称或食材<input type="search" value={keyword} onChange={event => setKeyword(event.target.value)} /></label>
       <label>菜谱分类<select value={category} onChange={event => setCategory(event.target.value as DishType | '')}><option value="">全部分类</option>{Object.entries(TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
       <label>仅看收藏<input type="checkbox" checked={favoritesOnly} onChange={event => setFavoritesOnly(event.target.checked)} /></label>
-      <button onClick={() => { setKeyword(''); setCategory(''); setFavoritesOnly(false); }}>清除筛选</button><p>筛选仅在本地进行，不发送关键词或收藏。</p>
+      <button onClick={() => { setKeyword(''); setCategory(''); setFavoritesOnly(false); }}>清除筛选</button>
     </div>
     {loading ? <Notice text="正在读取在线菜谱…" /> : !catalog?.ok ? <div className="notice"><p>在线菜谱暂时无法读取。已有个人计划仍可查看，可在“我的”新建自定义菜谱。</p><button disabled={loading} onClick={onRetry}>重试在线菜谱</button></div>
-      : <><Notice text={`已读取 ${recipes.length} 道在线菜谱 · 当前显示 ${matches.length} 道 · ${recipes.filter(recipe => recipe.generationEligible).length} 道可参与普通推荐。设置忌口或素食要求后，会进一步核对食材信息。`} />
+      : <><p className="result-count muted">{matches.length} 道菜</p>
         {!recipes.length ? <p>当前没有可浏览的在线菜谱。</p> : !matches.length ? <p>没有匹配的菜谱，试试调整筛选。</p>
-          : <ul className="recipe-list">{matches.map(recipe => <li className="card" key={recipe.recipeId}><CategoryIcon type={recipe.types[0]} /><h3>{recipe.name}</h3><p className="muted">{recipe.types.map(type => TYPE_LABELS[type]).join('、') || '分类未知'} · {recipe.baseServings === null ? '基准人数未知' : `基准 ${recipe.baseServings} 人`} · {recipe.reviewStatus === 'VERIFIED' ? '有审核记录' : '审核状态未知'}</p>
-            <p>份量和复合食材信息可能未知，请按实际需求核对。</p>{warnings(recipe).map(warning => <p className="warning" key={warning}>{warning}</p>)}
-            <p>手选不代表通过忌口筛选。来源：<SourceLink url={recipe.source.url} />。</p>
-            <button aria-label={`查看详情 ${recipe.name}`} onClick={() => setSelected(recipe)}>查看食材、步骤和来源</button>{buttons(recipe)}
+          : <ul className="recipe-list">{matches.map(recipe => <li className="card recipe-card" key={recipe.recipeId}><div className="dish-identity"><RecipeImage snapshot={recipe}/><div><h3>{recipe.name}</h3><p className="muted">{recipe.types.map(type => TYPE_LABELS[type]).join('、') || '菜谱'}</p></div></div>
+            {(preferences.hardExclusions.length || preferences.softPreferences.includes('vegetarian') ? warnings(recipe) : []).map(warning => <p className="warning" key={warning}>{warning}</p>)}
+
+            <button aria-label={`查看详情 ${recipe.name}`} onClick={() => setSelected(recipe)}>查看做法</button>{buttons(recipe)}
           </li>)}</ul>}</>}
-    {selected && <Dialog title={selected.name} busy={pending} onClose={() => setSelected(null)}><h3>{selected.name}</h3><RecipeFacts snapshot={selected} />
-      <p>审核状态：{selected.reviewStatus === 'VERIFIED' ? '有审核记录' : '未知或未通过'} · 标准原料身份、菜品变体和素食适用仍缺少完整审核。</p>{selected.issues.map((issue, index) => <p key={index}>来源限制：{issue}</p>)}{warnings(selected).map(warning => <p className="warning" key={warning}>{warning}</p>)}{buttons(selected, true)}<button disabled={pending} onClick={() => setSelected(null)}>关闭菜谱详情</button></Dialog>}
+    {selected && <Dialog title={selected.name} busy={pending} onClose={() => setSelected(null)}><RecipeImage snapshot={selected} hero/><h3>{selected.name}</h3><RecipeFacts snapshot={selected} />
+      <details><summary>菜谱信息说明</summary><p>{REVIEW_LABELS[selected.reviewStatus]}</p>{selected.issues.map((issue,index)=><p key={index}>{ISSUE_LABELS[issue] ?? (/^[A-Z_0-9]+$/.test(issue) ? '部分菜谱资料仍需核对。' : issue)}</p>)}</details>{warnings(selected).map(warning => <p className="warning" key={warning}>{warning}</p>)}{buttons(selected, true)}<button disabled={pending} onClick={() => setSelected(null)}>关闭菜谱详情</button></Dialog>}
   </section>;
 }

@@ -1,4 +1,4 @@
-<view class="ew-page ew-screen calendar-detail-page" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page ew-dish-surface ew-screen calendar-detail-page" style="font-size:{{fontBase * fontScale}}px">
   <text class="ew-heading">{{dateHeading}}</text>
   <ui-state wx:if="{{loading && !meals.length}}" kind="loading" title="正在读取这餐" />
   <ui-state wx:elif="{{errorMessage && !meals.length}}" kind="error" title="暂时无法读取" description="{{errorMessage}}" action-label="重试" bind:action="loadMealRecords" />

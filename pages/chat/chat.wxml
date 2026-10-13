@@ -1,10 +1,10 @@
 <block wx:if="{{assistantConnected}}">
-<view class="connected-assistant" style="font-size:{{fontBase * fontScale}}px;padding-bottom:{{keyboardHeight}}px">
- <view class="connected-header"><view><text class="ew-heading">一起安排这一餐</text><text class="connected-target">{{context.date}} {{mealName}}{{context.people ? ' · '+context.people+'人' : ''}}</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">回到今天</button></view>
+<view class="connected-assistant ew-dish-surface" style="font-size:{{fontBase * fontScale}}px;padding-bottom:{{keyboardHeight}}px">
+ <view class="connected-header"><view><text class="ew-heading">餐桌助手</text><text class="connected-target">{{context.date}} {{mealName}}{{context.people ? ' · '+context.people+'人' : ''}}</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">回到今天</button></view>
  <scroll-view class="connected-messages" scroll-y enhanced scroll-into-view="{{conversationScrollTarget}}">
   <button wx:if="{{conversationHasOlder}}" class="ew-hit-target ew-link" bindtap="onConversationOlder">查看更早的对话</button>
   <assistant-card wx:if="{{conversationCurrentMenu}}" card="{{conversationCurrentMenu}}" active="{{false}}" />
-  <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><ui-icon name="servings" size="40" /><text class="ew-title">说说你这一餐的想法</text><text class="ew-muted">可以换道菜、看看做法，或把菜单保存到指定餐次。</text></view>
+  <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="ew-title">说说你这一餐的想法</text><text class="ew-muted">可以换道菜、看看做法，或把菜单保存到指定餐次。</text></view>
   <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">
    <text wx:if="{{item.text}}" class="connected-bubble" user-select>{{item.text}}</text>
    <assistant-card wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy}}" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
@@ -16,18 +16,18 @@
   <view wx:if="{{conversationError}}" class="ew-error" aria-role="alert">{{conversationError}}</view>
   <button wx:if="{{conversationRecoverable}}" class="ew-hit-target ew-link" disabled="{{conversationBusy}}" bindtap="onConversationRecover">恢复刚才的请求</button>
   <button wx:if="{{conversationCanStop && !conversationBusy}}" class="ew-hit-target ew-link" bindtap="onConversationStop">{{conversationStopLabel}}</button>
-  <view class="connected-input-row"><button class="ew-hit-target connected-voice" bindtap="onConversationVoice" aria-label="语音输入"><ui-icon name="mic" size="22" /></button><textarea placeholder-class="ew-placeholder" class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="例如：第二道换清淡一点" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{conversationBusy || !conversationInput}}" bindtap="onConversationSend">发送</button></view>
+  <view class="connected-input-row"><button class="ew-hit-target connected-voice" bindtap="onConversationVoice" aria-label="语音输入">语音</button><textarea placeholder-class="ew-placeholder" class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="说说想法" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{conversationBusy || !conversationInput}}" bindtap="onConversationSend">发送</button></view>
  </view>
 </view>
 </block>
 <block wx:else>
 <block wx:if="{{workspaceEnabled}}"><include src="../../templates/meal-workspace.wxml" /></block>
 <block wx:else>
-<view class="ew-page page" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page ew-dish-surface page" style="font-size:{{fontBase * fontScale}}px">
   <view class="assistant-head">
     <view>
       <view class="head-title">吃什么助手</view>
-      <view class="head-subtitle">把这一餐安排好，再决定要不要保存</view>
+
     </view>
     <button class="ew-hit-target ew-button secondary" disabled="{{loading || pendingAction}}" bindtap="onOpenSettings">人数 / 餐次</button><view aria-role="button" class="ew-hit-target clear-btn" bindtap="onClearSession"><ui-icon class="line-icon line-icon-refresh" name="refresh" /><text>清空</text></view>
   </view>
@@ -39,7 +39,7 @@
 
   <scroll-view class="msg-list" scroll-y enhanced scroll-top="{{scrollTop}}" scroll-with-animation>
     <view wx:if="{{!messages.length}}" class="welcome-block">
-      
+
       <view class="welcome-title">今天这一餐，交给我一起想</view>
       <view class="welcome-text">说说人数、口味和手边食材，我会从菜谱里帮你搭配，也可以逐道调整。</view>
     </view>
@@ -53,7 +53,7 @@
       <view wx:if="{{item.role === 'assistant' && item.dishes && item.dishes.length}}" class="dish-cards">
         <view aria-role="button" class="ew-hit-target dish-card" wx:for="{{item.dishes}}" wx:key="id" wx:for-item="dish" bindtap="onTapDish" data-id="{{dish.id}}">
           <image wx:if="{{dish.image}}" class="dc-img" src="{{dish.image}}" mode="aspectFill" lazy-load />
-          
+
           <view class="dc-info"><text class="dc-name">{{dish.name}}</text><text wx:if="{{dish.match_reasons && dish.match_reasons[0]}}" class="dc-reason">{{dish.match_reasons[0]}}</text></view>
           <text class="dc-arrow">›</text>
         </view>
@@ -77,14 +77,14 @@
       </view>
     </view>
     <view wx:if="{{howto}}" class="howto-block">
-      <view class="howto-heading"><text>{{howto.dish_name}} · 做法</text><text class="howto-source">菜库记录</text></view>
+      <view class="howto-heading"><text>{{howto.dish_name}} · 做法</text></view>
       <view wx:if="{{howto.steps && howto.steps.length}}" class="howto-steps">
         <view wx:for="{{howto.steps}}" wx:key="index" class="howto-step"><text class="step-index">{{index + 1}}</text><text class="step-text">{{item}}</text></view>
       </view>
       <view wx:else class="howto-empty">暂无完整步骤，打开菜品详情查看可用信息。</view>
     </view>
     <view wx:if="{{alternatives && alternatives.length}}" class="alternatives-block">
-      <view class="alternatives-heading"><text>还可以考虑</text><text>同样来自菜库</text></view>
+      <view class="alternatives-heading"><text>还可以考虑</text></view>
       <view aria-role="button" wx:for="{{alternatives}}" wx:key="id" class="ew-hit-target alternative-row" bindtap="onTapDish" data-id="{{item.id}}">
         <view class="alternative-main"><text class="alternative-name">{{item.name}}</text><text wx:if="{{item.match_reasons && item.match_reasons[0]}}" class="alternative-reason">{{item.match_reasons[0]}}</text></view><text class="plan-arrow">›</text>
       </view>

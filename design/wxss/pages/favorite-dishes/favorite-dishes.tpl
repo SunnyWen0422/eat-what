@@ -21,3 +21,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
  .favorite-row { background:{{card}}; padding:0 14px 4px; border-bottom:1px solid {{divider}}; }.favorite-row > button { margin-left:auto; background:transparent; font-size:{{font.body.em}}; color:{{muted}}; }.favorite-row dish-card { display:block; }
 
 @import "../../styles/recipe-selection.wxss";
+
+.favorite-row { background:transparent; border:0; padding:0; }

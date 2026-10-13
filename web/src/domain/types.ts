@@ -64,6 +64,7 @@ export interface PublicDishQuality {
 }
 /** Minimal whitelist. Actual database text fields remain text, not executable media. */
 export interface PublicDish {
+  image?: string;
   id: number; name: string; type: string | null;
   cl: string | null; fl: string | null; step: string | null; steps: string | null;
   tips: string | null; ingredientsAmounts: string | null; contentVersion: string | null;

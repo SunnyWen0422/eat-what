@@ -1,5 +1,5 @@
 <!--pages/dish-detail/dish-detail.wxml-->
-<view class="ew-page container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
+<view class="ew-page ew-dish-surface container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
   <!-- 菜品图片 -->
   <view class="dish-image-container {{!dish.image || dishImageFailed ? 'is-placeholder' : ''}}">
     <image

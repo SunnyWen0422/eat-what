@@ -24,3 +24,5 @@ picker.ew-hit-target { display:block; }
 button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
+
+.dish { background:rgba(255,255,255,0.66); border:1px solid rgba(255,255,255,0.74); border-radius:16px; padding:10px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }

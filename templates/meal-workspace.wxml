@@ -1,4 +1,4 @@
-<view class="ew-page mobile-screen workspace-screen mode-{{mode}}" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page ew-dish-surface mobile-screen workspace-screen mode-{{mode}}" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
     <view class="mobile-scroll-content">
       <view class="workspace-header"><view class="workspace-date"><ui-icon name="calendar" tone="muted" size="16" /><text>{{dateLabel}}</text></view><button class="ew-hit-target workspace-shopping" bindtap="onOpenShoppingList"><ui-icon name="shopping-basket" size="20" /><text>清单</text></button></view>
@@ -29,7 +29,7 @@
         <view wx:if="{{draft.dishes.length}}" class="workspace-menu-section">
           <view class="workspace-menu-heading"><text class="ew-muted">{{saveState === 'saved' ? '已保存到日历' : saveState === 'changed' ? '有修改尚未保存' : '搭配好了 · 看看菜单'}}</text><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onRegenerate"><ui-icon name="refresh" size="16" /><text>换一套</text></button></view>
           <view class="workspace-menu">
-            <compact-dish-row wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage}}" bind:view="onDishOpen" bind:replace="onReplace" />
+            <compact-dish-row wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" />
           </view>
           <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button wx:if="{{draft.history.length && !actionFeedback.undoAvailable}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onUndo">撤销上一步</button></view>
           <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>
@@ -62,12 +62,12 @@
     <view wx:if="{{peopleError}}" class="ew-error" role="alert">{{peopleError}}</view><ui-button slot="footer" label="完成" disabled="{{peopleError}}" bind:action="onClosePeople" />
   </ui-sheet>
   <ui-sheet visible="{{compositionVisible}}" title="本餐搭配" busy="{{compositionSaving || busy}}" bind:close="onCloseComposition">
-    <text class="ew-muted">应用后保留这份搭配配置。</text>
     <view class="workspace-composition-presets"><button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" data-id="one-meat-two-veg" bindtap="onCompositionPreset">一荤两素</button><button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" data-id="two-meat-one-veg" bindtap="onCompositionPreset">两荤一素</button><button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" data-id="one-meat-one-veg-soup" bindtap="onCompositionPreset">一荤一素一汤</button></view>
     <view class="workspace-composition-row" wx:for="{{compositionRows}}" wx:key="type"><text>{{item.label}}</text><view class="workspace-stepper"><button class="ew-hit-target ew-link" aria-label="减少一道{{item.label}}" disabled="{{compositionSaving || contextLocked || item.minusDisabled}}" data-type="{{item.type}}" data-delta="-1" bindtap="onCompositionStep">−</button><input class="workspace-people-input" aria-label="{{item.label}}数量，0 至 10 道" type="number" value="{{item.count}}" disabled="{{compositionSaving || contextLocked}}" data-type="{{item.type}}" bindinput="onCompositionInput" /><button class="ew-hit-target ew-link" aria-label="增加一道{{item.label}}" disabled="{{compositionSaving || contextLocked || item.plusDisabled}}" data-type="{{item.type}}" data-delta="1" bindtap="onCompositionStep">+</button></view></view>
     <button class="ew-hit-target ew-link" disabled="{{compositionSaving || contextLocked}}" bindtap="onCompositionAuto">恢复按人数自动搭配</button>
     <view wx:if="{{compositionHint || errorMessage}}" class="ew-error" role="alert">{{compositionHint || errorMessage}}</view>
     <ui-button wx:if="{{syncStatus === 'unknown' || syncStatus === 'offline' || syncStatus === 'conflict'}}" label="{{primaryLabel}}" variant="secondary" disabled="{{busy}}" bind:action="onPrimaryAction" />
+    <text class="ew-muted">应用后保留这份搭配配置。</text>
     <ui-button slot="footer" label="应用搭配" loading="{{compositionSaving}}" disabled="{{compositionApplyDisabled || compositionSaving || contextLocked || peopleError}}" bind:action="onApplyComposition" />
   </ui-sheet>
   <ui-sheet visible="{{requirementsVisible}}" title="本餐要求（选填）" busy="{{voicePhase !== 'idle' || requirementsSaving}}" bind:close="onCancelRequirements">

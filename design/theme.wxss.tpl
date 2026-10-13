@@ -148,3 +148,11 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-page.admin-workspace button.refresh,.ew-page.admin-workspace button.search-btn,.ew-page.admin-workspace .section-head button.add { flex:0 0 auto; width:auto; max-width:88px; padding:10px 16px; }
 .ew-page.admin-workspace .search input { border:1px solid {{controlBorder}}; border-radius:12px; }
 .ew-page.admin-workspace .filters picker > view { border:0; padding:0; }
+
+/* F is scoped to dish content and the dining assistant, never to tool forms. */
+.ew-page.ew-dish-surface, .connected-assistant.ew-dish-surface {
+ background-color:{{glassBackground}};
+ background-image:linear-gradient(145deg,{{glassStart}},{{glassMid}} 60%,{{glassEnd}});
+ background-size:100% 100%; min-height:100vh;
+}
+.ew-dish-surface .ew-glass-card { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }

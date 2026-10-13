@@ -33,8 +33,8 @@ describe('workspace navigation and action hierarchy', () => {
   it('uses exactly four navigation entries, explicit first-use privacy copy and accurate defaults', async () => {
     await setup();
     expect(within(screen.getByRole('navigation', { name: '主导航' })).getAllByRole('button').map(button => button.textContent)).toEqual(['今天吃什么', '菜谱', '日历', '我的']);
-    expect(screen.getByText('无需登录。记录保存在当前浏览器，建议定期导出备份。')).not.toBeNull();
-    expect(screen.getByText('筛选依据已知食材信息，无法保证过敏安全。请核对原料、调味料及交叉接触风险。')).not.toBeNull();
+    expect(screen.getByText('记录保存在当前浏览器')).not.toBeNull();
+    expect(screen.getByText('有忌口时，请核对完整配料与交叉接触风险。')).not.toBeNull();
     expect(screen.getByLabelText('用餐人数')).toHaveProperty('value', '2');
     expect(screen.getByLabelText('草稿餐次')).toHaveProperty('value', 'dinner');
     expect(screen.getByLabelText('菜数')).toHaveProperty('value', '2');
@@ -102,7 +102,7 @@ describe('local recipe discovery and truthful detail', () => {
   });
   it('shows online-only retry and manual personal paths, without fabricated inventory', async () => {
     const loader = vi.fn<() => Promise<Result<Catalog>>>().mockResolvedValueOnce({ ok: false, error: { code: 'CATALOG', message: 'corrupt directory' } }).mockResolvedValue({ ok: true, value: source });
-    await setup(loader); await tab('菜谱'); fireEvent.click(screen.getByRole('button', { name: '重试在线菜谱' })); expect(await screen.findByRole('button', { name: '手选 清炒青菜' })).not.toBeNull(); expect(screen.getByText(/已读取 2 道在线菜谱/)).not.toBeNull();
+    await setup(loader); await tab('菜谱'); fireEvent.click(screen.getByRole('button', { name: '重试在线菜谱' })); expect(await screen.findByRole('button', { name: '手选 清炒青菜' })).not.toBeNull(); expect(screen.getByText(/^2 道菜$/)).not.toBeNull();
   });
 });
 

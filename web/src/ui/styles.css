@@ -1,4 +1,4 @@
-:root { font-family: system-ui, -apple-system, "Noto Sans CJK SC", sans-serif; color: #283b2d; background: #faf8f1; font-synthesis: none; line-height: 1.6; font-size: 16px; }
+:root { --brand:#28634E; --text:#25332B; --muted:#56645B; --line:#D9E1D5; --glass:rgba(255,255,255,.66); --glass-border:rgba(255,255,255,.74); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--text); background: #F8F7F2; font-synthesis: none; line-height: 1.6; font-size: 16px; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 0; }
 button, input, select, textarea { font: inherit; min-height: 44px; min-width: 0; max-width: 100%; border: 1px solid #84947a; border-radius: 10px; padding: 10px 14px; background: #fff; color: inherit; }
@@ -49,3 +49,62 @@ button[aria-pressed="true"] { background: #dfebd3; border-color: #526543; }
 @media (min-width: 1000px) { .month-days { grid-template-columns: repeat(7,minmax(0,1fr)); } }
 @media (max-width: 360px) { main { padding: 12px; } .card, .dialog-panel { padding: 14px; } nav { gap: 0; padding-inline: 4px; } .dialog-backdrop { padding: 8px; } .dialog-panel { max-height: calc(100dvh - 16px); } }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+
+/* A warm table chrome, F dish surfaces. No per-card backdrop filters. */
+.app-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:#F8F7F2; border-color:var(--line); }
+.app-header h1 { font-size:24px; margin:0; letter-spacing:-.02em; }
+.app-header .muted { font-size:13px; text-align:right; }
+h2 { font-size:24px; line-height:1.3; } h3 { font-size:18px; line-height:1.5; }
+main { padding:20px; } .muted { color:var(--muted); } .result-count { font-size:13px; }
+button, input, select, textarea { border-color:#7C8E80; border-radius:10px; }
+button { transition:background-color 100ms ease-out, transform 100ms ease-out; }
+button:active:not(:disabled) { transform:translateY(1px); }
+button.primary { min-height:48px; color:#fff; background:var(--brand); border-color:var(--brand); border-radius:14px; }
+button.primary:hover { background:#20513F; }
+button[aria-pressed="true"] { background:var(--brand); color:#fff; border-color:var(--brand); }
+nav { background:rgba(248,247,242,.96); border-color:var(--line); }
+nav button[aria-current="page"] { background:#EDF3ED; color:var(--brand); }
+.card { background:#fff; border-color:var(--line); box-shadow:none; }
+.dish-surface { background:linear-gradient(145deg,#E4EEDA,#F5ECE2 60%,#D7E9E3); border-radius:24px; padding:20px; min-width:0; }
+.recipe-card, .recipe-list .recipe-card, .meal-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:10px; margin:8px 0; box-shadow:0 5px 16px #1e473808; min-width:0; list-style:none; }
+.recipe-card h3 { font-size:16px; font-weight:600; margin:0; }
+.recipe-card p { margin:4px 0 8px; }
+.recipe-card .muted { font-size:13px; }
+.recipe-card button { font-size:13px; padding:8px 12px; }
+.dish-identity { display:flex; align-items:center; gap:12px; min-width:0; }
+.dish-identity > :last-child { min-width:0; overflow-wrap:anywhere; }
+.recipe-photo { flex:0 0 56px; display:flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:14px; overflow:hidden; background:#EDF3ED; }
+.recipe-photo img { width:100%; height:100%; object-fit:cover; }
+.recipe-photo .category-icon { width:32px; height:32px; color:var(--brand); }
+.recipe-hero { width:100%; height:220px; border-radius:18px; margin-bottom:16px; }
+.recipe-hero .category-icon { width:64px; height:64px; }
+.recipe-list { gap:8px 16px; } .recipe-list .card { margin:0; }
+.filters { background:rgba(255,255,255,.88); border-color:var(--glass-border); padding:16px; }
+.filters label { font-size:13px; margin-bottom:8px; }
+.filters button { align-self:end; }
+.today-workspace { max-width:720px; margin:auto; }
+.meal-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+.meal-tabs button { min-width:64px; min-height:44px; border-radius:24px; padding:8px 16px; background:#EDF3ED; border-color:transparent; color:var(--brand); }
+.meal-tabs button[aria-pressed="true"] { background:var(--brand); color:#fff; }
+.settings-disclosure { margin:12px 0; border-block:1px solid var(--line); }
+.settings-disclosure > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; }
+.settings-disclosure > summary::after { content:'›'; color:var(--brand); }
+.settings-disclosure[open] > summary::after { content:'⌄'; }
+.settings-disclosure strong { margin-left:auto; font-size:14px; color:var(--brand); }
+.settings-content { padding:16px; border-radius:16px; background:rgba(255,255,255,.88); margin-bottom:12px; }
+.settings-content > p { font-size:13px; }.settings-content label { margin-bottom:12px; }
+.meal-settings > button.primary { width:100%; margin:8px 0 20px; }
+.current-menu > h3 { font-size:16px; margin:20px 0 12px; }
+.menu-dishes { list-style:none; padding:0; }.current-menu > .primary { width:100%; margin:16px 0 8px; }
+.menu-dishes summary { font-size:13px; color:var(--brand); }
+.ingredient-facts { list-style:none; padding:0; }.ingredient-facts li { border-bottom:1px solid var(--line); padding:10px 0; margin:0; }
+.saved-records { margin-top:24px; border-top:1px solid var(--line); }
+.personal-dishes { background:linear-gradient(145deg,#E4EEDA,#F5ECE2 60%,#D7E9E3); border-color:var(--glass-border); }
+.personal-dishes > ul { padding:0; }
+.dialog-panel { background:#F8F7F2; border:1px solid var(--line); border-radius:24px; box-shadow:0 16px 60px #25332b24; }
+.dialog-backdrop { background:#25332b66; }
+.notice { background:#EDF3ED; border-color:#7C8E80; }.notice.error { background:#FFF0ED; border-color:#A93B30; color:#843126; }
+.warning { color:#75501A; }
+@media (min-width:768px) { .today-page { max-width:800px; margin:auto; }.today-page .meal-tabs { max-width:720px; margin:16px auto; }.today-page > h2 { max-width:720px; margin:auto; } }
+@media (max-width:600px) { .app-header { padding:16px; }.app-header .muted { max-width:150px; } main { padding:0 0 16px; } main > :not(.dish-surface) { margin-inline:16px; }.dish-surface { border-radius:0; padding:16px; }.recipe-list { grid-template-columns:minmax(0,1fr); }.dialog-backdrop { align-items:flex-end; padding:0; }.dialog-panel { width:100%; max-height:90dvh; border-radius:24px 24px 0 0; padding:20px 16px calc(20px + env(safe-area-inset-bottom)); }.meal-tabs button { padding:8px 12px; }.settings-disclosure strong { white-space:nowrap; } }
+@media (prefers-reduced-motion:reduce) { button { transition:none; } button:active:not(:disabled) { transform:none; } }

@@ -1,4 +1,5 @@
 import type { Catalog, CatalogRecipe, DishType, Ingredient, Meal, PublicCatalogProvider, PublicCatalogTransport, PublicDish, PublicDishPage, PublicDishQuality, PublicDishQuery, PublicIngredient, PublicReviewStatus, QualityStatus, Result } from '../domain/types.ts';
+import { rememberRecipeImage, safeRecipeImage } from './media.ts';
 import { exactKeys, isObject, isText, LIMITS, validateJsonBoundary } from '../domain/validation.ts';
 
 const meals: readonly Meal[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -49,6 +50,7 @@ function parseDish(value: unknown): PublicDish {
   requireThat(isObject(value) && typeof value.id === 'number' && Number.isSafeInteger(value.id) && value.id > 0 && isText(value.name));
   return {
     id: value.id, name: value.name, type: nullableText(value.type), cl: nullableText(value.cl), fl: nullableText(value.fl), step: nullableText(value.step), steps: nullableText(value.steps),
+    ...(safeRecipeImage(value.image) ? { image: safeRecipeImage(value.image)! } : {}),
     tips: nullableText(value.tips), ingredientsAmounts: nullableText(value.ingredientsAmounts), contentVersion: nullableText(value.contentVersion), quality: parseQuality(value.quality),
   };
 }
@@ -112,13 +114,15 @@ export function normalizePublicDish(input: PublicDish): Result<CatalogRecipe> {
     if (!generationEligible) issues.push('AUTOMATIC_SELECTION_UNAVAILABLE');
     if (baseServings === null) issues.push('BASE_SERVINGS_UNKNOWN');
     if (nonempty(dish.fl)) issues.push(`原文份量：${dish.fl}`);
-    return { ok: true, value: {
+    const recipe: CatalogRecipe = {
       recipeId: `eatwhat-db:${dish.id}`, familyId: `eatwhat-db:${dish.id}`, variantId: null, name: dish.name,
       types: classification ? [classification.type] : [], meals: classification ? [...classification.meals] : [], ingredients, steps,
       source: { url: null, commit: null, license: null }, catalogVersion: null, contentVersion: nonempty(dish.contentVersion) ? dish.contentVersion : null, baseServings,
       reviewStatus: quality?.reviewStatus ?? 'UNKNOWN', generationEligible, reviewedAt: null, issues,
       stepStatus: quality?.stepStatus ?? 'UNKNOWN', servingsStatus: quality?.servingsStatus ?? 'UNKNOWN', familyIdentity: 'database-id-fallback', mealEligibility: 'local-convention',
-    } };
+    };
+    rememberRecipeImage(recipe, dish.image);
+    return { ok: true, value: recipe };
   } catch { return { ok: false, error: { code: 'CATALOG', message: 'Invalid public recipe fields', retryable: true } }; }
 }
 function availabilityFor(recipes: CatalogRecipe[]): Catalog['availability'] {

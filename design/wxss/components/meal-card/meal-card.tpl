@@ -15,3 +15,5 @@
 .status { line-height:1.5; }.name { min-height:0; color:{{text}}; margin:12px 0 8px; line-height:1.5; overflow-wrap:anywhere; }
 .meal-link { padding:0; background:transparent; text-align:left; border:0; border-radius:0; }.meal-link::after { border:0; }
 .description { font-size:{{font.body.em}}; line-height:1.7; }
+
+.card { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }

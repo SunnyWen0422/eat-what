@@ -1,6 +1,6 @@
-<view class="assistant-card">
+<view class="assistant-card {{view.canConfirm ? 'card-confirmation' : ''}}">
  <text class="card-title">{{view.title}}</text>
- <text wx:if="{{view.targetLabel || view.peopleLabel}}" class="card-meta">{{view.targetLabel}}{{view.peopleLabel ? ' · '+view.peopleLabel : ''}}</text>
+ <text wx:if="{{view.targetLabel || view.peopleLabel}}" class="card-meta">{{view.targetLabel}}{{view.peopleLabel ? (view.targetLabel ? ' · ' : '') + view.peopleLabel : ''}}</text>
  <text wx:if="{{view.text}}" class="card-text">{{view.text}}</text>
  <checkbox-group wx:if="{{view.canSelect}}" bindchange="onSelection">
   <label wx:for="{{view.rows}}" wx:key="key" class="card-check-row"><checkbox value="{{item.sourceKey}}" checked="{{item.selected}}" disabled="{{busy || !active}}" color="#28634E" /><view class="card-name"><text class="card-name-text">{{item.name}}</text><text wx:if="{{item.quantityLabel}}" class="card-meta">{{item.quantityLabel}}</text></view></label>

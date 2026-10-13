@@ -51,7 +51,11 @@ export async function checkBoundaries(root: string, dist = resolve(root, 'dist')
           if (name === 'fetcher' && text.slice(scanner.getTokenEnd()).trimStart().startsWith('(')) { fetchCalls++; if (!transport) report('network outside public catalog transport'); }
         }
       }
-      if (extname(file) === '.tsx' && /\bimport\s*\(|<(?:img|iframe|script|link|object|embed|image)\b/.test(text)) report('dynamic module or media binding');
+      // The approved dish-photo renderer is the only automatic media sink. Its URL
+      // comes from the validated public catalog; imported snapshots have no media field.
+      const approvedPhoto = '<img src={source} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />';
+      const mediaText = path === 'src/ui/RecipeImage.tsx' ? text.replace(approvedPhoto, '') : text;
+      if (extname(file) === '.tsx' && /\bimport\s*\(|<(?:img|iframe|script|link|object|embed|image)\b/.test(mediaText)) report('dynamic module or media binding');
       for (const match of text.matchAll(/\b(?:from\s*|import\s*(?:\(\s*)?)(['"])([^'"]+)\1/g)) {
         const specifier = match[2]!;
         if (specifier.startsWith('.')) { if (!resolve(dirname(file), specifier).startsWith(sourceRoot + sep)) report('import escapes independent web source'); }

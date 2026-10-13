@@ -62,3 +62,8 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-preview-page { padding-bottom:calc(176px + env(safe-area-inset-bottom)); }
 .shopping-preview-page .ew-heading { font-size:1.5em; }
 .shopping-preview-page button.dish-header { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }
+
+.preview-dish-group { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; padding:10px; margin:8px 0; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+
+
+.preview-dish-surface { background:linear-gradient(145deg,{{glassStart}},{{glassMid}} 60%,{{glassEnd}}); border-radius:18px; padding:8px; }

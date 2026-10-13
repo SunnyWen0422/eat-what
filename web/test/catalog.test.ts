@@ -36,10 +36,10 @@ describe('injectable public online contract', () => {
     const response = { ...dish(), ...bad }; const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [response], total: 1 })).list({ page: 1, pageSize: 100 });
     expect(result.ok).toBe(false);
   });
-  it('drops private, owner, evidence, media and nutritional fields from the public projection', async () => {
-    const row = { ...dish(), userId: 7, isCustom: 1, isPublished: 1, image: 'https://private.example/owner.png', stepImages: ['https://private.example/image'], kcal: 999, quality: { ...dish().quality!, reviewedBy: 'private reviewer', sourceRef: 'private source', nutritionKcal: 888, ingredients: [{ ...dish().quality!.ingredients[0], identityEvidence: 'private identity', quantityEvidence: 'private quantity', sourceLabel: 'private evidence' }] } };
+  it('drops owner, evidence and nutritional fields while retaining public dish photos from the public projection', async () => {
+    const row = { ...dish(), userId: 7, isCustom: 1, isPublished: 1, image: 'https://images.example/food.png', stepImages: ['https://private.example/image'], kcal: 999, quality: { ...dish().quality!, reviewedBy: 'private reviewer', sourceRef: 'private source', nutritionKcal: 888, ingredients: [{ ...dish().quality!.ingredients[0], identityEvidence: 'private identity', quantityEvidence: 'private quantity', sourceLabel: 'private evidence' }] } };
     const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [row], total: 1, owner: 'secret' })).list({ page: 1, pageSize: 100 });
-    expect(result.ok).toBe(true); if (result.ok) { const text = JSON.stringify(result.value); expect(text).not.toMatch(/private|secret|userId|isPublished|nutritionKcal|stepImages/); }
+    expect(result.ok).toBe(true); if (result.ok) { const text = JSON.stringify(result.value); expect(text).not.toMatch(/private|secret|userId|isPublished|nutritionKcal|stepImages/); expect(result.value.list[0]?.image).toBe('https://images.example/food.png'); }
   });
   it('never sends personal input or credentials through paginated requests', async () => {
     const seen: PublicDishQuery[] = []; const result = await loadCatalog(createPublicCatalogProvider(async (query) => { seen.push(query); return page([], query); }));

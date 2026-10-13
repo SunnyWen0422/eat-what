@@ -93,7 +93,7 @@ test('broken image retains the same dish name and a category placeholder', () =>
   assert.equal(f.view.data.dishView?.name, '很长的清蒸鱼菜名')
   assert.equal(f.view.data.dishView?.placeholderIcon, 'meat')
   assert.match(read('components/compact-dish-row/index.wxml'), /imageFailed[^]*ui-icon[^]*dishView.name/)
-  assert.match(read('components/compact-dish-row/index.wxss'), /width:\s*64px;\s*height:\s*64px/)
+  assert.match(read('components/compact-dish-row/index.wxss'), /width:\s*56px;\s*height:\s*56px/)
 })
 test('changing image identity clears a previous failure without changing dish ownership', () => {
   const f = component('compact-dish-row', { dish: { id: 7, name: '鱼', image: 'old' } })

@@ -2,3 +2,8 @@
 @import "../../styles/component-theme.wxss";
 .card{display:flex;align-items:center;gap:12px;box-sizing:border-box;padding:12px;background:#FFFFFF;border:1px solid transparent;border-radius:18px;color:#25332B;min-width:44px;min-height:44px}.image{width:112px;height:84px;border-radius:10px;flex-shrink:0;background:#F5F6F0}.copy{flex:1;min-width:0}.name{display:block;font-size:1em;font-weight:500;line-height:1.5}.description{display:block;color:#56645B;font-size:0.8125em;line-height:1.5;margin-top:8px}.no-image{padding:16px 12px}.select .image{width:72px;height:72px}.is-selected{border-color:#28634E}.choose{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:44px;min-height:44px;margin:0;padding:0;border:1px solid #7C8E80;border-radius:10px;background:#FFFFFF;flex-shrink:0}.choose::after{border:0}.choose.checked{background:#EDF3ED;border-color:#28634E}.choose.is-disabled{background:#E8EBE5}.choose-icon{display:flex}
 @media(max-width:360px){.image{width:88px;height:66px}.select .image{width:58px;height:58px}}
+
+.card { padding:10px; margin:8px 0; border:1px solid rgba(255,255,255,0.74); border-radius:16px; background:rgba(255,255,255,0.66); box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+.image, .select .image { width:64px; height:64px; border-radius:14px; overflow:hidden; }
+.image-placeholder { display:flex; align-items:center; justify-content:center; background:#EDF3ED; }
+.name { font-weight:600; overflow-wrap:anywhere; }.description { margin-top:4px; }.is-selected { border-color:#28634E; }

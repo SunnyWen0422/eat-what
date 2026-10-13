@@ -27,11 +27,15 @@ export function SourceLink({ url }: { url: string | null }) {
   return safe ? <a href={url!} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{url}</a> : <span>{url ?? '未知'}</span>;
 }
 export function RecipeFacts({ snapshot }: { snapshot: RecipeSnapshot }) {
-  return <><p>基准人数：{snapshot.baseServings ?? '未知'} · 分类：{snapshot.types.map(type => TYPE_LABELS[type]).join('、') || '未知'}</p>
-    <h4>原料原文</h4>{snapshot.ingredients.length ? <ul>{snapshot.ingredients.map((ingredient, index) => <li key={index}>{ingredient.raw}<p>结构用量：{ingredient.quantity === null ? '未知' : ingredient.quantity.kind === 'exact' ? `${ingredient.quantity.value} ${ingredient.quantity.unit}` : `${ingredient.quantity.min}–${ingredient.quantity.max} ${ingredient.quantity.unit}`} · {ingredient.trust === 'reviewed' ? '来源有审核记录' : '未经审核'} · 复合成分{ingredient.compoundResolved ? '已解析' : '未知'}</p></li>)}</ul> : <p>食材信息未知</p>}
-    <h4>步骤</h4>{snapshot.steps.length ? <ol>{snapshot.steps.map((step, index) => <li key={index}>{step}</li>)}</ol> : <p>步骤未知</p>}
-    <h4>来源与限制</h4><p>来源链接：<SourceLink url={snapshot.source.url} /></p><p>来源版本：{snapshot.source.commit ?? '未知'} · 许可：{snapshot.source.license ?? '未知'}</p><p>菜品内容版本：{snapshot.contentVersion ?? '未知'} · 菜库版本：{snapshot.catalogVersion ?? '未知'}</p>
-    <p>份量、标准原料身份和复合成分可能未知。筛选无法保证过敏安全，请核对原料、调味料及交叉接触风险。</p></>;
+  return <><p className="muted">{snapshot.types.map(type => TYPE_LABELS[type]).join('、') || '菜谱'}{snapshot.baseServings !== null ? ` · 原配方 ${snapshot.baseServings} 人` : ''}</p>
+    <h4>食材</h4>{snapshot.ingredients.length ? <ul className="ingredient-facts">{snapshot.ingredients.map((ingredient, index) => <li key={index}>{ingredient.raw}</li>)}</ul> : <p>暂未提供食材信息</p>}
+    <h4>做法</h4>{snapshot.steps.length ? <ol>{snapshot.steps.map((step, index) => <li key={index}>{step}</li>)}</ol> : <p>暂未提供做法</p>}
+    <p className="muted">有忌口时，请核对完整配料和调味料。</p>
+    <details><summary>来源与用料说明</summary><p>基准人数：{snapshot.baseServings ?? '未知'}</p>
+    {snapshot.ingredients.map((ingredient, index) => <p key={index}>{ingredient.raw} · 结构用量：{ingredient.quantity === null ? '未知' : ingredient.quantity.kind === 'exact' ? `${ingredient.quantity.value} ${ingredient.quantity.unit}` : `${ingredient.quantity.min}–${ingredient.quantity.max} ${ingredient.quantity.unit}`} · {ingredient.trust === 'reviewed' ? '来源有审核记录' : '未经审核'} · 复合成分{ingredient.compoundResolved ? '已解析' : '未知'}</p>)}
+    <p>来源链接：<SourceLink url={snapshot.source.url} /></p><p>许可：{snapshot.source.license ?? '未知'}</p>
+    <p>来源版本：{snapshot.source.commit ?? '未知'} · 菜品内容版本：{snapshot.contentVersion ?? '未知'} · 菜库版本：{snapshot.catalogVersion ?? '未知'}</p>
+    <p>筛选无法保证过敏安全，请核对原料、调味料及交叉接触风险。</p></details></>;
 }
 
 const dialogs: HTMLElement[] = [];

@@ -51,3 +51,23 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .connected-user .connected-bubble{background:#EDF3ED;align-self:flex-end}.connected-progress{display:flex;flex-wrap:wrap;align-items:center;font-size:0.8125em;color:#56645B}
 .connected-composer{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #E6EAE1;background:#FFFFFF}
 .connected-input-row{display:flex;align-items:flex-end;gap:8px;min-width:0}.connected-input{flex:1;min-width:0;width:0;min-height:44px;max-height:160px;box-sizing:border-box;padding:12px;border-radius:10px;background:#F5F6F0;font-size:1em;line-height:1.5}.connected-send{flex:none;background:#28634E;color:#FFFFFF;border-radius:10px;font-size:0.8125em;padding:12px 12px;margin:0;min-height:44px}.connected-send[disabled]{background:#E8EBE5;color:#56645B}.connected-voice{flex:none;padding:8px;margin:0;background:transparent;border:0;color:#28634E}.connected-voice::after,.connected-send::after{border:0}
+
+/* Approved F assistant: readable glass, with no blur per message. */
+.connected-assistant.ew-dish-surface { background:linear-gradient(145deg,#E4EEDA,#F5ECE2 60%,#D7E9E3); }
+.connected-header, .assistant-head { background:rgba(255,255,255,0.88); border-bottom:1px solid rgba(255,255,255,0.74); padding:16px; }
+.connected-header .ew-heading { font-size:1.125em; }
+.connected-messages { padding:16px; }
+.connected-bubble, .bubble-left { background:rgba(255,255,255,0.66); border:1px solid rgba(255,255,255,0.74); border-radius:16px 16px 16px 4px; color:#25332B; line-height:1.65; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+.connected-user .connected-bubble, .bubble-right { background:#28634E; color:#FFFFFF; border:1px solid #28634E; border-radius:16px 16px 4px 16px; }
+.connected-bubble { max-width:94%; }.connected-user .connected-bubble { max-width:88%; }
+.connected-composer, .input-bar, .quick-bar, .action-bar { background:rgba(255,255,255,0.88); border-top-color:rgba(255,255,255,0.74); }
+.connected-input, .chat-input { background:#FFFFFF; border:1px solid #7C8E80; border-radius:14px; }
+.connected-voice { border:1px solid #7C8E80; border-radius:14px; background:rgba(255,255,255,0.66); }
+.dish-card, .plan-block, .howto-block, .alternatives-block { background:rgba(255,255,255,0.66); border:1px solid rgba(255,255,255,0.74); border-radius:16px; padding:10px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+.dc-img, .dc-img-fb { width:56px; height:56px; border-radius:14px; }.dc-name, .plan-dish-name { white-space:normal; }
+.connected-welcome { padding:24px 0; }.connected-welcome .ew-title { font-size:1.125em; }
+.connected-header .ew-hit-target { width:auto; flex:0 0 auto; margin:0; padding:8px; border:1px solid #7C8E80; border-radius:10px; background:rgba(255,255,255,0.66); font-size:0.8125em; }
+.connected-input-row .connected-voice { width:auto; flex:0 0 auto; min-width:48px; min-height:48px; margin:0; padding:8px; font-size:0.8125em; line-height:1.5; white-space:nowrap; }
+.connected-input-row .connected-send { width:auto; flex:0 0 auto; min-width:56px; min-height:48px; margin:0; padding:12px; line-height:1.5; }
+.connected-input-row .connected-input { width:0; flex:1 1 0%; min-width:0; min-height:48px; }
+.connected-assistant .connected-input-row .connected-send[disabled] { opacity:1; background:#E8EBE5; color:#56645B; }

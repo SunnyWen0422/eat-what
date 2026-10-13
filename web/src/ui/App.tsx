@@ -1,3 +1,4 @@
+import { RecipeMediaContext } from './RecipeImage.tsx';
 import { canonicalShopping, sourceFromDraft, sourceFromPlan } from '../shopping/shopping.ts';
 import { useEffect, useRef, useState } from 'react';
 import type { Catalog, GenerateInput, GenerationResult, LocalDate, Meal, MealDraft, MenuTemplate, PersonalData, Plan, RecipeSnapshot, Result, ShoppingSource, Slot, TimeZone, UtcIso } from '../domain/types.ts';
@@ -402,16 +403,16 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
       {error && failedSaveRef.current && <button disabled={pending || !writable} onClick={() => { const retry = failedSaveRef.current; if (retry) void save(retry.command, retry.success, true); }}>重试保存当前编辑</button>}
       {!conflict && !failedSaveRef.current && (draftDirtyRef.current || preferencesDirtyRef.current) && <button disabled={pending || !writable} onClick={saveCurrentEdits}>保存当前编辑</button>}
   </>;
-  return <div className="app-shell">
+  return <RecipeMediaContext value={catalog?.ok ? catalog.value : null}><div className="app-shell">
     <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>跳到主要内容</a>
-    <header><p className="eyebrow">简单安排，好好吃饭</p><h1>吃什么</h1><p>无登录 · 个人记录只在本地</p>{ready && metadataKnown && data.meta.revision === 0 && <p>无需登录。记录保存在当前浏览器，建议定期导出备份。</p>}</header>
+    <header className="app-header"><h1>吃什么</h1><span className="muted">记录保存在当前浏览器</span></header>
     <nav aria-label="主导航">{tabs.map(label => <button key={label} aria-current={tab === label ? 'page' : undefined} onClick={() => navigate(label)}>{label}</button>)}</nav>
     <main id="main-content" tabIndex={-1}>
       {!ready && <Notice text="正在读取本地记录…" />}
       {storageNotice && <><Notice text={storageNotice} error /><button onClick={() => window.location.reload()}>重新打开本地记录</button></>}
       {!(tab === '今天吃什么' && confirming) && recoveryFeedback}
       {notice && notice !== storageNotice && !(tab === '今天吃什么' && confirming) && <Notice text={notice} error={error} />}
-      {backupHint&&<Notice text='建议在“我的 → 数据管理”导出备份，记录只保存在当前浏览器。'/>}
+      {backupHint&&tab==='我的'&&<Notice text='建议定期导出备份，记录只保存在当前浏览器。'/>}
 
       {tab==='今天吃什么'&&recording&&<ActualEditor actions={localActions} snapshots={draft?.dishes.map(d=>d.recipe)??[]} onDone={()=>setRecording(false)}/>}
       {tab==='今天吃什么'&&templating&&<TemplateEditor actions={localActions} snapshots={draft?.dishes.map(d=>d.recipe)??[]} servings={draft?.servings??2} onDone={()=>setTemplating(false)}/>}
@@ -423,5 +424,5 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
         : tab === '日历' ? <Calendar actions={localActions} onShopping={plan=>openShopping([sourceFromPlan(plan)])}/>
         : <My actions={localActions} metadataKnown={metadataKnown} repository={repository} memoryData={{...data,preferences,draft}} shoppingSeed={shoppingSeed} draftSource={shoppingDraft} storageStatus={storageStatus} persisted={persisted} onPersistence={()=>{void requestPersistence().then(setPersisted);}}/>}
     </main>
-  </div>;
+  </div></RecipeMediaContext>;
 }
