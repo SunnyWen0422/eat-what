@@ -54,7 +54,8 @@ class AssistantCalendarActionTest {
   f.harness=new ControlledToolHarnessService(f.tasks,f.persistence.locks,f.domain.service,mock(MealConsumptionService.class),f.domain.json,f.persistence.tx,Clock.fixed(Instant.ofEpochMilli(f.persistence.now),ZoneOffset.UTC));
   new CalendarAssistantToolAdapter(f.domain.service,f.harness,f.persistence.store,f.domain.json,new AssistantCapabilityService(false),f.runner,f.listeners);
   clearInvocations(f.listeners,f.runner);
-  assertEquals(done.steps.get(0).result,f.harness.confirm(1L,task.id,task.previewToken).steps.get(0).result);
+  // Replayed receipts cross the JSON persistence boundary; compare every wire field.
+  assertEquals(f.domain.json.readTree(f.domain.json.writeValueAsString(done.steps.get(0).result)),f.domain.json.readTree(f.domain.json.writeValueAsString(f.harness.confirm(1L,task.id,task.previewToken).steps.get(0).result)));
   verifyNoInteractions(f.listeners,f.runner);verify(f.domain.plans,times(1)).insert(any());
  }
 }

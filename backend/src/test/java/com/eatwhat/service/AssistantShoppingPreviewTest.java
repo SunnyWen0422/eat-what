@@ -52,7 +52,8 @@ class AssistantShoppingPreviewTest {
   assertThrows(org.springframework.web.server.ResponseStatusException.class,()->disabled.confirm(1L,task.id,task.previewToken));
   assertEquals("awaiting_confirmation",disabled.get(1L,task.id).status);assertTrue(f.items.isEmpty());
   ControlledToolTask done=f.confirm(task);clearInvocations(f.f.runner);
-  assertEquals(done.steps.get(0).result,disabled.confirm(1L,task.id,task.previewToken).steps.get(0).result);
+  // Replayed receipts cross the JSON persistence boundary; compare every wire field.
+  assertEquals(f.f.domain.json.readTree(f.f.domain.json.writeValueAsString(done.steps.get(0).result)),f.f.domain.json.readTree(f.f.domain.json.writeValueAsString(disabled.confirm(1L,task.id,task.previewToken).steps.get(0).result)));
   verifyNoInteractions(f.f.runner);verify(f.lists,times(1)).batchAdd(eq(1L),any());
  }
 }
