@@ -3,7 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const { currentIdentity } = require('../../utils/account-identity')
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], loading: true, errorMessage: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, form: {}, formError: '', editPending: false, editExtrasVisible: false, formFocus: '', editQualityNotice: '', personalSaveMessage: '', types: ['荤菜','素菜','汤品','主食','甜品','配餐'], typeIndex: 0 },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], pendingCopies: [], pendingCopyGeneration: 0, recoveryError: '', loading: true, errorMessage: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, form: {}, formError: '', editPending: false, editExtrasVisible: false, formFocus: '', editQualityNotice: '', personalSaveMessage: '', types: ['荤菜','素菜','汤品','主食','甜品','配餐'], typeIndex: 0 },
   onLoad(options = {}) {
     this._requestedEdit = options.edit
     const id = Number(options.copy)
@@ -12,6 +12,7 @@ Page({
   },
   onShow() {
     this.ensureOwner()
+    this.refreshPendingCopies()
     if (!this.data.editing) return this._requestedCopy ? this.loadCopyDraft() : this.loadCustomDishes()
   },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1 },
@@ -22,10 +23,26 @@ Page({
     if (this._identity === identity && this._viewScope === getUserStorageKey('customDishesCloud')) return true
     this._identity = identity; this._viewScope = getUserStorageKey('customDishesCloud'); this._epoch = (this._epoch || 0) + 1
     this._requestedEdit = null; this._requestedCopy = null; this._original = null; this._editScope = null; this._editInitial = null
-    this.setData({ editQualityNotice: '', personalSaveMessage: '', editExtrasVisible: false, formFocus: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, editPending: false, loading: false, dishes: [], form: {}, formError: '', errorMessage: '', typeIndex: 0 }); this.syncEditLeaveAlert()
+    this.setData({ pendingCopies: [], pendingCopyGeneration: this.data.pendingCopyGeneration + 1, recoveryError: '', editQualityNotice: '', personalSaveMessage: '', editExtrasVisible: false, formFocus: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, editPending: false, loading: false, dishes: [], form: {}, formError: '', errorMessage: '', typeIndex: 0 }); this.syncEditLeaveAlert()
     return false
   },
   current(scope, identity = this._identity) { return this.ensureOwner() && identity === this._identity && scope === getUserStorageKey('customDishesCloud') },
+  refreshPendingCopies() {
+    if (!this.ensureOwner()) return
+    if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
+    try { this.setData({ pendingCopies: this._writeJournal.pendingCopies(), pendingCopyGeneration: this.data.pendingCopyGeneration + 1, recoveryError: '' }) }
+    catch (_) { this.setData({ pendingCopies: [], pendingCopyGeneration: this.data.pendingCopyGeneration + 1, recoveryError: '待确认的复制暂未读到，请重新进入此页。' }) }
+  },
+  async onRecoverCopy(e) {
+    if (!this.ensureOwner() || this.data.editing || this.data.saving || this._openingCopy) return
+    const { id, generation } = e.currentTarget.dataset
+    if (Number(generation) !== this.data.pendingCopyGeneration || !this.data.pendingCopies.some(item => item.id === Number(id))) return
+    const pending = this._writeJournal.pending('dish:copy:' + Number(id))
+    if (!pending) { this.refreshPendingCopies(); return }
+    this._requestedCopy = { id: Number(id), version: pending.expectedVersion }
+    this._openingCopy = true
+    try { await this.loadCopyDraft() } finally { this._openingCopy = false }
+  },
   async loadCopyDraft(acceptLatest = false) {
     if (!this.ensureOwner() || !this._requestedCopy || this.data.saving) return
     const target = this._requestedCopy, scope = this._viewScope, identity = this._identity, epoch = this._epoch = (this._epoch || 0) + 1
@@ -37,6 +54,12 @@ Page({
       try { source = await api.getDishById(target.id) }
       catch (error) { if (!pending) throw error }
       if (!this.current(scope, identity) || epoch !== this._epoch) return
+      // A previous page may have settled the request while this read was in flight.
+      // Never convert that recovery action into a fresh copy with a new request ID.
+      if (pending && JSON.stringify(this._writeJournal.pending('dish:copy:' + target.id)) !== JSON.stringify(pending)) {
+        this._requestedCopy = null; this.refreshPendingCopies()
+        this.setData({ errorMessage: '上次请求状态已变化，请重新读取我的菜谱。' }); return
+      }
       if (!source && !pending) throw new Error('这份菜谱暂未读到，请重试')
       if (source && !pending && !acceptLatest && target.version && target.version !== source.contentVersion) {
         this.setData({ errorMessage: '原菜谱已变化，请重新读取后再编辑。' }); return
@@ -82,6 +105,7 @@ Page({
     this._editScope = getUserStorageKey('customDishesCloud'); this._original = JSON.parse(JSON.stringify(dish))
     if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
     const pending = this._writeJournal.pending((copyDraft ? 'dish:copy:' : 'dish:edit:') + dish.id)
+    this._copyRecoveryRequest = copyDraft && pending ? JSON.stringify(pending) : null
     if (pending && pending.expectedVersion) this._original.contentVersion = pending.expectedVersion
     const source = pending || dish
     const recipeForm = require('../../utils/personal-recipes').recipeForm
@@ -99,7 +123,7 @@ Page({
   onToggleEditExtras() { if (this.ensureOwner()) this.setData({ editExtrasVisible: !this.data.editExtrasVisible }) },
   editChanged() { return JSON.stringify({ form: this.data.form, type: ['meat','veg','soup','staple','dessert','side'][this.data.typeIndex] }) !== this._editInitial },
   syncEditLeaveAlert() {
-    if (this.data.editing && (this.data.editPending || this.editChanged()) && wx.enableAlertBeforeUnload) wx.enableAlertBeforeUnload({ message: '菜谱修改尚未保存。离开会放弃未提交输入；结果待确认的原保存请求会保留。' })
+    if (this.data.editing && (this.data.editPending || this.editChanged()) && wx.enableAlertBeforeUnload) wx.enableAlertBeforeUnload({ message: this.data.editPending ? '上次保存结果待确认，可能已经保存。离开会保留原请求供下次核对。' : '菜谱修改尚未保存，离开会放弃未提交输入。' })
     else if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload()
   },
   cancelEdit() {
@@ -122,6 +146,11 @@ Page({
     if (!this.current(this._editScope)) { this.onShow(); return }
     const scope = this._editScope, identity = this._identity, epoch = this._epoch
     const copyDraft = this.data.copyDraft, id = this._original.id, action = (copyDraft ? 'dish:copy:' : 'dish:edit:') + id
+    if (copyDraft && this._copyRecoveryRequest && JSON.stringify(this._writeJournal.pending(action)) !== this._copyRecoveryRequest) {
+      this._requestedCopy = null; this._original = null; this._copyRecoveryRequest = null
+      this.setData({ editing: false, copyDraft: false, legacyCopyPending: false, editPending: false, form: {}, formError: '', errorMessage: '上次请求状态已变化，请重新读取我的菜谱。' })
+      this.refreshPendingCopies(); this.syncEditLeaveAlert(); return
+    }
     const form = this.data.form, validation = require('../../utils/personal-recipes').recipeValidation(form, this._original)
     if (validation && !this.data.editPending) return this.setData({ formError: validation.message, formFocus: validation.field, editExtrasVisible: ['cookMinutes','image'].includes(validation.field) || this.data.editExtrasVisible })
     this.setData({ saving: true, formError: '' })
@@ -140,7 +169,11 @@ Page({
       this._requestedCopy = null
       this.setData({ editing: false, personalSaveMessage: '菜谱已保存到我的菜谱，可在详情查看。' }); this.syncEditLeaveAlert(); wx.showToast({ title: '已保存到我的菜谱', icon: 'success' }); wx.navigateTo({ url: '/pages/dish-detail/dish-detail?id=' + encodeURIComponent(saved.id || id) })
     } catch (error) { if (this.current(scope, identity) && epoch === this._epoch) this.setData({ formError: flow.errorMessage(error, '保存失败，输入仍然保留，请重试。') }) }
-    finally { if (this.current(scope, identity) && epoch === this._epoch) this.setData({ saving: false, editPending: !!this._writeJournal.pending((this.data.copyDraft ? 'dish:copy:' : 'dish:edit:') + this._original.id) }) }
+    finally { if (this.current(scope, identity) && epoch === this._epoch) {
+      const pending = this._writeJournal.pending((this.data.copyDraft ? 'dish:copy:' : 'dish:edit:') + this._original.id)
+      this._copyRecoveryRequest = this.data.copyDraft && pending ? JSON.stringify(pending) : null
+      this.setData({ saving: false, editPending: !!pending }); this.syncEditLeaveAlert()
+    } }
   },
   onReloadEdit() {
     if (!this.ensureOwner() || this.data.saving || this.data.editPending) return

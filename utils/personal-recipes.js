@@ -4,6 +4,7 @@ function createWriteJournal(options = {}) {
   const identity = options.identity || require('./account-identity').currentIdentity
   const key = options.key || require('./util').getUserStorageKey
   const read = options.read || (name => wx.getStorageSync(name))
+  const keys = options.keys || (() => wx.getStorageInfoSync().keys || [])
   const write = options.write || ((name, value) => wx.setStorageSync(name, value))
   const remove = options.remove || (name => wx.removeStorageSync(name))
   const requestId = options.requestId || require('./meal-workspace').requestId
@@ -18,6 +19,17 @@ function createWriteJournal(options = {}) {
       if (original) { write(name, clone(original)); remove(oldName) }
     }
     return clone(read(name) || null)
+  }
+  // Enumerate only the current account + API environment; never replay on discovery.
+  function pendingCopies() {
+    const prefix = storageKey('dish:copy:')
+    return keys().filter(name => typeof name === 'string' && name.startsWith(prefix)).flatMap(name => {
+      const suffix = name.slice(prefix.length), id = Number(suffix)
+      if (!/^[1-9]\d*$/.test(suffix) || !Number.isSafeInteger(id)) return []
+      const request = read(name)
+      if (!request || typeof request.requestId !== 'string' || !request.requestId.trim() || typeof request.expectedVersion !== 'string' || !request.expectedVersion) return []
+      return [{ id, name: typeof request.name === 'string' && request.name.trim() ? request.name.trim().slice(0, 255) : '菜谱副本' }]
+    }).sort((a, b) => a.id - b.id)
   }
   function run(action, body, send) {
     const scope = identity(), name = storageKey(action)
@@ -38,7 +50,7 @@ function createWriteJournal(options = {}) {
     promise.then(() => inFlight.delete(name), () => inFlight.delete(name))
     return promise
   }
-  return { pending, run }
+  return { pending, pendingCopies, run }
 }
 function menuHandoff(menu) {
   if (!menu || !Number.isInteger(menu.menuId) || !Number.isInteger(menu.menuVersion) || menu.menuVersion < 1 || !/^\d{4}-\d{2}-\d{2}$/.test(menu.menuDate) || !['breakfast','lunch','dinner'].includes(menu.menuMealType) || !Number.isInteger(menu.people) || menu.people < 1 || menu.people > 50 || !Array.isArray(menu.dishIds) || !menu.dishIds.length || menu.dishIds.length > 10 || menu.dishIds.some(id => !Number.isInteger(id) || id < 1)) throw new Error('菜单目标或版本无效，请重新读取')
