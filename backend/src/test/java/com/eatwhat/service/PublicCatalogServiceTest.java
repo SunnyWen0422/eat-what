@@ -62,8 +62,8 @@ class PublicCatalogServiceTest {
         enabled(); Dish d=dish(); d.setImage("private image"); d.setStepImages("private media"); d.setKcal(999); d.setCreateTime(new Date()); listed(d); when(mapper.detail(anyList(),eq(1L))).thenReturn(d); quality(json.writeValueAsString(profile(d)));
         PublicDishDTO value=service.detail(1); String text=json.writeValueAsString(value);
         Set<String> keys = new HashSet<>(); json.readTree(text).fieldNames().forEachRemaining(keys::add);
-        assertEquals(new HashSet<>(Arrays.asList("id","name","type","cl","fl","step","steps","tips","ingredientsAmounts","contentVersion","quality")),keys);
-        for (String excluded : Arrays.asList("private","userId","isCustom","isPublished","createTime","nutrition","image","sourceHash","contentHash","Evidence")) assertFalse(text.contains(excluded),excluded);
+        assertEquals(new HashSet<>(Arrays.asList("id","name","type","cl","fl","step","steps","tips","ingredientsAmounts","contentVersion","quality","image")),keys);
+        for (String excluded : Arrays.asList("private","userId","isCustom","isPublished","createTime","nutrition","stepImages","sourceHash","contentHash","Evidence")) assertFalse(text.contains(excluded),excluded);
         assertFalse(text.contains("UNKNOWN_INTERNAL")); assertEquals("VERIFIED",value.getQuality().getReviewStatus()); assertEquals(new BigDecimal("2"),value.getQuality().getBasePeople()); assertEquals("VERIFIED",value.getQuality().getIngredients().get(0).getIdentityStatus());
         assertEquals(value.getQuality(),service.list(1,50,null).getList().get(0).getQuality()); assertNotNull(value.getContentVersion());
     }
@@ -73,6 +73,25 @@ class PublicCatalogServiceTest {
         CatalogQuality stale=profile(d); stale.setSourceRecipeVersion("old fingerprint"); CatalogQuality wrong=profile(d); wrong.setDishId(2L);
         for(String raw : Arrays.asList("{broken}","{}",json.writeValueAsString(stale),json.writeValueAsString(wrong))) {
             quality(raw); PublicDishDTO value=service.detail(1); assertEquals("UNKNOWN",value.getQuality().getReviewStatus()); assertNull(value.getQuality().getBasePeople()); assertTrue(value.getQuality().getIngredients().isEmpty()); assertEquals("UNKNOWN",value.getQuality().getStepStatus());
+        }
+    }
+    @Test void releasedCoverSurvivesBothListAndDetailWithoutPublishingOtherMedia() throws Exception {
+        enabled(); Dish d=dish(); d.setImage("https://cp1.douguo.net/upload/food.jpg"); d.setStepImages("private step media");
+        listed(d); when(mapper.detail(anyList(),eq(1L))).thenReturn(d);
+        for(PublicDishDTO value : Arrays.asList(service.detail(1),service.list(1,50,null).getList().get(0))) {
+            com.fasterxml.jackson.databind.JsonNode tree=json.valueToTree(value);
+            assertEquals(d.getImage(),tree.path("image").asText()); assertFalse(tree.has("stepImages")); assertFalse(tree.has("userId"));
+        }
+        d.setImage(" http://images.example.com/food.jpg?size=small ");
+        assertEquals("https://images.example.com/food.jpg?size=small",json.valueToTree(service.detail(1)).path("image").asText());
+    }
+    @Test void missingOrInvalidCoverDoesNotBreakRecipeBrowsing() {
+        enabled(); Dish d=dish(); listed(d); when(mapper.detail(anyList(),eq(1L))).thenReturn(d);
+        for(String image : Arrays.asList(null,"","private image","javascript:alert(1)","data:image/png,x","https://user:secret@example.com/a","https://127.0.0.1/a","https://[::1]/a","https://localhost/a","https://server.local/a","https://server.local./a","https://images.example.com/"+String.join("",Collections.nCopies(2050,"a")))) {
+            d.setImage(image);
+            com.fasterxml.jackson.databind.JsonNode value=json.valueToTree(service.detail(1));
+            assertTrue(value.path("image").isNull(),"Invalid cover must serialize as null");
+            assertEquals("测试菜",value.path("name").asText()); assertEquals(1,service.list(1,50,null).getList().size());
         }
     }
     @Test void unknownStatusesAndUnverifiedNumbersCannotBePromotedToEvidence() throws Exception {

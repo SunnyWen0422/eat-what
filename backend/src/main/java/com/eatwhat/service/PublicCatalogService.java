@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -89,7 +90,21 @@ public class PublicCatalogService {
         for (String text : Arrays.asList(d.getName(), d.getType(), d.getCl(), d.getFl(), d.getStep(), d.getSteps(), d.getTips(), d.getIngredientsAmounts())) bounded(text);
         PublicDishDTO value = new PublicDishDTO();
         value.setId(d.getId()); value.setName(d.getName()); value.setType(d.getType()); value.setCl(d.getCl()); value.setFl(d.getFl()); value.setStep(d.getStep()); value.setSteps(d.getSteps()); value.setTips(d.getTips()); value.setIngredientsAmounts(d.getIngredientsAmounts());
+        value.setImage(publicCover(d.getImage()));
         value.setContentVersion(DishContentVersion.rawOf(d)); value.setQuality(projectQuality(profile)); return value;
+    }
+    /** Display-only cover from an already released system dish; never fetch media server-side. */
+    private static String publicCover(String raw) {
+        if (raw == null || raw.length() > 2048) return null;
+        try {
+            String value = raw.trim(); URI uri = new URI(value);
+            String scheme = uri.getScheme(), host = uri.getHost();
+            if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) || host == null || uri.getRawUserInfo() != null) return null;
+            host = host.toLowerCase(Locale.ROOT);
+            if (host.endsWith(".")) host = host.substring(0,host.length()-1);
+            if (!host.contains(".") || host.endsWith(".local") || host.endsWith(".localhost") || host.matches("[0-9.]+") || host.contains(":")) return null;
+            return "https" + value.substring(value.indexOf(':'));
+        } catch (Exception malformed) { return null; }
     }
     private PublicDishDTO.Quality projectQuality(CatalogQuality q) {
         PublicDishDTO.Quality value = new PublicDishDTO.Quality();

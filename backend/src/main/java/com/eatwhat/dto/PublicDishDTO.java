@@ -6,7 +6,7 @@ import java.util.*;
 @Data
 public class PublicDishDTO {
     private Long id;
-    private String name, type, cl, fl, step, steps, tips, ingredientsAmounts, contentVersion;
+    private String name, type, cl, fl, step, steps, tips, ingredientsAmounts, contentVersion, image;
     private Quality quality;
     @Data public static class Quality {
         private String reviewStatus, servingsStatus, stepStatus, timeStatus;
