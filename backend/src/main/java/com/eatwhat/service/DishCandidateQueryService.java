@@ -1,6 +1,7 @@
 package com.eatwhat.service;
 
 import com.eatwhat.dto.RecommendationCriteria;
+import com.eatwhat.dto.DishPageDTO;
 import com.eatwhat.entity.Dish;
 import com.eatwhat.mapper.DishMapper;
 import org.springframework.stereotype.Service;
@@ -10,9 +11,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class DishCandidateQueryService {
+    private static final int PAGE_SCAN_BATCH = 256;
     private DishQualityService quality;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
 
@@ -56,6 +60,42 @@ public class DishCandidateQueryService {
             if (result.size() >= limit) break;
         }
         return result;
+    }
+
+    /** Exact count with bounded working memory; only the selected page loads recipe bodies.
+     * Keep Java exclusion semantics (literal substrings and trimmed case-insensitive tags).
+     * The caller provides a read-only snapshot transaction across batches and detail reads.
+     */
+    public DishPageDTO findRawPageForUser(Long userId, String type, String keyword,
+                                          RecommendationCriteria criteria, int page, int pageSize) {
+        RecommendationCriteria value = criteria == null ? new RecommendationCriteria() : criteria;
+        long offset = ((long) page - 1) * pageSize;
+        int total = 0;
+        Long beforeId = null;
+        List<Long> selected = new ArrayList<>();
+        for (;;) {
+            List<Dish> batch = dishMapper.selectFilteredCandidateFacts(userId, blankToNull(type), blankToNull(keyword),
+                    safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes(), beforeId, PAGE_SCAN_BATCH);
+            if (batch == null || batch.isEmpty()) break;
+            for (Dish dish : batch) {
+                if (hasExcludedTag(dish, value.getExcludeTagCodes()) || containsExcludedIngredient(dish, value.getExcludedIngredients())) continue;
+                if (total >= offset && selected.size() < pageSize) selected.add(dish.getId());
+                total = Math.incrementExact(total);
+            }
+            beforeId = batch.get(batch.size() - 1).getId();
+            if (batch.size() < PAGE_SCAN_BATCH) break;
+        }
+        List<Dish> result = new ArrayList<>();
+        if (!selected.isEmpty()) {
+            Map<Long,Dish> details = new HashMap<>();
+            for (Dish dish : dishMapper.selectFilteredPageDetails(selected, userId)) details.put(dish.getId(), dish);
+            for (Long id : selected) {
+                Dish dish = details.get(id);
+                if (dish == null) throw new IllegalStateException("菜谱目录已变化，请重新读取");
+                result.add(dish);
+            }
+        }
+        return new DishPageDTO(result, total, page, pageSize);
     }
 
     private boolean hasExcludedTag(Dish dish, List<String> exclusions) {

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Any, Dict
 from fastapi.responses import StreamingResponse, JSONResponse
 import uuid
+from threading import Lock
 import rag
 import chat_handler
 import assistant_engine
@@ -79,10 +80,19 @@ class ChatSyncRequest(BaseModel):
     message: str
     user_id: Optional[str] = "guest"
 
+_chat_sync_lock = Lock()
+
+
 @app.post("/chat/sync")
-async def chat_sync(req: ChatSyncRequest):
-    """非流式版本"""
-    result = chat_handler.chat(req.message, req.user_id or "guest")
+def chat_sync(req: ChatSyncRequest):
+    """同步检索和 HTTP 由框架工作线程承接，不占用事件循环。"""
+    # 保持同进程同步聊天串行；忙时拒绝，避免等待锁占满框架工作线程。
+    if not _chat_sync_lock.acquire(blocking=False):
+        raise HTTPException(status_code=503, detail="聊天服务忙，请稍后重试")
+    try:
+        result = chat_handler.chat(req.message, req.user_id or "guest")
+    finally:
+        _chat_sync_lock.release()
     if isinstance(result, dict):
         response = {"reply": result.get("reply",""), "dishes": result.get("dishes",[]), "success": True}
         if result.get("action"):

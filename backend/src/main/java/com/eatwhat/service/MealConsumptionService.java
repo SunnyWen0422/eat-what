@@ -87,9 +87,13 @@ public class MealConsumptionService {
         long version=current==null?0:current.getRevision();
         if(version!=request.getExpectedRevision())throw new VersionConflict("用餐记录已更新，请重新加载后确认");
         RecipeRecord plan=plans.selectByUserAndDate(userId,day).stream().filter(p->mealType.equals(p.getMealType())).findFirst().orElse(null);
-        if ((Boolean.TRUE.equals(request.getUsePlan()) || current == null) && request.getExpectedPlanRevision() != null
-                && request.getExpectedPlanRevision() != (plan == null ? 0 : plan.getRevision()))
-        throw new VersionConflict("本餐安排已更新，请查看最新安排后确认");
+        if ((Boolean.TRUE.equals(request.getUsePlan()) || current == null) && request.getExpectedPlanRevision() != null) {
+            // Deleted plans retain a slot revision; only an active plan may supply the snapshot below.
+            RecipeRecord slot = plan == null ? plans.findSlot(userId,day,mealType) : plan;
+            long planRevision = slot == null ? 0 : slot.getRevision();
+            if (request.getExpectedPlanRevision() != planRevision)
+                throw new VersionConflict("本餐安排已更新，请查看最新安排后确认");
+        }
         if (Boolean.TRUE.equals(request.getUsePlan()) && request.getExpectedPlanRevision() == null)
         throw new IllegalArgumentException("按计划确认时请提供安排版本");
         List<Map<String,Object>> actual=new ArrayList<>();

@@ -40,9 +40,13 @@ AND is_published = 1
 
 ## DTO、质量状态与未知信息
 
-公开 DTO 只保留 id/name/type/cl/fl/step/steps/tips/ingredientsAmounts/contentVersion，以及 quality 的 reviewStatus/basePeople/servingsStatus/stepStatus/timeStatus、issueCodes 和白名单原料事实。
+公开 DTO 只保留 id/name/type/cl/fl/step/steps/tips/ingredientsAmounts/contentVersion、可空封面 image，以及 quality 的 reviewStatus/basePeople/servingsStatus/stepStatus/timeStatus、issueCodes 和白名单原料事实。
 
-不序列化 owner/user、发布/私房标记、时间戳、审核者、内部来源与证据、图片或营养值。原做法在界面以纯文本显示。contentVersion 是原菜内容指纹，不是整个菜库的事务版本，也不是内容审核证明。
+不序列化 owner/user、发布/私房标记、时间戳、审核者、内部来源与证据、步骤图片或营养值。原做法在界面以纯文本显示。contentVersion 是原菜内容指纹，不是整个菜库的事务版本，也不是内容审核证明。
+
+image 仅来自通过上述公开行校验的系统菜。空值、超过2048字符、非HTTP(S)、含用户名密码、IP字面量及部分本机域名返回 null；HTTP地址统一为HTTPS，后端不下载媒体。当前过滤是URL语法检查，不保证DNS最终地址属于公网，也不限制所有域名、端口、查询参数或重定向。公开封面仍需确认来源与公开授权；本契约没有扩大媒体来源策略。
+
+网页以 no-referrer 图片元素显示当前公共目录封面，失败回退分类图标；媒体只在内存中关联，不进入个人菜谱快照或备份。下述JSON请求的 credentials: omit 和 redirect: error 不适用于图片元素；图片会产生独立的浏览器请求，不能用静态边界检查替代真实媒体验收。
 
 质量 profile 只读取已通过公开与所有权检查的菜；必须匹配 dish ID 和当前原内容指纹。缺失、损坏、过期、不匹配或读取失败的 profile 降为 UNKNOWN，并丢弃 profile 的原料与基准人数。未知状态不提升成 VERIFIED。核验数量必须有已核验身份和数量、原料名、明确单位、有界正数量及相应审阅证据；核验基准人数额外限制为 1–50 整数。仅返回固定公开问题码 INFORMATION_INCOMPLETE，不返回内部 issue 文本。
 

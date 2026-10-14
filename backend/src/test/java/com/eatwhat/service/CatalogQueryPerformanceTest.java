@@ -31,12 +31,17 @@ class CatalogQueryPerformanceTest {
     }
     @Test void pageEnrichesOnlyReturnedDishesAfterHardExclusions() {
         DishMapper dishes = mock(DishMapper.class);
-        when(dishes.selectFilteredCandidates(anyLong(), any(), any(), anyList(), anyList(), any())).thenReturn(rows());
+        List<Dish> ordered = rows(); Collections.reverse(ordered);
+        when(dishes.selectFilteredCandidateFacts(anyLong(), any(), any(), anyList(), anyList(), any(), any(), anyInt())).thenReturn(ordered);
+        when(dishes.selectFilteredPageDetails(anyList(), eq(7L))).thenAnswer(call -> {
+            List<Long> ids = call.getArgument(0);
+            return ordered.stream().filter(d -> ids.contains(d.getId())).collect(Collectors.toList());
+        });
         DishQualityMapper profiles = mock(DishQualityMapper.class);
         when(profiles.find(anyList())).thenAnswer(call -> {
             List<Long> ids = call.getArgument(0);
-            if (!ids.contains(8L)) return Collections.emptyList();
-            DishQualityMapper.Row corrupt = new DishQualityMapper.Row(); corrupt.setDishId(8L); corrupt.setProfileJson("invalid off-page profile");
+            if (!ids.contains(1L)) return Collections.emptyList();
+            DishQualityMapper.Row corrupt = new DishQualityMapper.Row(); corrupt.setDishId(1L); corrupt.setProfileJson("invalid off-page profile");
             return Collections.singletonList(corrupt);
         });
         DishQualityService quality = new DishQualityService(profiles, new ObjectMapper());
@@ -44,8 +49,8 @@ class CatalogQueryPerformanceTest {
         DishQueryService query = new DishQueryService(dishes, candidates); query.setQuality(quality);
         DishPageDTO page = assertDoesNotThrow(() -> query.getFilteredDishes(7L, "veg", null, exclusions(), 1, 3));
         assertEquals(6, page.getTotal());
-        assertEquals(Arrays.asList(1L, 2L, 5L), page.getList().stream().map(Dish::getId).collect(Collectors.toList()));
-        verify(profiles).find(Arrays.asList(1L, 2L, 5L)); verifyNoMoreInteractions(profiles);
+        assertEquals(Arrays.asList(8L, 7L, 6L), page.getList().stream().map(Dish::getId).collect(Collectors.toList()));
+        verify(profiles).find(Arrays.asList(8L, 7L, 6L)); verifyNoMoreInteractions(profiles);
     }
     @Test void boundedRecommendationCandidatesEnrichOnlyFinalEligibleRows() {
         DishMapper dishes = mock(DishMapper.class);
