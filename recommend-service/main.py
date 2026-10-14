@@ -80,8 +80,8 @@ class ChatSyncRequest(BaseModel):
     user_id: Optional[str] = "guest"
 
 @app.post("/chat/sync")
-async def chat_sync(req: ChatSyncRequest):
-    """非流式版本"""
+def chat_sync(req: ChatSyncRequest):
+    """Run blocking retrieval/provider I/O in FastAPI's bounded worker pool."""
     result = chat_handler.chat(req.message, req.user_id or "guest")
     if isinstance(result, dict):
         response = {"reply": result.get("reply",""), "dishes": result.get("dishes",[]), "success": True}

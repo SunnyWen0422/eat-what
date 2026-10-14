@@ -10,6 +10,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantV4TurnServiceTest {
+ @Test void model_budget_is_capped_and_shrinks_with_remaining_turn_deadline(){
+  java.util.concurrent.atomic.AtomicLong now=new java.util.concurrent.atomic.AtomicLong(1800000000000L);
+  Clock clock=new Clock(){public ZoneId getZone(){return ZoneOffset.UTC;}public Clock withZone(ZoneId zone){return this;}public Instant instant(){return Instant.ofEpochMilli(now.get());}};
+  AssistantCapabilityService budgetRegistry=new AssistantCapabilityService(true);budgetRegistry.registerRead("search_dishes",(u,c,s)->read(c));
+  runner=new AssistantV4TurnService(store,context,budgetRegistry,model,protection,dishes,json,clock,Runnable::run);
+  List<Double> budgets=new ArrayList<>();when(model.step(any())).thenAnswer(i->{StepInput in=i.getArgument(0);budgets.add(in.getTimeoutSeconds());if(budgets.size()==1){now.addAndGet(18000);return tools(in,"budget-read");}return finalOutput();});
+  runner.runTurn(1L,id);assertEquals(Arrays.asList(23.0,11.5),budgets);assertEquals("completed",store.findTurn(1L,id).getStatus());
+  assertEquals(fixture.now+30000,store.turnRecord(1L,id).getModelDeadlineAt());
+ }
+ @Test void insufficient_remaining_deadline_stops_before_reserving_or_sending(){
+  runner=new AssistantV4TurnService(store,context,new AssistantCapabilityService(true),model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now+27000),ZoneOffset.UTC),Runnable::run);
+  runner.runTurn(1L,id);verifyNoInteractions(model);assertEquals(0,store.turnRecord(1L,id).getProviderCallsUsed());assertEquals("failed",store.findTurn(1L,id).getStatus());
+ }
  AssistantV4StoreTest fixture;AssistantV4Store store;AssistantV4ModelGateway model;AssistantV4ContextService context;AssistantCapabilityService registry;AssistantV4TurnService runner;AiProtectionService protection;DishQueryService dishes;ObjectMapper json=new ObjectMapper();String id;
  @BeforeEach void setup(){fixture=new AssistantV4StoreTest();fixture.setup();store=fixture.store;model=mock(AssistantV4ModelGateway.class);context=mock(AssistantV4ContextService.class);protection=mock(AiProtectionService.class);dishes=mock(DishQueryService.class);when(protection.acquire(any(),any(),anyInt())).thenReturn(AiProtectionService.Decision.allowed());when(dishes.getDishesByIdsForUser(anyList(),anyLong())).thenReturn(Collections.emptyList());ModelContext ctx=new ModelContext();ctx.getActiveMeal().put("currentDishes",Collections.singletonList(Collections.singletonMap("id",1L)));when(context.build(any(),any(),any())).thenReturn(ctx);registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,c,s)->read(c));runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);id=store.claimTurn(1L,fixture.session(),fixture.request()).getTurnId();}
  ReadResult read(ToolRead call){ReadResult r=new ReadResult();r.setCallId(call.getCallId());r.setName(call.getName());Map<String,Object> item=new LinkedHashMap<>();item.put("id",2L);item.put("name","青菜");r.getItems().add(item);return r;}

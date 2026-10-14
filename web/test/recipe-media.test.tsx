@@ -6,6 +6,15 @@ import { safeRecipeImage } from '../src/catalog/media.ts';
 import { snapshotRecipe } from '../src/domain/snapshots.ts';
 import { RecipeImage, RecipeMediaContext } from '../src/ui/RecipeImage.tsx';
 afterEach(cleanup);
+it('maps only verified legacy hosts to the working HTTPS image host', () => {
+  for (const host of ['cp1.douguo.net', 'cp2.douguo.net']) {
+    expect(safeRecipeImage(`http://${host}/upload/a%20b.jpg?size=300&x=%2F`)).toBe('https://cp1.douguo.com/upload/a%20b.jpg?size=300&x=%2F');
+  }
+  for (const host of ['cp3.douguo.net', 'cp1.douguo.net.evil.example', 'evil-cp1.douguo.net', 'images.example.com']) {
+    expect(safeRecipeImage(`https://${host}/a.jpg`)).toBe(`https://${host}/a.jpg`);
+  }
+  expect(safeRecipeImage('https://cp1.douguo.net@evil.example/a')).toBeNull();
+});
 it('rejects executable, credential-bearing and local image URLs', () => {
   for (const url of ['javascript:alert(1)', 'data:image/png,x', 'https://user:secret@example.com/a', 'https://127.0.0.1/a', 'https://localhost/a', 'https://server.local/a']) expect(safeRecipeImage(url)).toBeNull();
   expect(safeRecipeImage('http://images.example.com/food.jpg')).toBe('https://images.example.com/food.jpg');

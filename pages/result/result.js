@@ -6,6 +6,10 @@ const { criteriaSummary } = require('../../utils/recommendation-criteria')
 const { filterAndRankDishes } = require('../../utils/recommendation-matcher')
 const { createPreferenceStore } = require('../../utils/preference-store')
 
+function presentPlan(plan) {
+  return { ...plan, dishes: (plan.dishes || []).map(dish => ({ ...dish, image: require('../../utils/dish-image').imageSource(dish.image) })) }
+}
+
 Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/meal-workspace-page')({mode: 'result'}) : {
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     loading: true,
@@ -33,7 +37,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
   onLoad(query) {
     if(query && query.calendarReturn){
       const selected = wx.getStorageSync(getUserStorageKey('selectedDateForRecipe'))
-      if(selected && selected.plan){ this._viewScope = getUserStorageKey('resultView'); this._planOwnerScope = getUserStorageKey('mealView'); this.setData({ plans: [selected.plan], loading: false, current: 0, people: 2 }); this.checkSelectedDateFromCalendar(); return }
+      if(selected && selected.plan){ this._viewScope = getUserStorageKey('resultView'); this._planOwnerScope = getUserStorageKey('mealView'); this.setData({ plans: [presentPlan(selected.plan)], loading: false, current: 0, people: 2 }); this.checkSelectedDateFromCalendar(); return }
     }
     const params = query && query.params ? JSON.parse(decodeURIComponent(query.params)) : null
     this.setData({ params, people: Number(params && params.people) || 2 })
@@ -104,7 +108,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
         timeout,
       ])
       if (generationVersion !== this.generationVersion || scope !== getUserStorageKey('resultView')) return false
-      const plans = result.plans || []
+      const plans = (result.plans || []).map(presentPlan)
       if (plans.length === 0) {
         if (hasExistingPlans) {
           this.setData({
@@ -353,7 +357,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
       // Favorite refreshes and other row replacements may update the plan while this request waits.
       const currentPlan = this.data.plans[planIndex]
       const newDishes = [...currentPlan.dishes]
-      newDishes[dishIndex] = { ...newDish }
+      newDishes[dishIndex] = { ...newDish, image: require('../../utils/dish-image').imageSource(newDish.image) }
       const newPlans = [...this.data.plans]
       newPlans[planIndex] = { ...currentPlan, dishes: newDishes }
       this.setData({ plans: newPlans })
@@ -395,7 +399,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
             tags: typeof backendDish.tags === 'string' && backendDish.tags
               ? backendDish.tags.split(',').map(t => t.trim()).filter(Boolean)
               : (backendDish.tags || []),
-            image: (backendDish.image || '').replace(/^http:/, 'https:'),
+            image: require('../../utils/dish-image').imageSource(backendDish.image),
             kcal: backendDish.kcal || null,
             difficulty: backendDish.difficulty || '',
             cookTime: backendDish.cookTime || '',

@@ -6,6 +6,8 @@ import com.eatwhat.dto.RecommendationCriteria;
 import com.eatwhat.mapper.DishMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +33,7 @@ public class DishQueryService {
         this.candidateQueryService = candidateQueryService;
     }
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public DishPageDTO getFilteredDishes(Long userId,
                                          String type,
                                          String keyword,
@@ -39,12 +42,9 @@ public class DishQueryService {
                                          int pageSize) {
         int safePage = Math.max(1, page);
         int safePageSize = Math.max(1, Math.min(100, pageSize));
-        int cap = Integer.MAX_VALUE;
-        List<Dish> all = candidateQueryService.findRawForUser(userId, type, keyword, criteria, cap);
-        int from = (int)Math.min(all.size(), ((long)safePage - 1) * safePageSize);
-        int to = Math.min(all.size(), from + safePageSize);
-        List<Dish> returned = new java.util.ArrayList<>(all.subList(from, to));
-        return new DishPageDTO(enrich(returned), all.size(), safePage, safePageSize);
+        DishPageDTO result = candidateQueryService.findRawPageForUser(userId, type, keyword, criteria, safePage, safePageSize);
+        result.setList(enrich(result.getList()));
+        return result;
     }
 
     public List<Dish> getDishes(String type, String keyword, int page, int pageSize) {

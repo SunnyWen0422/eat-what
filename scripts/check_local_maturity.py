@@ -52,6 +52,9 @@ def check(workflow=False):
                 if not current.get('workspace') and not current.get('plan'):break
                 day-=datetime.timedelta(days=1)
             else:raise AssertionError('No unused synthetic acceptance slot')
+            # A reused isolated database may already contain the other fixture's own
+            # work on this date. Isolation means that state is unchanged, not empty.
+            other_before=call(f'/meal-workspaces/current?date={day}&mealType=dinner',user=910001)
             key=lambda:str(uuid.uuid4())
             w=call('/meal-workspaces','POST',{'requestId':key(),'expectedWorkspaceRevision':0,'context':{'date':str(day),'mealType':'dinner','people':2,'compositionMode':'auto','requirements':'','ownedIngredients':[]}})
             call(f"/meal-workspaces/{w['id']}/commands",'POST',{'command':'generate','requestId':key(),'expectedWorkspaceRevision':w['revision'],'planVersion':w['draft']['planVersion']})
@@ -69,7 +72,7 @@ def check(workflow=False):
             if confirmed['revision']!=replay['revision']:raise AssertionError('Confirmation retry was not idempotent')
             current=call(f'/meal-workspaces/current?date={day}&mealType=dinner');plan=current['plan']
             other=call(f'/meal-workspaces/current?date={day}&mealType=dinner',user=910001)
-            if other.get('workspace') or other.get('plan'):raise AssertionError('Synthetic accounts leaked state')
+            if other!=other_before:raise AssertionError('Synthetic accounts leaked state')
             passed('confirmation-replay-and-account-isolation')
             if not plan.get('dishDetails') or len(plan['dishDetails'])!=len(plan['dishIds']):raise AssertionError('Cooking snapshot is incomplete')
             meal_preview=call('/shopping-list/preview','POST',{'dishIds':plan['dishIds'],'targetPeople':2})

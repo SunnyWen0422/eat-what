@@ -6,6 +6,7 @@ from contextlib import ExitStack, contextmanager
 from pathlib import Path
 import sys
 import types
+import socket
 from unittest.mock import patch
 
 SERVICE = Path(__file__).resolve().parents[1] / "recommend-service"
@@ -18,6 +19,33 @@ def isolated_service():
              "model_client", "workspace_agent", "agent_tools", "agent_schemas", "authorized_catalog")
     saved = {name: sys.modules.get(name) for name in names}
     attempts = []
+    real_connect = socket.socket.connect
+
+    def local_socketpair(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0):
+        # Windows asyncio needs a private loopback wakeup pair. Never restore the
+        # global connect method: only this constructor's own socket may connect,
+        # synchronously on this thread, to its own listener's exact ephemeral port.
+        if family not in (socket.AF_INET, socket.AF_INET6) or type != socket.SOCK_STREAM or proto != 0:
+            raise ValueError("Only loopback TCP socketpairs are supported")
+        host = "127.0.0.1" if family == socket.AF_INET else "::1"
+        connector = accepted = None
+        try:
+            with socket.socket(family, type, proto) as listener:
+                listener.bind((host, 0)); listener.listen()
+                address = listener.getsockname()[:2]
+                connector = socket.socket(family, type, proto)
+                connector.setblocking(False)
+                try: real_connect(connector, address)
+                except (BlockingIOError, InterruptedError): pass
+                connector.setblocking(True)
+                accepted, _ = listener.accept()
+            if accepted.getsockname() != connector.getpeername() or connector.getsockname() != accepted.getpeername():
+                raise ConnectionError("Unexpected socketpair peer")
+            return accepted, connector
+        except BaseException:
+            if accepted is not None: accepted.close()
+            if connector is not None: connector.close()
+            raise
 
     def denied(*args, **kwargs):
         attempts.append("network operation")
@@ -42,6 +70,7 @@ def isolated_service():
         for target in ("socket.socket.connect", "socket.socket.connect_ex",
                        "socket.create_connection", "socket.getaddrinfo"):
             stack.enter_context(patch(target, side_effect=denied))
+        stack.enter_context(patch.object(socket, "socketpair", side_effect=local_socketpair))
         try:
             rag = importlib.import_module("rag")
             # Non-empty synthetic index prevents load_index from reading source artifacts.

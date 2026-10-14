@@ -1,6 +1,7 @@
 package com.eatwhat.service;
 
 import com.eatwhat.dto.RecommendationCriteria;
+import com.eatwhat.dto.DishPageDTO;
 import com.eatwhat.entity.Dish;
 import com.eatwhat.mapper.DishMapper;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,38 @@ public class DishCandidateQueryService {
 
     public DishCandidateQueryService(DishMapper dishMapper) {
         this.dishMapper = dishMapper;
+    }
+
+    /** Caller supplies normalized page bounds and a consistent read transaction. */
+    public DishPageDTO findRawPageForUser(Long userId, String type, String keyword,
+                                         RecommendationCriteria criteria, int page, int pageSize) {
+        RecommendationCriteria value = criteria == null ? new RecommendationCriteria() : criteria;
+        String safeType = blankToNull(type);
+        String safeKeyword = blankToNull(keyword);
+        long offset = ((long) page - 1) * pageSize;
+        if (safe(value.getExcludeTagCodes()).isEmpty() && safe(value.getExcludedIngredients()).isEmpty()) {
+            int total = dishMapper.countFilteredDishes(userId, safeType, safeKeyword,
+                    safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes());
+            List<Dish> rows = offset >= total ? Collections.emptyList() :
+                    dishMapper.selectFilteredDishesPage(userId, safeType, safeKeyword,
+                            safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes(), pageSize, offset);
+            return new DishPageDTO(rows, total, page, pageSize);
+        }
+
+        // Preserve Java token/case/substring semantics without loading off-page recipe bodies.
+        // Total still requires all matching raw facts; only pageSize IDs are retained separately.
+        List<Dish> facts = dishMapper.selectFilteredDishFacts(userId, safeType, safeKeyword,
+                safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes());
+        List<Long> pageIds = new ArrayList<>();
+        int total = 0;
+        if (facts != null) for (Dish dish : facts) {
+            if (dish == null || hasExcludedTag(dish, value.getExcludeTagCodes())
+                    || containsExcludedIngredient(dish, value.getExcludedIngredients())) continue;
+            if (total >= offset && pageIds.size() < pageSize) pageIds.add(dish.getId());
+            total++;
+        }
+        List<Dish> rows = pageIds.isEmpty() ? Collections.emptyList() : dishMapper.selectCatalogDishesByIds(pageIds, userId);
+        return new DishPageDTO(rows, total, page, pageSize);
     }
 
     public List<Dish> findForUser(Long userId,

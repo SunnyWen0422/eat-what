@@ -56,9 +56,14 @@ public class AssistantV4TurnService {
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
             Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();int readCount=0,factChars=0;
             for(int round=0;round<4;round++){
-                active(user,lease);int used=store.reserveProviderCall(user,turnId,lease.getLeaseToken());
-                long remaining=lease.getModelDeadlineAt()-clock.millis();if(remaining<=0)throw new IllegalStateException("请求超时");
-                input.setTimeoutSeconds(Math.min(10,remaining/1000.0));input.setFinalRound(used==4||readCount==8);
+                active(user,lease);
+                // Keep 0.5s for local completion inside the unchanged 30s lease. Each HTTP attempt
+                // has at most 23s: Python reserves 3s of that envelope and waits at most 20s.
+                if(lease.getModelDeadlineAt()-clock.millis()<4000)throw new IllegalStateException("请求剩余时间不足");
+                int used=store.reserveProviderCall(user,turnId,lease.getLeaseToken());
+                long now=clock.millis(),outerMillis=Math.min(23000,lease.getModelDeadlineAt()-now-500);
+                if(outerMillis<3500)throw new IllegalStateException("请求剩余时间不足");
+                input.setTimeoutSeconds(outerMillis/1000.0);input.setDeadlineEpochMillis(now+outerMillis);input.setFinalRound(used==4||readCount==8);
                 StepOutput output=model.step(input);active(user,lease);
                 validateOutput(output);
                 if("read_calls".equals(output.getType())){

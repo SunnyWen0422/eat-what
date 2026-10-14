@@ -30,10 +30,15 @@ public class AssistantV4ModelGateway {
     public StepOutput step(StepInput input){
         if(token==null||token.trim().isEmpty())throw new IllegalStateException("智能理解尚未配置");
         if(TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("不能在业务事务内调用模型");
-        double timeout=input.getTimeoutSeconds();if(!Double.isFinite(timeout)||timeout<=0||timeout>10)throw new IllegalArgumentException("请求时限无效");
+        double timeout=input.getTimeoutSeconds();if(!Double.isFinite(timeout)||timeout<3.5||timeout>23)throw new IllegalArgumentException("请求时限无效");
+        long now=System.currentTimeMillis(),millis=(long)(timeout*1000);
+        if(input.getDeadlineEpochMillis()!=null)millis=Math.min(millis,input.getDeadlineEpochMillis()-now);
+        if(millis<3500)throw new IllegalArgumentException("请求剩余时间不足");
+        final int budgetMillis=(int)millis;final long deadlineNanos=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(millis);
+        input.setTimeoutSeconds(millis/1000.0);input.setDeadlineEpochMillis(now+millis);
         HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("X-Service-Token",token);
         Future<String> pending=null;
-        try {int millis=Math.max(1,(int)(timeout*1000));pending=requests.submit(()->transport.apply(millis).postForObject(url,new HttpEntity<>(input,headers),String.class));String raw=pending.get(millis,TimeUnit.MILLISECONDS);
+        try {pending=requests.submit(()->transport.apply(budgetMillis).postForObject(url,new HttpEntity<>(input,headers),String.class));String raw=pending.get(Math.max(1,deadlineNanos-System.nanoTime()),TimeUnit.NANOSECONDS);
             if(raw==null||raw.length()>350000)throw new IllegalStateException();return json.readValue(raw,StepOutput.class);
         }catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException("本次请求已停止");}
         catch(Exception ignored){throw new IllegalStateException("智能理解暂不可用，请稍后重试");}

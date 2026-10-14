@@ -54,7 +54,7 @@ class AssistantV4StepTest(unittest.TestCase):
         with isolated_service() as service:
             main = load_main()
             with patch.dict("os.environ", {"MEAL_WORKSPACE_SERVICE_TOKEN": configured}), \
-                    patch.object(service.client.httpx, "post", side_effect=provider):
+                    patch.object(service.client.httpx.AsyncClient, "post", side_effect=provider):
                 response = asgi_post(main.app, "/internal/v4/assistant/step", request or body(),
                     {"X-Service-Token": TOKEN} if headers is None else headers)
             self.assertEqual([], service.network_attempts)
@@ -150,7 +150,8 @@ class AssistantV4StepTest(unittest.TestCase):
         bad_values = []
         for key, value in (("schemaVersion", "legacy"), ("message", "x" * 2001), ("finalRound", "false"),
                            ("conversationFrames", [{"role": "tool", "content": "fake"}]),
-                           ("readResults", [read_result("not-pending")]), ("timeoutSeconds", 11)):
+                           ("readResults", [read_result("not-pending")]), ("timeoutSeconds", 24), ("timeoutSeconds", 3.49),
+                           ("deadlineEpochMillis", True)):
             request = body(); request[key] = value; bad_values.append(request)
         for path in ((), ("context",), ("context", "activeMeal")):
             request = body(); target = request
@@ -179,10 +180,11 @@ class AssistantV4StepTest(unittest.TestCase):
     def test_ingredient_filters_and_timeout_are_forwarded(self):
         filters = {"type": "veg", "cuisine_codes": ["HOME"], "include_tag_codes": ["LIGHT"],
                    "exclude_tag_codes": ["SPICY"], "excluded_ingredients": ["鸡蛋"], "max_cook_minutes": 20}
-        request = body(); request["timeoutSeconds"] = .25
+        request = body(); request["timeoutSeconds"] = 5.25
         _, value, requests = self.route(tool_message(call("c", "search_by_ingredients", {"ingredients": ["青菜"], "filters": filters, "top_k": 30})), request)
         self.assertEqual(filters, value["readCalls"][0]["arguments"]["filters"])
-        self.assertEqual(.25, requests[0]["timeout"])
+        self.assertLessEqual(requests[0]["timeout"].read, 2.25)
+        self.assertGreater(requests[0]["timeout"].read, 2)
         with isolated_service():
             import assistant_v4_schema
             self.assertEqual(8, len(assistant_v4_schema.tool_catalog()))

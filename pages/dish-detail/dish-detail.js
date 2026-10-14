@@ -108,7 +108,7 @@ Page({
         // 每个步骤可能有 # 分隔的多张图
         dish.stepImagesFlat = dish.stepImagesList.map(s => {
           if (!s) return []
-          return String(s).split('#').filter(u => u.trim().startsWith('http'))
+          return String(s).split('#').filter(u => u.trim().startsWith('http')).map(require('../../utils/dish-image').imageSource)
         })
         // 所有步骤图片汇总（按顺序平铺）
         dish.allStepImages = []
@@ -145,11 +145,8 @@ Page({
         } else {
           dish.stepsList = []
         }
-        // 转换 HTTP 图片为 HTTPS
+        // 展示图片使用已验证的 HTTPS 地址。
         dish.image = require('../../utils/dish-image').imageSource(dish.image)
-        if (dish.stepImagesList) dish.stepImagesList = dish.stepImagesList.map(function(u) {
-          return typeof u === 'string' ? u.replace(/^http:/, 'https:') : u
-        })
 
         const user = wx.getStorageSync('userInfo') || {}
         const canEditCustom = !!user.id && dish.userId != null && String(dish.userId) === String(user.id)

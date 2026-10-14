@@ -10,7 +10,7 @@ function normalizeDish(dish, favoriteIds) {
     tags: typeof dish.tags === 'string' && dish.tags
       ? dish.tags.split(',').map(tag => tag.trim()).filter(Boolean)
       : (dish.tags || []),
-    image: (dish.image || '').replace(/^http:/, 'https:'),
+    image: require('./dish-image').imageSource(dish.image),
     kcal: dish.kcal || null,
     difficulty: dish.difficulty || '',
     cookTime: dish.cookTime || '',

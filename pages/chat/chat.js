@@ -125,7 +125,8 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
   hydrateSession(session) {
     const state = session.state || {}
-    const messages = (session.messages || []).map((item, index) => ({ ...item, id: `history-${index}` }))
+    const messages = (session.messages || []).map((item, index) => ({ ...item, id: `history-${index}`,
+      ...(Array.isArray(item.dishes) ? { dishes: item.dishes.map(dish => ({ ...dish, image: require('../../utils/dish-image').imageSource(dish.image) })) } : {}) }))
     const pending = (this.data.messages || []).filter(item => item && item._pendingEcho)
     this.setData({
       sessionId: session.session_id || this.data.sessionId,
@@ -142,6 +143,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
 
   addMessage(role, content, extra = {}) {
     const message = { id: `${role}-${Date.now()}-${Math.random().toString(16).slice(2)}`, role, content: String(content || ''), ...extra }
+    if (Array.isArray(message.dishes)) message.dishes = message.dishes.map(dish => ({ ...dish, image: require('../../utils/dish-image').imageSource(dish.image) }))
     this.setData({ messages: (this.data.messages || []).concat([message]) }, () => this.scrollToLatest())
   },
 

@@ -8,6 +8,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.validation.BindException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +54,15 @@ public class GlobalExceptionHandler {
         body.put("success", false);
         body.put("errorCode", "INVALID_ARGUMENT");
         body.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, BindException.class})
+    public ResponseEntity<Map<String, Object>> handleInvalidBinding(Exception e) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", false);
+        body.put("errorCode", "INVALID_ARGUMENT");
+        body.put("message", "请求参数格式错误");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 

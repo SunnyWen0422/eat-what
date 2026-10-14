@@ -9,6 +9,7 @@ export function safeRecipeImage(value: unknown): string | null {
     if (url.protocol !== 'https:' || url.username || url.password) return null;
     const host = url.hostname.toLowerCase();
     if (!host.includes('.') || host.endsWith('.local') || host.endsWith('.localhost') || /^[\d.]+$/.test(host) || host.includes(':')) return null;
+    if (host === 'cp1.douguo.net' || host === 'cp2.douguo.net') url.hostname = 'cp1.douguo.com';
     return url.href;
   } catch { return null; }
 }

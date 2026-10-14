@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+from time import monotonic, time
 from assistant_v4_schema import (ACTION_ARGUMENTS, READS, StepValidationError, assistant_calls, bounded_json,
     final_output, model_output_schema, obj, read_result, step_input, strict_json, string, tool_catalog, validate)
 
@@ -124,13 +125,19 @@ def prepare_step(value):
 
 def run_step(value: dict, model=None) -> dict:
     """One provider request; malformed internal envelopes raise StepValidationError."""
+    started = monotonic()
     messages, history, seen, results, allowed, allowed_actions = prepare_step(value)
     if model is None:
         from assistant_v4_provider import AssistantV4Provider
         model = AssistantV4Provider()
     try:
+        remaining = value.get("timeoutSeconds", 10) - (monotonic() - started)
+        if value.get("deadlineEpochMillis") is not None:
+            remaining = min(remaining, value["deadlineEpochMillis"] / 1000 - time())
+        if remaining < 3.5:
+            raise StepValidationError("insufficient provider deadline")
         message = model.complete_message(messages, tool_catalog(allowed), final_round=value["finalRound"],
-                                         timeout_seconds=value.get("timeoutSeconds", 10))
+                                         timeout_seconds=remaining)
         if message.get("tool_calls"):
             if value["finalRound"]: raise StepValidationError("tools forbidden in final round")
             calls = assistant_calls(message, allowed)

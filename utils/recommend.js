@@ -99,7 +99,7 @@ function _processDishes(dishes) {
       type: englishType,
       tags: Array.isArray(dish.tags) ? dish.tags :
             (dish.tags ? dish.tags.split(',').map(tag => tag.trim()) : []),
-      image: (dish.image || '').replace(/^http:/, 'https:'),
+      image: require('./dish-image').imageSource(dish.image),
       kcal: dish.kcal || null,
       difficulty: dish.difficulty || '',
       cookTime: dish.cookTime || '',

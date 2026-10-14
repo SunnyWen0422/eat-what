@@ -17,9 +17,10 @@ class CatalogPaginationTest {
         verify(prepared).setInt(2,100);verify(prepared).setInt(3,200);
     }
     @Test void completePublicCatalogIsNotTruncatedToFourHundredOrTwoThousand(){
-        DishCandidateQueryService candidates=mock(DishCandidateQueryService.class);List<Dish> all=new ArrayList<>();for(long i=1;i<=3200;i++){Dish d=new Dish();d.setId(i);all.add(d);}
-        when(candidates.findRawForUser(anyLong(),any(),any(),any(),anyInt())).thenAnswer(inv->new ArrayList<>(all.subList(0,Math.min(all.size(),inv.getArgument(4)))));
-        DishQueryService query=new DishQueryService(mock(DishMapper.class),candidates);DishPageDTO result=query.getFilteredDishes(7L,"meat",null,new RecommendationCriteria(),32,100);
+        DishMapper mapper=mock(DishMapper.class);List<Dish> lastPage=new ArrayList<>();for(long i=100;i>=1;i--){Dish d=new Dish();d.setId(i);lastPage.add(d);}
+        when(mapper.countFilteredDishes(eq(7L),eq("meat"),isNull(),anyList(),anyList(),isNull())).thenReturn(3200);
+        when(mapper.selectFilteredDishesPage(eq(7L),eq("meat"),isNull(),anyList(),anyList(),isNull(),eq(100),eq(3100L))).thenReturn(lastPage);
+        DishQueryService query=new DishQueryService(mapper);DishPageDTO result=query.getFilteredDishes(7L,"meat",null,new RecommendationCriteria(),32,100);
         assertEquals(3200,result.getTotal());assertEquals(100,result.getList().size());
         assertEquals(0,query.getFilteredDishes(7L,"meat",null,new RecommendationCriteria(),Integer.MAX_VALUE,100).getList().size());
     }

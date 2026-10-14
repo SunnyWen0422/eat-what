@@ -37,7 +37,7 @@ class V4ActualHistoryContractTest {
         RecipeRecord plan(int people) {
             RecipeRecord p=new RecipeRecord(); p.setId(50L); p.setMealType("dinner"); p.setRecipeName("后来安排"); p.setTargetPeople(people); p.setRevision(8L); p.setDishIds(Collections.singletonList(12L)); p.setRecordOrigin("manual");
             Dish d=new Dish(); d.setId(12L); d.setName("当前可信汤"); d.setType("soup"); p.setDishDetails(Collections.singletonList(d));
-            when(plans.selectByUserAndDate(3L,"2026-01-01")).thenReturn(Collections.singletonList(p)); return p;
+            when(plans.findSlot(3L,"2026-01-01","dinner")).thenReturn(p); return p;
         }
     }
     @Test void retainedDeletedRenamedAndFreeEntriesKeepOwnedHistoricalNamesAndTypes() throws Exception {

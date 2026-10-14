@@ -14,6 +14,7 @@ import static com.eatwhat.service.AssistantV4ContextService.*;
 /** Lazy, owner-scoped Java reads. Model arguments cannot supply identity, paths, or URLs. */
 @Service
 public class AssistantReadToolService {
+    private static final int SEARCH_RESULT_CHAR_LIMIT=4000;
     public static final List<String> READS=Collections.unmodifiableList(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods","read_current_meal","read_calendar","read_shopping","read_actual_diet_review"));
     private final MealWorkspaceService workspaces;private final DishQueryService dishes;private final DishCandidateQueryService candidates;
     private final UserPreferenceService preferences;private final RecommendationMetadataService metadata;private final MealConsumptionService meals;
@@ -58,16 +59,40 @@ public class AssistantReadToolService {
         if(type==null)pool=categoryRoundRobin(pool,current,locked);
         int end=(int)Math.min(pool.size(),(long)offset+limit);if(offset>pool.size())throw new IllegalArgumentException("分页位置无效，请重新查询");
         List<Dish> selected=pool.subList(offset,end);List<Long> selectedIds=selected.stream().map(Dish::getId).collect(Collectors.toList());Map<Long,Dish> enriched=new HashMap<>();for(Dish d:orEmpty(dishes.getDishesByIdsForUser(selectedIds,user))){checkDish(d,user);if(matches(d,hard,null)&&matches(d,additional,type))enriched.put(d.getId(),d);}
-        for(Dish raw:selected){Dish d=enriched.get(raw.getId());if(d==null)throw new MealConsumptionService.VersionConflict("候选菜品已变化，请重新查询");out.getItems().add(recipe(d,out));scope.getAuthorizedDishIds().add(d.getId());}
-        out.setTruncated(end<pool.size());out.setNextCursor(out.isTruncated()?String.valueOf(end):null);
+        int returnedEnd=offset;
+        for(Dish raw:selected){
+            Dish d=enriched.get(raw.getId());if(d==null)throw new MealConsumptionService.VersionConflict("候选菜品已变化，请重新查询");
+            int unknownStart=out.getUnknownFields().size();Map<String,Object> item=recipeSummary(d,out);
+            List<String> omitted=new ArrayList<>(Arrays.asList("ingredients","ingredientFacts","steps","methods"));
+            item.put("omittedFields",omitted);out.getItems().add(item);searchPage(out,returnedEnd+1,pool.size());
+            // A single valid but escape-heavy summary must still make progress. Omit whole optional
+            // fields explicitly; never slice a fact value or present an omitted field as known empty.
+            if(out.getItems().size()==1&&encodedLength(out)>SEARCH_RESULT_CHAR_LIMIT){
+                for(String field:Arrays.asList("tagCodes","name","contentVersion","datasetVersion","cuisineCode")){
+                    item.remove(field);omitted.add(field);
+                    if(encodedLength(out)<=SEARCH_RESULT_CHAR_LIMIT)break;
+                }
+            }
+            if(encodedLength(out)>SEARCH_RESULT_CHAR_LIMIT){
+                out.getItems().remove(out.getItems().size()-1);
+                out.getUnknownFields().subList(unknownStart,out.getUnknownFields().size()).clear();
+                if(returnedEnd==offset)throw new IllegalArgumentException("菜品摘要格式无效，请查询其他菜品");
+                break;
+            }
+            returnedEnd++;scope.getAuthorizedDishIds().add(d.getId());
+        }
+        searchPage(out,returnedEnd,pool.size());
     }
+    private void searchPage(ReadResult out,int end,int total){out.setTruncated(end<total);out.setNextCursor(out.isTruncated()?String.valueOf(end):null);out.setSourceVersion(fingerprint(out.getItems()));}
+    private int encodedLength(Object value){try{return json.writeValueAsString(value).length();}catch(Exception ex){throw new IllegalStateException("查询结果无法读取",ex);}}
     private List<Dish> categoryRoundRobin(List<Dish> pool,Set<Long> current,Set<Long> locked){List<Dish> out=new ArrayList<>();Map<String,Deque<Dish>> groups=new LinkedHashMap<>();for(String type:TYPES)groups.put(type,new ArrayDeque<>());for(Dish d:pool){if(current.contains(d.getId())||locked.contains(d.getId()))out.add(d);else groups.computeIfAbsent(d.getType(),k->new ArrayDeque<>()).add(d);}boolean added;do{added=false;for(Deque<Dish> group:groups.values())if(!group.isEmpty()){out.add(group.removeFirst());added=true;}}while(added);return out;}
     private RecommendationCriteria merge(RecommendationCriteria hard,RecommendationCriteria extra){RecommendationCriteria out=new RecommendationCriteria();out.setCuisineCodes(hard.getCuisineCodes().isEmpty()?extra.getCuisineCodes():hard.getCuisineCodes());out.setIncludeTagCodes(union(hard.getIncludeTagCodes(),extra.getIncludeTagCodes()));out.setExcludeTagCodes(union(hard.getExcludeTagCodes(),extra.getExcludeTagCodes()));out.setExcludedIngredients(union(hard.getExcludedIngredients(),extra.getExcludedIngredients()));Integer h=hard.getMaxCookMinutes(),e=extra.getMaxCookMinutes();if(h==null)out.setMaxCookMinutes(e);else if(e==null)out.setMaxCookMinutes(h);else out.setMaxCookMinutes(Math.min(h,e));return out;}
     private static List<String> union(List<String> a,List<String> b){Set<String> out=new LinkedHashSet<>(a);out.addAll(b);return new ArrayList<>(out);}
     private boolean matches(Dish d,RecommendationCriteria c,String type){if(type!=null&&!type.equals(d.getType()))return false;if(!c.getCuisineCodes().isEmpty()&&!c.getCuisineCodes().contains(d.getCuisineCode()))return false;Set<String> tags=new HashSet<>(Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")));if(!c.getIncludeTagCodes().isEmpty()&&Collections.disjoint(tags,c.getIncludeTagCodes()))return false;for(String excluded:c.getExcludeTagCodes())if(tags.contains(excluded))return false;if(c.getMaxCookMinutes()!=null&&(d.getCookMinutes()==null||d.getCookMinutes()>c.getMaxCookMinutes()))return false;String raw=ingredientText(d);for(String excluded:c.getExcludedIngredients())if(raw.contains(excluded.toLowerCase(Locale.ROOT)))return false;return true;}
     private static String ingredientText(Dish d){String raw=String.valueOf(d.getCl())+" "+String.valueOf(d.getIngredientsAmounts());if(d.getQuality()!=null)for(CatalogQuality.Ingredient i:orEmpty(d.getQuality().getIngredients()))raw+=" "+i.getName();return raw.toLowerCase(Locale.ROOT);}
     private static boolean hasAnyIngredient(Dish d,List<String> ingredients){String raw=ingredientText(d);for(String name:ingredients)if(raw.contains(name.toLowerCase(Locale.ROOT)))return true;return false;}
-    private Map<String,Object> recipe(Dish d,ReadResult out){Map<String,Object> item=dishSummary(d);CatalogQuality q=d.getQuality();boolean reviewed=q!=null&&"VERIFIED".equals(q.getReviewStatus());boolean servings=reviewed&&"VERIFIED".equals(q.getServingsStatus())&&q.getBasePeople()!=null;item.put("basePeople",servings?q.getBasePeople():null);if(!servings)out.getUnknownFields().add("basePeople:"+d.getId());List<Map<String,Object>> facts=new ArrayList<>();if(q!=null)for(CatalogQuality.Ingredient i:orEmpty(q.getIngredients())){if("REJECTED".equals(i.getIdentityStatus()))continue;boolean known=reviewed&&i.verifiedQuantity();facts.add(map("name",i.getName(),"unit",i.getUnit(),"identityStatus",i.getIdentityStatus(),"quantityValue",known?i.getQuantityValue():null,"quantityStatus",known?"VERIFIED":"UNKNOWN"));}item.put("ingredientFacts",facts);item.put("ingredients",d.getCl());item.put("datasetVersion",q==null?null:q.getDatasetVersion());return item;}
+    private Map<String,Object> recipeSummary(Dish d,ReadResult out){Map<String,Object> item=dishSummary(d);CatalogQuality q=d.getQuality();boolean servings=q!=null&&"VERIFIED".equals(q.getReviewStatus())&&"VERIFIED".equals(q.getServingsStatus())&&q.getBasePeople()!=null;item.put("basePeople",servings?q.getBasePeople():null);if(!servings)out.getUnknownFields().add("basePeople:"+d.getId());item.put("datasetVersion",q==null?null:q.getDatasetVersion());item.put("detailLevel","summary");return item;}
+    private Map<String,Object> recipe(Dish d,ReadResult out){Map<String,Object> item=recipeSummary(d,out);item.put("detailLevel","full");CatalogQuality q=d.getQuality();boolean reviewed=q!=null&&"VERIFIED".equals(q.getReviewStatus());List<Map<String,Object>> facts=new ArrayList<>();if(q!=null)for(CatalogQuality.Ingredient i:orEmpty(q.getIngredients())){if("REJECTED".equals(i.getIdentityStatus()))continue;boolean known=reviewed&&i.verifiedQuantity();facts.add(map("name",i.getName(),"unit",i.getUnit(),"identityStatus",i.getIdentityStatus(),"quantityValue",known?i.getQuantityValue():null,"quantityStatus",known?"VERIFIED":"UNKNOWN"));}item.put("ingredientFacts",facts);item.put("ingredients",d.getCl());return item;}
     @SuppressWarnings("unchecked") private void calendar(Long user,Map<String,Object> args,ReadResult out,boolean review){
         LocalDate start=date(args.get("startDate")),end=date(args.get("endDate"));if(end.isBefore(start)||ChronoUnit.DAYS.between(start,end)>366)throw new IllegalArgumentException("查询范围应在 367 天以内");LocalDate page=args.containsKey("cursor")?date(args.get("cursor")):start;if(page.isBefore(start)||page.isAfter(end))throw new IllegalArgumentException("分页日期无效");LocalDate through=page.plusDays(6).isAfter(end)?end:page.plusDays(6);
         Map<String,Object> data=meals.overview(user,page.toString(),through.toString());List<RecipeRecord> plans=data.get("plans") instanceof List?(List<RecipeRecord>)data.get("plans"):Collections.emptyList();List<MealConsumption> actual=data.get("consumptions") instanceof List?(List<MealConsumption>)data.get("consumptions"):Collections.emptyList();

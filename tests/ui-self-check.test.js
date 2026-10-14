@@ -143,6 +143,7 @@ function legacyResult(api = {}, moduleOverrides = {}) {
     '../../utils/util': { getUserStorageKey: key => `${account}:${key}` },
     '../../utils/preference-store': { createPreferenceStore: () => ({ readCache: () => ({}) }) },
     '../../utils/recommendation-matcher': require('../utils/recommendation-matcher'),
+    '../../utils/dish-image': require('../utils/dish-image'),
     '../../utils/font-scale': Object.assign(() => 1, { base: 14 }),
     '../../utils/config': { ENABLE_MEAL_WORKSPACE: false },
     ...moduleOverrides,

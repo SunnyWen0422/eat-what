@@ -31,7 +31,11 @@ class CatalogQueryPerformanceTest {
     }
     @Test void pageEnrichesOnlyReturnedDishesAfterHardExclusions() {
         DishMapper dishes = mock(DishMapper.class);
-        when(dishes.selectFilteredCandidates(anyLong(), any(), any(), anyList(), anyList(), any())).thenReturn(rows());
+        when(dishes.selectFilteredDishFacts(anyLong(), any(), any(), anyList(), anyList(), any())).thenReturn(rows());
+        when(dishes.selectCatalogDishesByIds(anyList(), eq(7L))).thenAnswer(call -> {
+            List<Long> ids = call.getArgument(0);
+            return rows().stream().filter(d -> ids.contains(d.getId())).collect(Collectors.toList());
+        });
         DishQualityMapper profiles = mock(DishQualityMapper.class);
         when(profiles.find(anyList())).thenAnswer(call -> {
             List<Long> ids = call.getArgument(0);

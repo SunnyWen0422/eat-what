@@ -9,6 +9,44 @@ import java.util.List;
  */
 @Mapper
 public interface DishMapper {
+    // Keep the catalog, count and recommendation predicates identical.
+    String FILTERED_FROM = "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) " +
+        "<if test='type != null'>AND TYPE = #{type} </if>" +
+        "<if test='keyword != null'>AND NAME LIKE CONCAT('%', #{keyword}, '%') </if>" +
+        "<if test='cuisineCodes != null and cuisineCodes.size() > 0'>AND CUISINE_CODE IN " +
+        "<foreach item='code' collection='cuisineCodes' open='(' separator=',' close=')'>#{code}</foreach></if>" +
+        "<if test='includeTagCodes != null and includeTagCodes.size() > 0'>AND (" +
+        "<foreach item='code' collection='includeTagCodes' separator=' OR '>FIND_IN_SET(#{code}, TAG_CODES) &gt; 0</foreach>) </if>" +
+        "<if test='maxCookMinutes != null'>AND COOK_MINUTES IS NOT NULL AND COOK_MINUTES &lt;= #{maxCookMinutes} </if>";
+    String CANDIDATE_COLUMNS = "ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
+        "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, " +
+        "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
+        "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom, user_id as userId, create_time as createTime ";
+
+    @Select({"<script>SELECT COUNT(*) ", FILTERED_FROM, "</script>"})
+    int countFilteredDishes(@Param("userId") Long userId, @Param("type") String type,
+                           @Param("keyword") String keyword, @Param("cuisineCodes") List<String> cuisineCodes,
+                           @Param("includeTagCodes") List<String> includeTagCodes, @Param("maxCookMinutes") Integer maxCookMinutes);
+
+    @Select({"<script>SELECT ", CANDIDATE_COLUMNS, FILTERED_FROM,
+        "ORDER BY ID DESC LIMIT #{limit} OFFSET #{offset}</script>"})
+    List<Dish> selectFilteredDishesPage(@Param("userId") Long userId, @Param("type") String type,
+                                      @Param("keyword") String keyword, @Param("cuisineCodes") List<String> cuisineCodes,
+                                      @Param("includeTagCodes") List<String> includeTagCodes, @Param("maxCookMinutes") Integer maxCookMinutes,
+                                      @Param("limit") int limit, @Param("offset") long offset);
+
+    /** Java exclusions need these raw facts; never transfer instructions or images for off-page rows. */
+    @Select({"<script>SELECT ID as id, TAG_CODES as tagCodes, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts ",
+        FILTERED_FROM, "ORDER BY ID DESC</script>"})
+    List<Dish> selectFilteredDishFacts(@Param("userId") Long userId, @Param("type") String type,
+                                     @Param("keyword") String keyword, @Param("cuisineCodes") List<String> cuisineCodes,
+                                     @Param("includeTagCodes") List<String> includeTagCodes, @Param("maxCookMinutes") Integer maxCookMinutes);
+
+    @Select({"<script>SELECT ", CANDIDATE_COLUMNS, "FROM food WHERE ID IN ",
+        "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
+        "AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) ORDER BY ID DESC</script>"})
+    List<Dish> selectCatalogDishesByIds(@Param("ids") List<Long> ids, @Param("userId") Long userId);
+
     @Select({"<script>","SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID IN",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",
         "AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId}) FOR UPDATE", "</script>"})
@@ -125,25 +163,7 @@ public interface DishMapper {
 
     @Select({
         "<script>",
-        "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, ",
-        "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, ",
-        "INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, ",
-        "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, ",
-        "METADATA_VERSION as metadataVersion, CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom, ",
-        "user_id as userId, create_time as createTime ",
-        "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) ",
-        "<if test='type != null'>AND TYPE = #{type} </if>",
-        "<if test='keyword != null'>AND NAME LIKE CONCAT('%', #{keyword}, '%') </if>",
-        "<if test='cuisineCodes != null and cuisineCodes.size() > 0'>",
-        "AND CUISINE_CODE IN ",
-        "<foreach item='code' collection='cuisineCodes' open='(' separator=',' close=')'>#{code}</foreach>",
-        "</if>",
-        "<if test='includeTagCodes != null and includeTagCodes.size() > 0'>",
-        "AND (",
-        "<foreach item='code' collection='includeTagCodes' separator=' OR '>FIND_IN_SET(#{code}, TAG_CODES) &gt; 0</foreach>",
-        ") ",
-        "</if>",
-        "<if test='maxCookMinutes != null'>AND COOK_MINUTES IS NOT NULL AND COOK_MINUTES &lt;= #{maxCookMinutes} </if>",
+        "SELECT ", CANDIDATE_COLUMNS, FILTERED_FROM,
         "ORDER BY ID DESC",
         "</script>"
     })
