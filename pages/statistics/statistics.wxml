@@ -54,12 +54,12 @@
     <view class="ew-card" data-report-block="planExecution">
       <text class="ew-section-title">计划执行对照</text>
       <text class="ew-muted">仅对照安排是否执行，不计入饮食统计。</text>
-      <text class="ew-muted">在所选周期内，截至 {{reportView.metadata.executionAsOfDate}}（{{reportView.metadata.timezone}}）：已到期安排 {{reportView.planExecution.plannedMealsDue}} 餐，按计划确认 {{reportView.planExecution.plannedMealsFollowed}} 餐，实际调整 {{reportView.planExecution.plannedMealsChanged}} 餐，明确取消 {{reportView.planExecution.skippedMeals}} 餐，未确认 {{reportView.planExecution.unconfirmedMeals}} 餐。未确认不等于没吃；今天与未来的计划不在到期统计内。</text>
+      <text class="ew-muted">在所选周期内，截至 {{reportView.metadata.executionAsOfDate}}（{{reportView.metadata.timezone}}）：已到期安排 {{reportView.planExecution.plannedMealsDue}} 餐，按计划确认 {{reportView.planExecution.plannedMealsFollowed}} 餐，实际调整 {{reportView.planExecution.plannedMealsChanged}} 餐，明确没吃 {{reportView.planExecution.skippedMeals}} 餐，未确认 {{reportView.planExecution.unconfirmedMeals}} 餐。未确认不等于没吃；今天与未来的计划不在到期统计内。</text>
     </view>
     <view class="ew-card" data-report-block="completeness">
       <text class="ew-section-title">记录完整性与缺失</text>
-      <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有用餐记录。</text><text class="ew-muted">吃过、明确取消和更正为未记录都算有记录。没有记录不代表没有吃饭。</text></view>
-      <view class="record"><text>明确取消 {{reportView.completeness.explicitSkippedMeals}} 餐；明确标记未记录 {{reportView.completeness.explicitUnrecordedMeals}} 餐。</text><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已吃但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
+      <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有用餐记录。</text><text class="ew-muted">吃过、明确没吃和更正为未记录都算有记录。没有记录不代表没有吃饭。</text></view>
+      <view class="record"><text>明确没吃 {{reportView.completeness.explicitSkippedMeals}} 餐；明确标记未记录 {{reportView.completeness.explicitUnrecordedMeals}} 餐。</text><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已吃但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
       <text class="ew-muted">没有可靠的实际食用份量，暂不计算热量、营养分数或每日用餐完成率。</text>
       <button class="ew-hit-target ew-link" bindtap="onToggleProvenance">{{showProvenance ? '收起计算说明' : '查看计算说明'}}</button><view wx:if="{{showProvenance}}" class="record report-provenance"><text>按北京时间对应的用餐日期整理。</text><text class="ew-muted">这份回顾根据当前记录即时整理；更正用餐记录后会重新计算。</text></view>
     </view>

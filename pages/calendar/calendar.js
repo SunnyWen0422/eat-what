@@ -1,7 +1,7 @@
 const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
-const {calendarMealPresentation}=require('../../utils/calendar-meal-presentation')
+const {calendarMealPresentation,calendarDayLabel}=require('../../utils/calendar-meal-presentation')
 const { beginShoppingSelection } = require('../../utils/shopping-list')
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), weekdays: ['一','二','三','四','五','六','日'], selectedDate: flow.today(), viewMode: 'week', rangeLabel: '', days: [], mealCards: [], overview: { plans: [], consumptions: [] }, loading: true, errorMessage: '', selectMode: false, authenticated: true },
@@ -15,7 +15,8 @@ Page({
     if (this.data.viewMode === 'month') for (let i = 0; i < (flow.parseDay(range.startDate).getDay() + 6) % 7; i++) days.push({ key: `blank-${i}`, blank: true })
     for (let date = range.startDate; date <= range.endDate; date = flow.shiftDay(date, 1)) {
       const d = flow.parseDay(date)
-      days.push({ key: date, fullDate: date, day: d.getDate(), weekLabel: ['日','一','二','三','四','五','六'][d.getDay()], selected: date === current, isToday: date === flow.today(), hasPlan: plans.some(p => String(p.recordDate).slice(0,10) === date), eaten: actual.some(p => p.mealDate === date && p.status === 'eaten') })
+      const day={key:date,fullDate:date,day:d.getDate(),weekLabel:['日','一','二','三','四','五','六'][d.getDay()],selected:date===current,isToday:date===flow.today(),hasPlan:plans.some(p=>String(p.recordDateString||p.recordDate).slice(0,10)===date),eaten:actual.some(p=>p.mealDate===date&&p.status==='eaten'),skipped:actual.some(p=>p.mealDate===date&&p.status==='skipped')}
+      day.accessibleLabel=calendarDayLabel({...day,date});days.push(day)
     }
     this.setData({ days, rangeLabel: `${range.startDate} — ${range.endDate}`, mealCards: flow.mealViews(this.data.overview, current).map(meal=>({...meal,presentation:calendarMealPresentation({...meal,date:current,today:flow.today()}),dishSummary:calendarMealPresentation({...meal,date:current,today:flow.today()}).dishes.map(d=>d.name).join('、'),statusLabel:meal.status==='eaten'?'已吃':meal.status==='skipped'?'这餐没吃':meal.plan?'已安排 · 未记录':'未记录'})) })
   },
@@ -37,10 +38,10 @@ Page({
       this.setData({ authenticated: error.statusCode !== 401, errorMessage: flow.errorMessage(error, '暂未连接，缓存内容仅供查看。请联网后重试。') })
     } finally { if (current()) this.setData({ loading: false }) }
   },
-  onModeChange(e) { this.setData({ viewMode: e.currentTarget.dataset.mode }); this.rebuild(); this.loadRecipeRecords() },
+  onModeChange(e) { if(!['week','month'].includes(e.currentTarget.dataset.mode))return; this.setData({ viewMode: e.currentTarget.dataset.mode }); this.rebuild(); this.loadRecipeRecords() },
   onSelectDate(e) {
     const day = e.currentTarget.dataset.date
-    if (!day) return
+    try{require('../../utils/meal-save-target').validateMealTarget({date:day,mealType:'breakfast'})}catch(_){return}
     this.setData({ selectedDate: day }); this.rebuild()
     if (this.data.selectMode) {
       const selection = wx.getStorageSync(getUserStorageKey('selectingDateForRecipe'))
@@ -54,11 +55,13 @@ Page({
   onPrevMonth() { this.move(-1) }, onNextMonth() { this.move(1) },
   onToday() { this.setData({ selectedDate: flow.today() }); this.rebuild(); this.loadRecipeRecords() },
   onOpenMeal(e) { const meal=e && e.currentTarget && e.currentTarget.dataset.meal; wx.navigateTo({ url: `/pages/calendar-detail/calendar-detail?date=${this.data.selectedDate}${flow.mealNames[meal] ? '&mealType='+meal : ''}` }) },
-  onShoppingList() { wx.navigateTo({ url: '/pages/shopping-list/shopping-list' }) },
+  onShoppingList() { this.closeMore();wx.navigateTo({ url: '/pages/shopping-list/shopping-list' }) },
   onReview() { wx.navigateTo({ url: '/pages/statistics/statistics?period='+this.data.viewMode+'&anchor='+encodeURIComponent(this.data.selectedDate) }) },
   onLogin() { wx.switchTab({ url: '/pages/profile/profile' }) },
-  onAssistant() { wx.navigateTo({ url: `/pages/chat/chat?date=${this.data.selectedDate}` }) },
+  onAssistant() { this.setData({moreVisible:false});wx.navigateTo({url:`/pages/calendar-detail/calendar-detail?date=${this.data.selectedDate}`}) },
+  onMore(){this.setData({moreVisible:true})}, closeMore(){this.setData({moreVisible:false})},
   onPurchaseRange() {
+    this.closeMore()
     const cancelled = new Set((this.data.overview.consumptions || []).filter(x => x.status === 'skipped').map(x => `${x.mealDate}|${x.mealType}`))
     const sources = (this.data.overview.plans || []).filter(p => (p.dishIds || []).length && !cancelled.has(`${String(p.recordDate).slice(0,10)}|${p.mealType}`)).map(p => ({ sourceDate: String(p.recordDate).slice(0,10), sourceMealType: p.mealType, dishIds: p.dishIds, targetPeople: p.targetPeople || 2, dishes: p.dishDetails || [] }))
     if (!sources.length) return wx.showToast({ title: '请先安排可采购的菜品', icon: 'none' })

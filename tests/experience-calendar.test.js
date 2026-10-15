@@ -144,3 +144,10 @@ test('late account-change rejection preserves unresolved copy for the original o
  let reject;const options={savePlan:()=>new Promise((resolve,no)=>{reject=no})},f=harness(eaten,options);await f.page.loadMealRecords();f.page.onCopy(event);const saving=f.page.saveForm();await new Promise(r=>setImmediate(r));assert.equal(f.writes.length,1);f.switchAccount();await f.page.loadMealRecords();reject({statusCode:401,isAccountChanged:true});await saving
  const owner=harness(eaten,{memory:f.memory});await owner.page.loadMealRecords();assert.equal(owner.page.data.copyPendingMeal,'dinner');owner.page.onRecoverCopy();await owner.page.saveForm();assert.deepEqual(owner.writes[0],f.writes[0])
 })
+
+test('primary actual action opens the original meal editor read-only and cancel does not write',async()=>{
+ const f=harness();await f.page.loadMealRecords();await f.page.onPrimaryMeal(event);assert.equal(f.page.data.actualVisible,true);assert.equal(f.page._actualBinding.mealType,'dinner');assert.equal(f.page.data.actualText,'原来吃的鱼');assert.equal(f.writes.length,0);f.page.closeMealActual();assert.equal(f.writes.length,0)
+})
+test('procurement action ignores a late tap after account switch',async()=>{
+ const f=harness();await f.page.loadMealRecords();f.switchAccount();f.page.onAddMealToShoppingList(event);assert.equal(f.writes.length,0)
+})

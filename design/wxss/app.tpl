@@ -94,3 +94,12 @@ button::after { border: none; }
 
 page{background:{{background}};color:{{text}};font-size:{{font.body.px}}}
 .mobile-screen{background:{{background}}}
+
+.actual-text-input { width:100%; min-height:96px; height:auto; font-size:1em; line-height:1.5; box-sizing:border-box; }
+
+/* Shared actual-record content is rendered by three pages. */
+.actual-plan { margin:16px 0; }
+.actual-choices { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
+.actual-choice { margin:0; padding:12px; min-width:44px; min-height:44px; background:{{card}}; color:{{text}}; font-size:{{font.body.em}}; text-align:left; border:1px solid {{controlBorder}}; border-radius:14px; line-height:1.5; }
+.actual-choice.selected { border-color:{{brand}}; background:{{brandSoft}}; font-weight:600; }
+.actual-choice::after { border:0; }

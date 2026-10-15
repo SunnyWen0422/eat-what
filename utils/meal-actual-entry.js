@@ -7,7 +7,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
   const planChanged=(b,meal)=>Number.isFinite(b.planRevision)&&b.planRevision!==meal.planRevision
   return {
     async openMealActual(target) {
-      if(!target||!/^\d{4}-\d{2}-\d{2}$/.test(target.date)||!flow.mealNames[target.mealType])return
+      try{require('./meal-save-target').validateMealTarget(target)}catch(_){return}
       const binding={...target,scope:scope()},key=binding.scope+`:pending:${target.date}:${target.mealType}`
       this._actualAlive=true;this._actualBinding=binding;binding.key=key
       this.setData({actualVisible:true,actualQuick:!!target.quick,actualSavedMessage:'',actualLoading:true,actualBusy:false,actualError:'',actualText:'',actualMode:'changed',actualPlanChanged:false,actualPlanNames:'',actualOriginalPlanNames:target.displayedPlanNames||'',actualTitle:`${target.date} ${flow.mealNames[target.mealType]}`,actualUnknown:false,actualNeedsReload:false,actualHasPlan:false,actualCanRecord:target.date<=today()})

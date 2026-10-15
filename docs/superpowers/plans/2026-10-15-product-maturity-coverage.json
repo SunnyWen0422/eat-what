@@ -577,12 +577,13 @@
         "T11"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K16",
         "K31"
-      ]
+      ],
+      "evidenceNote": "49 Node checks pass; full-date accessible labels and inert blanks, one primary action plus more, explicit skipped semantics and multiline actual editor; no database or native proof. Ruling: calendar-wide assistant routes to meal selection first to avoid inventing a meal target; cost one extra selection. Shared actual styles moved globally because calendar/cooking use the same template."
     },
     {
       "id": "T15",

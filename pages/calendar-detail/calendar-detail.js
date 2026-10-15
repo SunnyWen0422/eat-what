@@ -40,7 +40,7 @@ Page({
   onCalendarAssistant(event) {
     const meal=event.currentTarget.dataset.meal
     if(!this.data.assistantAvailable || this._unloaded || this._viewScope!==getUserStorageKey('mealView') || !flow.mealNames[meal])return
-    wx.navigateTo({url:`/pages/chat/chat?date=${encodeURIComponent(this.data.selectedDate)}&mealType=${encodeURIComponent(meal)}&entryScene=calendar`})
+    this.closeMealSheet();wx.navigateTo({url:`/pages/chat/chat?date=${encodeURIComponent(this.data.selectedDate)}&mealType=${encodeURIComponent(meal)}&entryScene=calendar`})
   },
   openMealSheet(type, mode) { const meal=this.meal(type);if(!meal || this.data.mutating || this.data.actualBusy || this._viewScope!==getUserStorageKey('mealView'))return;this.setData({sheetMode:mode,sheetMeal:meal}) },
   closeMealSheet() { if(!this.data.mutating)this.setData({sheetMode:'',sheetMeal:null}) },
@@ -107,6 +107,15 @@ Page({
     const value=this.meal(type), body={ status, usePlan, dishes: dishes || [], expectedPlanRevision: value.plan ? value.plan.revision : 0, expectedRevision: value.actual ? value.actual.revision : 0 }
     body.requestId=this.stableRequest(`meal-${type}`,body)
     return api.saveMealConsumption(this.data.selectedDate,type,body)
+  },
+  onPrimaryMeal(e){
+    const meal=this.meal(e.currentTarget.dataset.meal)
+    if(!meal||this.data.mutating||this.data.actualBusy)return
+    const kind=calendarMealPresentation({...meal,date:this.data.selectedDate,today:flow.today()}).primary.kind
+    if(kind==='recordEaten')return this.onRecordMeal(e)
+    if(kind==='correctActual')return this.onActualDifferent(e)
+    if(kind==='prepare')return this.onAddMealToShoppingList(e)
+    if(kind==='arrange')return this.onChooseRecipe(e)
   },
   onRecordMeal(e){return this.meal(e.currentTarget.dataset.meal)?.plan?this.onEaten(e):this.onActualDifferent(e)},
   onEaten(e) { return this.openActualFor(e,'byPlan') },
@@ -188,7 +197,9 @@ Page({
     wx.switchTab({url:'/pages/customize/customize'})
   },
   onAddMealToShoppingList(e) {
-    const type=e.currentTarget.dataset.meal,value=this.meal(type), plan=value.plan
+    const type=e.currentTarget.dataset.meal,value=this.meal(type)
+    if(!value || this.data.mutating || this.data.actualBusy || this._viewScope!==getUserStorageKey('mealView'))return
+    this.closeMealSheet();const plan=value.plan
     if(!plan || !(plan.dishIds || []).length)return wx.showToast({title:'请先从菜谱选择菜品',icon:'none'})
     const source={sourceDate:this.data.selectedDate,sourceMealType:type,dishIds:plan.dishIds,targetPeople:plan.targetPeople || 2,dishes:plan.dishDetails || []}
     beginShoppingSelection({sources:[source],dishIds:plan.dishIds,targetPeople:source.targetPeople,source:'calendar-detail',dishes:source.dishes})

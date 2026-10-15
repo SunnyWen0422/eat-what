@@ -39,3 +39,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .calendar-action-row > ui-icon { flex:0 0 auto; }
 .calendar-heading .ew-heading { font-size:1.5em; }
 .ew-page button.calendar-action-row { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }
+
+.calendar-card button.day { width:100%; max-width:100%; margin:0; padding:8px 0; font-size:1em; font-family:inherit; line-height:1.5; white-space:normal; }
+.calendar-card button.day::after { border:0; }

@@ -52,11 +52,7 @@
 .workspace-save-fields { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
 .workspace-save-field { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; min-height:48px; gap:12px; padding:8px 12px; border-bottom:1px solid {{divider}}; box-sizing:border-box; }
 .workspace-save-field text { overflow-wrap:anywhere; }
-.actual-plan { margin:16px 0; }
-.actual-choices { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
-.actual-choice { margin:0; padding:12px; min-width:44px; min-height:44px; background:{{card}}; color:{{text}}; font-size:{{font.body.em}}; text-align:left; border:1px solid {{controlBorder}}; border-radius:14px; line-height:1.5; }
-.actual-choice.selected { border-color:{{brand}}; background:{{brandSoft}}; font-weight:600; }
-.actual-choice::after { border:0; }
+
 @media(max-width:360px) { .workspace-empty { padding:24px 12px; }.workspace-meals { gap:4px; }.workspace-meal { padding:8px 12px; } }
 
 .workspace-focus-actions { justify-content:space-between; }
