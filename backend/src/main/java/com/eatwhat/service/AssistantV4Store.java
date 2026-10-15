@@ -87,6 +87,14 @@ public class AssistantV4Store {
             TurnRecord old=db.turnByRequest(user,sessionId,request.getRequestId());if(old!=null){if(!hash.equals(old.getRequestHash()))throw conflict();return view(old);}
             if(!Objects.equals(s.getWorkspaceId(),request.getWorkspaceId()))throw conflict();MealWorkspace w=workspaces.get(user,request.getWorkspaceId());
             if(!Objects.equals(w.getRevision(),request.getExpectedWorkspaceRevision())||!Objects.equals(w.getDraft().getPlanVersion(),request.getExpectedPlanVersion()))throw conflict();
+            if(request.getClarificationChoice()!=null){
+                TurnRecord parent=turnRecord(user,request.getClarificationChoice().getContinuationRef());
+                AssistantGuidanceService.validateChoice(user,sessionId,request,parent,w,json,clock.millis(),false);
+                TurnResult previous=decode(parent.getResultJson(),TurnResult.class);
+                for(Card card:previous.getCards())if("clarification".equals(card.getType())&&Objects.equals(parent.getId(),card.getData().get("continuationRef")))card.getData().put("consumedByRequestId",request.getRequestId());
+                // Same lock/transaction as the new turn insert: failures do not consume a choice.
+                if(db.consumeClarification(user,parent.getId(),encode(previous))!=1)throw conflict();
+            }
             TurnRecord r=new TurnRecord();r.setId(UUID.randomUUID().toString());r.setUserId(user);r.setSessionId(sessionId);r.setWorkspaceId(s.getWorkspaceId());r.setRequestId(request.getRequestId());r.setRequestHash(hash);r.setStatus("queued");r.setInputJson(encode(request));r.setCreatedAt(clock.millis());r.setUpdatedAt(clock.millis());
             TurnResult result=new TurnResult();WorkspaceRef ref=new WorkspaceRef();ref.setWorkspaceId(s.getWorkspaceId());ref.setWorkspaceRevision(w.getRevision());ref.setPlanVersion(w.getDraft().getPlanVersion());result.setWorkspaceRef(ref);r.setResultJson(encode(result));db.insertTurn(r);
             db.message(user,sessionId,r.getId(),"user",request.getMessage(),"[]",clock.millis());db.trimMessages(user,sessionId);db.touchSession(user,sessionId,clock.millis());return view(r);

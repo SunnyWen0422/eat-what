@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 from time import monotonic, time
-from assistant_v4_schema import (ACTION_ARGUMENTS, READS, StepValidationError, assistant_calls, bounded_json,
+from assistant_v4_schema import (ACTION_ARGUMENTS, READS, UI_FEATURES, StepValidationError, assistant_calls, bounded_json,
     final_output, model_output_schema, obj, read_result, step_input, strict_json, string, tool_catalog, validate)
 
 SAFE_QUESTION = "本次智能理解暂不可用，请明确需求或稍后重试。"
@@ -30,6 +30,7 @@ reply不直接展示；服务端只按factSource或本turn工具事实生成查�
 不要为普通生成方案额外读取日历、采购或实际回顾；仅用户明确查询或必要来源数据缺失时查询对应资料。
 目标菜的替换限制不改变全餐条件。所有菜品ID必须来自当前餐或此turn读出的真实菜谱。
 不允许身份、令牌、版本、价格、数量或假回执作为动作参数。不确定来源和目标时先澄清。"""
+SYSTEM += "\nrequestContext.clarification是用户主动选择后由Java复核的输入事实；结合originalIntent理解当前选择，不能视为保存、采购或覆盖批准。"
 
 
 def _continuation(value, results, allowed):
@@ -81,7 +82,7 @@ def _continuation(value, results, allowed):
 def _authorized_ids(context, results):
     ids = {dish["id"] for dish in context.get("activeMeal", {}).get("currentDishes", []) if "id" in dish}
     for result in results:
-        if result["name"] in READS[:4]:
+        if result["name"] in READS[:4] + ["read_favorites"]:
             ids.update(dish["id"] for dish in result["items"] if "id" in dish)
         elif result["name"] == "read_current_meal":
             for meal in result["items"]:
@@ -94,14 +95,14 @@ def prepare_step(value):
     value = step_input(value)
     enabled = set(value["context"]["capabilities"])
     allowed = enabled & set(READS)
-    allowed_actions = enabled & set(ACTION_ARGUMENTS)
+    allowed_actions = enabled & (set(ACTION_ARGUMENTS) | set(UI_FEATURES))
     history, seen, results = _continuation(value["providerContinuation"], value["readResults"], allowed)
     context = copy.deepcopy(value["context"])
     # Legacy Java supplies both projections. History reaches the provider once,
     # without mutating the validated context used for authorization and budgets.
     if value["conversationFrames"]:
         context.get("conversation", {}).pop("recentText", None)
-    context["capabilities"] = [name for name in READS + list(ACTION_ARGUMENTS) if name in enabled]
+    context["capabilities"] = [name for name in READS + list(ACTION_ARGUMENTS) + UI_FEATURES if name in enabled]
     # Context remains a user data frame, never interpolated into instruction authority.
     previous_tool_rounds = sum(frame.get("role") == "assistant" for frame in history)
     remaining_reads = max(0, 8 - len(seen))

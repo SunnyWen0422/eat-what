@@ -443,12 +443,13 @@
         "T06"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K21",
         "K23",
         "K30"
-      ]
+      ],
+      "evidenceNote": "Java103/103; Python89 with 88 pass and1 skip; personal read tools and ten-minute owner/version-scoped choices; choice reservation atomic with turn claim; MySQL rollback deferred T21. Ruling: split personal reads and guidance responsibilities; server normalized questions determine options, optional model declaration grants no authority."
     },
     {
       "id": "T08",

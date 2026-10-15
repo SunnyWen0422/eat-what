@@ -6,6 +6,7 @@ import java.util.*;
 
 @Mapper
 public interface AssistantV4Mapper {
+    @Update("UPDATE assistant_v4_turn SET result_json=#{result} WHERE user_id=#{user} AND id=#{id} AND status='needs_input'") int consumeClarification(@Param("user") Long user,@Param("id") String id,@Param("result") String result);
     @Select("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE' AND table_name IN ('assistant_v4_session','assistant_v4_turn','assistant_v4_message')") int installedSchemaTables();
     String SESSION="id,user_id AS userId,workspace_id AS workspaceId,request_id AS requestId,request_hash AS requestHash,created_at AS createdAt,updated_at AS updatedAt";
     String TURN="id,user_id AS userId,session_id AS sessionId,workspace_id AS workspaceId,request_id AS requestId,request_hash AS requestHash,status,CAST(input_json AS CHAR) AS inputJson,CAST(result_json AS CHAR) AS resultJson,CAST(continuation_json AS CHAR) AS continuationJson,lease_token AS leaseToken,lease_until AS leaseUntil,model_deadline_at AS modelDeadlineAt,provider_calls_used AS providerCallsUsed,created_at AS createdAt,updated_at AS updatedAt";

@@ -54,6 +54,27 @@ class AssistantV4StoreTest {
     String session(){SessionRequest r=new SessionRequest();r.setWorkspaceId("w");r.setRequestId(UUID.randomUUID().toString());return store.createSession(1L,r).getSessionId();}
     TurnRequest request(){TurnRequest r=new TurnRequest();r.setRequestId(UUID.randomUUID().toString());r.setWorkspaceId("w");r.setExpectedWorkspaceRevision(0L);r.setExpectedPlanVersion(0L);r.setEntryScene("chat");r.setMessage("晚餐");return r;}
     @Test void same_key_same_turn(){String s=session();TurnRequest r=request();String id=store.claimTurn(1L,s,r).getTurnId();assertEquals(id,store.claimTurn(1L,s,r).getTurnId());assertEquals(1,turns.size());}
+    @Test void clarification_is_reserved_once_but_original_request_replays_after_restart()throws Exception{
+        workspaces.get(1L,"w").setContext(new com.eatwhat.dto.MealContext());
+        String s=session();TurnRequest initial=request();initial.setMessage("保存到哪天");String parent=store.claimTurn(1L,s,initial).getTurnId();
+        TurnRecord lease=store.acquireTurn(1L,parent);AssistantGuidanceService guidance=new AssistantGuidanceService(workspaces,store,new ObjectMapper(),new AssistantCapabilityService(true),Clock.fixed(Instant.ofEpochMilli(now),ZoneOffset.UTC));
+        TurnResult answer=new TurnResult();answer.setStatus("needs_input");answer.getCards().add(guidance.createClarification(parent,workspaces.get(1L,"w"),"请说明目标日期。"));store.completeTurn(1L,parent,"running",lease.getLeaseToken(),answer);
+        when(db.consumeClarification(eq(1L),eq(parent),anyString())).thenAnswer(i->{turns.get(parent).setResultJson(i.getArgument(2));return 1;});
+        TurnRequest next=request();next.setUiFeatures(Collections.singletonList("clarification_v1"));ClarificationChoice c=new ClarificationChoice();c.setContinuationRef(parent);c.setOptionId("tomorrow");next.setClarificationChoice(c);
+        String id=store.claimTurn(1L,s,next).getTurnId();assertEquals(id,newStore().claimTurn(1L,s,next).getTurnId());
+        next.setRequestId(UUID.randomUUID().toString());assertThrows(ResponseStatusException.class,()->store.claimTurn(1L,s,next));
+        assertEquals(2,turns.size());verify(db,times(1)).consumeClarification(eq(1L),eq(parent),anyString());
+        verify(db,never()).reserve(anyLong(),anyString(),anyString(),anyLong());
+    }
+    @Test void stale_clarification_does_not_consume_the_original_card()throws Exception{
+        workspaces.get(1L,"w").setContext(new com.eatwhat.dto.MealContext());
+        String s=session();String parent=store.claimTurn(1L,s,request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,parent);
+        AssistantGuidanceService guidance=new AssistantGuidanceService(workspaces,store,new ObjectMapper(),new AssistantCapabilityService(true),Clock.fixed(Instant.ofEpochMilli(now),ZoneOffset.UTC));
+        TurnResult answer=new TurnResult();answer.setStatus("needs_input");answer.getCards().add(guidance.createClarification(parent,workspaces.get(1L,"w"),"请说明目标日期。"));store.completeTurn(1L,parent,"running",lease.getLeaseToken(),answer);
+        TurnRequest next=request();next.setUiFeatures(Collections.singletonList("clarification_v1"));ClarificationChoice c=new ClarificationChoice();c.setContinuationRef(parent);c.setOptionId("invented");next.setClarificationChoice(c);
+        String before=turns.get(parent).getResultJson();assertThrows(ResponseStatusException.class,()->store.claimTurn(1L,s,next));assertEquals(before,turns.get(parent).getResultJson());
+        verify(db,never()).consumeClarification(anyLong(),anyString(),anyString());assertEquals(1,turns.size());
+    }
     @Test void genuine_receipt_workspace_reference_advances_but_never_regresses_or_switches_scope(){
         String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
         Card first=new Card();first.setReceiptRef("first");WorkspaceRef reference=new WorkspaceRef();reference.setWorkspaceId("w");reference.setWorkspaceRevision(5L);reference.setPlanVersion(3L);first.setWorkspaceRef(reference);

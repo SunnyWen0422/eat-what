@@ -21,7 +21,9 @@ public final class AssistantV4Contract {
         private String requestId; private String message; private String workspaceId;
         private Long expectedWorkspaceRevision; private Long expectedPlanVersion; private String entryScene;
         @JsonInclude(JsonInclude.Include.NON_EMPTY) private List<String> uiFeatures;
+        @JsonInclude(JsonInclude.Include.NON_NULL) private ClarificationChoice clarificationChoice;
     }
+    @Data @JsonInclude(JsonInclude.Include.NON_NULL) public static class ClarificationChoice {private String continuationRef,optionId,date;}
     @Data public static class WorkspaceRef {private String workspaceId; private Long workspaceRevision; private Long planVersion;}
     @Data public static class Capabilities {
         private String schemaVersion=SCHEMA_VERSION; private boolean enabled;
@@ -78,7 +80,7 @@ public final class AssistantV4Contract {
         private ProviderContinuation providerContinuation;private boolean finalRound;private double timeoutSeconds=10;private Long deadlineEpochMillis;
     }
     @Data public static class StepOutput {
-        private String type,question,reply,factSource;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;
+        private String type,question,reply,factSource,clarificationKind;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;
         private ProviderContinuation providerContinuation;
     }
     @Data public static class WorkflowStep {
@@ -101,7 +103,7 @@ public final class AssistantV4Contract {
         fields(node,"workspaceId","requestId");SessionRequest r=new SessionRequest();r.setWorkspaceId(text(node,"workspaceId",100));r.setRequestId(uuid(node));return r;
     }
     public static TurnRequest parseTurn(JsonNode node) {
-        fields(node,"requestId","message","workspaceId","expectedWorkspaceRevision","expectedPlanVersion","entryScene","uiFeatures");
+        fields(node,"requestId","message","workspaceId","expectedWorkspaceRevision","expectedPlanVersion","entryScene","uiFeatures","clarificationChoice");
         TurnRequest r=new TurnRequest();r.setRequestId(uuid(node));r.setMessage(text(node,"message",2000));r.setWorkspaceId(text(node,"workspaceId",100));
         r.setExpectedWorkspaceRevision(number(node,"expectedWorkspaceRevision"));r.setExpectedPlanVersion(number(node,"expectedPlanVersion"));
         r.setEntryScene(text(node,"entryScene",40));if(!Arrays.asList("home","calendar","chat").contains(r.getEntryScene()))throw new IllegalArgumentException("入口无效");
@@ -109,6 +111,13 @@ public final class AssistantV4Contract {
             JsonNode values=node.get("uiFeatures");if(!values.isArray()||values.size()>8)throw new IllegalArgumentException("界面能力无效");
             Set<String> unique=new LinkedHashSet<>();for(JsonNode value:values)if(!value.isTextual()||!UI_FEATURES.contains(value.textValue())||!unique.add(value.textValue()))throw new IllegalArgumentException("界面能力无效");
             r.setUiFeatures(new ArrayList<>(unique));
+        }
+        if(node.has("clarificationChoice")){
+            if(r.getUiFeatures()==null||!r.getUiFeatures().contains("clarification_v1"))throw new IllegalArgumentException("澄清能力未启用");
+            JsonNode c=node.get("clarificationChoice");fields(c,"continuationRef","optionId","date");ClarificationChoice choice=new ClarificationChoice();
+            choice.setContinuationRef(text(c,"continuationRef",100));choice.setOptionId(text(c,"optionId",100));
+            if(c.has("date")){String date=text(c,"date",10);if(!java.time.LocalDate.parse(date).toString().equals(date))throw new IllegalArgumentException("日期无效");choice.setDate(date);}
+            r.setClarificationChoice(choice);
         }return r;
     }
     public static void fields(JsonNode n,String... names) {

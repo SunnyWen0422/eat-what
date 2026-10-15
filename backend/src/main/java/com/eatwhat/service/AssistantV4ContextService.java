@@ -18,6 +18,8 @@ public class AssistantV4ContextService {
     static final List<String> TYPES=Collections.unmodifiableList(Arrays.asList("meat","veg","soup","staple","dessert","side"));
     private final MealWorkspaceService workspaces;private final UserPreferenceService preferences;private final MealConsumptionMapper actual;
     private final PersonalMenuService menus;private final RecommendationMetadataService metadata;private final ObjectMapper json;private final Clock clock;
+    private AssistantGuidanceService guidance;
+    @Autowired void setGuidance(AssistantGuidanceService service){guidance=service;}
     @Autowired public AssistantV4ContextService(MealWorkspaceService w,UserPreferenceService p,MealConsumptionMapper a,PersonalMenuService m,RecommendationMetadataService d,ObjectMapper j){this(w,p,a,m,d,j,Clock.system(ZoneId.of("Asia/Shanghai")));}
     AssistantV4ContextService(MealWorkspaceService w,UserPreferenceService p,MealConsumptionMapper a,PersonalMenuService m,RecommendationMetadataService d,ObjectMapper j,Clock c){workspaces=w;preferences=p;actual=a;menus=m;metadata=d;json=j;clock=c;}
     public ModelContext build(Long user,TurnRequest request,SessionState session){
@@ -26,6 +28,7 @@ public class AssistantV4ContextService {
         MealContext meal=w.getContext();UserPreferenceDTO saved=preferences.get(user);EffectiveRecommendationCriteria effective=new RecommendationCriteriaResolver().resolve(meal.getCriteria(),saved,true);
         LocalDate today=LocalDate.now(clock.withZone(ZoneId.of("Asia/Shanghai"))),start=today.minusDays(6);ModelContext result=new ModelContext();
         result.setRequestContext(map("entryScene",request.getEntryScene(),"locale","zh-CN","timezone","Asia/Shanghai","now",OffsetDateTime.now(clock.withZone(ZoneId.of("Asia/Shanghai"))).toString(),"selectedTarget",map("date",meal.getDate(),"mealType",meal.getMealType())));
+        if(request.getClarificationChoice()!=null){if(guidance==null)throw new IllegalArgumentException("澄清暂不可用");result.getRequestContext().put("clarification",guidance.resolveChoice(user,session.getSessionId(),request));}
         result.setActiveMeal(activeMeal(w,user));result.setConstraints(map("hard",criteria(effective),"requirements",meal.getRequirements(),"ownedIngredients",meal.getOwnedIngredients()));
         result.setCapabilities(new ArrayList<>(AssistantReadToolService.READS));result.setEvidence(map("metadataVersion",metadata.getMetadataVersion(),"supportedTypes",TYPES,"recentActualRange",map("startDate",start.toString(),"endDate",today.toString()),"truncated",false,"detailsOnDemand",true));
         // IDs/order/locks and restrictions are mandatory. Reject if these alone cannot fit.

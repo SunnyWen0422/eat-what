@@ -187,7 +187,7 @@ class AssistantV4StepTest(unittest.TestCase):
         self.assertGreater(requests[0]["timeout"].read, 2)
         with isolated_service():
             import assistant_v4_schema
-            self.assertEqual(8, len(assistant_v4_schema.tool_catalog()))
+            self.assertEqual(11, len(assistant_v4_schema.tool_catalog()))
 
     def test_final_round_refuses_more_tools_and_transport_does_not_retry(self):
         request = body(); request["finalRound"] = True
