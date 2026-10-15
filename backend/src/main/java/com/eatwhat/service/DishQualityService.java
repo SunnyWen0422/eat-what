@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class DishQualityService {
     private final DishQualityMapper mapper;private final ObjectMapper json;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
     public DishQualityService(DishQualityMapper mapper,ObjectMapper json){this.mapper=mapper;this.json=json;}
     /** Called after the food insert, inside the copy transaction, so evidence has its own identity. */
     public void inheritCopy(Dish source,Dish copy) {
@@ -87,21 +88,55 @@ public class DishQualityService {
         if(dishes==null||dishes.isEmpty())return dishes;
         List<Long> ids=dishes.stream().filter(Objects::nonNull).filter(d->d.getQuality()==null).map(Dish::getId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
         if(ids.isEmpty())return dishes;
-        Map<Long,CatalogQuality> profiles=new HashMap<>();
-        for(DishQualityMapper.Row row:mapper.find(ids)){
+        Map<Long,CatalogQuality> profiles=new HashMap<>();Set<Long> seen=new HashSet<>(),invalid=new HashSet<>();Map<Long,List<String>> evidence=new HashMap<>();
+        List<DishQualityMapper.Row> rows=mapper.find(ids);
+        if(rows==null)throw new IllegalStateException("菜谱资料暂未读到");
+        for(DishQualityMapper.Row row:rows){
+            if(row==null||!ids.contains(row.getDishId()))continue;
+            evidence.computeIfAbsent(row.getDishId(),key->new ArrayList<>()).add(com.eatwhat.util.WorkflowRequestHash.sha256(String.valueOf(row.getProfileJson())));
+            if(!seen.add(row.getDishId())){invalid.add(row.getDishId());profiles.remove(row.getDishId());continue;}
             try {
+                if(row.getProfileJson()==null||row.getProfileJson().length()>1024*1024)throw new IllegalArgumentException();
                 CatalogQuality q=json.readValue(row.getProfileJson(),CatalogQuality.class);
-                if(!Objects.equals(row.getDishId(),q.getDishId())||!ids.contains(row.getDishId())||q.getIngredients()==null||q.getIngredients().isEmpty())throw new IllegalArgumentException();
-                if(profiles.put(row.getDishId(),q)!=null)throw new IllegalArgumentException();
-            }catch(Exception e){throw new IllegalStateException("菜谱质量记录无法核对，请稍后重试",e);}
+                if(q==null||!Objects.equals(row.getDishId(),q.getDishId())||q.getIngredients()==null||q.getIngredients().isEmpty()||q.getIngredients().size()>500||q.getIssueCodes()==null||q.getRejectedIngredients()==null)throw new IllegalArgumentException();
+                for(CatalogQuality.Ingredient fact:q.getIngredients())if(fact==null||fact.getName()==null||fact.getName().trim().isEmpty()||fact.getName().length()>255)throw new IllegalArgumentException();
+                profiles.put(row.getDishId(),q);
+            }catch(java.io.IOException|IllegalArgumentException e){invalid.add(row.getDishId());profiles.remove(row.getDishId());}
         }
-        for(Dish d:dishes)if(d!=null&&profiles.containsKey(d.getId())){
+        for(Dish d:dishes)if(d!=null&&seen.contains(d.getId())){
             CatalogQuality q=profiles.get(d.getId());
-            if("VERIFIED".equals(q.getReviewStatus())&&!com.eatwhat.util.DishContentVersion.rawOf(d).equals(q.getSourceRecipeVersion())){
-                throw new IllegalStateException("原配方已变化，需重新核对质量记录后使用已核验用量");
-            }
+            if(invalid.contains(d.getId())||q==null)q=untrusted(d,"QUALITY_RECORD_INVALID",evidence.get(d.getId()));
+            else if(("VERIFIED".equals(q.getReviewStatus())||q.getSourceRecipeVersion()!=null)&&!com.eatwhat.util.DishContentVersion.rawOf(d).equals(q.getSourceRecipeVersion()))q=untrusted(d,"QUALITY_VERSION_CHANGED",evidence.get(d.getId()));
             d.setQuality(q);
         }
+        if(metrics!=null&&!invalid.isEmpty())metrics.recordStage("quality","degraded",0,invalid.size());
         return dishes;
+    }
+    /** A sentinel prevents unsafe legacy quantity parsing after evidence corruption. */
+    private CatalogQuality untrusted(Dish dish,String reason,List<String> evidence){
+        CatalogQuality q=new CatalogQuality();q.setDishId(dish.getId());q.setSourceRecipeVersion(com.eatwhat.util.DishContentVersion.rawOf(dish));
+        List<String> hashes=new ArrayList<>(evidence);Collections.sort(hashes);
+        q.setContentHash(com.eatwhat.util.WorkflowRequestHash.sha256(q.getSourceRecipeVersion()+"|"+reason+"|"+String.join("|",hashes)));
+        q.setReviewStatus("UNREVIEWED");q.setSourceKind("QUALITY_UNAVAILABLE");q.setServingsStatus("UNKNOWN");
+        q.setStepStatus("UNKNOWN");q.setNutritionStatus("UNKNOWN");q.setTimeStatus("UNKNOWN");q.setImageRightsStatus("UNKNOWN");q.getIssueCodes().add(reason);
+        String raw=dish.getIngredientsAmounts();if(raw==null||raw.trim().isEmpty())raw=dish.getCl();
+        if(raw!=null&&raw.length()<=128000)for(IngredientParseResult parsed:new IngredientParserService().parseStructured(raw,null)){
+            if(q.getIngredients().size()>=500)break;
+            CatalogQuality.Ingredient fact=new CatalogQuality.Ingredient();fact.setName(parsed.getIngredientName());
+            fact.setRawText(parsed.getSourceText());fact.setPreparation(parsed.getPreparation());fact.setRole(parsed.getCategory());
+            fact.setIdentityStatus("UNREVIEWED");fact.setQuantityStatus("UNKNOWN");fact.setDisplayQuantity("用量待核实");q.getIngredients().add(fact);
+        }
+        return q;
+    }
+    /** Readiness is not a price quote or a public-release permission. */
+    public Map<String,Object> getEffectiveCapabilities(Dish dish,CatalogQuality q){
+        boolean readable=dish!=null&&dish.getName()!=null&&!dish.getName().trim().isEmpty();
+        boolean version=q!=null&&dish!=null&&com.eatwhat.util.DishContentVersion.rawOf(dish).equals(q.getSourceRecipeVersion());
+        boolean scale=version&&"VERIFIED".equals(q.getReviewStatus())&&"VERIFIED".equals(q.getServingsStatus())&&q.getBasePeople()!=null&&q.getBasePeople().signum()>0&&q.getIngredients()!=null&&!q.getIngredients().isEmpty();
+        if(scale)for(CatalogQuality.Ingredient fact:q.getIngredients())if(fact==null||!fact.verifiedQuantity()||!Arrays.asList("克","毫升","个").contains(fact.getUnit()))scale=false;
+        Map<String,Object> result=new LinkedHashMap<>();result.put("browsable",readable);
+        result.put("recommendable",readable&&((dish.getStep()!=null&&!dish.getStep().trim().isEmpty())||(dish.getSteps()!=null&&!dish.getSteps().trim().isEmpty())));
+        result.put("scalable",scale);result.put("priceable",scale);
+        result.put("reasons",q==null?Collections.singletonList("QUALITY_UNKNOWN"):new ArrayList<>(q.getIssueCodes()==null?Collections.emptyList():q.getIssueCodes()));return result;
     }
 }

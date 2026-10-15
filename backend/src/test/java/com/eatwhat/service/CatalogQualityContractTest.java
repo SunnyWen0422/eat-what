@@ -39,10 +39,10 @@ class CatalogQualityContractTest {
     }
     @Test void batchEnrichmentUsesOneReadAndRejectsCrossDishProfile()throws Exception{
         DishQualityMapper mapper=mock(DishQualityMapper.class);DishQualityMapper.Row row=new DishQualityMapper.Row();row.setDishId(1L);row.setProfileJson(profile("UNREVIEWED",null,null).replace("\"dishId\":1","\"dishId\":2"));
-        when(mapper.find(anyList())).thenReturn(Collections.singletonList(row));assertThrows(IllegalStateException.class,()->new DishQualityService(mapper,json).enrich(Arrays.asList(raw(),raw())));verify(mapper,times(1)).find(anyList());
+        when(mapper.find(anyList())).thenReturn(Collections.singletonList(row));Dish dish=new DishQualityService(mapper,json).enrich(raw());assertTrue(dish.getQuality().getIssueCodes().contains("QUALITY_RECORD_INVALID"));verify(mapper,times(1)).find(anyList());
     }
     @Test void verifiedProfileCannotSurviveAChangedRawRecipe()throws Exception{
         DishQualityMapper mapper=mock(DishQualityMapper.class);DishQualityMapper.Row row=new DishQualityMapper.Row();row.setDishId(1L);row.setProfileJson(profile("VERIFIED","10","2"));when(mapper.find(anyList())).thenReturn(Collections.singletonList(row));
-        assertThrows(IllegalStateException.class,()->new DishQualityService(mapper,json).enrich(raw()));
+        Dish dish=new DishQualityService(mapper,json).enrich(raw());assertTrue(dish.getQuality().getIssueCodes().contains("QUALITY_VERSION_CHANGED"));assertNull(dish.getQuality().getBasePeople());
     }
 }

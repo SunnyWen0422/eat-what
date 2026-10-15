@@ -133,6 +133,78 @@ def profile_catalog(rows):
             'sameNameGroups':sum(n>1 for n in names.values()),'categories':dict(Counter(r.get('type') for r in rows)),
             'ingredientCount':materials,'quantityDistribution':dict(quantities),'unitDistribution':dict(units)}
 
+def audit_catalog(source):
+    """Profile every row without deleting or 'repairing' evidence, including invalid IDs."""
+    from urllib.parse import urlsplit
+    source_path=Path(source) if isinstance(source,(str,Path)) else None
+    if source_path:
+        raw=source_path.read_bytes()
+        if source_path.suffix.lower()=='.jsonl':
+            rows=[json.loads(line) for line in raw.decode('utf-8-sig').splitlines() if line.strip()]
+        else:
+            with source_path.open(encoding='utf-8-sig',newline='') as handle:rows=list(csv.DictReader(handle))
+        source_hash=hashlib.sha256(raw).hexdigest()
+    else:
+        rows=copy.deepcopy(list(source));source_hash=digest(rows)
+    if any(not isinstance(row,dict) for row in rows):raise ValueError('Each recipe must be an object')
+    fields=sorted(set().union(*(row.keys() for row in rows))) if rows else []
+    missing={key:sum(row.get(key) is None or not str(row.get(key)).strip() for row in rows) for key in fields}
+    def id_key(value):
+        try:return str(int(str(value)))
+        except (ValueError,TypeError):return 'invalid:'+str(value)
+    ids=Counter(id_key(row.get('id')) for row in rows)
+    names=Counter(re.sub(r'\s+','',str(row.get('name') or '')) for row in rows)
+    fingerprints=Counter(digest({k:row.get(k) for k in ['name','type','cl','ingredients_amounts','step','steps']}) for row in rows)
+    anomalies=Counter(dict(invalidIds=0,privateRows=0,invalidImageUrls=0,invalidIngredientLines=0,
+        invalidQuantities=0,unsupportedUnits=0,descriptorIngredients=0,invalidTimes=0,qualityVersionMismatch=0))
+    rules=load_rules();units=Counter();times=[];queue=[];eligible={}
+    for index,row in enumerate(rows):
+        try:identifier=int(str(row.get('id') or ''));valid_id=identifier>0
+        except (ValueError,TypeError):identifier=None;valid_id=False
+        if not valid_id:anomalies['invalidIds']+=1
+        private=bool(str(row.get('user_id') or '').strip()) or str(row.get('is_custom') or '0') not in ['0','0.0']
+        if private:anomalies['privateRows']+=1
+        image=str(row.get('image') or '').strip()
+        if image:
+            try:
+                parsed=urlsplit(image)
+                if parsed.scheme not in ['https','http'] or not parsed.hostname or parsed.username or parsed.password:raise ValueError()
+            except ValueError:anomalies['invalidImageUrls']+=1
+        ingredient_lines=re.split('###|#|\n',str(row.get('ingredients_amounts') or ''))
+        for line in filter(str.strip,ingredient_lines):
+            parts=line.split('|')
+            if len(parts) not in [5,7]:anomalies['invalidIngredientLines']+=1;continue
+            name,amount,unit=parts[:3];units[unit]+=1
+            if name.strip() in rules['rejectedDescriptorNames']:anomalies['descriptorIngredients']+=1
+            if unit not in rules['allowedUnits']:anomalies['unsupportedUnits']+=1
+            if amount not in ['适量','未知','少许']:
+                try:positive(amount)
+                except ValueError:anomalies['invalidQuantities']+=1
+        raw_time=str(row.get('cook_minutes') or row.get('cook_time') or '')
+        found=re.fullmatch(r'\s*(\d+(?:\.\d+)?)\s*(?:分钟|min)?\s*',raw_time)
+        if found:
+            minutes=float(found[1]);times.append(minutes)
+            if not 0<minutes<=1440:anomalies['invalidTimes']+=1
+        quality=row.get('quality')
+        if isinstance(quality,dict) and quality.get('sourceRecipeVersion') and row.get('contentVersion') and quality['sourceRecipeVersion']!=row['contentVersion']:
+            anomalies['qualityVersionMismatch']+=1
+        if valid_id and ids[id_key(row.get('id'))]==1 and not private and str(row.get('name') or '').strip():
+            eligible.setdefault(str(row.get('type') or ''),[]).append((index,row))
+    quotas={'meat':30,'veg':30,'soup':20,'staple':15,'dessert':5}
+    for category,limit in quotas.items():
+        for index,row in sorted(eligible.get(category,[]),key=lambda pair:int(pair[1]['id']))[:limit]:
+            queue.append({'dishId':int(row['id']),'name':row['name'],'type':category,'sourceRow':index+1,
+                'sourceHash':digest(row),'reviewStatus':'UNKNOWN','sourceRef':row.get('source_ref') or row.get('sourceRef') or None,
+                'decisionReason':'原始资料保留；份数、数量、步骤及图片使用依据需逐项核验，不由审计自动认证'})
+    return {'counts':{'rows':len(rows),'columns':len(fields)},'fields':fields,'missing':missing,
+        'missingRates':{k:round(v/len(rows),6) if rows else None for k,v in missing.items()},
+        'duplicates':{'idGroups':sum(n>1 for n in ids.values()),'nameGroups':sum(bool(k) and n>1 for k,n in names.items()),
+            'contentGroups':sum(n>1 for n in fingerprints.values())},
+        'anomalies':dict(anomalies),'distributions':{'types':dict(Counter(str(r.get('type') or '') for r in rows)),
+            'units':dict(units),'knownTimeCount':len(times),'timeMin':min(times) if times else None,'timeMax':max(times) if times else None},
+        'reviewQueue':queue,'sourceHash':source_hash,'rulesVersion':rules['version'],
+        'limitations':['全量静态字段审计，不等于原配方或实做核验','无来源历史时不能判断时效或分布漂移','名称相同不自动合并；UNKNOWN不自动升级为VERIFIED']}
+
 def build_bundle(source_csv,out_dir,review_file=None):
     source=Path(source_csv);out=Path(out_dir)
     if out.exists():raise FileExistsError('Use a fresh output directory; original versions must be retained')

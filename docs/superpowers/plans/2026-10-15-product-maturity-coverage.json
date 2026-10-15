@@ -366,7 +366,7 @@
         "K29",
         "K31"
       ],
-      "evidenceNote": "Java 7/7 and Node 4/4; original errors RED 3 failures then GREEN; metrics compile-red then bounded-label behavior passes; logs t02-*"
+      "evidenceNote": "Java 14/14 and Node 3/3; original errors RED 3 failures then GREEN; metrics compile-red then bounded-label behavior passes; logs t02-*"
     },
     {
       "id": "T03",
@@ -376,12 +376,13 @@
         "T02"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K18",
         "K23",
         "K25"
-      ]
+      ],
+      "evidenceNote": "Python13/13; Java24/24; whole 6665-row source audit reproducible; 100 UNKNOWN source-linked candidates; raw source unchanged"
     },
     {
       "id": "T04",
