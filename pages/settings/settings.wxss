@@ -48,3 +48,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .motion-status { display:block; margin-top:8px; font-size:0.8125em; line-height:1.5; color:#56645B; overflow-wrap:anywhere; }
 .settings-page .section-title { font-weight:600; }
 .settings-page button.save-btn { width:100%; max-width:100%; height:auto; line-height:1.5; white-space:normal; margin:20px 0; font-family:inherit; font-weight:600; box-sizing:border-box; }
+
+.settings-page .ingredient-input { height:calc(1.5em + 24px); font-size:1em; }
+.settings-page .add-btn { width:auto; height:auto; min-width:64px; flex:none; line-height:1.5; padding:8px 12px; }

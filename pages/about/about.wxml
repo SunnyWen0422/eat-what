@@ -5,5 +5,6 @@
 <view class="help-step"><text class="ew-title">3 · 准备食材</text><text class="ew-subtitle">核对用量，排除家里已有的食材，再加入购物清单。</text></view>
 <view class="help-step"><text class="ew-title">4 · 记录饮食</text><text class="ew-subtitle">吃完后打开“记录饮食”，确认这餐或填写实际吃过的内容。实际吃过的内容才计入饮食回顾。</text></view>
 <view class="help-step"><text class="ew-title">5 · 饮食回顾</text><text class="ew-subtitle">在“我的”查看实际用餐的周/月回顾。</text></view>
-<view class="ew-notice">网络不稳定时会保留你的输入。暂未确认保存的内容，可在“我的 → 数据同步”查看和重试。</view>
-<view class="help-step"><text class="ew-title">管理自己的偏好</text><text class="ew-subtitle">在“我的 → 偏好设置”调整菜系、忌口和用时限制。</text></view></view>
+<view class="ew-notice">网络不稳定时会保留你的输入。暂未确认保存的内容，可在“我的 → 待核对与同步”查看和重试。</view>
+<view class="help-step"><text class="ew-title">管理自己的偏好</text><text class="ew-subtitle">在“我的 → 偏好设置”调整菜系、忌口和用时限制。</text></view>
+<view class="help-step"><text class="ew-title">助手与数据</text><text class="ew-subtitle">使用助手时，当前餐、相关偏好、必要的查询结果和近期对话会交给模型服务处理。保存日历、加入清单等操作需要你确认；修改长期偏好会先打开设置页面。</text><text class="ew-subtitle">语音输入暂未开放。菜品图片来自菜谱资料，图片暂时无法读取时会显示分类图标。</text></view></view>

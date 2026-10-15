@@ -1,7 +1,7 @@
 <view class="ew-page filter-page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
   <view class="mobile-scroll-content">
-  <view class="ew-notice">只影响本餐，长期忌口继续生效。应用后可按新条件换一套。</view>
+  <view class="ew-notice">仅用于本餐，长期忌口继续生效。</view>
   <view class="offline-tip" wx:if="{{offline}}">当前使用本地筛选目录</view>
 
   <view class="filter-section" wx:if="{{!featureEnabled}}">
@@ -19,6 +19,7 @@
     <view class="section-title">{{item.label}}</view>
     <view class="option-grid">
       <view aria-role="button"
+        aria-pressed="{{choice.selected}}"
         class="ew-hit-target option-chip {{choice.selected ? 'selected' : ''}}"
         wx:for="{{item.items}}"
         wx:for-item="choice"
@@ -49,11 +50,11 @@
   <view class="filter-section">
     <view class="section-title">本餐排除食材</view>
     <view class="ingredient-row">
-      <input placeholder-class="ew-placeholder" class="ingredient-input" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
+      <input placeholder-class="ew-placeholder" class="ingredient-input" aria-label="本餐排除食材" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
       <button class="ew-hit-target add-btn" bindtap="onAddIngredient">添加</button>
     </view>
     <view class="ingredient-list" wx:if="{{criteria.excludedIngredients.length}}">
-      <view aria-role="button" class="ew-hit-target ingredient-chip" wx:for="{{criteria.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
+      <view aria-role="button" class="ew-hit-target ingredient-chip" wx:for="{{criteria.excludedIngredients}}" wx:key="*this" aria-label="移除本餐排除食材{{item}}" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
     </view>
   </view>
 

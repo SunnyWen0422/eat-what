@@ -39,3 +39,11 @@ picker.ew-hit-target { display:block; }
 button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeight.px}}; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Administrative controls inherit the same readable scale without changing permissions. */
+.admin-workspace input { height:calc(1.5em + 24px); min-height:48px; font-size:1em; line-height:1.5; }
+.admin-workspace textarea { font-size:1em; line-height:1.6; min-height:96px; }
+.admin-workspace .heading,.admin-workspace .page-heading,.admin-workspace .row,.admin-workspace .summary-top { flex-wrap:wrap; }
+.admin-workspace .heading > text,.admin-workspace .summary-top > view { min-width:0; overflow-wrap:anywhere; }
+.admin-workspace .metric-grid { grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
+.admin-workspace .form-actions { flex-wrap:wrap; }

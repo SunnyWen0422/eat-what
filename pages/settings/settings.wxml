@@ -1,22 +1,22 @@
 <view class="ew-page settings-page" style="font-size:{{fontBase * fontScale}}px">
   <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">减少页面过渡动画，只在这台设备生效。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
-  <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><view wx:if="{{statusText}}" class="sync-row">
+  <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><ui-state wx:if="{{preferencesReadFailed}}" kind="error" title="偏好暂未读到" action-label="重新读取" bind:action="onLoad" /><view wx:if="{{statusText}}" class="sync-row">
     <text class="sync-dot {{synced ? 'online' : 'offline'}}"></text>
     <text>{{statusText}}</text>
   </view>
 
-  <view class="section" wx:if="{{!featureEnabled}}">
+  <view class="section" wx:if="{{!loading && !preferencesReadFailed && !featureEnabled}}">
     <view class="section-title">个性化推荐已暂停</view>
     <view class="section-desc">当前版本仍可使用基础推荐，偏好数据会保留。</view>
   </view>
 
-  <block wx:else>
-<view class="section"><view class="section-title">常用用餐人数</view><view class="section-desc">用于新建的一餐，本餐人数可单独调整。</view><ui-field label="人数（1–50）" type="number" value="{{preferences.defaultPeople}}" disabled="{{saving || loading}}" bind:change="onDefaultPeople" /></view>
+  <block wx:elif="{{!loading && !preferencesReadFailed}}">
+<view class="section"><view class="section-title">常用用餐人数</view><view class="section-desc">用于新建的一餐，本餐人数可单独调整。</view><ui-field label="人数（1–50）" type="number" value="{{peopleDraft}}" error="{{peopleError}}" disabled="{{saving || loading}}" bind:change="onDefaultPeople" /></view>
   <view class="section">
     <view class="section-title">偏好菜系</view>
     <view class="section-desc">优先推荐，不排除其他菜系。</view>
     <view class="chip-grid">
-      <view aria-role="button" class="ew-hit-target choice-chip {{item.selected ? 'selected' : ''}}" wx:for="{{cuisineOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onCuisineTap">{{item.label}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip {{item.selected ? 'selected' : ''}}" wx:for="{{cuisineOptions}}" wx:key="code" aria-pressed="{{item.selected}}" data-code="{{item.code}}" bindtap="onCuisineTap">{{item.label}}</view>
     </view>
   </view>
 
@@ -24,7 +24,7 @@
     <view class="section-title">喜欢的标签</view>
     <view class="section-desc">推荐时优先考虑。</view>
     <view class="chip-grid">
-      <view aria-role="button" class="ew-hit-target choice-chip {{item.preferred ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onPreferredTagTap">{{item.label}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip {{item.preferred ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" aria-pressed="{{item.preferred}}" data-code="{{item.code}}" bindtap="onPreferredTagTap">{{item.label}}</view>
     </view>
   </view>
 
@@ -32,18 +32,18 @@
     <view class="section-title">不想看到的标签</view>
     <view class="section-desc">推荐时排除。</view>
     <view class="chip-grid">
-      <view aria-role="button" class="ew-hit-target choice-chip danger {{item.excluded ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" data-code="{{item.code}}" bindtap="onExcludedTagTap">{{item.label}}</view>
+      <view aria-role="button" class="ew-hit-target choice-chip danger {{item.excluded ? 'selected' : ''}}" wx:for="{{tagOptions}}" wx:key="code" aria-pressed="{{item.excluded}}" data-code="{{item.code}}" bindtap="onExcludedTagTap">{{item.label}}</view>
     </view>
   </view>
 
   <view class="section">
     <view class="section-title">忌口食材</view>
     <view class="ingredient-row">
-      <input placeholder-class="ew-placeholder" class="ingredient-input" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
+      <input placeholder-class="ew-placeholder" class="ingredient-input" aria-label="添加长期忌口食材" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
       <button class="ew-hit-target add-btn" bindtap="onAddIngredient">添加</button>
     </view>
     <view class="chip-grid top-gap" wx:if="{{preferences.excludedIngredients.length}}">
-      <view aria-role="button" class="ew-hit-target ingredient-chip" wx:for="{{preferences.excludedIngredients}}" wx:key="*this" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
+      <view aria-role="button" class="ew-hit-target ingredient-chip" wx:for="{{preferences.excludedIngredients}}" wx:key="*this" aria-label="移除长期忌口{{item}}" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
     </view>
   </view>
 

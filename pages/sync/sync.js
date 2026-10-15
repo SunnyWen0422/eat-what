@@ -17,7 +17,7 @@ Page({
     const config=require('../../utils/config'),util=require('../../utils/util')
     const recoveryPointers=require('../../utils/meal-journey-presentation').collectRecoveryPointers({storage:wx,storageKey:getUserStorageKey,assistantScope:config.getApiBaseUrl&&util.getCurrentUserIdentity?config.getApiBaseUrl()+'|'+util.getCurrentUserIdentity():null})
     const workspaceDrafts=recoveryPointers.filter(p=>p.kind==='workspace').map(p=>({...p,...p.target,mealName:flow.mealNames[p.target.mealType]}))
-    this.setData({ recoveryPointers,workspaceDrafts, pendingSync: pending, shoppingDraftCount: store.loadPendingOperations().length })
+    this.setData({syncedLocalCount:Object.values(records).flatMap(meals=>Object.values(meals||{})).filter(record=>record&&record.synced).length, recoveryPointers,workspaceDrafts, pendingSync: pending, shoppingDraftCount: store.loadPendingOperations().length })
   },
   onRecoverPointer(e){if(this._viewScope!==getUserStorageKey('recipeRecords'))return this.loadPendingSync();const pointer=this.data.recoveryPointers[Number(e.currentTarget.dataset.index)];return require('../../utils/meal-journey-presentation').openRecoveryPointer(pointer,{platform:wx,storageKey:getUserStorageKey})},
   async syncData() {

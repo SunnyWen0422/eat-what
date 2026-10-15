@@ -13,5 +13,5 @@
   <view wx:for="{{pendingSync}}" wx:key="index" class="sync-draft"><view class="ew-title">{{item.date}} {{item.mealName}}</view><view>{{item.record.name}}</view><ui-status label="本机草稿" tone="warning" /></view>
   <ui-button wx:if="{{pendingSync.length}}" label="逐条确认并同步" loading="{{syncing}}" bind:action="syncData" />
   <view wx:if="{{syncResult.success || syncResult.failed}}" class="ew-notice">已保存 {{syncResult.success}} 条 · 未完成 {{syncResult.failed}} 条</view>
-  <button class="ew-hit-target ew-link" disabled="{{syncing}}" bindtap="clearSyncedData">清理已确认的本机副本</button>
+  <button wx:if="{{syncedLocalCount > 0}}" class="ew-hit-target ew-link" disabled="{{syncing}}" bindtap="clearSyncedData">清理已确认的本机副本</button>
 </view>

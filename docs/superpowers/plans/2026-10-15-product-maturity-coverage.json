@@ -662,7 +662,7 @@
         "T17"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K01",
         "K02",
@@ -670,7 +670,8 @@
         "K24",
         "K28",
         "K31"
-      ]
+      ],
+      "evidenceNote": "Node secondary/preferences/admin identity/recovery/journey checks pass (actual count in t18-node.log), 2 UI structure checks pass. Invalid people draft retained, load/save failure resolved without false saved claim, stale/saving input guards; admin diagnostics collapsed/readable labels and shared large-font controls. Existing save fixtures now explicitly ready; no permission changes. Native and live services pending."
     },
     {
       "id": "T19",

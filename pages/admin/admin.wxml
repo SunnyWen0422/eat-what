@@ -11,7 +11,7 @@
     <view class="search-bar">
       <view class="search-field">
         <input
- placeholder-class="ew-placeholder"          class="search-input"
+ aria-label="搜索昵称、手机号或用户ID" placeholder-class="ew-placeholder"          class="search-input"
           value="{{searchInput}}"
           placeholder="搜索昵称、手机号或用户ID"
           confirm-type="search"
@@ -122,7 +122,7 @@
 
     <view class="form-section">
       <text class="field-label">菜名</text>
-      <input placeholder-class="ew-placeholder" class="field-input" maxlength="255" value="{{newDish.name}}" data-field="name" bindinput="onDishInput" placeholder="输入菜品名称" />
+      <input aria-label="菜品名称" placeholder-class="ew-placeholder" class="field-input" maxlength="255" value="{{newDish.name}}" data-field="name" bindinput="onDishInput" placeholder="输入菜品名称" />
     </view>
 
     <view class="form-section">
@@ -142,7 +142,7 @@
       <view class="split-field">
         <text class="field-label">烹饪时间</text>
         <view class="number-field">
-          <input placeholder-class="ew-placeholder" class="number-input" type="number" maxlength="3" value="{{newDish.cookMinutes}}" data-field="cookMinutes" bindinput="onDishInput" placeholder="可选" />
+          <input aria-label="烹饪分钟数" placeholder-class="ew-placeholder" class="number-input" type="number" maxlength="3" value="{{newDish.cookMinutes}}" data-field="cookMinutes" bindinput="onDishInput" placeholder="可选" />
           <text class="number-unit">分钟</text>
         </view>
       </view>
@@ -160,12 +160,12 @@
 
     <view class="form-section">
       <text class="field-label">食材用量</text>
-      <textarea placeholder-class="ew-placeholder" class="field-textarea" maxlength="10000" auto-height value="{{newDish.ingredients}}" data-field="ingredients" bindinput="onDishInput" placeholder="输入食材和用量" />
+      <textarea aria-label="食材与用量" placeholder-class="ew-placeholder" class="field-textarea" maxlength="10000" auto-height value="{{newDish.ingredients}}" data-field="ingredients" bindinput="onDishInput" placeholder="输入食材和用量" />
     </view>
 
     <view class="form-section">
       <text class="field-label">烹饪步骤</text>
-      <textarea placeholder-class="ew-placeholder" class="field-textarea steps" maxlength="20000" auto-height value="{{newDish.steps}}" data-field="steps" bindinput="onDishInput" placeholder="输入烹饪步骤" />
+      <textarea aria-label="烹饪步骤" placeholder-class="ew-placeholder" class="field-textarea steps" maxlength="20000" auto-height value="{{newDish.steps}}" data-field="steps" bindinput="onDishInput" placeholder="输入烹饪步骤" />
     </view>
 
     <view class="action-bar dual-actions">

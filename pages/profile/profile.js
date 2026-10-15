@@ -58,7 +58,7 @@ Page({
         desc: '个性化推荐偏好',
         url: '/pages/settings/settings'
       },
-      { section:'账户与恢复', icon: 'refresh', title: '数据同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
+      { section:'账户与恢复', icon: 'refresh', title: '待核对与同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
       { icon: 'history', title: '助手历史', desc: '查看以往对话与餐单', url: '/pages/assistant-history/assistant-history' },
       { icon: 'info', title: '隐私说明', desc: '查看小程序隐私保护说明', action: 'privacy' },
       {
