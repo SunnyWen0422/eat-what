@@ -35,9 +35,9 @@ module.exports=function assistantPage(fallback, options={}) {
    }catch(error){if(this._assistantAlive&&this.current())this.setData({conversationError:'本餐暂未同步，请回到今天核对后再试'})}
   },
   applyAssistantEntry() {
-   if(!this._assistantAlive || !this.current() || !this.conversation || !this._assistantParams.entryToken)return
+   if(!this._assistantAlive || !this.current() || !this.conversation || !this._assistantParams || !this._assistantParams.entryToken)return
    const state=this.conversation.state()
-   if(state.busy || state.recoverable || state.confirmationPending || state.turn && ['queued','running','awaiting_confirmation'].includes(state.turn.status))return
+   if(!state.sessionId || state.busy || state.recoverable || state.confirmationPending || state.turn && ['queued','running','awaiting_confirmation'].includes(state.turn.status))return
    const entry=require('./assistant-entry').currentEntryStore().take(this._assistantParams.entryToken)
    if(!entry)return
    this._assistantParams.entryToken=''
@@ -61,6 +61,7 @@ module.exports=function assistantPage(fallback, options={}) {
    this.setData({conversationMessages:messages,conversationInput:state.input,conversationError:state.error,conversationBusy:state.busy,conversationRecoverable:state.recoverable,conversationCanStop:!!turn&&['queued','running','awaiting_confirmation'].includes(turn.status),conversationStopLabel:turn&&turn.status==='awaiting_confirmation'?'取消预览':'停止这次请求',conversationHasOlder:!!state.nextCursor,conversationScrollTarget:'conversation-end'})
    clearTimeout(this._conversationTimer)
    if(state.busy&&state.turn&&['queued','running'].includes(state.turn.status))this._conversationTimer=setTimeout(()=>{if(this._assistantAlive&&this.current()&&this.conversation)this.conversation.recover(state.turn.turnId)},1000)
+   this.applyAssistantEntry()
   },
   async onShow() {
    if(!this.data.assistantConnected)return fallback.onShow && fallback.onShow.call(this)

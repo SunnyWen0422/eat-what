@@ -22,3 +22,14 @@ test('explicit meal duration changes workspace context without contaminating sav
  await page.onDishFeedback({detail:{kind:'change',dishId:7}});assert.deepEqual(await f.api.getUserPreferences(),preferences)
  assert.equal(page.store.state().context.totalCookMinutes,45)
 })
+for(const outcome of ['success','offline','account-switch'])test('explicit preference save '+outcome+' retains correct account feedback',async()=>{
+ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');let scope='A',page,finish;const toasts=[]
+ const prefs=require('../utils/preference-store'),writeResult=new Promise(resolve=>finish=resolve)
+ const wx={showToast:o=>toasts.push(o),getStorageSync:()=>null}
+ vm.runInNewContext(fs.readFileSync('pages/settings/settings.js','utf8'),{Page:v=>page=v,wx,require:name=>name.endsWith('/util')?{getUserStorageKey:key=>scope+':'+key}:name.endsWith('/font-scale')?Object.assign(()=>1,{base:16}):require(path.resolve('pages/settings',name))})
+ page.setData=v=>Object.assign(page.data,v);page._scope='A:preferencesPage';let writes=0;page.store={save:()=>{writes++;return writeResult}};page.data.preferences={...prefs.defaultPreferences(),maxCookMinutes:15};const pending=page.onSave();assert.equal(writes,1)
+ if(outcome==='account-switch')scope='B'
+ finish({preferences:page.data.preferences,synced:outcome!=='offline'});await pending
+ if(outcome==='account-switch'){assert.equal(toasts.length,0);assert.notEqual(page.data.statusText,'已同步到账号')}
+ else {assert.equal(page.data.dirty,outcome==='offline');assert.equal(page.data.preferences.maxCookMinutes,15);assert.equal(toasts[0].icon,outcome==='offline'?'none':'success')}
+})
