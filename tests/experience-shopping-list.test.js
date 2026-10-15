@@ -49,6 +49,7 @@ function pageHarness({ list = eightSources(), check, patch, readList, mutate, re
   store.saveLocalShoppingList(list)
   function createPage() {
     const modules = {
+      '../../utils/meal-next-step': require('../utils/meal-next-step'),
       '../../utils/api': api, '../../utils/shopping-list': store, '../../utils/util': util,
       '../../utils/shopping-ingredients': ingredients, '../../utils/meal-workflow': flow,
       '../../utils/shopping-prices': require('../utils/shopping-prices'), '../../utils/shopping-list-presentation': require('../utils/shopping-list-presentation'),

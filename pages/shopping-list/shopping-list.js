@@ -12,7 +12,7 @@ const emptyFeedback = () => ({ requestId: '', state: '', message: '', undoAvaila
 const clone = value => JSON.parse(JSON.stringify(value))
 const operationSignature = (type, payload, itemId) => { const { requestId, expectedListVersion, ...body } = payload; return JSON.stringify([type, body, itemId]) }
 Page({
-  data: { feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
+  data: { sourceMeals:[],sourceMealsVisible:false,feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
   onShow() { this.loadList() },
   onHide() { this.finishTransition() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1; this.finishTransition() },
@@ -29,7 +29,7 @@ Page({
     const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
     this.finishTransition(); this.invalidateUndo()
     this.setData({ reducedMotion: experiencePreferences().get().reducedMotion })
-    if (this._scope !== scope) { this._undo=null;this._expandedDishes=[];this._expandedSources=[];this.setData({feedback:emptyFeedback(),statusFilter:'pending',viewMode:'summary'});this.setData({detailsExpanded:false,moreVisible:false,addVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
+    if (this._scope !== scope) { this._undo=null;this._expandedDishes=[];this._expandedSources=[];this.setData({feedback:emptyFeedback(),statusFilter:'pending',viewMode:'summary'});this.setData({sourceMealsVisible:false,detailsExpanded:false,moreVisible:false,addVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
     this._scope = scope
     this.applyList(store.loadLocalShoppingList())
     this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
@@ -57,7 +57,8 @@ Page({
       return { ...row, sourceExpanded: (this._expandedSources || []).includes(row.key), justChecked, checkedState: justChecked ? 'all' : row.checkedState }
     }
     const dishes = display.groups.map(group => ({ ...group,contextLabel:group.sourceDate?`${Number(group.sourceDate.slice(5,7))}月${Number(group.sourceDate.slice(8,10))}日 ${flow.mealNames[group.sourceMealType] || ''}`.trim():'手动添加', expanded: (this._expandedDishes || []).includes(group.key), items: group.items.map(decorate) }))
-    this.setData({ pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
+    const sourceMeals=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes).map(t=>({...t,label:t.date+' '+flow.mealNames[t.mealType]}))
+    this.setData({ sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
       dishes, summaryRows: decorateShoppingRows(display.rows.map(decorate), [], this._expandedSources || []) })
   },
   // Pricing remains available in its utilities/backend, but this page has no price entry or automatic read.
@@ -68,6 +69,16 @@ Page({
   closeExpense(){if(!this.data.busy)this.setData({expenseVisible:false})},
   saveExpense(){try{pricing.amountCents(this.data.expenseAmount)}catch(error){return this.setData({formError:error.message})}return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,amount:String(this.data.expenseAmount).trim(),channel:this.data.expenseChannel}))},
   removeExpense(){return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,remove:true}))},
+  onOpenSourceMeal(event) {
+    if(!this.current(this._scope) || this.data.busy)return
+    const targets=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes)
+    const index=event && event.currentTarget && event.currentTarget.dataset.index
+    if(index==null && targets.length>1){this.setData({sourceMealsVisible:true});return}
+    const target=targets[index==null?0:Number(index)]
+    if(!target)return
+    this.setData({sourceMealsVisible:false});wx.navigateTo({url:require('../../utils/meal-next-step').mealSourceUrl(target)})
+  },
+  onCloseSourceMeals(){this.setData({sourceMealsVisible:false})},
   onCopyList(){wx.setClipboardData({data:pricing.copyPending(this._full)})},
   onMore(){this.setData({moreVisible:!this.data.moreVisible})},
   onPriceDetails(){this.setData({detailsExpanded:!this.data.detailsExpanded})},

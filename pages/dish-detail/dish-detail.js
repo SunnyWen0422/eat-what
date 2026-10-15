@@ -41,10 +41,12 @@ Page({
   },
   async probeDetailAssistant() {
     this.setData({assistantAvailable:false})
+    if(!require('../../utils/api').getAssistantV4Capabilities)return
     const app=getApp();if(app.waitForLogin)await app.waitForLogin()
     if(this._unloaded)return
     const scope=getUserStorageKey('dishView'),id=this._dishId
-    const available=await require('../../utils/assistant-conversation').probeAssistantCapability()
+    let available=false
+    try{available=await require('../../utils/assistant-conversation').probeAssistantCapability()}catch(error){return}
     if(!this._unloaded && this.current(scope) && id===this._dishId)this.setData({assistantAvailable:available})
   },
   onAskDish() {
