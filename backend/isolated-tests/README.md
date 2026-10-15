@@ -25,3 +25,5 @@
 完成后停止自己创建且核对过归属的实例。容器可清理自己的匿名卷；原生实例仅处理本任务专属目录，不能碰已有数据。临时凭据不持久化或在任务结束时清理。没有显式opt-in导致的跳过不算通过。测试数据为合成schema，不构成迁移、生产性能或完整部署验收。模型、mock模型、Agent验证仍须单独授权。
 
 2026-10-15 整合补充：F2现在含复杂排除批次、普通COUNT+LIMIT两项事务快照测试；每项会重建专属f2_aop_test中的food与dish_quality_profile合成表。F1仍8项。此入口合计10项，必须确认数据库归属。生产数据、治理备份不在本入口测试范围内。
+
+2026-10-16成熟度补充：F2增加独立推荐候选的跨批次快照/缓存检查（共3项）。另有`WorkspaceTaskCancellationMysqlIT`：仅在新建独占`eatwhat_task_test_<10位小写十六进制>`库上设置`EATWHAT_TASK_CANCEL_TEST=1`、`EATWHAT_TASK_CANCEL_JDBC`、`EATWHAT_TASK_CANCEL_PASSWORD`才运行。它创建合成workspace_task表，并在另一个连接锁住其他用户任务，核对取消只影响当前用户/餐。三类合计12项；旧10项历史记录不作本次通过证明。统一入口`run_maturity_acceptance.py`在自己的新实例中创建各专用schema，不得手动指到已有库。

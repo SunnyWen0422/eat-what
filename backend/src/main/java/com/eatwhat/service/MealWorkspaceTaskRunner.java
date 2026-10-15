@@ -38,7 +38,13 @@ public class MealWorkspaceTaskRunner {
         } catch(Exception e) {LOG.warn("workspace_poll_failed kind={}",e.getClass().getSimpleName());}
     }
     void execute(WorkspaceTask task) {
-        task.setLeaseToken(UUID.randomUUID().toString());if(db.claim(task.getId(),task.getLeaseToken())!=1)return;
+        task.setLeaseToken(UUID.randomUUID().toString());
+        try{if(db.claim(task.getId(),task.getLeaseToken())!=1)return;}
+        catch(org.springframework.dao.TransientDataAccessException contention){
+            // No provider or domain action has started. Keep the same durable task
+            // for the bounded poller/lease recovery instead of killing a worker.
+            LOG.info("workspace_claim_deferred kind={}",contention.getClass().getSimpleName());return;
+        }
         long started=System.nanoTime();
         MealWorkspace w=null;WorkspaceRequest r=null;
         try {

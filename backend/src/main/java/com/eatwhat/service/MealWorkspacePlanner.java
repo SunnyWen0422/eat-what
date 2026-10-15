@@ -69,6 +69,7 @@ public class MealWorkspacePlanner {
     private int ownedScore(Dish d,MealContext c) {
         return new RecommendationScorer().ownedIngredientScore(d,c.getOwnedIngredients());
     }
+    @org.springframework.transaction.annotation.Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public PlanDraft generate(Long user,MealWorkspace w,String command,Long target,List<Long> selected) {
         // Only the explicit user selection command may choose untagged breakfast recipes.
         return generate(user,w,command,target,selected,"select".equals(command)?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC);

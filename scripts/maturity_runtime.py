@@ -56,6 +56,10 @@ def validate_build(config,build_path,jar,baseline=False):
     if build.get('jarSha256')!=config['jarSha256'] or build.get('backendFingerprint')!=config['buildSourceFingerprint']:
         raise ValueError('Build receipt does not match candidate')
     if not Path(jar).is_file() or Path(jar).is_symlink() or digest(jar)!=config['jarSha256']:raise ValueError('Pinned JAR changed')
+    # A source SHA must identify the executable source, not just the last commit
+    # under an uncommitted Java edit. Documentation/harness work may be separate.
+    if not baseline and subprocess.run(['git','diff','--quiet','HEAD','--','backend/src/main','backend/pom.xml','backend/db'],cwd=ROOT).returncode!=0:
+        raise ValueError('Commit executable/schema source before candidate integration')
     if baseline:
         revision=config.get('baselineSha','')
         if not re.fullmatch('[a-f0-9]{40}',revision) or build.get('sourceSha')!=revision:raise ValueError('Pinned baseline source required')
@@ -96,7 +100,7 @@ def load(name,relative):
 def install_catalog(connection,config):
     """Original public catalog only; no legacy users/history leave the source files."""
     size=config.get('rows',6665)
-    if size==0:return {'kind':'synthetic','rows':16}
+    if size==0:return {'kind':'synthetic','rows':19}
     path=Path(config['catalog'])
     if digest(path)!=config['datasetHash']:raise ValueError('Catalog hash changed')
     rows=[json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
@@ -160,8 +164,11 @@ def owned_runtime(config,out,baseline=False):
             c.execute('ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL')
             c.execute("INSERT INTO users(id,open_id,nickname,status) VALUES(910001,'local-v4-user','验收账户一',1),(910002,'local-v4-second','验收账户二',1)")
             if config.get('rows')==0:
-                for name,kind,ingredients in [('验收鸡丁','meat','鸡肉|200|克'),('验收豆腐','veg','豆腐|200|克'),('验收青菜','veg','青菜|200|克'),('验收蛋汤','soup','鸡蛋|1|个')]:
-                    c.execute("INSERT INTO food(NAME,TYPE,CL,INGREDIENTS_AMOUNTS,STEPS,IS_PUBLISHED,METADATA_VERSION) VALUES(%s,%s,%s,%s,'洗净###煮熟###装盘',1,1)",(name,kind,ingredients,ingredients))
+                names=['番茄炒蛋','香菇鸡丁','土豆炖肉','清炒青菜','清炒西兰花','醋溜土豆丝','紫菜蛋汤','番茄豆腐汤','米饭','清粥','验收合成水果甜点','验收合成凉拌黄瓜','验收合成早餐燕麦']
+                kinds=['meat']*3+['veg']*3+['soup']*2+['staple']*2+['dessert','side','staple']
+                ingredients=['番茄|300|克###鸡蛋|2|个','鸡肉|300|克###香菇|100|克','猪肉|300|克###土豆|200|克','青菜|300|克','西兰花|300|克','土豆|300|克','紫菜|10|克###鸡蛋|1|个','番茄|200|克###豆腐|200|克','大米|200|克','大米|100|克','苹果|1|个','黄瓜|1|根','燕麦|50|克']
+                for index,(name,kind,ingredient) in enumerate(zip(names,kinds,ingredients)):
+                    c.execute("INSERT INTO food(NAME,TYPE,CL,INGREDIENTS_AMOUNTS,STEPS,COOK_MINUTES,COOK_TIME,TAG_CODES,IS_PUBLISHED,METADATA_VERSION) VALUES(%s,%s,%s,%s,'洗净###煮熟###装盘',15,'15分钟',%s,1,1)",(name,kind,ingredient,ingredient,'BREAKFAST_ELIGIBLE' if index==12 else 'HOME_STYLE'))
         dataset=install_catalog(connection,config)
         acceptance=load('maturity_assistant','scripts/assistant_v4_acceptance.py');model=acceptance.MockCompletion()
         provider_context=acceptance.local_provider(model);provider_url=provider_context.__enter__()
@@ -200,8 +207,23 @@ def owned_runtime(config,out,baseline=False):
                 time.sleep(.2)
         caps=a.http('/assistant/v4/capabilities')
         if not caps.get('enabled') or len(caps.get('reads',[]))!=11:raise RuntimeError('Owned assistant capability handshake failed')
+        def restart():
+            previous=next(p for p in reversed(processes) if p.args==jvm.args)
+            if previous.poll() is None:previous.terminate();previous.wait(timeout=20)
+            with (data/'java.log').open('ab') as log:
+                replacement=subprocess.Popen(jvm.args,cwd=data,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=FLAGS)
+            processes.append(replacement);state['javaPid']=replacement.pid
+            (data/'runtime.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
+            until=time.monotonic()+60
+            while True:
+                if replacement.poll() is not None:raise RuntimeError('Owned restart exited')
+                try:
+                    if a.http('/users/info')['user']['id']==910001:return replacement
+                except OSError:
+                    if time.monotonic()>until:raise RuntimeError('Owned restart readiness failed') from None
+                    time.sleep(.2)
         yield SimpleNamespace(api=a,db=connection,state=state,model=model,java=jvm,mysql=mysql,output=out,data=data,
-                              dataset=dataset,properties=properties,config=config)
+                              dataset=dataset,properties=properties,config=config,restart=restart)
     finally:
         if connection is not None:connection.close()
         if server is not None:server.should_exit=True

@@ -82,6 +82,13 @@
       "description": "Owner-scoped assistant session history and latest turn keyset indexes",
       "checksumSha256": "dc6cf889e4880d83dca0f45c424d60ca8d025172f5c7da33c4ae24d27c5b886d",
       "rollback": "Disable assistant extensions; retain additive indexes and all conversation and domain receipts."
+    },
+    {
+      "version": "V8_30__catalog_visibility_index",
+      "file": "V8_30__catalog_visibility_index.sql",
+      "description": "Cover exact catalog visibility counts without reading recipe bodies",
+      "checksumSha256": "2f727c7979c8a49dd169017a0b351fdaea76ef045f66fe2982b3d7f9310debcf",
+      "rollback": "Retain additive index on application rollback; no recipe, user or history row is changed."
     }
   ]
 }

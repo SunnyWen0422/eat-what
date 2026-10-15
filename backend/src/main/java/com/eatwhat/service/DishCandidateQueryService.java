@@ -5,6 +5,8 @@ import com.eatwhat.dto.DishPageDTO;
 import com.eatwhat.entity.Dish;
 import com.eatwhat.mapper.DishMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,6 +71,7 @@ public class DishCandidateQueryService {
         return new DishPageDTO(result, total, page, pageSize);
     }
 
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public List<Dish> findForUser(Long userId,
                                   String type,
                                   String keyword,
@@ -81,6 +84,7 @@ public class DishCandidateQueryService {
 
     /** Per-request scoped scan. No shared cache; callers own a consistent read transaction.
      * Returned rows are selection facts, not complete recipes or content-version evidence. */
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public List<Dish> findRawForUser(Long userId,
                                      String type,
                                      String keyword,

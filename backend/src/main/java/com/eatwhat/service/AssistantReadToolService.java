@@ -19,8 +19,21 @@ public class AssistantReadToolService {
     private final MealWorkspaceService workspaces;private final DishQueryService dishes;private final DishCandidateQueryService candidates;
     private final UserPreferenceService preferences;private final RecommendationMetadataService metadata;private final MealConsumptionService meals;
     private final ShoppingListService shopping;private final ObjectMapper json;
+    private org.springframework.transaction.support.TransactionTemplate readTransaction;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    public void configureReadTransaction(org.springframework.transaction.PlatformTransactionManager manager){
+        readTransaction=new org.springframework.transaction.support.TransactionTemplate(manager);
+        readTransaction.setReadOnly(true);readTransaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+    }
     public AssistantReadToolService(MealWorkspaceService w,DishQueryService d,DishCandidateQueryService q,UserPreferenceService p,RecommendationMetadataService m,MealConsumptionService a,ShoppingListService s,ObjectMapper j,AssistantCapabilityService capabilities){workspaces=w;dishes=d;candidates=q;preferences=p;metadata=m;meals=a;shopping=s;json=j;for(String name:READS)capabilities.registerRead(name,this::read);}
+    @org.springframework.transaction.annotation.Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public ReadResult read(Long user,ToolRead call,TurnScope scope){
+        // The registry holds a constructor-time method reference, which bypasses
+        // Spring's later AOP proxy. Establish the same boundary on that path.
+        if(readTransaction!=null&&!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())return readTransaction.execute(status->readSnapshot(user,call,scope));
+        return readSnapshot(user,call,scope);
+    }
+    private ReadResult readSnapshot(Long user,ToolRead call,TurnScope scope){
         if(user==null||user<1||scope==null||!Objects.equals(user,scope.getUserId())||scope.getWorkspaceId()==null)throw new IllegalArgumentException("查询范围无效，请重新打开助手");
         if(call==null||call.getCallId()==null||call.getCallId().isEmpty()||call.getCallId().length()>100||!READS.contains(call.getName())||call.getArguments()==null)throw new IllegalArgumentException("查询请求无效");
         MealWorkspace w=workspaces.get(user,scope.getWorkspaceId());checkVersions(w,scope.getExpectedWorkspaceRevision(),scope.getExpectedPlanVersion());

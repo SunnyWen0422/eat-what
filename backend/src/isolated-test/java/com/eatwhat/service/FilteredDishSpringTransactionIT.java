@@ -68,7 +68,7 @@ public class FilteredDishSpringTransactionIT {
    Object base=SystemMetaObject.forObject(executor).hasGetter("delegate")?SystemMetaObject.forObject(executor).getValue("delegate"):executor;
    Map<?,?> cache=(Map<?,?>)SystemMetaObject.forObject(base).getValue("localCache.cache");int retained=0;for(Object value:cache.values())if(value instanceof List)retained+=((List<?>)value).size();
    maxEntries=Math.max(maxEntries,cache.size());maxRows=Math.max(maxRows,retained);
-   if(name.endsWith("selectFilteredCandidateFacts")) {
+   if(name.endsWith("selectFilteredCandidateFacts")||name.endsWith("selectRecommendationCandidateFacts")) {
     facts++;assertTrue(rows.size()<=256);assertEquals(1,cache.size());assertEquals(rows.size(),retained);
     String projection=ms.getBoundSql(args).getSql().toUpperCase(Locale.ROOT).split("FROM")[0];for(String heavy:Arrays.asList("STEP","IMAGE","TIPS","METHODS"))assertFalse(projection.contains(heavy));
     if(mutate&&facts==1){external("DELETE FROM food WHERE ID=1", "UPDATE food SET IMAGE='changed-after-first-batch' WHERE ID=3407", "INSERT INTO food (ID,NAME,IS_PUBLISHED) VALUES(0,'new-low',1),(4000,'new-high',1)");}
@@ -82,6 +82,15 @@ public class FilteredDishSpringTransactionIT {
  }
  @Test void actualAnnotationProxyKeepsSnapshotAndBoundedSessionCache()throws Exception { verifySnapshot(true); }
  @Test void ordinaryCountAndPageStayFastAndUseTheSameSnapshot()throws Exception { verifySnapshot(false); }
+ @Test void standaloneRecommendationScanKeepsOneSnapshotAcrossAllFactBatches()throws Exception {
+  try(AnnotationConfigApplicationContext context=new AnnotationConfigApplicationContext(Context.class)){
+   fixture(context.getBean(DataSource.class));DishCandidateQueryService service=context.getBean(DishCandidateQueryService.class);Audit audit=context.getBean(Audit.class);
+   assertTrue(AopUtils.isCglibProxy(service));List<Dish> first=service.findRawForUser(7L,null,null,new RecommendationCriteria(),Integer.MAX_VALUE);
+   assertEquals(3407,first.size());assertEquals(3407L,first.get(0).getId().longValue());assertEquals(1L,first.get(first.size()-1).getId().longValue());assertEquals(14,audit.facts);assertEquals(1,audit.connections.size());assertTrue(audit.maxRows<=256);assertTrue(audit.maxEntries<=1);
+   assertTrue(first.stream().allMatch(d->d.getSteps()==null&&d.getImage()==null));audit.mutate=false;
+   List<Dish> second=service.findRawForUser(7L,null,null,new RecommendationCriteria(),Integer.MAX_VALUE);assertEquals(3408,second.size());assertEquals(4000L,second.get(0).getId().longValue());assertEquals(0L,second.get(second.size()-1).getId().longValue());assertEquals(2,audit.connections.size());assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
+  }
+ }
  void verifySnapshot(boolean complex)throws Exception {
   try(AnnotationConfigApplicationContext context=new AnnotationConfigApplicationContext(Context.class)) {
    DataSource ds=context.getBean(DataSource.class);fixture(ds);DishQueryService service=context.getBean(DishQueryService.class);Audit audit=context.getBean(Audit.class);

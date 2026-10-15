@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper
 public interface DishMapper {
     // Keep the catalog, count and recommendation predicates identical.
-    String FILTERED_FROM = "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) " +
+    String FILTERED_WHERE = "WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) " +
         "<if test='type != null'>AND TYPE = #{type} </if>" +
         "<if test='keyword != null'>AND NAME LIKE CONCAT('%', #{keyword}, '%') </if>" +
         "<if test='cuisineCodes != null and cuisineCodes.size() > 0'>AND CUISINE_CODE IN " +
@@ -18,6 +18,10 @@ public interface DishMapper {
         "<if test='includeTagCodes != null and includeTagCodes.size() > 0'>AND (" +
         "<foreach item='code' collection='includeTagCodes' separator=' OR '>FIND_IN_SET(#{code}, TAG_CODES) &gt; 0</foreach>) </if>" +
         "<if test='maxCookMinutes != null'>AND COOK_MINUTES IS NOT NULL AND COOK_MINUTES &lt;= #{maxCookMinutes} </if>";
+    String FILTERED_FROM = "FROM food " + FILTERED_WHERE;
+    // MySQL otherwise may choose the nullable owner index and filesort each
+    // remaining catalog batch. The ID keyset must walk the ordering index.
+    String KEYSET_FROM = "FROM food FORCE INDEX(PRIMARY) " + FILTERED_WHERE;
     String CANDIDATE_COLUMNS = "ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
         "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, " +
         "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
@@ -28,7 +32,7 @@ public interface DishMapper {
                            @Param("keyword") String keyword, @Param("cuisineCodes") List<String> cuisineCodes,
                            @Param("includeTagCodes") List<String> includeTagCodes, @Param("maxCookMinutes") Integer maxCookMinutes);
 
-    @Select({"<script>SELECT ", CANDIDATE_COLUMNS, FILTERED_FROM,
+    @Select({"<script>SELECT ", CANDIDATE_COLUMNS, KEYSET_FROM,
         "ORDER BY ID DESC LIMIT #{limit} OFFSET #{offset}</script>"})
     List<Dish> selectFilteredDishesPage(@Param("userId") Long userId, @Param("type") String type,
                                       @Param("keyword") String keyword, @Param("cuisineCodes") List<String> cuisineCodes,
@@ -37,7 +41,7 @@ public interface DishMapper {
 
     /** Keyset batches contain only facts required by the existing Java exclusions. */
     @Select("<script>SELECT ID as id, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes "
-        + FILTERED_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
+        + KEYSET_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
         + "ORDER BY ID DESC LIMIT #{limit}</script>")
     @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
     List<Dish> selectFilteredCandidateFacts(@Param("userId") Long userId,
@@ -50,7 +54,7 @@ public interface DishMapper {
         + "INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes, CUISINE_CODE as cuisineCode, "
         + "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, user_id as userId, "
         + "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom "
-        + FILTERED_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
+        + KEYSET_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
         + "ORDER BY ID DESC LIMIT #{limit}</script>")
     @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
     List<Dish> selectRecommendationCandidateFacts(@Param("userId") Long userId,
