@@ -178,7 +178,7 @@ def owned_runtime(config,out,baseline=False):
             'spring.jackson.time-zone':'GMT+8','mybatis.configuration.map-underscore-to-camel-case':True,
             'security.token.secret':token,'wechat.miniapp.appid':'local','wechat.miniapp.secret':'local',
             'admin.user-ids':'910001','meal-workspace.enabled':True,'meal-workspace.service-token':service_token,
-            'recommend.service.base-url':'http://127.0.0.1:18781','assistant-v4.enabled':True,
+            'recommend.service.base-url':'http://127.0.0.1:18781','assistant-v4.enabled':True,'assistant-v4.extensions-enabled':True,
             'management.endpoints.web.exposure.include':'health,info,metrics',
             'management.endpoint.health.group.local-ready.include':'db,ping','logging.level.com.eatwhat':'WARN'}
         config_file=data/'application.json';config_file.write_text(json.dumps(properties),encoding='utf-8')
