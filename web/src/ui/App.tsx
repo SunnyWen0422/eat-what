@@ -305,7 +305,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     const result = slotId ? replaceSlot(input, slotId) : generateMeal(input);
     if (!result.ok) { setNotice(result.error.message); setError(true); return; }
     setGeneration(result.value);
-    if (result.value.conflicts.length) { setNotice('锁定菜与当前条件冲突，请先解除锁定或移除。当前菜单已保留。'); setError(true); return; }
+    if (result.value.conflicts.length) { setNotice('保留菜与当前条件冲突，请先取消保留或移除。当前菜单已保留。'); setError(true); return; }
     if (slotId && result.value.missing.length) { setNotice('无替代菜，原菜已保留。'); setError(false); return; }
     editDraft(result.value.draft, result.value.missing.length ? '已保存部分菜单，请查看缺失原因' : slotId ? '换菜已保存' : '菜单已生成并保存');
   }
@@ -316,13 +316,13 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     const slot = compatible.find((slot) => !current.dishes.some((dish) => dish.slotId === slot.id))
       ?? compatible.find((slot) => !current.dishes.some((dish) => dish.slotId === slot.id && dish.locked))
       ?? current.slots.find((slot) => !current.dishes.some((dish) => dish.slotId === slot.id && dish.locked));
-    if (!slot) { setNotice('所有槽位已锁定，请先解除锁定或调整组合。'); setError(true); return; }
+    if (!slot) { setNotice('所有槽位已保留，请先取消保留或调整组合。'); setError(true); return; }
     const next: MealDraft = { ...current, dishes: [...current.dishes.filter((dish) => dish.slotId !== slot.id), { slotId: slot.id, recipe: snapshotRecipe(recipe), locked: false }] };
     setGeneration(null); editDraft(next, '草稿已保存');
   }
   function toggleLock(slotId: string) {
     const current = currentDraft();
-    editDraft({ ...current, dishes: current.dishes.map((dish) => dish.slotId === slotId ? { ...dish, locked: !dish.locked } : dish) }, '锁定状态已保存');
+    editDraft({ ...current, dishes: current.dishes.map((dish) => dish.slotId === slotId ? { ...dish, locked: !dish.locked } : dish) }, '保留状态已保存');
   }
   function removeDish(slotId: string) {
     const current = currentDraft(); setGeneration(null);

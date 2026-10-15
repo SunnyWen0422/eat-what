@@ -88,17 +88,17 @@ function lockConflicts(input: GenerateInput): GenerationResult['conflicts'] {
     else {
       if (!eligible(current, input, slot)) reasons.push('当前菜谱内容、餐次或类型不适用');
       if (canonicalFacts(snapshotRecipe(current)) !== canonicalFacts(snapshotRecipe(retained))) {
-        reasons.push('锁定快照版本或内容与当前菜谱不一致，无法确认适用性');
+        reasons.push('保留快照版本或内容与当前菜谱不一致，无法确认适用性');
       }
       reasons.push(...hardReasons(current, input.hardExclusions));
     }
-    if (!retained.types.includes(slot.type)) reasons.push('锁定快照类型不匹配当前槽位');
+    if (!retained.types.includes(slot.type)) reasons.push('保留快照类型不匹配当前槽位');
     if (!retained.steps.some(step => step.trim().length > 0) || !retained.ingredients.some(ingredient => ingredient.raw.trim().length > 0)) {
-      reasons.push('锁定快照缺少食材或步骤');
+      reasons.push('保留快照缺少食材或步骤');
     }
     reasons.push(...hardReasons(retained, input.hardExclusions));
-    if (kept.some((r) => duplicate(r, dish.recipe))) reasons.push('与其他锁定菜重复');
-    if (reasons.length) conflicts.push({ slotId: slot.id, reason: `${reasons.join('；')}。请先解除锁定或移除。` });
+    if (kept.some((r) => duplicate(r, dish.recipe))) reasons.push('与其他保留菜重复');
+    if (reasons.length) conflicts.push({ slotId: slot.id, reason: `${reasons.join('；')}。请先取消保留或移除。` });
     kept.push(dish.recipe);
   }
   return conflicts;
@@ -142,7 +142,7 @@ export function replaceSlot(input: GenerateInput, slotId: string): Result<Genera
   const validated = validateInput(input); if (!validated.ok) return validated;
   const slot = input.draft.slots.find((slot) => slot.id === slotId); if (!slot) return failure('INVALID', '换菜槽位不存在。');
   const conflicts = lockConflicts(input);
-  if (input.draft.dishes.some((dish) => dish.slotId === slotId && dish.locked) && !conflicts.some((c) => c.slotId === slotId)) conflicts.push({ slotId, reason: '请先解除该菜的锁定，再换一道。' });
+  if (input.draft.dishes.some((dish) => dish.slotId === slotId && dish.locked) && !conflicts.some((c) => c.slotId === slotId)) conflicts.push({ slotId, reason: '请先解除该菜的保留，再换一道。' });
   if (conflicts.length) return { ok: true, value: { draft: structuredClone(input.draft), missing: [], conflicts } };
   const pool = candidatesFor(input, slot, input.draft.dishes.map((dish) => dish.recipe));
   const selected = choose(pool.candidates, input, random(input.seed));

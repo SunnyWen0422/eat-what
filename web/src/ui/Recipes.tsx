@@ -22,7 +22,7 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
   const warnings = (recipe: RecipeSnapshot) => manualWarnings(recipe, preferences.hardExclusions.flatMap(e => e.ingredientId === null ? [] : [e.ingredientId]), preferences.hardExclusions.filter(e => e.ingredientId === null).map(e => e.raw));
   function buttons(recipe: CatalogRecipe, detail = false) {
     const favorite = favorites.some(f => f.recipeId === recipe.recipeId);
-    return <div className="actions"><button onClick={() => { onSelect(recipe); if (detail) setSelected(null); }} disabled={pending} aria-label={`手选 ${recipe.name}`}>手选这道菜</button>
+    return <div className="actions"><button className={detail?'primary':undefined} onClick={() => { onSelect(recipe); if (detail) setSelected(null); }} disabled={pending} aria-label={`手选 ${recipe.name}`}>手选这道菜</button>
       <button disabled={pending || !writable} aria-label={`${favorite ? '取消收藏' : '收藏'} ${recipe.name}`} onClick={() => { if (detail) setSelected(null); onFavorite(recipe); }}>{favorite ? '取消收藏' : '收藏'}</button></div>;
   }
   return <section className="dish-surface recipes-page" aria-labelledby="recipes-title">
@@ -40,7 +40,7 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
 
             <button aria-label={`查看详情 ${recipe.name}`} onClick={() => setSelected(recipe)}>查看做法</button>{buttons(recipe)}
           </li>)}</ul>}</>}
-    {selected && <Dialog title={selected.name} busy={pending} onClose={() => setSelected(null)}><RecipeImage snapshot={selected} hero/><h3>{selected.name}</h3><RecipeFacts snapshot={selected} />
+    {selected && <Dialog title={selected.name} initialFocus="panel" busy={pending} onClose={() => setSelected(null)}><h3>{selected.name}</h3><RecipeImage snapshot={selected} hero/><RecipeFacts snapshot={selected} />
       <details><summary>菜谱信息说明</summary><p>{REVIEW_LABELS[selected.reviewStatus]}</p>{selected.issues.map((issue,index)=><p key={index}>{ISSUE_LABELS[issue] ?? (/^[A-Z_0-9]+$/.test(issue) ? '部分菜谱资料仍需核对。' : issue)}</p>)}</details>{warnings(selected).map(warning => <p className="warning" key={warning}>{warning}</p>)}{buttons(selected, true)}<button disabled={pending} onClick={() => setSelected(null)}>关闭菜谱详情</button></Dialog>}
   </section>;
 }

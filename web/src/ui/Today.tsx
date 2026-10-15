@@ -1,7 +1,9 @@
 import { RecipeImage } from './RecipeImage.tsx';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { DishType, GenerationResult, LocalDate, Meal, MealDraft, PersonalData, Slot } from '../domain/types.ts';
-import { manualWarnings } from '../menu/rules.ts';
+import { localDate } from '../domain/dates.ts';
+import type { TimeZone } from '../domain/types.ts';
+import { manualWarnings, recommendationEvidence } from '../menu/rules.ts';
 import { Dialog, MEAL_LABELS, Notice, RecipeFacts } from './components.tsx';
 const TYPE_LABELS: Record<DishType, string> = { meat: '荤菜', vegetable: '素菜', staple: '主食', soup: '汤羹', breakfastSnack: '早餐/加餐' };
 interface TodayProps {
@@ -20,6 +22,7 @@ export function Today(props: TodayProps) {
   const [countEdited, setCountEdited] = useState(false);
   const [exclusionsInput, setExclusionsInput] = useState(preferences.hardExclusions.map((e) => e.raw).join('\n'));
   const [discarding, setDiscarding] = useState(false);
+  const evidenceContext={favoriteIds:data.favorites.map(f=>f.recipeId),actualMeals:data.actualMeals,today:localDate(new Date(),Intl.DateTimeFormat().resolvedOptions().timeZone as TimeZone)};
   const hasMenu = !!draft?.dishes.length;
   const [settingsOpen, setSettingsOpen] = useState(!hasMenu);
   useEffect(() => { setSettingsOpen(!hasMenu); }, [hasMenu, settings.meal]);
@@ -79,17 +82,17 @@ export function Today(props: TodayProps) {
     </div>
     <div className="current-menu"><h3>{draft?.dishes.length ? '搭配好了 · 看看菜单' : '这一餐，慢慢选'}</h3>
       {draft?.dishes.length ? <><p>{draft.servings} 人 · {MEAL_LABELS[draft.meal]}</p><ul className="menu-dishes">{draft.dishes.map((dish) => <li className="recipe-card" key={dish.slotId}>
-        <div className="dish-identity"><RecipeImage snapshot={dish.recipe}/><h3>{dish.recipe.name}</h3></div><details><summary>查看食材、步骤和来源</summary><RecipeFacts snapshot={dish.recipe}/></details><p>{TYPE_LABELS[draft.slots.find((s) => s.id === dish.slotId)!.type]}{dish.locked ? ' · 已锁定' : ''}</p>
-        {!dish.recipe.types.includes(draft.slots.find((slot) => slot.id === dish.slotId)!.type) && <p className="warning">此菜不匹配当前分类。{dish.locked ? '请先解除锁定或移除。' : '手选保留不代表自动筛选通过。'}</p>}
-        {dish.locked && preferences.hardExclusions.length > 0 && manualWarnings(dish.recipe, hardIds, unresolved).length > 0 && <p className="warning">锁定菜存在忌口或原料不确定，请先解除锁定或移除后重新检查。</p>}
+        <div className="dish-identity"><RecipeImage snapshot={dish.recipe}/><div><h3>{dish.recipe.name}</h3>{recommendationEvidence(dish.recipe,evidenceContext).map(reason=><p key={reason} className="muted recommendation-reason">{reason}</p>)}</div></div><details><summary>查看食材、步骤和来源</summary><RecipeFacts snapshot={dish.recipe}/></details><p>{TYPE_LABELS[draft.slots.find((s) => s.id === dish.slotId)!.type]}{dish.locked ? ' · 已保留' : ''}</p>
+        {!dish.recipe.types.includes(draft.slots.find((slot) => slot.id === dish.slotId)!.type) && <p className="warning">此菜不匹配当前分类。{dish.locked ? '请先取消保留或移除。' : '手选保留不代表自动筛选通过。'}</p>}
+        {dish.locked && preferences.hardExclusions.length > 0 && manualWarnings(dish.recipe, hardIds, unresolved).length > 0 && <p className="warning">保留菜存在忌口或原料不确定，请先取消保留或移除后重新检查。</p>}
         {(preferences.hardExclusions.length || preferences.softPreferences.includes('vegetarian') ? manualWarnings(dish.recipe, hardIds, unresolved) : []).map((warning) => <p key={warning} className="warning">{warning}</p>)}
 
-        <details className="dish-more"><summary>保留或移除</summary><button disabled={disabled} aria-label={`${dish.locked ? '解除锁定' : '锁定'} ${dish.recipe.name}`} onClick={() => props.onLock(dish.slotId)}>{dish.locked ? '解除锁定' : '锁定'}</button>{' '}
+        <details className="dish-more"><summary>保留或移除</summary><button disabled={disabled} aria-label={`${dish.locked ? '取消保留' : '保留'} ${dish.recipe.name}`} onClick={() => props.onLock(dish.slotId)}>{dish.locked ? '取消保留' : '保留'}</button>{' '}
 
         <button disabled={disabled} aria-label={`移除 ${dish.recipe.name}`} onClick={() => props.onRemove(dish.slotId)}>移除</button></details>        <button disabled={settingsBlocked || dish.locked} aria-label={`换一道 ${dish.recipe.name}`} onClick={() => props.onReplace(dish.slotId)}>换一道</button>{' '}
       </li>)}</ul></> : <p>还没有选菜。生成本餐菜单或到“菜谱”手选一道菜开始。</p>}
-      {generation?.conflicts.map((item) => <p role="alert" key={item.slotId}>菜品 {item.slotId}：{item.reason}</p>)}
-      {generation?.missing.map((item) => <p key={item.slotId}>缺少菜品 {item.slotId}：{item.reason}</p>)}
+      {generation?.conflicts.map((item) => <p role="alert" key={item.slotId}>第 {Math.max(0,settings.slots.findIndex(slot=>slot.id===item.slotId))+1} 道菜：{item.reason}</p>)}
+      {generation?.missing.map((item) => <p key={item.slotId}>缺少第 {Math.max(0,settings.slots.findIndex(slot=>slot.id===item.slotId))+1} 道菜：{item.reason}</p>)}
       {!!draft?.dishes.length && <><button className="primary" disabled={!writable || settingsBlocked || (draft.servings > 8 && !draft.countsConfirmed)} onClick={onConfirm}>保存到日历</button><details className="menu-more"><summary>更多本餐操作</summary>
       <button disabled={!writable||settingsBlocked||!draft?.dishes.length} onClick={props.onShopping}>从当前草稿建采购清单</button>{' '}
       <button disabled={!writable||settingsBlocked||!draft?.dishes.length} onClick={props.onRecord}>记录本餐实际饮食</button>{' '}

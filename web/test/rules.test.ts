@@ -174,7 +174,7 @@ describe('retained locked snapshot admission', () => {
     const before = structuredClone(value);
     for (const run of [() => generateMeal(value), () => replaceSlot(value, 'vegetable-1')]) {
       const result = generated(run());
-      expect(result.conflicts).toEqual([{ slotId: 'meat-1', reason: expect.stringMatching(/快照.*(类型|完整|版本|内容).*解除锁定或移除/u) }]);
+      expect(result.conflicts).toEqual([{ slotId: 'meat-1', reason: expect.stringMatching(/快照.*(类型|完整|版本|内容).*取消保留或移除/u) }]);
       expect(result.draft).toEqual(value.draft);
       expect(result.missing).toEqual([]);
     }

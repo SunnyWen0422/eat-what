@@ -6,8 +6,8 @@ import { isText } from '../domain/validation.ts';
 import { DeleteEditor, useLocalMutation, type LocalActions } from './PersonalActions.tsx';
 import { Dialog, MEAL_LABELS, Notice, SourceLink } from './components.tsx';
 function SourceDetails({source,actions,draftSource}:{source:ShoppingSource;actions:LocalActions;draftSource:ShoppingSource|null}){
-  const state=sourceState(source,actions.data,draftSource);
-  return <div>{state==='changed'&&<p>来源已变更</p>}{state==='deleted'&&<p>{source.kind==='plan'?'来源计划已删除，快照仍保留':'来源草稿已移除，快照仍保留'}</p>}<details><summary>{source.kind==='plan'?'计划来源':'本餐来源'} · {source.servings} 人</summary>
+  const state=sourceState(source,actions.data,draftSource),plan=source.kind==='plan'?actions.data.plans.find(p=>p.id===source.id):null;
+  return <div>{state==='changed'&&<p>来源已变更</p>}{state==='deleted'&&<p>{source.kind==='plan'?'来源计划已删除，快照仍保留':'来源草稿已移除，快照仍保留'}</p>}<details><summary>{source.kind==='plan'?'计划来源':'本餐来源'}{plan?' · '+plan.date+' '+MEAL_LABELS[plan.meal]:''} · {source.servings} 人</summary>
     {source.snapshots.map((snapshot,i)=><div key={i}><h4>{snapshot.name}</h4><p>菜品身份 {snapshot.recipeId} · 来源组 {snapshot.familyId} · 变体 {snapshot.variantId??'未知'} · 基准 {snapshot.baseServings??'未知'} 人</p><p>分类 {snapshot.types.join('、')||'未知'}</p><ul>{snapshot.ingredients.map((ingredient,n)=><li key={n}>{ingredient.raw} · 原量 {formatQuantity(ingredient.quantity)} · 形态 {ingredient.form||'未知'} · 部位 {ingredient.part??'未知'} · 原料身份 {ingredient.ingredientId??'未知'} · {ingredient.trust==='reviewed'?'来源有审核记录':'未经审核'} · 复合成分 {ingredient.compoundResolved?'已解析':'未知'}</li>)}</ul><ol>{snapshot.steps.map((step,n)=><li key={n}>{step}</li>)}</ol><p>来源 <SourceLink url={snapshot.source.url}/> · 提交 {snapshot.source.commit??'未知'} · 许可 {snapshot.source.license??'未知'} · 菜库版本 {snapshot.catalogVersion??'未知'} · 内容版本 {snapshot.contentVersion??'未知'}</p></div>)}
   </details></div>;
 }
@@ -23,7 +23,7 @@ function ShoppingBuilder({actions,initial,previous,draftSource,onDone}:{actions:
   const missing=previous&&initial.length<previous.sources.length;
   const disabled=mutation.disabled;
   function toggle(source:ShoppingSource,checked:boolean){setSelected(current=>checked?[...current.filter(s=>!(s.kind===source.kind&&s.id===source.id)),source]:current.filter(s=>!(s.kind===source.kind&&s.id===source.id)));setPreview(null);setError('');}
-  function generate(){try{setPreview(buildShopping(selected));setError('');}catch(e){setError(e instanceof Error?e.message:'无法生成清单');}}
+  function generate(){try{setPreview(buildShopping(selected));setError('');}catch(e){setError(e instanceof RangeError?'这次食材内容超过可保存范围，请减少来源后重试。原清单和选择仍保留。':'食材来源暂时无法整理，请核对后重试。原清单和选择仍保留。');}}
   async function save(){if(preview&&await mutation.run({type:'saveShoppingList',list:preview,expectedObjectRevision:null},'采购清单已保存'))onDone();}
   const diff=previous&&preview?diffShopping(previous,preview):null;
   return <div className="card"><h3>{previous?'重新生成采购清单':'新建采购清单'}</h3>{missing&&<p>有来源已删除或不可用，请重新选择来源；旧版快照仍保留。</p>}
@@ -46,6 +46,6 @@ export function Shopping({actions,initialSources=[],draftSource}:{actions:LocalA
   const disabled=actions.pending||!actions.writable;
   return <section aria-label="采购清单"><h3>采购清单</h3><button disabled={disabled} onClick={()=>{done();setBuilder({initial:[]});}}>新建采购清单</button>
     {builder&&<ShoppingBuilder key={builder.previous?.id??'new'} actions={actions} {...builder} draftSource={draftSource} onDone={done}/>}{editing&&<ShoppingEditor key={editing.id} actions={actions} list={editing} onDone={done}/>}{deleting&&<DeleteEditor actions={actions} store="shoppingLists" id={deleting} onDone={done}/>}
-    {actions.data.shoppingLists.length?actions.data.shoppingLists.map(list=><article className="card" key={list.id}><h4>采购清单 · {new Date(list.createdAt).toLocaleDateString('zh-CN')}</h4>{list.sources.map(s=><SourceDetails key={`${s.kind}/${s.id}`} source={s} actions={actions} draftSource={draftSource}/>)}<ul>{list.items.map(item=><li key={item.key}><ItemFacts item={item}/></li>)}</ul><button disabled={disabled} aria-label={`编辑采购清单 ${list.id}`} onClick={()=>{done();setEditing(list);}}>编辑采购清单</button>{' '}<button disabled={disabled} aria-label={`重新生成采购清单 ${list.id}`} onClick={()=>regenerate(list)}>查看差异并重新生成</button>{' '}<button disabled={disabled} aria-label={`删除采购清单 ${list.id}`} onClick={()=>{done();setDeleting(list.id);}}>删除采购清单</button></article>):<p>还没有采购清单。</p>}
+    {actions.data.shoppingLists.length?actions.data.shoppingLists.map(list=><article className="card" key={list.id}><h4>采购清单 · {new Date(list.createdAt).toLocaleDateString('zh-CN')}</h4>{list.sources.map(s=><SourceDetails key={`${s.kind}/${s.id}`} source={s} actions={actions} draftSource={draftSource}/>)}<ul>{list.items.map(item=><li key={item.key}><ItemFacts item={item}/></li>)}</ul><button className="primary" disabled={disabled} aria-label={`编辑采购清单 ${list.id}`} onClick={()=>{done();setEditing(list);}}>编辑采购清单</button><details className="shopping-more"><summary>更多清单操作</summary><button disabled={disabled} aria-label={`重新生成采购清单 ${list.id}`} onClick={()=>regenerate(list)}>查看差异并重新生成</button>{' '}<button disabled={disabled} aria-label={`删除采购清单 ${list.id}`} onClick={()=>{done();setDeleting(list.id);}}>删除采购清单</button></details></article>):<p>还没有采购清单。</p>}
   </section>;
 }

@@ -1,4 +1,4 @@
-:root { --brand:#28634E; --text:#25332B; --muted:#56645B; --line:#D9E1D5; --glass:rgba(255,255,255,.66); --glass-border:rgba(255,255,255,.74); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--text); background: #F8F7F2; font-synthesis: none; line-height: 1.6; font-size: 16px; }
+:root { --brand:#28634E; --text:#25332B; --muted:#56645B; --line:#D9E1D5; --glass:rgba(255,255,255,.66); --glass-border:rgba(255,255,255,.74); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--text); background: #F8F7F2; font-synthesis: none; line-height: 1.6; font-size: 100%; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 0; }
 button, input, select, textarea { font: inherit; min-height: 44px; min-width: 0; max-width: 100%; border: 1px solid #84947a; border-radius: 10px; padding: 10px 14px; background: #fff; color: inherit; }
@@ -52,10 +52,10 @@ button[aria-pressed="true"] { background: #dfebd3; border-color: #526543; }
 
 /* A warm table chrome, F dish surfaces. No per-card backdrop filters. */
 .app-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:#F8F7F2; border-color:var(--line); }
-.app-header h1 { font-size:24px; margin:0; letter-spacing:-.02em; }
-.app-header .muted { font-size:13px; text-align:right; }
-h2 { font-size:24px; line-height:1.3; } h3 { font-size:18px; line-height:1.5; }
-main { padding:20px; } .muted { color:var(--muted); } .result-count { font-size:13px; }
+.app-header h1 { font-size:1.5rem; margin:0; letter-spacing:-.02em; }
+.app-header .muted { font-size:0.8125rem; text-align:right; }
+h2 { font-size:1.5rem; line-height:1.3; } h3 { font-size:1.125rem; line-height:1.5; }
+main { padding:20px; } .muted { color:var(--muted); } .result-count { font-size:0.8125rem; }
 button, input, select, textarea { border-color:#7C8E80; border-radius:10px; }
 button { transition:background-color 100ms ease-out, transform 100ms ease-out; }
 button:active:not(:disabled) { transform:translateY(1px); }
@@ -67,10 +67,10 @@ nav button[aria-current="page"] { background:#EDF3ED; color:var(--brand); }
 .card { background:#fff; border-color:var(--line); box-shadow:none; }
 .dish-surface { background:linear-gradient(145deg,#E4EEDA,#F5ECE2 60%,#D7E9E3); border-radius:24px; padding:20px; min-width:0; }
 .recipe-card, .recipe-list .recipe-card, .meal-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:10px; margin:8px 0; box-shadow:0 5px 16px #1e473808; min-width:0; list-style:none; }
-.recipe-card h3 { font-size:16px; font-weight:600; margin:0; }
+.recipe-card h3 { font-size:1rem; font-weight:600; margin:0; }
 .recipe-card p { margin:4px 0 8px; }
-.recipe-card .muted { font-size:13px; }
-.recipe-card button { font-size:13px; padding:8px 12px; }
+.recipe-card .muted { font-size:0.8125rem; }
+.recipe-card button { font-size:0.8125rem; padding:8px 12px; }
 .dish-identity { display:flex; align-items:center; gap:12px; min-width:0; }
 .dish-identity > :last-child { min-width:0; overflow-wrap:anywhere; }
 .recipe-photo { flex:0 0 56px; display:flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:14px; overflow:hidden; background:#EDF3ED; }
@@ -80,7 +80,7 @@ nav button[aria-current="page"] { background:#EDF3ED; color:var(--brand); }
 .recipe-hero .category-icon { width:64px; height:64px; }
 .recipe-list { gap:8px 16px; } .recipe-list .card { margin:0; }
 .filters { background:rgba(255,255,255,.88); border-color:var(--glass-border); padding:16px; }
-.filters label { font-size:13px; margin-bottom:8px; }
+.filters label { font-size:0.8125rem; margin-bottom:8px; }
 .filters button { align-self:end; }
 .today-workspace { max-width:720px; margin:auto; }
 .meal-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
@@ -90,13 +90,13 @@ nav button[aria-current="page"] { background:#EDF3ED; color:var(--brand); }
 .settings-disclosure > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; }
 .settings-disclosure > summary::after { content:'›'; color:var(--brand); }
 .settings-disclosure[open] > summary::after { content:'⌄'; }
-.settings-disclosure strong { margin-left:auto; font-size:14px; color:var(--brand); }
+.settings-disclosure strong { margin-left:auto; font-size:0.875rem; color:var(--brand); }
 .settings-content { padding:16px; border-radius:16px; background:rgba(255,255,255,.88); margin-bottom:12px; }
-.settings-content > p { font-size:13px; }.settings-content label { margin-bottom:12px; }
+.settings-content > p { font-size:0.8125rem; }.settings-content label { margin-bottom:12px; }
 .meal-settings > button.primary { width:100%; margin:8px 0 20px; }
-.current-menu > h3 { font-size:16px; margin:20px 0 12px; }
+.current-menu > h3 { font-size:1rem; margin:20px 0 12px; }
 .menu-dishes { list-style:none; padding:0; }.current-menu > .primary { width:100%; margin:16px 0 8px; }
-.menu-dishes summary { font-size:13px; color:var(--brand); }
+.menu-dishes summary { font-size:0.8125rem; color:var(--brand); }
 .ingredient-facts { list-style:none; padding:0; }.ingredient-facts li { border-bottom:1px solid var(--line); padding:10px 0; margin:0; }
 .saved-records { margin-top:24px; border-top:1px solid var(--line); }
 .personal-dishes { background:linear-gradient(145deg,#E4EEDA,#F5ECE2 60%,#D7E9E3); border-color:var(--glass-border); }
@@ -125,3 +125,21 @@ button { overflow-wrap:anywhere; }
 .recipe-list .recipe-card > .actions { display:flex; flex-wrap:wrap; gap:4px; margin:0; }
 .recipe-list .recipe-card > .warning { flex-basis:100%; }
 @media(max-width:600px) { .recipes-page .filters { display:grid; grid-template-columns:minmax(0,1fr); } }
+
+/* Warm A reading rhythm and F food surfaces share scalable type. */
+body { font-size:1rem; }
+.meal-card > .primary,.calendar-plan > .primary { width:100%; margin-block:12px; }
+.meal-more,.shopping-more,.original-plan { margin-block:12px; }
+.meal-more > summary,.shopping-more > summary,.original-plan > summary { min-height:44px; display:flex; align-items:center; color:var(--brand); font-size:.8125rem; }
+.meal-more button,.shopping-more button { display:block; width:100%; text-align:left; margin-block:8px; }
+.storage-diagnostics { margin-block:12px; }.storage-diagnostics > summary { min-height:44px; display:flex; align-items:center; }
+.recommendation-reason { margin:4px 0 0; font-size:.8125rem; }
+.recipe-hero { border-radius:18px; overflow:hidden; }
+.dialog-panel > h3 { margin-bottom:16px; }
+.calendar-page .month-days button { min-width:44px; padding:8px 2px; }
+.calendar-page .day-meta { display:block; height:1.5em; }
+@media(max-width:430px){.month-days{grid-template-columns:repeat(auto-fit,minmax(44px,1fr));}.settings-disclosure > summary{flex-wrap:wrap;}.settings-content{padding:12px;}}
+
+/* Selection colors switch together; avoid white text over a fading pale background. */
+button[aria-pressed] { transition:transform 100ms ease-out; }
+@media(prefers-reduced-motion:reduce){button[aria-pressed]{transition:none;}}

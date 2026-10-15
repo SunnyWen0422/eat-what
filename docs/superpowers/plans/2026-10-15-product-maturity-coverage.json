@@ -690,7 +690,7 @@
         "T18"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K03",
@@ -704,7 +704,8 @@
         "K18",
         "K27",
         "K31"
-      ]
+      ],
+      "evidenceNote": "467 non-release web checks pass; type/build/boundaries pass; 2 isolated Chromium tests pass including a real click journey and 12 width/font combinations, 24 screenshots retained. Fixed initial detail focus scroll and fading selection contrast with RED/GREEN browser evidence. Ruling: 56 release tests still have repeated Windows EPERM staging rename failures (full suite 522/523); investigation assigned existing T25 release scope, not hidden or deleted. No native or online proof."
     },
     {
       "id": "T20",

@@ -195,7 +195,7 @@ describe('local meal controls through the real repository', () => {
       fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); await screen.findByText('菜单已生成并保存');
       const first = await test.repo.read(); if (!first.ok || !first.value.draft) throw new Error('missing draft');
       const saved = first.value.draft;
-      fireEvent.click(screen.getByRole('button', { name: `锁定 ${saved.dishes[1]!.recipe.name}` })); await screen.findByText('锁定状态已保存');
+      fireEvent.click(screen.getByRole('button', { name: `保留 ${saved.dishes[1]!.recipe.name}` })); await screen.findByText('保留状态已保存');
       fireEvent.click(screen.getByRole('button', { name: `换一道 ${saved.dishes[0]!.recipe.name}` })); await screen.findByText('换菜已保存');
       const next = await test.repo.read(); if (!next.ok || !next.value.draft) throw new Error('missing draft');
       expect(next.value.draft.dishes[0]?.recipe.familyId).not.toBe(saved.dishes[0]?.recipe.familyId); expect(next.value.draft.dishes[1]).toEqual({ ...saved.dishes[1], locked: true }); expect(next.value.actualMeals).toEqual([]);
@@ -354,10 +354,10 @@ describe('local meal controls through the real repository', () => {
   it('requires resolving a locked type conflict before any whole-meal changes', async () => {
     const test = await mealSetup(); try {
       fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); await screen.findByText('菜单已生成并保存'); const first = await test.repo.read(); if (!first.ok || !first.value.draft) throw new Error('read'); const meat = first.value.draft.dishes[0]!;
-      fireEvent.click(screen.getByRole('button', { name: `锁定 ${meat.recipe.name}` })); await screen.findByText('锁定状态已保存'); fireEvent.change(screen.getByLabelText('第 1 道菜类型'), { target: { value: 'vegetable' } }); await screen.findByText('设置和草稿已保存');
+      fireEvent.click(screen.getByRole('button', { name: `保留 ${meat.recipe.name}` })); await screen.findByText('保留状态已保存'); fireEvent.change(screen.getByLabelText('第 1 道菜类型'), { target: { value: 'vegetable' } }); await screen.findByText('设置和草稿已保存');
       expect(screen.getByText(/此菜不匹配当前分类/)).not.toBeNull(); const before = await test.repo.read();
-      fireEvent.click(screen.getByRole('button', { name: '重生成整餐' })); await screen.findByText('锁定菜与当前条件冲突，请先解除锁定或移除。当前菜单已保留。'); expect(await test.repo.read()).toEqual(before);
-      fireEvent.click(screen.getByRole('button', { name: `解除锁定 ${meat.recipe.name}` })); await screen.findByText('锁定状态已保存'); fireEvent.click(screen.getByRole('button', { name: '重生成整餐' })); await screen.findByText('菜单已生成并保存');
+      fireEvent.click(screen.getByRole('button', { name: '重生成整餐' })); await screen.findByText('保留菜与当前条件冲突，请先取消保留或移除。当前菜单已保留。'); expect(await test.repo.read()).toEqual(before);
+      fireEvent.click(screen.getByRole('button', { name: `取消保留 ${meat.recipe.name}` })); await screen.findByText('保留状态已保存'); fireEvent.click(screen.getByRole('button', { name: '重生成整餐' })); await screen.findByText('菜单已生成并保存');
       const after = await test.repo.read(); if (!after.ok) throw new Error('read'); expect(after.value.draft?.dishes.every((d) => d.recipe.types.includes('vegetable'))).toBe(true);
     } finally { test.close(); }
   });

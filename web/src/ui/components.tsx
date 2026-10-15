@@ -55,7 +55,7 @@ function updateModalBackground() {
 }
 const focusable = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href], summary, [tabindex="0"]';
 /** Presentation only: closing never commits and a pending transaction cannot be dismissed. */
-export function Dialog({ title, children, onClose, busy = false }: { title: string; children: ReactNode; onClose: () => void; busy?: boolean }) {
+export function Dialog({ title, children, onClose, busy = false, initialFocus='first' }: { title: string; children: ReactNode; onClose: () => void; busy?: boolean; initialFocus?:'first'|'panel' }) {
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   const close = useRef(onClose); close.current = onClose;
@@ -65,7 +65,7 @@ export function Dialog({ title, children, onClose, busy = false }: { title: stri
     dialogs.push(backdrop); updateModalBackground();
     const previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
     const controls = () => Array.from(node.querySelectorAll<HTMLElement>(focusable)).filter(item => !item.matches(':disabled') && (!item.closest('details:not([open])') || item.tagName === 'SUMMARY'));
-    (controls()[0] ?? node).focus();
+    (initialFocus==='panel'?node:controls()[0]??node).focus({preventScroll:initialFocus==='panel'});
     function keyboard(event: KeyboardEvent) {
       if (dialogs.at(-1) !== backdrop) return;
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); if (!pending.current) close.current(); }

@@ -128,7 +128,7 @@ test('trusted online directory → local generate/lock/replace → settings surv
   await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('菜单已生成并保存', { exact: true })).toBeVisible();
   const first = await readDraft(page); expect(first.draft.dishes).toHaveLength(3);
   const retained = first.draft.dishes[2];
-  await page.getByRole('button', { name: `锁定 ${retained.recipe.name}`, exact: true }).click(); await expect(page.getByText('锁定状态已保存', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: `保留 ${retained.recipe.name}`, exact: true }).click(); await expect(page.getByText('保留状态已保存', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: `换一道 ${first.draft.dishes[0].recipe.name}`, exact: true }).click(); await expect(page.getByText('换菜已保存', { exact: true })).toBeVisible();
   const changed = await readDraft(page); expect(changed.draft.dishes[0].recipe.familyId).not.toBe(first.draft.dishes[0].recipe.familyId); expect(changed.draft.dishes[2]).toEqual({ ...retained, locked: true });
   expect(directoryReads).toBe(beforeGenerateReads);
