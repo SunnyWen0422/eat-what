@@ -20,6 +20,9 @@ export function Today(props: TodayProps) {
   const [countEdited, setCountEdited] = useState(false);
   const [exclusionsInput, setExclusionsInput] = useState(preferences.hardExclusions.map((e) => e.raw).join('\n'));
   const [discarding, setDiscarding] = useState(false);
+  const hasMenu = !!draft?.dishes.length;
+  const [settingsOpen, setSettingsOpen] = useState(!hasMenu);
+  useEffect(() => { setSettingsOpen(!hasMenu); }, [hasMenu, settings.meal]);
   useEffect(() => { if (!servingsEdited) setServingsInput(String(settings.servings)); }, [settings.servings, servingsEdited]);
   useEffect(() => { if (!countEdited) setCountInput(String(settings.slots.length)); }, [settings.slots.length, countEdited]);
   const savedExclusions = preferences.hardExclusions.map((e) => e.raw).join('\n');
@@ -52,7 +55,7 @@ export function Today(props: TodayProps) {
   }
   return <section className="dish-surface today-page" aria-labelledby="today-title">
     <h2 id="today-title">{draft?.dishes.length ? '本餐菜单' : '今天吃什么？'}</h2><div className="meal-tabs" aria-label="本餐餐次">{Object.entries(MEAL_LABELS).map(([key, label]) => <button key={key} aria-pressed={settings.meal === key} disabled={disabled} onClick={() => { if (settings.meal !== key) props.onSettings({meal:key as Meal}); }}>{label}</button>)}</div>
-    <div className="today-workspace"><div className="meal-settings"><details className="settings-disclosure"><summary>人数与本餐搭配 <strong>{settings.servings} 人 · {settings.slots.length} 道菜</strong></summary><div className="settings-content">
+    <div className="today-workspace"><div className="meal-settings"><details className="settings-disclosure" open={settingsOpen} onToggle={event => setSettingsOpen(event.currentTarget.open)}><summary>人数与本餐搭配 <strong>{settings.servings} 人 · {settings.slots.length} 道菜</strong></summary><div className="settings-content">
 
       <label>用餐人数<input type="number" min="1" max="50" step="1" value={servingsInput} disabled={disabled} onChange={(event) => { const value = event.target.value; setServingsInput(value); setServingsEdited(value !== String(settings.servings)); }} /></label>
       <label>草稿餐次<select value={settings.meal} disabled={disabled} onChange={(event) => props.onSettings({ meal: event.target.value as Meal })}>{Object.entries(MEAL_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -61,7 +64,7 @@ export function Today(props: TodayProps) {
       <label>菜数<input type="number" min="1" max="20" step="1" value={countInput} disabled={disabled} onChange={(event) => { const value = event.target.value; setCountInput(value); setCountEdited(value !== String(settings.slots.length)); }} /></label>
       {invalidSettings && <p role="alert">人数需为 1–50，菜数需为 1–20。当前输入尚未应用。</p>}
       <button disabled={disabled || invalidSettings || !unappliedNumbers} onClick={applyNumbers}>应用人数和菜数</button>
-      {unappliedNumbers && <><button disabled={disabled} onClick={undoNumbers}>撤销人数和菜数修改</button><p role="status">人数或菜数尚未应用。请先应用，再生成菜单或保存本餐内容。</p></>}
+      {unappliedNumbers && <><button disabled={disabled} onClick={undoNumbers}>撤销人数和菜数修改</button></>}
       <p className="muted">应用后保留配置。减少菜数会移除末尾的菜。</p>
       {settings.slots.map((slot, index) => <label key={slot.id}>第 {index + 1} 道菜类型<select value={slot.type} disabled={disabled} onChange={(event) => props.onSettings({ slots: settings.slots.map((s) => s.id === slot.id ? { ...s, type: event.target.value as DishType } : s) })}>{Object.entries(TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>)}
       {settings.servings > 8 && <div><p>{settings.countsConfirmed ? '人数和组合已确认' : `超过 8 人：请核对 ${settings.slots.length} 道菜及各槽类型，再确认。人数或组合变化后需重新确认。`}</p><button disabled={settingsBlocked || settings.countsConfirmed} onClick={props.onCountsConfirm}>确认人数和组合</button></div>}

@@ -29,8 +29,8 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
     <h2 id="recipes-title">菜谱</h2>
     <div className="card filters"><label>搜索名称或食材<input type="search" value={keyword} onChange={event => setKeyword(event.target.value)} /></label>
       <label>菜谱分类<select value={category} onChange={event => setCategory(event.target.value as DishType | '')}><option value="">全部分类</option>{Object.entries(TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
-      <label>仅看收藏<input type="checkbox" checked={favoritesOnly} onChange={event => setFavoritesOnly(event.target.checked)} /></label>
-      <button onClick={() => { setKeyword(''); setCategory(''); setFavoritesOnly(false); }}>清除筛选</button>
+      <details className="catalog-filter-options"><summary>更多筛选{favoritesOnly ? ' · 仅看收藏' : ''}</summary><label>仅看收藏<input type="checkbox" checked={favoritesOnly} onChange={event => setFavoritesOnly(event.target.checked)} /></label>
+      <button onClick={() => { setKeyword(''); setCategory(''); setFavoritesOnly(false); }}>清除筛选</button></details>
     </div>
     {loading ? <Notice text="正在读取在线菜谱…" /> : !catalog?.ok ? <div className="notice"><p>在线菜谱暂时无法读取。已有个人计划仍可查看，可在“我的”新建自定义菜谱。</p><button disabled={loading} onClick={onRetry}>重试在线菜谱</button></div>
       : <><p className="result-count muted">{matches.length} 道菜</p>

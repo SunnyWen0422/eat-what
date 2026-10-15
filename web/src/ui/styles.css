@@ -113,3 +113,15 @@ nav button[aria-current="page"] { background:#EDF3ED; color:var(--brand); }
 body { line-height:1.5; }
 .recipe-detail p, .recipe-detail li { line-height:1.65; }
 button { overflow-wrap:anywhere; }
+
+/* Meal-first layout, shared with the native hierarchy. */
+.settings-disclosure > summary { padding:8px 0; min-height:44px; }
+.settings-disclosure strong { white-space:normal; }
+.recipes-page .filters { padding:10px 12px; margin:8px 0; gap:8px 16px; }
+.catalog-filter-options { grid-column:1 / -1; margin:0; }
+.catalog-filter-options > summary { min-height:44px; display:flex; align-items:center; font-size:.8125rem; }
+.recipe-list .recipe-card { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+.recipe-list .recipe-card .dish-identity { flex:1 1 100%; margin-bottom:0; }
+.recipe-list .recipe-card > .actions { display:flex; flex-wrap:wrap; gap:4px; margin:0; }
+.recipe-list .recipe-card > .warning { flex-basis:100%; }
+@media(max-width:600px) { .recipes-page .filters { display:grid; grid-template-columns:minmax(0,1fr); } }
