@@ -135,10 +135,11 @@ public class RecommendController {
             result.put("warnings", warnings);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Recommend failed, request={}", req, e);
+            log.error("Recommend failed kind={}", e.getClass().getSimpleName());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", e.getMessage());
+            error.put("errorCode", "INTERNAL_ERROR");
+            error.put("message", "推荐暂未完成，请稍后重试");
             return ResponseEntity.status(500).body(error);
         }
     }
@@ -218,10 +219,11 @@ public class RecommendController {
             result.put("isFavorite", isFavorite);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Single recommendation failed, type={}, exclude={}", type, exclude, e);
+            log.error("Single recommendation failed kind={}", e.getClass().getSimpleName());
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", e.getMessage());
+            error.put("errorCode", "INTERNAL_ERROR");
+            error.put("message", "推荐暂未完成，请稍后重试");
             return ResponseEntity.status(500).body(error);
         }
     }

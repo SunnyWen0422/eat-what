@@ -360,12 +360,13 @@
         "T01"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K26",
         "K29",
         "K31"
-      ]
+      ],
+      "evidenceNote": "Java 7/7 and Node 4/4; original errors RED 3 failures then GREEN; metrics compile-red then bounded-label behavior passes; logs t02-*"
     },
     {
       "id": "T03",

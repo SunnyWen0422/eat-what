@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleException(Exception e) {
-        log.error("Unhandled server exception", e);
+        log.error("Unhandled server exception kind={}", e.getClass().getSimpleName());
         Map<String, Object> body = new HashMap<>();
         body.put("success", false);
         body.put("errorCode", "INTERNAL_ERROR");

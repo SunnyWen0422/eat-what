@@ -16,6 +16,8 @@ import java.util.UUID;
 /** Adds a correlation id and logs request metadata without request bodies or credentials. */
 @Component
 public class RequestObservabilityFilter extends OncePerRequestFilter {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.eatwhat.service.ExperienceMetrics metrics;
     public static final String HEADER = "X-Request-Id";
     private static final String MDC_KEY = "requestId";
     private static final Logger log = LoggerFactory.getLogger(RequestObservabilityFilter.class);
@@ -32,6 +34,7 @@ public class RequestObservabilityFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             long elapsedMillis = (System.nanoTime() - started) / 1_000_000L;
+            if(metrics!=null)metrics.recordStage("request",response.getStatus()<400?"success":"failed",elapsedMillis,1);
             log.info("http_request method={} path={} status={} latencyMs={}",
                     request.getMethod(), request.getRequestURI(), response.getStatus(), elapsedMillis);
             MDC.remove(MDC_KEY);
