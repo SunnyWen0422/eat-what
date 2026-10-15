@@ -1,5 +1,5 @@
 <view class="ew-hit-target card {{mode}} {{selected ? 'is-selected' : ''}} {{!dish.image || imageFailed ? 'no-image' : ''}}" bindtap="open">
-  <image wx:if="{{imageSource && !imageFailed}}" class="image" src="{{imageSource}}" mode="aspectFill" binderror="fail" lazy-load />
+  <image wx:if="{{imageSource && !imageFailed}}" class="image" src="{{imageSource}}" data-identity="{{imageIdentity}}" mode="aspectFill" binderror="fail" lazy-load />
   <view wx:else class="image image-placeholder"><ui-icon name="{{dish.type === 'meat' ? 'meat' : dish.type === 'veg' ? 'veg' : dish.type === 'soup' ? 'soup' : 'recipe'}}" size="32" /></view>
   <view class="copy"><text class="name">{{dish.name}}</text><text class="description">{{dish.cookMinutes ? dish.cookMinutes + ' 分钟' : '查看食材与做法'}}</text><slot /></view>
   <button wx:if="{{mode === 'select'}}" class="{{(disabled) ? 'is-disabled' : ''}} ew-hit-target choose {{selected ? 'checked' : ''}}" disabled="{{disabled}}" catchtap="choose" aria-label="{{selected ? '移除' : '选择'}}{{dish.name}}"><ui-icon class="choose-icon" name="{{selected ? 'check' : 'add'}}" size="20" /></button>

@@ -1,6 +1,6 @@
 const tokens = require('../../utils/ui-tokens')
 const experiencePreferences = require('../../utils/experience-preferences')
-const { imageSource, placeholderIcon } = require('../../utils/dish-image')
+const { imageSource, imageIdentity, placeholderIcon } = require('../../utils/dish-image')
 const labels = { meat: '荤菜', veg: '素菜', soup: '汤羹', staple: '主食', dessert: '甜品', side: '配餐' }
 
 Component({
@@ -21,14 +21,16 @@ Component({
       }
       const meta = category + (duration ? ` · ${duration}` : '')
       const image = imageSource(dish.image)
-      const identity = `${dish.dishId || dish.id}:${image}`
-      this.setData({ dishView: { id: dish.dishId || dish.id, name: dish.name || '未命名菜品', image, meta, placeholderIcon: placeholderIcon(dish.type) },
+      const identity = imageIdentity(dish)
+      this.setData({ dishView: { id: dish.dishId || dish.id, identity, name: dish.name || '未命名菜品', image, meta, placeholderIcon: placeholderIcon(dish.type) },
         imageFailed: this._imageIdentity === identity && this.data.imageFailed || false })
       this._imageIdentity = identity
     },
     updateMotion() { this.setData({ motionDuration: this.properties.reducedMotion || experiencePreferences().get().reducedMotion ? 0 : tokens.motion.row }) },
     onImageError(event) {
       const source = event && event.currentTarget && event.currentTarget.dataset.source
+      const identity = event && event.currentTarget && event.currentTarget.dataset.identity
+      if (identity != null && identity !== this._imageIdentity) return
       if (source != null && source !== this.data.dishView.image) return
       this.setData({ imageFailed: true })
     },

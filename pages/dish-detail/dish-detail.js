@@ -265,6 +265,8 @@ Page({
   onToggleQualitySources(){this.setData({qualitySourcesVisible:!this.data.qualitySourcesVisible})},
   onDishImageError(event) {
     const source = event && event.currentTarget && event.currentTarget.dataset.url
+    const dataset = event && event.currentTarget && event.currentTarget.dataset || {}
+    if(this.data.dish && ((dataset.dishid != null && String(dataset.dishid)!==String(this.data.dish.id)) || (dataset.version != null && dataset.version!==this.data.dish.contentVersion)))return
     if (!this.data.dish || (source != null && source !== this.data.dish.image)) return
     this.setData({ dishImageFailed: true })
   },

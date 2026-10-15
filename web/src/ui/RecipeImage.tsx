@@ -14,5 +14,5 @@ export function RecipeImage({ snapshot, hero = false }: { snapshot: RecipeSnapsh
   const catalog = useContext(RecipeMediaContext);
   const current = catalog?.recipes.find(row => row.recipeId === snapshot.recipeId && row.name === snapshot.name && row.contentVersion === snapshot.contentVersion);
   const source = current ? recipeImage(current) : null;
-  return <span className={hero ? 'recipe-photo recipe-hero' : 'recipe-photo'} aria-hidden="true"><ImageContent key={source} source={source} snapshot={snapshot} /></span>;
+  return <span className={hero ? 'recipe-photo recipe-hero' : 'recipe-photo'} aria-hidden="true"><ImageContent key={JSON.stringify([snapshot.recipeId,snapshot.contentVersion,source])} source={source} snapshot={snapshot} /></span>;
 }

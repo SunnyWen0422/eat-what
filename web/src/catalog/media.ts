@@ -14,6 +14,6 @@ export function safeRecipeImage(value: unknown): string | null {
   } catch { return null; }
 }
 export function rememberRecipeImage(recipe: CatalogRecipe, value: unknown): void {
-  const image = safeRecipeImage(value); if (image) images.set(recipe, image);
+  const image = safeRecipeImage(value); if (image) images.set(recipe, image); else images.delete(recipe);
 }
 export function recipeImage(recipe: CatalogRecipe): string | null { return images.get(recipe) ?? null; }

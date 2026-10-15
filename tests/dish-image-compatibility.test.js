@@ -19,8 +19,9 @@ test('verified legacy image hosts use working HTTPS without changing path query 
 
 test('similar hosts and unverified cp hosts are never redirected', () => {
   for (const url of ['https://cp3.douguo.net/a', 'https://cp1.douguo.net.evil.example/a',
-    'https://evil-cp1.douguo.net/a', 'https://cp1.douguo.net@evil.example/a',
+    'https://evil-cp1.douguo.net/a',
     'https://evil.example/cp1.douguo.net/a', 'https://images.example.com/a']) assert.equal(imageSource(url), url)
+  assert.equal(imageSource('https://cp1.douguo.net@evil.example/a'), '')
 })
 
 function load(file, overrides = {}) {

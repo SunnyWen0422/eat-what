@@ -1,7 +1,7 @@
 <view class="dish-row {{fontScale >= 1.3 ? 'is-large-text' : ''}}" style="animation-duration:{{motionDuration}}ms;transition-duration:{{motionDuration ? 100 : 0}}ms">
   <button class="dish-main" bindtap="onView" aria-label="查看{{dishView.name}}的做法">
     <view class="dish-thumbnail" style="animation-duration:{{motionDuration}}ms">
-      <image class="dish-image" wx:if="{{dishView.image && !imageFailed}}" src="{{dishView.image}}" data-source="{{dishView.image}}" mode="aspectFill" binderror="onImageError" lazy-load />
+      <image class="dish-image" wx:if="{{dishView.image && !imageFailed}}" src="{{dishView.image}}" data-source="{{dishView.image}}" data-identity="{{dishView.identity}}" mode="aspectFill" binderror="onImageError" lazy-load />
       <view wx:else class="dish-placeholder" aria-label="{{dishView.meta}}类别占位图"><ui-icon name="{{dishView.placeholderIcon || 'recipe'}}" size="28" /></view>
     </view>
     <view class="dish-copy"><text class="dish-name">{{dishView.name}}</text><text class="dish-meta">{{dishView.meta}}</text><text wx:if="{{feedback}}" class="dish-feedback" aria-live="polite">{{feedback}}</text></view>

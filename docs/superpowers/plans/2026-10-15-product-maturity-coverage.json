@@ -391,13 +391,14 @@
         "T03"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K05",
         "K06",
         "K25",
         "K26"
-      ]
+      ],
+      "evidenceNote": "Node77/77; web5/5; Python2/2; typecheck passed; full 6665 URL syntax + 10/10 bounded HTTPS image probes; version lifecycle RED-GREEN"
     },
     {
       "id": "T05",

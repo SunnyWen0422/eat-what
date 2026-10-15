@@ -9,6 +9,7 @@
       mode="aspectFill"
       bindtap="previewImage"
       data-url="{{dish.image}}"
+      data-dishid="{{dish.id}}" data-version="{{dish.contentVersion}}"
     />
     <view wx:else class="dish-image-placeholder" aria-label="{{dish.typeLabel || '菜品'}}类别占位图">
       <ui-icon name="{{dishPlaceholderIcon}}" size="48" />

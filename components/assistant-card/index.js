@@ -3,8 +3,8 @@ Component({
  properties:{card:Object,busy:Boolean,active:Boolean},data:{view:{rows:[]},failedImages:{}},
  observers:{card(){this.refresh()}},lifetimes:{attached(){this.refresh()}},
  methods:{
-  refresh(){const view=presentCard(this.properties.card),failedImages={};for(const row of view.rows)if(this.data.failedImages[row.key]===row.image)failedImages[row.key]=row.image;this.setData({view,failedImages})},
-  onImageError(event){const {key,source}=event.currentTarget.dataset,row=this.data.view.rows.find(r=>r.key===key);if(row&&row.image===source)this.setData({['failedImages.'+key]:source})},
+  refresh(){const view=presentCard(this.properties.card),failedImages={};for(const row of view.rows)if(this.data.failedImages[row.key]===row.mediaIdentity)failedImages[row.key]=row.mediaIdentity;this.setData({view,failedImages})},
+  onImageError(event){const {key,source,identity}=event.currentTarget.dataset,row=this.data.view.rows.find(r=>r.key===key);if(row&&row.image===source&&(identity==null||identity===row.mediaIdentity))this.setData({['failedImages.'+key]:row.mediaIdentity})},
   onDish(event){const row=this.data.view.rows.find(r=>r.key===event.currentTarget.dataset.key);if(row&&row.url)wx.navigateTo({url:row.url})},
   onFact(event){const fact=this.data.view.facts.find(r=>r.key===event.currentTarget.dataset.key);if(fact&&fact.url)wx.navigateTo({url:fact.url})},
   onOpen(){this.refresh();if(this.data.view.url)wx.navigateTo({url:this.data.view.url})},
