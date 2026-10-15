@@ -535,7 +535,7 @@
         "T11"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K01",
         "K02",
@@ -544,7 +544,8 @@
         "K11",
         "K14",
         "K31"
-      ]
+      ],
+      "evidenceNote": "Node51/51; Python structure2/2; generated workspace style; one actionable notice, row-local replacement and menu undo, concise composition note, real exclusions preserved on expansion and failed-read warning. All existing command functions retained. 390 first-screen count and large-font native geometry explicitly pending T23."
     },
     {
       "id": "T13",

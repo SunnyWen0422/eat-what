@@ -22,7 +22,20 @@ function deriveWorkspacePresentation(value) {
   const recovering = ['unknown', 'offline', 'conflict'].includes(syncStatus)
   const journey=require('./meal-journey-presentation').deriveMealJourney({workspace:{id:value.workspaceId,context,draft:value.draft,status},plan:linkedPlan,actual,pendingReceipts:value.pendingReceipts||[],syncStatus,busy,dirty:value.dirty,canConfirm,savedTarget:value.savedTarget,saveState:value.saveState})
   const primaryAction=journey.primary.action,primaryLabel=journey.primary.label
-  return { journeyRecovery:journey.recovery, hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating' || !!journey.recovery&&['unknown','conflict','busy'].includes(journey.recovery.state), showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
+  let workspaceNotice=null
+  const recovery=journey.recovery,feedback=value.actionFeedback
+  if(recovery&&recovery.state==='unknown')workspaceNotice={kind:'warning',text:recovery.kind==='workspace'?'上次结果待核对，原菜单仍保留':recovery.label}
+  else if(recovery&&recovery.state==='conflict')workspaceNotice={kind:'warning',text:'这餐已有更新，请先读取最新安排'}
+  else if(status==='generating'&&!(feedback&&feedback.kind==='replace'&&feedback.state==='pending'))workspaceNotice={kind:'loading',text:'正在安排这餐'}
+  else if(recovery&&recovery.state==='unapplied')workspaceNotice={kind:'warning',text:'条件已修改，按新条件换一套后生效'}
+  else if(status==='needs_input')workspaceNotice={kind:'warning',text:missingCompositionLabel||compositionUnknownNotice||'请补充要求或调整条件后再试',action:missing.length||unknown?'composition':'requirements'}
+  else if(value.errorMessage)workspaceNotice={kind:'error',text:require('./meal-workflow').errorMessage({message:value.errorMessage},'暂未完成，请稍后再试，原菜单仍保留')}
+  else if(status==='failed')workspaceNotice={kind:'warning',text:'安排暂未完成，可以重试或自己选菜',action:'choose'}
+  else if(feedback&&feedback.state==='error')workspaceNotice={kind:'error',text:require('./meal-workflow').errorMessage({message:feedback.message},'这次调整未完成，原菜单仍保留')}
+  else if(feedback&&feedback.state==='unknown')workspaceNotice={kind:'warning',text:'刚才的操作仍待核对，原菜单已保留'}
+  const showActionFeedback=!!(!workspaceNotice&&feedback&&feedback.state==='success'&&feedback.kind==='undo')
+  const showMenuUndo=!!((value.draft&&value.draft.history||[]).length&&!showActionFeedback)
+  return { workspaceNotice,showActionFeedback,showMenuUndo,journeyRecovery:journey.recovery, hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating' || !!journey.recovery&&['unknown','conflict','busy'].includes(journey.recovery.state), showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
 }
 
 function hardExclusionSummary(preferences, options) {

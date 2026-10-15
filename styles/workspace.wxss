@@ -67,3 +67,9 @@
 
 .workspace-screen.is-large-text .workspace-title-row { flex-wrap:wrap; }
 .workspace-screen.is-large-text .workspace-title-row .ew-heading { flex-basis:100%; }
+
+.workspace-notice { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 12px; margin:8px 0; border:1px solid #D9E1D5; border-radius:10px; background:#FFF1DB; color:#75501A; font-size:0.8125em; line-height:1.6; }
+.workspace-notice > text { flex:1 1 180px; min-width:0; overflow-wrap:anywhere; }
+.workspace-notice.error { background:#FFF0ED; color:#A93B30; }
+.workspace-screen .workspace-notice .ew-link { flex:0 1 auto; padding:0 4px; }
+.workspace-saved-result { border-top:1px solid #E6EAE1; margin-top:12px; }
