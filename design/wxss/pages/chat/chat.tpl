@@ -70,3 +70,14 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-input-row .connected-send { width:auto; flex:0 0 auto; min-width:56px; min-height:48px; margin:0; padding:12px; line-height:1.5; }
 .connected-input-row .connected-input { width:0; flex:1 1 0%; min-width:0; min-height:48px; }
 .connected-assistant .connected-input-row .connected-send[disabled] { opacity:1; background:{{disabled}}; color:{{muted}}; }
+
+/* The conversation, not a duplicated menu, owns the viewport. */
+.connected-header { padding:8px 16px; }
+.connected-header .ew-heading { font-size:1.125em; }
+.connected-messages { padding:8px 16px 16px; }
+.connected-context { display:block; width:100%; margin:0 0 8px; padding:8px 0; background:transparent; color:{{muted}}; border:0; text-align:left; font-size:.8125em; line-height:1.5; white-space:normal; }
+.connected-welcome { padding:12px 0; }
+.connected-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
+.connected-shortcuts .connected-shortcut { width:auto; min-width:44px; margin:0; padding:8px 12px; border:1px solid {{border}}; border-radius:14px; background:{{glassSurface}}; color:{{brand}}; font-size:.8125em; line-height:1.5; }
+.connected-composer { max-height:55%; overflow-y:auto; }
+.connected-input-row .connected-input { max-height:160px; }

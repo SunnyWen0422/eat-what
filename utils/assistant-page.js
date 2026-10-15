@@ -2,12 +2,12 @@ const {createAssistantConversation,probeAssistantCapability}=require('./assistan
 const {safeText}=require('./assistant-cards')
 // Keep the existing page's handlers and lifecycle intact when the service is unavailable.
 module.exports=function assistantPage(fallback, options={}) {
- return {...fallback,data:{...fallback.data,assistantConnected:false,conversationCurrentMenu:null,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false,conversationRecoverable:false,keyboardHeight:0},
+ return {...fallback,data:{...fallback.data,assistantConnected:false,conversationMenuExpanded:false,conversationSuggestions:[],conversationMenuCount:0,conversationCurrentMenu:null,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false,conversationRecoverable:false,keyboardHeight:0},
   renderWorkspace(){
    if(fallback.renderWorkspace)fallback.renderWorkspace.call(this)
    if(!this.data.assistantConnected || !this.current())return
    const w=this.store&&this.store.state().workspace,context=w&&w.context,dishes=w&&w.draft&&w.draft.dishes
-   this.setData({conversationCurrentMenu:context&&Array.isArray(dishes)&&dishes.length?{id:'current-menu',type:'menu',title:'当前本餐菜单',data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}:null})
+   this.setData({conversationMenuCount:(dishes || []).length,conversationSuggestions:require('./assistant-presentation').buildAssistantSuggestions({hasMenu:!!(dishes&&dishes.length),available:true}),conversationCurrentMenu:context&&Array.isArray(dishes)&&dishes.length?{id:'current-menu',type:'menu',title:'当前本餐菜单',data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}:null})
   },
   async onLoad(params={}) {
    this._assistantAlive=true;this._assistantParams=params
@@ -87,6 +87,12 @@ module.exports=function assistantPage(fallback, options={}) {
   },
   onHide(){clearTimeout(this._conversationTimer);if(fallback.onHide)fallback.onHide.call(this)},
   onUnload(){this._assistantAlive=false;clearTimeout(this._conversationTimer);if(this.conversation)this.conversation.dispose();if(fallback.onUnload)fallback.onUnload.call(this)},
+  onToggleConversationMenu(){if(this.current())this.setData({conversationMenuExpanded:!this.data.conversationMenuExpanded})},
+  onConversationSuggestion(event){
+   if(!this.data.assistantConnected || (this.data.conversationMessages || []).length)return
+   const item=require('./assistant-presentation').buildAssistantSuggestions({available:true,hasMenu:!!this.data.conversationCurrentMenu}).find(s=>s.id===event.currentTarget.dataset.id)
+   if(item)this.offerConversationInput(item.text)
+  },
   onConversationInput(event){if(this.conversation)this.conversation.setInput(event.detail.value)},
   onConversationSend(){if(this.conversation&&!this.data.conversationBusy)return this.conversation.send(this.data.conversationInput)},
   onConversationRecover(){if(this.conversation)return this.conversation.recover();return this.openConnectedConversation()},
