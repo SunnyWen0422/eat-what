@@ -104,3 +104,12 @@ npm run e2e -- --project=chromium
 ## 2026-10-15 本餐体验实施
 
 本地A/F体验和本餐反馈实现、离线验证与未覆盖范围见 [体验验收](docs/testing/2026-10-15-meal-experience-acceptance.md) 及 [反馈验收](docs/testing/2026-10-15-meal-feedback-acceptance.md)。验收matrix是要求，不代表全部通过；原生runner仅连接有manifest和阻断网络guard的隔离导出项目。未推送或部署。
+
+
+## 2026-10-16 统一成熟度候选（本地，未推送/发布）
+
+按[总计划](docs/superpowers/plans/2026-10-15-product-maturity-complete.md)连续实施；最终事实及未过门项以[成熟度验收](docs/testing/product-maturity-final.md)为准，原有线上历史记录不能代表本候选已部署。新增读取含字典、收藏、常用菜单，合计11类读、3类直接写、7类页面交接；交接不是保存成功。Java扩展开关需与Python maturity.2及客户端UI能力共同协商。
+
+`application.yml.example`列出`ASSISTANT_V4_EXTENSIONS_ENABLED`，内部令牌继续复用`MEAL_WORKSPACE_SERVICE_TOKEN`，不要另造同义令牌变量。网页个人数据仍只在本浏览器，语音保持暂不可用。质量与图片缺失不伪造，实际用餐仍需独立确认。
+
+新本机验收只能通过`scripts/maturity_runtime.py`创建全新专属实例；不得将其配置改成生产目标或接管原有MySQL。`run_maturity_acceptance.py`的database/assistant阶段、`benchmark_maturity.py`均校验源/JAR/所有权并默认替身供应商；真实模型沿原子预算入口另行核对有效额度。最终包为DRAFT，步骤与回退见[候选发布单](docs/release/product-maturity-candidate.md)。

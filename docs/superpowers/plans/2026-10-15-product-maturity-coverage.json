@@ -720,14 +720,14 @@
         "T19"
       ],
       "conditionalDependency": null,
-      "status": "in_progress",
+      "status": "complete",
       "requirements": [
         "K21",
         "K23",
         "K26",
         "K29"
       ],
-      "evidenceNote": "71 Java checks +4 expanded candidate checks/package; Python assistant90pass1skip and provider11 pass; guards3 pass. Ruling: bootstrap T21 new-owned-loopback guard now because T20 load depends on it. Original backup ZIP missing at recorded path; use immutable public6665 snapshot without claiming private-history restore. Performance gate not yet passed."
+      "evidenceNote": "Frozen cd8a974: six candidate300s scenes total1800s,36123operations0failures and0stoppedworkers. Listp95<=27.74ms; mealp95 at10/25 exceeds1000ms (max5086.25). Measurement/equivalence complete; latency target NOT passed, production capacity gate remains. Raw failed diagnostic runs retained."
     },
     {
       "id": "T21",
@@ -773,7 +773,7 @@
         "K30",
         "K32"
       ],
-      "evidenceNote": "Frozen4f2c4de fullstack22/22 groups passed;12 realMySQL IT, two datasets19/6665, public100imagefields and owner rejection, actual JVMrestart, 38table59885row pinned anonymous backup withV8_20/V8_30 replay. No production, no external provider."
+      "evidenceNote": "Frozen cd8a974: final DB22/22 plus12 realMySQL IT pass; 500completedhistory owner-index regression RED locktimeout to GREEN; public6665 and synthetic19 datasets; pinned38table59885row restoration/replay; no production."
     },
     {
       "id": "T22",
@@ -790,7 +790,7 @@
         "K24",
         "K32"
       ],
-      "evidenceNote": "Offline42/42 and provider lifecycle11 passed. Supplier matrix notrun; fresh20-request approval pending, oldledger20/20 and15/16 unchanged."
+      "evidenceNote": "Frozen cd8a974 offline42/42 and lifecycle11 passed; fullPython277run276pass1skip, no real supplier requests. Old budgets20/20 and15/16 unchanged; fresh allowance pending."
     },
     {
       "id": "T23",
@@ -818,7 +818,7 @@
         "K31",
         "K32"
       ],
-      "evidenceNote": "27routes represented;243 screenshot attempts206captured37internalquotaerrors,0exceptions,actual390x671; original-lifecycle localfullstack native driver nowactive. Realdevices/320430native/physicalkeyboard pending."
+      "evidenceNote": "Chromium4/4; final report render2/2 with7images0network. Native243attempts206captured37quota errors notpasses; original-handler5/8 on unchangedfrontend, remaining3 manual/tool gates. Physical320/430/iOS/Android/IME/reader/motion notrun."
     },
     {
       "id": "T24",
@@ -864,13 +864,14 @@
         "T24"
       ],
       "conditionalDependency": "T23/T24的外部设备或参与者未具备时可以生成候选，但必须将对应发布门标blocked，不能标全量发布就绪。",
-      "status": "planned",
+      "status": "in_progress",
       "requirements": [
         "K26",
         "K27",
         "K29",
         "K32"
-      ]
+      ],
+      "evidenceNote": "Final report78/100 and sourcecd8a974 frozen; DB22/22+IT12, offline42/42, Node1058, Java524, Python276pass1skip, web526 andbrowser4. Capacity36123/0 but10/25meal latency target notpassed; native5/8 andsupplier/users gate. Building and checking matched DRAFT; no push/deploy."
     }
   ],
   "routes": [

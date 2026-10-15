@@ -6,7 +6,7 @@
 
 42 场景离线矩阵全部通过；使用真实 Java→FastAPI→本机 HTTP 替身→独占 MySQL。包含伪成功、未支持写操作、硬限制、确认/重复、部分完成、取消、过期和恢复。新增 X07/X08 保留原有 40 例。供应商资源生命周期 11 项隔离测试也通过；真实供应商次数为 0。
 
-证据在本机 `work/product-maturity-implementation/t22-offline-final/report.json`；它是替身行为验收，不能证明供应商理解准确率。测试入口：`scripts/run_maturity_acceptance.py --stage assistant`，先通过配置、构建、目标和所有权防护。
+最终应用冻结于 `cd8a97424197e15ab9be3fdab12a19dce50588b9`。证据在本机 `work/product-maturity-implementation/t22-history-fixed-final/report.json`，42/42通过；它是替身行为验收，不能证明供应商理解准确率。测试入口：`scripts/run_maturity_acceptance.py --stage assistant`，先通过配置、构建、目标和所有权防护。
 
 ## 真实请求门
 
