@@ -98,3 +98,7 @@ npm run e2e -- --project=chromium
 未来需要匹配 Java/Python/前端/配置、核对实际端口与服务管理，保留数据库/微信/Token 配置，内部令牌仅服务端私密保存。按真实旧迁移血缘生成桥接增量，禁止盲目套新版 V1–V7 或插入演示数据。公开白名单单独确认，备份含业务库、运行文件、私密配置和助手会话库，先做隔离恢复演练。
 
 切换与恢复要求见 [统一替换准备](docs/release/local-maturity-cutover.md)。原 Java 由宝塔管理、Python 由独立服务管理，部署前重新核对；不猜 SSH/面板端口，不叠加常驻 JVM，不以手工热补单个 class 替代匹配整版构建。
+
+## 2026-10-15 本餐体验实施
+
+本地A/F体验和本餐反馈实现、离线验证与未覆盖范围见 [体验验收](docs/testing/2026-10-15-meal-experience-acceptance.md) 及 [反馈验收](docs/testing/2026-10-15-meal-feedback-acceptance.md)。验收matrix是要求，不代表全部通过；原生runner仅连接有manifest和阻断网络guard的隔离导出项目。未推送或部署。

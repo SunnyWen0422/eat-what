@@ -1,0 +1,1532 @@
+[
+  {
+    "id": "index-normal-or-empty",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "index-unavailable",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "logs-normal-or-empty",
+    "page": "pages/logs/logs",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "logs-unavailable",
+    "page": "pages/logs/logs",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "result-normal-or-empty",
+    "page": "pages/result/result",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "result-unavailable",
+    "page": "pages/result/result",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "dish-detail-normal-or-empty",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "dish-detail-unavailable",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "customize-normal-or-empty",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "customize-unavailable",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "calendar-normal-or-empty",
+    "page": "pages/calendar/calendar",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "calendar-unavailable",
+    "page": "pages/calendar/calendar",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "calendar-detail-normal-or-empty",
+    "page": "pages/calendar-detail/calendar-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "calendar-detail-unavailable",
+    "page": "pages/calendar-detail/calendar-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "profile-normal-or-empty",
+    "page": "pages/profile/profile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "profile-unavailable",
+    "page": "pages/profile/profile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "about-normal-or-empty",
+    "page": "pages/about/about",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "about-unavailable",
+    "page": "pages/about/about",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "statistics-normal-or-empty",
+    "page": "pages/statistics/statistics",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "statistics-unavailable",
+    "page": "pages/statistics/statistics",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "sync-normal-or-empty",
+    "page": "pages/sync/sync",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "sync-unavailable",
+    "page": "pages/sync/sync",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "favorite-dishes-normal-or-empty",
+    "page": "pages/favorite-dishes/favorite-dishes",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "favorite-dishes-unavailable",
+    "page": "pages/favorite-dishes/favorite-dishes",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "settings-normal-or-empty",
+    "page": "pages/settings/settings",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "settings-unavailable",
+    "page": "pages/settings/settings",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "recommend-filter-normal-or-empty",
+    "page": "pages/recommend-filter/recommend-filter",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "recommend-filter-unavailable",
+    "page": "pages/recommend-filter/recommend-filter",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "profile-edit-normal-or-empty",
+    "page": "pages/profile-edit/profile-edit",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "profile-edit-unavailable",
+    "page": "pages/profile-edit/profile-edit",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "custom-dishes-normal-or-empty",
+    "page": "pages/custom-dishes/custom-dishes",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "custom-dishes-unavailable",
+    "page": "pages/custom-dishes/custom-dishes",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-normal-or-empty",
+    "page": "pages/admin/admin",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-unavailable",
+    "page": "pages/admin/admin",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-dashboard-normal-or-empty",
+    "page": "pages/admin-dashboard/admin-dashboard",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-dashboard-unavailable",
+    "page": "pages/admin-dashboard/admin-dashboard",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-users-normal-or-empty",
+    "page": "pages/admin-users/admin-users",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-users-unavailable",
+    "page": "pages/admin-users/admin-users",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-user-detail-normal-or-empty",
+    "page": "pages/admin-user-detail/admin-user-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-user-detail-unavailable",
+    "page": "pages/admin-user-detail/admin-user-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-dishes-normal-or-empty",
+    "page": "pages/admin-dishes/admin-dishes",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-dishes-unavailable",
+    "page": "pages/admin-dishes/admin-dishes",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-audit-normal-or-empty",
+    "page": "pages/admin-audit/admin-audit",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "admin-audit-unavailable",
+    "page": "pages/admin-audit/admin-audit",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "chat-normal-or-empty",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "chat-unavailable",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "shopping-preview-normal-or-empty",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "shopping-preview-unavailable",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "shopping-list-normal-or-empty",
+    "page": "pages/shopping-list/shopping-list",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "shopping-list-unavailable",
+    "page": "pages/shopping-list/shopping-list",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "meal-cooking-normal-or-empty",
+    "page": "pages/meal-cooking/meal-cooking",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "meal-cooking-unavailable",
+    "page": "pages/meal-cooking/meal-cooking",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "assistant-history-normal-or-empty",
+    "page": "pages/assistant-history/assistant-history",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "normal-or-empty",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "assistant-history-unavailable",
+    "page": "pages/assistant-history/assistant-history",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "unavailable",
+    "assertions": [
+      "page compiles",
+      "no horizontal overflow",
+      "required recovery remains visible"
+    ]
+  },
+  {
+    "id": "index-320-1",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-320-1.3",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-320-2",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-390-1",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-390-1.3",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-390-2",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-430-1",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-430-1.3",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "index-430-2",
+    "page": "pages/index/index",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-320-1",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-320-1.3",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-320-2",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-390-1",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-390-1.3",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-390-2",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-430-1",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-430-1.3",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "customize-430-2",
+    "page": "pages/customize/customize",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-320-1",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-320-1.3",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-320-2",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-390-1",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-390-1.3",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-390-2",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-430-1",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-430-1.3",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "dish-detail-430-2",
+    "page": "pages/dish-detail/dish-detail",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-320-1",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-320-1.3",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-320-2",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-390-1",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-390-1.3",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-390-2",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-430-1",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-430-1.3",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "chat-430-2",
+    "page": "pages/chat/chat",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-320-1",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-320-1.3",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-320-2",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-390-1",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-390-1.3",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-390-2",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-430-1",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-430-1.3",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 1.3,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  },
+  {
+    "id": "shopping-preview-430-2",
+    "page": "pages/shopping-preview/shopping-preview",
+    "viewport": {
+      "width": 430,
+      "height": 844
+    },
+    "fontScale": 2,
+    "state": "stress",
+    "assertions": [
+      "ten dishes and long names",
+      "footer does not cover final item",
+      "44px controls",
+      "keyboard and confirmation remain reachable"
+    ]
+  }
+]

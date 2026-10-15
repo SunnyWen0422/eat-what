@@ -50,10 +50,10 @@
 **Interfaces:** 消费 `design/tokens.json` 已有字段；产生原有 `.ew-heading/.ew-title/.ew-reading/.ew-hit-target` 及网页对应类的尺寸约束，不新增业务 API。
 
 - [ ] 保存同夹具的今天/菜谱/助手正常和2倍字体“改前”截图到仓库外 work 目录，记录源码 SHA、基础库、viewport 与字体；没有原生工具则标未完成，不用旧截图充当新基线。
-- [ ] 修改设计源：只整理正文/标题行高、卡片间距与边界；同一屏不叠加多层透明背景。图片与按钮应用规格尺寸，按钮使用最小高度而非固定高度截字。
-- [ ] 运行 `python scripts/build_ui_assets.py`；检查生成 diff 只来自模板，不把无关图标重绘混入。
+- [x] 修改设计源：只整理正文/标题行高、卡片间距与边界；同一屏不叠加多层透明背景。图片与按钮应用规格尺寸，按钮使用最小高度而非固定高度截字。
+- [x] 运行 `python scripts/build_ui_assets.py`；检查生成 diff 只来自模板，不把无关图标重绘混入。
 - [ ] 运行 `node --test tests/component-native-contracts.test.js tests/fixed-action-layout.test.js`；通过并检查原生320宽/2倍字体弹层确认按钮可滚动到达、点击区≥44，正常主按钮≥48。
-- [ ] `git diff --check` 通过，按 Files 及对应生成文件逐项暂存，提交 `style: normalize meal typography and controls`。
+- [x] `git diff --check` 通过，按 Files 及对应生成文件逐项暂存，提交 `style: normalize meal typography and controls`。
 
 ## Task 2：今天页菜单优先、设置可展开
 
@@ -61,11 +61,11 @@
 
 **Interfaces:** 保留 `deriveWorkspacePresentation(value)` 既有输出，新增 `hasMenu:boolean` 与 `settingsInitiallyCollapsed:boolean`。页面新增 `mealSettingsExpanded:boolean`、`onToggleMealSettings(event):void`；原 people/composition/requirements/filter handler 不变。折叠是展示状态，不存入 workspace。
 
-- [ ] 新增行为测试：无菜单 expanded；有菜单初始 collapsed；手动展开后普通 render 不重置；更换 workspace ID 后按新菜单重置；同餐重复点击保留草稿。
+- [x] 新增行为测试：无菜单 expanded；有菜单初始 collapsed；手动展开后普通 render 不重置；更换 workspace ID 后按新菜单重置；同餐重复点击保留草稿。
 - [ ] 新增恢复测试：`syncStatus=unknown/offline/conflict` 不改变既有 primaryAction；生成中折叠/展开不调用 command API。运行 `node --test tests/meal-focus-presentation.test.js`，确认失败原因是尚未实现新输出/事件。
-- [ ] 实现新增展示属性和展开事件；人数/搭配两区域同排；有菜单后要求、筛选、用时收进“本餐设置”。把错误/恢复/硬约束变化信息留在可见区域；自己选菜保留可见。重用既有主按钮状态机。
+- [x] 实现新增展示属性和展开事件；人数/搭配两区域同排；有菜单后要求、筛选、用时收进“本餐设置”。把错误/恢复/硬约束变化信息留在可见区域；自己选菜保留可见。重用既有主按钮状态机。
 - [ ] 运行新增测试和两个回归文件；原生390×844正常字体有两张完整菜品卡，2倍字体人数、搭配均可操作，餐次仍横排可滚动。
-- [ ] 按本任务路径暂存并提交 `feat: prioritize current meal dishes over settings`。
+- [x] 按本任务路径暂存并提交 `feat: prioritize current meal dishes over settings`。
 
 ## Task 3：菜谱首屏与详情精简
 
@@ -74,9 +74,9 @@
 **Interfaces:** 复用 `onToggleBrowseFilters/onClearBrowseFilters/onRecipeSource/onDismissPersonalGuide`、selectedMeal 和现有选择条；新增 `onOpenCatalogHelp():void`，只显示说明，不写选择或偏好。
 
 - [ ] 新增测试：默认高级筛选关闭、打开帮助不改查询/选择、清筛选保留已选、选择条零项不占位；未知复制请求仍有恢复入口。运行 `node --test tests/catalog-focus.test.js` 观察指定行为失败。
-- [ ] 先改模板层级及帮助入口，再改样式；取消常驻教学，目标餐次只在选择条显示一次；表单模式、常用菜单编辑范围提示不删。详情的收藏/分享对齐标题顶端，长标题允许换行。
+- [x] 先改模板层级及帮助入口，再改样式；取消常驻教学，目标餐次只在选择条显示一次；表单模式、常用菜单编辑范围提示不删。详情的收藏/分享对齐标题顶端，长标题允许换行。
 - [ ] 运行新增测试及列出的三个回归；390×844正常字体能看到三条可识别菜品，搜索/筛选/已选条不覆盖列表最后项，缺图显示图标但有图仍走原 URL。
-- [ ] 按路径暂存并提交 `feat: simplify recipe browsing and detail hierarchy`。
+- [x] 按路径暂存并提交 `feat: simplify recipe browsing and detail hierarchy`。
 
 ## Task 4：助手入口携带准确上下文
 
@@ -97,7 +97,7 @@
 **Interfaces:** `buildAssistantSuggestions({hasMenu:boolean,available:boolean}):Array<{id:string,label:string,text:string}>`。无菜单返回 arrange/arrangements 两项；有菜单最多四项 arrange/replace/shopping/arrangements。固定文字分别“按当前人数和要求安排这餐”“帮我换一道菜”“准备这餐的采购清单”“看看我已有的用餐安排”。页面新增 `conversationMenuExpanded`、`onToggleConversationMenu():void`、`onConversationSuggestion(event):void`，数据集只存 id，通过纯函数白名单取 text。
 
 - [ ] 新增测试：能力关无建议；无菜单不出现换菜/采购；最多四项；点击只 setInput，不调用 send；已有输入取消替换时完全保留；会话 busy/recoverable 时不能用快捷项覆盖待恢复输入。运行新增测试确认失败。
-- [ ] 实现纯函数与事件；一行餐次摘要代替重复大标题；当前菜单默认折叠，有消息时隐藏快捷项；隐藏新版语音入口，不删除旧版降级 handler。
+- [x] 实现纯函数与事件；一行餐次摘要代替重复大标题；当前菜单默认折叠，有消息时隐藏快捷项；隐藏新版语音入口，不删除旧版降级 handler。
 - [ ] 保留 pending 卡片完整目标、来源和确认/取消；历史卡片不恢复 active。确认后直接使用现有 receipt 的链接，不通过最后一句模型文本拼造“成功”。采购部分选择仍展示真实加入项。
 - [ ] 运行新增测试及两个回归；增加 unknown→recover 同 request、预览过期→核对、关闭能力→旧卡不能写入的现有断言覆盖检查；缺失则在对应回归补齐后运行。
 - [ ] 原生正常/2倍字体开键盘，输入、发送、停止、恢复与预览确认都可达；截图无重复整份当前菜单。提交 `feat: focus assistant conversation and confirmation cards`。
@@ -139,7 +139,7 @@ assert.throws(()=>mealSourceUrl({date:'2026-02-30',mealType:'dinner'}))
 - [ ] 写组件行为测试：有菜单设置收起仍可打开；重复当前餐次不清草稿；展开/收起不调用 onGenerate/onSettings；修改数字未应用时保存仍被阻止；存储只读时不开放写操作。运行 `npm --prefix web test -- --run test/meal-focus.test.tsx` 确认目标失败。
 - [ ] 实现今天摘要与折叠设置、菜谱精简、购物来源/形态保留、我的分组；别删除当前8人以上确认、已选菜和备份/恢复入口。
 - [ ] Playwright 用拦截的公开菜库夹具和临时浏览器上下文，分别在390/1280宽断言无横向页面溢出、底栏不盖最后项、折叠操作不丢数据；网络访问只允许本机。图片用本地夹具，真实图片源由原媒体测试覆盖。
-- [ ] 运行 `npm --prefix web test -- --run`、`npm --prefix web run typecheck`、`npm --prefix web run boundaries`、`npm --prefix web run build`、`npm --prefix web run e2e -- e2e/meal-focus.spec.ts`；全部通过后提交 `feat: align web meal pages with focused miniapp experience`。
+- [x] 运行 `npm --prefix web test -- --run`、`npm --prefix web run typecheck`、`npm --prefix web run boundaries`、`npm --prefix web run build`、`npm --prefix web run e2e -- e2e/meal-focus.spec.ts`；全部通过后提交 `feat: align web meal pages with focused miniapp experience`。
 
 ## Task 9：全页面原生验收、对照和交付
 
@@ -159,5 +159,21 @@ assert.throws(()=>mealSourceUrl({date:'2026-02-30',mealType:'dinner'}))
 - [x] 核对现有路由、助手入口、卡片事件、token生成源和网页脚本。
 - [x] 将报告的五项优化逐一映射：页面密度1–3；助手4–5；任务流6；统一样式与适配1、7–9；反馈另见B。
 - [x] 五类 Review Focus 均有对应行为/交互验收；不以新增工具数量作为智能体验指标。
-- [ ] 用户审阅此计划及计划B，选择当前会话执行或子agent逐任务执行。
-- [ ] 任务1–9实施与验收完成。当前只完成计划，产品代码尚未改动。
+- [x] 用户已批准在当前会话执行计划A/B。
+- [ ] 任务1–8产品实现完成，任务9原生验收部分完成；完整尺寸/真机矩阵未完成。详见 ../../testing/2026-10-15-meal-experience-acceptance.md。
+
+## 本轮执行台账
+
+|任务|代码|验收|
+|---|---|---|
+|1 排版|5d96783及0375459|离线通过；改前同源原生基线未取得|
+|2 首页|c94892a|390正常/大字截图核对；320/430原生待测|
+|3 菜谱|dda1ea7|选择/复制/图片回归通过；390首屏达标|
+|4 助手入口|9523099及ecc351a|作用域/替换确认/恢复回归通过|
+|5 助手布局|4b3f450|对话/卡片回归通过；真机键盘待测|
+|6 衔接|9ecdca6及95ace03|来源路由/实际记录回归通过|
+|7 个人页|3519a9d|权限/恢复回归通过|
+|8 网页|018488e|517测试、4 Chromium场景、类型构建通过|
+|9 汇总|本轮验收文档与runner|27路由截图矩阵按实际证据记录，未宣称全部通过|
+
+复合步骤含尚未执行的原生/真机要求时保留未勾选，不能把代码完成当作验收完成。
