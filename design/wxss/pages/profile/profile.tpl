@@ -25,3 +25,5 @@ page { background:{{background}}; }
 .admin-entry { margin-top:{{space.2.px}} !important; }
 .version-info { text-align:center !important; padding:{{space.2.px}} 0; background:transparent; }
 .version-text { display:block; color:{{muted}}; font-size:{{font.caption.em}}; overflow-wrap:anywhere; }
+
+.profile-section-label { display:block; font-size:.8125em; color:{{muted}}; margin:20px 0 4px; line-height:1.5; }

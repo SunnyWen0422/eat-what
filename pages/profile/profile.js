@@ -33,7 +33,7 @@ Page({
     isAdmin: false,
     shoppingSummary: { pendingCount: 0, syncLabel: '已显示本地清单', refreshing: false },
     menuItems: [
-      {icon:'chef',title:'我的菜单',desc:'几道菜的常用组合，随时再用',url:'/pages/customize/customize',tab:true},
+      {section:'常用内容',icon:'chef',title:'我的菜单',desc:'几道菜的常用组合，随时再用',url:'/pages/customize/customize',tab:true},
       {
         icon: 'chart',
         title: '饮食回顾',
@@ -54,11 +54,11 @@ Page({
       },
       {
         icon: 'settings',
-        title: '偏好设置',
+        section:'偏好设置', title: '偏好设置',
         desc: '个性化推荐偏好',
         url: '/pages/settings/settings'
       },
-      { icon: 'refresh', title: '数据同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
+      { section:'账户与恢复', icon: 'refresh', title: '数据同步', desc: '确认本机草稿与同步结果', url: '/pages/sync/sync' },
       { icon: 'history', title: '助手历史', desc: '查看以往对话与餐单', url: '/pages/assistant-history/assistant-history' },
       { icon: 'info', title: '隐私说明', desc: '查看小程序隐私保护说明', action: 'privacy' },
       {

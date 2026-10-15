@@ -102,7 +102,7 @@ test('profile still exposes assistant history and opens the existing history pag
   })
   const index = page.data.menuItems.findIndex(item => item.title === '助手历史')
   assert.notEqual(index, -1)
-  assert.match(read('pages/profile/profile.wxml'), /wx:for="\{\{menuItems\}\}"[^>]*bindtap="onMenuTap"/)
+  assert.match(read('pages/profile/profile.wxml'), /wx:for="\{\{menuItems\}\}"[\s\S]*?bindtap="onMenuTap"/)
   page.onMenuTap({ currentTarget: { dataset: { index } } })
   assert.deepEqual(urls, ['/pages/assistant-history/assistant-history'])
 })

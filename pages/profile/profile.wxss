@@ -26,3 +26,5 @@ page { background:#F8F7F2; }
 .admin-entry { margin-top:12px !important; }
 .version-info { text-align:center !important; padding:12px 0; background:transparent; }
 .version-text { display:block; color:#56645B; font-size:0.75em; overflow-wrap:anywhere; }
+
+.profile-section-label { display:block; font-size:.8125em; color:#56645B; margin:20px 0 4px; line-height:1.5; }
