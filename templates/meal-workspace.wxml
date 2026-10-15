@@ -1,4 +1,4 @@
-<view class="ew-page ew-dish-surface mobile-screen workspace-screen mode-{{mode}}" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page ew-dish-surface mobile-screen workspace-screen {{fontScale >= 1.3 ? 'is-large-text' : ''}} mode-{{mode}}" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
     <view class="mobile-scroll-content">
       <view class="workspace-header"><view class="workspace-date"><ui-icon name="calendar" tone="muted" size="16" /><text>{{dateLabel}}</text></view><button class="ew-hit-target workspace-shopping" bindtap="onOpenShoppingList"><ui-icon name="shopping-basket" size="20" /><text>清单</text></button></view>
@@ -32,7 +32,7 @@
         <view wx:if="{{draft.dishes.length}}" class="workspace-menu-section">
           <view class="workspace-menu-heading"><text class="ew-muted">{{saveState === 'saved' ? '已保存到日历' : saveState === 'changed' ? '有修改尚未保存' : '搭配好了 · 看看菜单'}}</text><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onRegenerate"><ui-icon name="refresh" size="16" /><text>换一套</text></button></view>
           <view class="workspace-menu">
-            <compact-dish-row wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
+            <compact-dish-row font-scale="{{fontScale}}" wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
           </view>
           <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button wx:if="{{draft.history.length && !actionFeedback.undoAvailable}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onUndo">撤销上一步</button></view>
           <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>

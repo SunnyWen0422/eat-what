@@ -4,7 +4,7 @@ const { imageSource, placeholderIcon } = require('../../utils/dish-image')
 const labels = { meat: '荤菜', veg: '素菜', soup: '汤羹', staple: '主食', dessert: '甜品', side: '配餐' }
 
 Component({
-  properties: { mode: { type: String, value: 'replace' }, selected: Boolean, dish: Object, busy: Boolean, disabled: Boolean, feedback: String, reducedMotion: Boolean },
+  properties: { fontScale: { type: Number, value: 1 }, mode: { type: String, value: 'replace' }, selected: Boolean, dish: Object, busy: Boolean, disabled: Boolean, feedback: String, reducedMotion: Boolean },
   data: { dishView: { name: '菜品', meta: '', image: '', placeholderIcon: 'recipe' }, imageFailed: false, motionDuration: 0 },
   lifetimes: { attached() { this.updateDish(); this.updateMotion() } },
   pageLifetimes: { show() { this.updateMotion() } },

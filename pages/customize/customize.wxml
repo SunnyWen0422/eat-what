@@ -80,7 +80,7 @@
       <ui-state wx:if="{{loading}}" kind="loading" title="正在读取菜品" /><ui-state wx:elif="{{browseError}}" kind="error" title="读取失败" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
 
       <view wx:for="{{currentDishes}}" wx:key="id" class="recipe-item">
-        <compact-dish-row dish="{{item}}" mode="{{menuFormVisible || menuEditingId || menuPending ? 'select' : 'read'}}" selected="{{item.isSelected}}" disabled="{{savingPlan || menuBusy || menuPending || (!(menuFormVisible || menuEditingId) && (selectionBusy || selectionLoading || selectionBlocked))}}" bind:view="onTapDish" bind:select="onToggleSelect" />
+        <compact-dish-row font-scale="{{fontScale}}" dish="{{item}}" mode="{{menuFormVisible || menuEditingId || menuPending ? 'select' : 'read'}}" selected="{{item.isSelected}}" disabled="{{savingPlan || menuBusy || menuPending || (!(menuFormVisible || menuEditingId) && (selectionBusy || selectionLoading || selectionBlocked))}}" bind:view="onTapDish" bind:select="onToggleSelect" />
       </view>
 
       <!-- 加载更多 -->
@@ -176,7 +176,7 @@
       <block wx:else>
         <button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="onBackToMenus">返回常用菜单</button>
         <view class="ew-title">{{activeMenu.dishIds.length}} 道菜 · {{activeMenu.people}} 人</view>
-        <compact-dish-row wx:for="{{activeMenu.dishes}}" wx:for-item="menuDish" wx:key="id" dish="{{menuDish}}" mode="read" data-id="{{menuDish.id}}" data-people="{{activeMenu.people}}" bind:view="onMenuDish" />
+        <compact-dish-row font-scale="{{fontScale}}" wx:for="{{activeMenu.dishes}}" wx:for-item="menuDish" wx:key="id" dish="{{menuDish}}" mode="read" data-id="{{menuDish.id}}" data-people="{{activeMenu.people}}" bind:view="onMenuDish" />
         <button class="ew-hit-target ew-link menu-target-context" disabled="{{menuBusy}}" bindtap="onToggleMenuTarget">用作 {{menuDate}} {{menuMealLabels[menuMealIndex]}} · {{showMenuTarget ? '收起' : '更改目标餐'}}</button>
         <view wx:if="{{showMenuTarget}}" class="menu-target-options"><picker class="ew-hit-target" mode="date" value="{{menuDate}}" disabled="{{menuBusy}}" bindchange="onMenuDate"><view class="ew-input ew-hit-target">{{menuDate}}</view></picker><picker class="ew-hit-target" range="{{menuMealLabels}}" value="{{menuMealIndex}}" disabled="{{menuBusy}}" bindchange="onMenuMeal"><view class="ew-input ew-hit-target">{{menuMealLabels[menuMealIndex]}}</view></picker></view>
         <view wx:for="{{menuMissingDishes}}" wx:key="id" class="ew-error">{{item.name}} · 已删除或不可用</view>

@@ -18,3 +18,5 @@
 
 .dish-row .dish-more { flex:0 0 44px; width:44px; min-height:44px; margin:0; padding:8px; background:transparent; display:flex; align-items:center; justify-content:center; }
 .dish-more::after { border:0; }
+
+.dish-row.is-large-text .dish-main { flex-basis:100%; }

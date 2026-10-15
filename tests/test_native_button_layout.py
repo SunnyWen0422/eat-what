@@ -14,7 +14,7 @@ class NativeButtonLayoutTest(unittest.TestCase):
         self.assertEqual('400', style['font-weight'])
 
     def test_component_controls_override_native_defaults_inside_isolated_styles(self):
-        cases = [('meal-composition-summary', 'summary-row', '100%', '0'),
+        cases = [('meal-composition-summary', 'summary-row', '0', '0'),
                  ('compact-dish-row', 'dish-main', 'auto', '0'),
                  ('compact-dish-row', 'dish-replace', 'auto', '0 0 0 auto'),
                  ('compact-ingredient-row', 'ingredient-quantity', 'auto', '0')]

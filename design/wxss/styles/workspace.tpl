@@ -17,7 +17,7 @@
 .requirements-summary { flex:1; min-width:0; color:{{muted}}; font-size:{{font.secondary.em}}; overflow-wrap:anywhere; }
 .workspace-light-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .workspace-screen .workspace-optional-actions { justify-content:space-between; margin:0; border-bottom:1px solid {{divider}}; }
-.workspace-screen .workspace-optional-actions button.ew-link { display:flex; align-items:center; gap:6px; max-width:100%; margin:0; padding:8px 0; min-height:44px; font-size:{{font.secondary.em}}; white-space:normal; text-align:left; background:transparent; border:0; }
+.workspace-screen .workspace-focus-actions button.ew-link, .workspace-screen .workspace-optional-actions button.ew-link { display:flex; align-items:center; gap:6px; max-width:100%; margin:0; padding:8px 0; min-height:44px; font-size:{{font.secondary.em}}; white-space:normal; text-align:left; background:transparent; border:0; }
 .workspace-optional-actions .ew-link text { min-width:0; overflow-wrap:anywhere; }
 .workspace-exclusions { color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.5; padding:4px 0; overflow-wrap:anywhere; }
 .workspace-empty { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:40px 16px; }
@@ -63,3 +63,6 @@
 .workspace-screen .workspace-focus-actions button { margin:0; padding:4px 0; background:transparent; font-size:.8125em; }
 .workspace-meals { flex-wrap:nowrap; overflow-x:auto; }
 .workspace-settings-panel { margin-bottom:8px; }
+
+.workspace-screen.is-large-text .workspace-title-row { flex-wrap:wrap; }
+.workspace-screen.is-large-text .workspace-title-row .ew-heading { flex-basis:100%; }
