@@ -11,6 +11,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class DishCandidateQueryService {
@@ -39,20 +41,32 @@ public class DishCandidateQueryService {
             return new DishPageDTO(rows, total, page, pageSize);
         }
 
-        // Preserve Java token/case/substring semantics without loading off-page recipe bodies.
-        // Total still requires all matching raw facts; only pageSize IDs are retained separately.
-        List<Dish> facts = dishMapper.selectFilteredDishFacts(userId, safeType, safeKeyword,
-                safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes());
-        List<Long> pageIds = new ArrayList<>();
         int total = 0;
-        if (facts != null) for (Dish dish : facts) {
-            if (dish == null || hasExcludedTag(dish, value.getExcludeTagCodes())
-                    || containsExcludedIngredient(dish, value.getExcludedIngredients())) continue;
-            if (total >= offset && pageIds.size() < pageSize) pageIds.add(dish.getId());
-            total++;
+        Long beforeId = null;
+        List<Long> selected = new ArrayList<>();
+        for (;;) {
+            List<Dish> batch = dishMapper.selectFilteredCandidateFacts(userId, blankToNull(type), blankToNull(keyword),
+                    safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes(), beforeId, 256);
+            if (batch == null || batch.isEmpty()) break;
+            for (Dish dish : batch) {
+                if (hasExcludedTag(dish, value.getExcludeTagCodes()) || containsExcludedIngredient(dish, value.getExcludedIngredients())) continue;
+                if (total >= offset && selected.size() < pageSize) selected.add(dish.getId());
+                total = Math.incrementExact(total);
+            }
+            beforeId = batch.get(batch.size() - 1).getId();
+            if (batch.size() < 256) break;
         }
-        List<Dish> rows = pageIds.isEmpty() ? Collections.emptyList() : dishMapper.selectCatalogDishesByIds(pageIds, userId);
-        return new DishPageDTO(rows, total, page, pageSize);
+        List<Dish> result = new ArrayList<>();
+        if (!selected.isEmpty()) {
+            Map<Long,Dish> details = new HashMap<>();
+            for (Dish dish : dishMapper.selectFilteredPageDetails(selected, userId)) details.put(dish.getId(), dish);
+            for (Long id : selected) {
+                Dish dish = details.get(id);
+                if (dish == null) throw new IllegalStateException("菜谱目录已变化，请重新读取");
+                result.add(dish);
+            }
+        }
+        return new DishPageDTO(result, total, page, pageSize);
     }
 
     public List<Dish> findForUser(Long userId,

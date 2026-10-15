@@ -35,12 +35,24 @@ public interface DishMapper {
                                       @Param("includeTagCodes") List<String> includeTagCodes, @Param("maxCookMinutes") Integer maxCookMinutes,
                                       @Param("limit") int limit, @Param("offset") long offset);
 
-    /** Java exclusions need these raw facts; never transfer instructions or images for off-page rows. */
-    @Select({"<script>SELECT ID as id, TAG_CODES as tagCodes, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts ",
-        FILTERED_FROM, "ORDER BY ID DESC</script>"})
-    List<Dish> selectFilteredDishFacts(@Param("userId") Long userId, @Param("type") String type,
-                                     @Param("keyword") String keyword, @Param("cuisineCodes") List<String> cuisineCodes,
-                                     @Param("includeTagCodes") List<String> includeTagCodes, @Param("maxCookMinutes") Integer maxCookMinutes);
+    /** Keyset batches contain only facts required by the existing Java exclusions. */
+    @Select("<script>SELECT ID as id, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes "
+        + FILTERED_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
+        + "ORDER BY ID DESC LIMIT #{limit}</script>")
+    @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
+    List<Dish> selectFilteredCandidateFacts(@Param("userId") Long userId,
+        @Param("type") String type, @Param("keyword") String keyword,
+        @Param("cuisineCodes") List<String> cuisineCodes, @Param("includeTagCodes") List<String> includeTagCodes,
+        @Param("maxCookMinutes") Integer maxCookMinutes, @Param("beforeId") Long beforeId, @Param("limit") int limit);
+
+    /** At most one requested page of complete recipes, still scoped to the current reader. */
+    @Select("<script>" + "SELECT " + CANDIDATE_COLUMNS
+        + "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) AND "
+        + "<choose><when test='ids != null and ids.size() > 0'>ID IN "
+        + "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>"
+        + "</when><otherwise>1 = 0</otherwise></choose> ORDER BY ID DESC</script>")
+    @Options(useCache = false)
+    List<Dish> selectFilteredPageDetails(@Param("ids") List<Long> ids, @Param("userId") Long userId);
 
     @Select({"<script>SELECT ", CANDIDATE_COLUMNS, "FROM food WHERE ID IN ",
         "<foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>",

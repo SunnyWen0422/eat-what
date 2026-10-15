@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +21,10 @@ import java.util.Map;
 
 @Service
 public class AiChatGateway {
+
+    public static class BusyException extends RuntimeException {
+        public BusyException() { super("Legacy chat capacity reached"); }
+    }
 
     private final String baseUrl;
     private final ObjectMapper objectMapper;
@@ -38,8 +43,21 @@ public class AiChatGateway {
     public Map<String, Object> chatSync(Map<String, Object> payload) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                baseUrl + "/chat/sync", new HttpEntity<>(payload, headers), String.class);
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.postForEntity(
+                    baseUrl + "/chat/sync", new HttpEntity<>(payload, headers), String.class);
+        } catch (HttpStatusCodeException failure) {
+            if (failure.getRawStatusCode() == 503) {
+                boolean busy = false;
+                try {
+                    busy = "AI_CHAT_BUSY".equals(objectMapper.readTree(failure.getResponseBodyAsString())
+                            .path("errorCode").asText());
+                } catch (IOException ignored) { /* Generic failure below; never expose upstream text. */ }
+                if (busy) throw new BusyException();
+            }
+            throw failure;
+        }
         if (response.getBody() == null || response.getBody().trim().isEmpty()) {
             return Collections.emptyMap();
         }

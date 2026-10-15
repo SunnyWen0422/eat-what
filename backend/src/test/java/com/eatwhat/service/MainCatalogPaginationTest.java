@@ -82,8 +82,8 @@ class MainCatalogPaginationTest {
         DishMapper mapper = mock(DishMapper.class, call -> {
             switch (call.getMethod().getName()) {
                 case "selectFilteredCandidates": fullReads.add(ids(all)); return all;
-                case "selectFilteredDishFacts": return all;
-                case "selectCatalogDishesByIds":
+                case "selectFilteredCandidateFacts": return all;
+                case "selectFilteredPageDetails":
                     List<Long> wanted = call.getArgument(0); fullReads.add(new ArrayList<>(wanted));
                     return all.stream().filter(d -> wanted.contains(d.getId())).collect(Collectors.toList());
                 default: return org.mockito.Answers.RETURNS_DEFAULTS.answer(call);

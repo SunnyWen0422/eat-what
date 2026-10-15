@@ -1,6 +1,7 @@
 """AI 对话处理 — 意图识别 + DeepSeek API + 检索增强"""
 import json, re, asyncio, time, logging
 import httpx
+from threading import RLock
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 log = logging.getLogger('chat_handler')
@@ -29,34 +30,39 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MEMORY_FILE = os.getenv("CHAT_MEMORY_FILE", os.path.join(BASE_DIR, "chat_memory.json"))
 _conversations: Dict[str, List[Dict]] = {}
+_memory_lock = RLock()
 
 def _save_memory():
-    try:
-        with open(MEMORY_FILE, "w") as f:
-            json.dump(_conversations, f, ensure_ascii=False)
-    except: pass
+    with _memory_lock:
+        try:
+            with open(MEMORY_FILE, "w") as f:
+                json.dump(_conversations, f, ensure_ascii=False)
+        except: pass
 
 def _load_memory():
     global _conversations
-    if os.path.exists(MEMORY_FILE):
-        try:
-            with open(MEMORY_FILE) as f:
-                _conversations = json.load(f)
-        except: _conversations = {}
+    with _memory_lock:
+        if os.path.exists(MEMORY_FILE):
+            try:
+                with open(MEMORY_FILE) as f:
+                    _conversations = json.load(f)
+            except: _conversations = {}
 
 _load_memory()
 
 def get_history(user_id: str) -> List[Dict]:
-    return _conversations.get(user_id, [])[-10:]  # 保留最近 10 轮
+    with _memory_lock:
+        return [entry.copy() for entry in _conversations.get(user_id, [])[-10:]]
 
 def append_history(user_id: str, role: str, content: str):
-    if user_id not in _conversations:
-        _conversations[user_id] = []
-    _conversations[user_id].append({"role": role, "content": content})
-    if len(_conversations[user_id]) > 20:
-        _conversations[user_id] = _conversations[user_id][-20:]
-    if role == "assistant":
-        _save_memory()
+    with _memory_lock:
+        if user_id not in _conversations:
+            _conversations[user_id] = []
+        _conversations[user_id].append({"role": role, "content": content})
+        if len(_conversations[user_id]) > 20:
+            _conversations[user_id] = _conversations[user_id][-20:]
+        if role == "assistant":
+            _save_memory()
 
 def _detect_intent(msg: str) -> str:
     """快速意图识别"""
@@ -140,7 +146,8 @@ def _match_dishes(reply: str) -> List[Dict]:
 
 def _build_custom_dish_action(user_id: str) -> Dict:
     """从最近对话中提取菜品，返回由 Java 主服务执行的写入命令。"""
-    history = _conversations.get(user_id, [])
+    with _memory_lock:
+        history = [entry.copy() for entry in _conversations.get(user_id, [])]
     if not history:
         return {}
     last_ai = ""
@@ -166,7 +173,7 @@ def _build_custom_dish_action(user_id: str) -> Dict:
     return {}
 
 def chat(message: str, user_id: str = "guest") -> dict:
-    """非流式对话 — 在已有事件循环上下文中安全调用。
+    """非流式对话 — 包含同步 I/O，由路由工作线程调用。
     返回 {"reply": "...", "dishes": [...]}"""
     import httpx
     rag.load_index()

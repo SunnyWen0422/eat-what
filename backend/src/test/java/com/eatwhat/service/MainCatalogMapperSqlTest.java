@@ -39,9 +39,10 @@ class MainCatalogMapperSqlTest {
         // Ignore only formatting introduced by MyBatis foreach; all predicates remain explicit here.
         assertEquals(expectedWhere.replaceAll("\\s+", ""), originalWhere.replaceAll("\\s+", ""));
         assertEquals("SELECT COUNT(*) " + originalWhere, sql("countFilteredDishes", filters));
-        String facts = sql("selectFilteredDishFacts", filters);
-        assertEquals(originalWhere + " ORDER BY ID DESC", facts.substring(facts.indexOf("FROM food")));
-        assertEquals("SELECT ID as id, TAG_CODES as tagCodes, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts ",
+        Object[] factFilters = Arrays.copyOf(filters, 8); factFilters[6] = 900L; factFilters[7] = 256;
+        String facts = sql("selectFilteredCandidateFacts", factFilters);
+        assertEquals(originalWhere + " AND ID < ? ORDER BY ID DESC LIMIT ?", facts.substring(facts.indexOf("FROM food")));
+        assertEquals("SELECT ID as id, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes ",
                 facts.substring(0, facts.indexOf("FROM food")));
         Object[] pageFilters = Arrays.copyOf(filters, 8); pageFilters[6] = 5; pageFilters[7] = 10L;
         assertEquals(original + " LIMIT ? OFFSET ?", sql("selectFilteredDishesPage", pageFilters));

@@ -74,9 +74,19 @@ public class ChatController {
         if (!protection.isAllowed()) return protectionResponse(protection);
         try {
             return ResponseEntity.ok(chatApplicationService.chatSync(body, currentUserId(request)));
+        } catch (com.eatwhat.service.AiChatGateway.BusyException e) {
+            Map<String,Object> bodyOut = new LinkedHashMap<>();
+            bodyOut.put("success", false);
+            bodyOut.put("errorCode", "AI_CHAT_BUSY");
+            bodyOut.put("message", "聊天服务忙，请稍后重试");
+            return ResponseEntity.status(503).header("Retry-After", "2").body(bodyOut);
         } catch (Exception e) {
             log.error("Chat sync proxy failed", e);
-            return ResponseEntity.status(503).body(Collections.singletonMap("success", false));
+            Map<String,Object> bodyOut = new LinkedHashMap<>();
+            bodyOut.put("success", false);
+            bodyOut.put("errorCode", "AI_CHAT_UNAVAILABLE");
+            bodyOut.put("message", "暂时无法连接助手，请稍后重试");
+            return ResponseEntity.status(503).body(bodyOut);
         } finally {
             aiProtectionService.release();
         }
