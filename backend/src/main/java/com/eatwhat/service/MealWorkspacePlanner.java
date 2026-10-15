@@ -49,7 +49,11 @@ public class MealWorkspacePlanner {
         Set<Long> favoriteIds=new HashSet<>(favorites.getFavoriteDishIds(user));
         Set<Long> recentIds=recentDishIds(user,c,criteria.getAvoidRecentDays());
         RecommendationScorer scorer=new RecommendationScorer();
-        pool.sort(Comparator.comparingInt((Dish d)->scorer.score(d,effective,favoriteIds,recentIds)+ownedScore(d,c)).reversed());
+        Map<Long,Integer> scores=new HashMap<>();Integer first=null;boolean uniform=true;
+        for(Dish dish:pool){int score=scorer.score(dish,effective,favoriteIds,recentIds)+ownedScore(dish,c);scores.put(dish.getId(),score);if(first==null)first=score;else if(first.intValue()!=score)uniform=false;}
+        // Stable sort previously preserved the shuffled order on ties. Keep that
+        // exact behavior while avoiding repeated parsing inside the comparator.
+        if(!uniform)pool.sort(Comparator.comparingInt((Dish d)->scores.get(d.getId())).reversed());
         return new RankedCandidates(pool,criteria,recentIds);
     }
     private Set<Long> recentDishIds(Long user,MealContext context,Integer days) {

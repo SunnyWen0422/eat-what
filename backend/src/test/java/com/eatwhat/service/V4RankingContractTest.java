@@ -11,6 +11,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class V4RankingContractTest {
+    @Test void rankingReadsEachCandidatesIngredientFactsOnlyOnce(){
+        class Counted extends Dish{int reads;@Override public String getIngredientsAmounts(){reads++;return "青菜|100|克";}}
+        List<Dish> pool=new ArrayList<>();List<Counted> counted=new ArrayList<>();for(long i=1;i<=500;i++){Counted d=new Counted();d.setId(i);d.setName("菜"+i);d.setType("veg");counted.add(d);pool.add(d);}
+        try(Fixture f=new Fixture(pool)){MealContext c=context();c.setOwnedIngredients(Collections.singletonList("青菜"));assertEquals(500,f.planner.eligible(3L,c).size());for(Counted d:counted)assertEquals(1,d.reads,"Sorting must reuse the score instead of reparsing each comparison");}
+    }
+    @Test void emptyOwnedIngredientsDoNotReadOrParseAnyRecipeText(){
+        Dish d=new Dish(){@Override public String getIngredientsAmounts(){throw new AssertionError("Unneeded large ingredient read");}@Override public String getCl(){throw new AssertionError("Unneeded source parse");}};
+        assertEquals(0,new RecommendationScorer().ownedIngredientScore(d,Collections.emptyList()));
+    }
     private static class Fixture implements AutoCloseable {
         final AnnotationConfigApplicationContext app=new AnnotationConfigApplicationContext();
         final UserPreferenceDTO preference=new UserPreferenceDTO();

@@ -23,7 +23,7 @@ public class RecommendationScorer {
                      Set<Long> recentIds) {
         if (dish == null) return Integer.MIN_VALUE;
         EffectiveRecommendationCriteria value = criteria == null ? new EffectiveRecommendationCriteria() : criteria;
-        Set<String> tags = tags(dish.getTagCodes());
+        Set<String> tags = value.getPreferredTagCodes().isEmpty()?Collections.emptySet():tags(dish.getTagCodes());
         int score = 0;
         if (dish.getCuisineCode() != null && value.getPreferredCuisineCodes().contains(dish.getCuisineCode())) {
             score += CUISINE_WEIGHT;
@@ -42,6 +42,7 @@ public class RecommendationScorer {
         return score;
     }
     public int ownedIngredientScore(Dish dish,List<String> owned){
+        if(owned==null||owned.isEmpty())return 0;
         Set<String> names=new HashSet<>();
         String raw=dish.getIngredientsAmounts();if(raw==null||raw.trim().isEmpty())raw=dish.getCl();
         if(raw!=null)for(String line:raw.split("###|#|\\n|、|,"))names.add(line.split("\\|",2)[0].trim());
