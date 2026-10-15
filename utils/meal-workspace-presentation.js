@@ -31,7 +31,7 @@ function deriveWorkspacePresentation(value) {
   else if (status === 'planned' && linkedPlan) { primaryAction = 'onViewRecipes'; primaryLabel = '开始做饭 · 本餐全部做法' }
   else if (status === 'needs_regeneration') { primaryAction = 'onRegenerate'; primaryLabel = context.compositionMode === 'manual' ? '按新搭配换一套' : '按新条件换一套' }
   else if (status === 'needs_input') { primaryAction = 'onOpenRequirements'; primaryLabel = '调整本餐要求' }
-  return { generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating', showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
+  return { hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating', showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
 }
 
 function hardExclusionSummary(preferences, options) {

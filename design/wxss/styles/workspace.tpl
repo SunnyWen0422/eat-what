@@ -58,3 +58,8 @@
 .actual-choice.selected { border-color:{{brand}}; background:{{brandSoft}}; font-weight:600; }
 .actual-choice::after { border:0; }
 @media(max-width:360px) { .workspace-empty { padding:24px 12px; }.workspace-meals { gap:4px; }.workspace-meal { padding:8px 12px; } }
+
+.workspace-focus-actions { justify-content:space-between; }
+.workspace-screen .workspace-focus-actions button { margin:0; padding:4px 0; background:transparent; font-size:.8125em; }
+.workspace-meals { flex-wrap:nowrap; overflow-x:auto; }
+.workspace-settings-panel { margin-bottom:8px; }

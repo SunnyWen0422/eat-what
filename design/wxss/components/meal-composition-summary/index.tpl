@@ -5,3 +5,8 @@
 .composition-value { color:{{brand}}; }
 .summary-row.is-disabled { background:transparent; color:{{muted}}; }
 .summary-row::after { border:0; }
+
+.composition-summary { display:flex; align-items:stretch; gap:12px; }
+.composition-summary .summary-row { flex:1; width:0; gap:4px; padding:8px 0; }
+.summary-label { flex:1 1 auto; font-size:.8125em; }
+.summary-value { max-width:100%; font-size:.8125em; }

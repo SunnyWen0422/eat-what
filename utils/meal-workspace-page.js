@@ -81,7 +81,7 @@ module.exports = function workspacePage(options = {}) {
       wx.navigateTo({url:`/pages/statistics/statistics?period=week&anchor=${encodeURIComponent(this.data.harnessTarget.date)}`})
     },
     data: {
-      assistantAvailable:false,actionFeedback:null,legacyLockNotice:'',moreVisible:false,harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:'',
+      mealSettingsExpanded:true,assistantAvailable:false,actionFeedback:null,legacyLockNotice:'',moreVisible:false,harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:'',
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
       conversationNotice:'',pageTitle:options.mode==='assistant'?'本餐对话':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'生成本餐菜单', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       peopleVisible:false,compositionVisible:false,compositionContext:null,compositionRows:[],compositionTotal:0,compositionHint:'',compositionSaving:false,compositionApplyDisabled:true,conditionsNotice:'',compositionPreferenceNotice:'',filterSummary:'',
@@ -249,11 +249,15 @@ module.exports = function workspacePage(options = {}) {
       this.setData({ busy })
       this.renderWorkspace()
     },
+    onToggleMealSettings() { if(this.current())this.setData({mealSettingsExpanded:!this.data.mealSettingsExpanded}) },
     renderWorkspace() {
       if (!this.current()) return
       const state = this.store.state(), w = state.workspace
       const labels = { synced: '已同步', unsynced: '本机修改尚未同步', saving: '正在同步', unknown: '上次保存结果待确认', offline: '离线内容，仅供查看；恢复后请重试', conflict: '本餐已在另一处更新，请查看最新内容' }
       const draft = w && w.draft || { dishes: [], history: [], lockedDishIds: [], planVersion: 0 }
+      const settingsContext=state.context || this.data.context
+      const settingsKey=`${this._scope}:${settingsContext.date}:${settingsContext.mealType}:${!!draft.dishes.length}`
+      if(this._settingsViewKey!==settingsKey){this._settingsViewKey=settingsKey;this.setData({mealSettingsExpanded:!draft.dishes.length})}
       const confirmation=w && w.confirmation,source=state.context || this.data.context
       const savedTarget=confirmation && confirmation.date && confirmation.mealType ? {date:confirmation.date,mealType:confirmation.mealType} : null
       const saveState=confirmation ? confirmation.planVersion===draft.planVersion && !state.dirty && w.status!=='needs_regeneration' ? 'saved' : 'changed' : 'unsaved'
