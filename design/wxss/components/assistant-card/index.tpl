@@ -11,3 +11,8 @@
 .card-confirmation { background:{{glassChrome}}; border-color:{{controlBorder}}; }
 .card-confirmation .card-title { color:{{brand}}; }.card-action { margin-top:16px; }
 .assistant-card .card-dish { width:100%; margin:0; font-weight:400; }
+
+.card-choices { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.card-choices > picker { min-width:44px; }
+.card-choice { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:8px 12px; border:1px solid {{controlBorder}}; border-radius:14px; background:{{card}}; color:{{brand}}; font-size:1em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; }
+.card-choice::after { border:0; }

@@ -1,1 +1,12 @@
-{"navigationBarTitleText":"餐桌助手记录","navigationBarTextStyle":"black","navigationBarBackgroundColor":"#F8F7F2","usingComponents":{"ui-state":"/components/ui-state/ui-state","ui-button":"/components/ui-button/ui-button","ui-card":"/components/ui-card/ui-card","ui-icon":"/components/ui-icon/ui-icon"}}
+{
+  "navigationBarTitleText": "餐桌助手记录",
+  "navigationBarTextStyle": "black",
+  "navigationBarBackgroundColor": "#F8F7F2",
+  "usingComponents": {
+    "ui-state": "/components/ui-state/ui-state",
+    "ui-button": "/components/ui-button/ui-button",
+    "ui-card": "/components/ui-card/ui-card",
+    "ui-icon": "/components/ui-icon/ui-icon",
+    "assistant-card": "/components/assistant-card/index"
+  }
+}

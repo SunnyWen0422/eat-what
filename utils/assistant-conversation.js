@@ -5,7 +5,7 @@ const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => 
 function scopeOf(options) { return `${valueOf(options.source || (()=>require('./config').getApiBaseUrl()))}|${valueOf(options.identity || (()=>require('./util').getCurrentUserIdentity()))}` }
 async function probeAssistantCapability(options = {}) {
  const api=options.api || require('./api'),scope=scopeOf(options),now=Date.now(),cached=capabilities.get(scope)
- if(cached && cached.until>now){const enabled=await Promise.resolve(cached.promise || cached.enabled);return scope===scopeOf(options)&&enabled}
+ if(!options.force && cached && cached.until>now){const enabled=await Promise.resolve(cached.promise || cached.enabled);return scope===scopeOf(options)&&enabled}
  if(!api.getAssistantV4Capabilities)return false
  const entry={until:now+300000,enabled:false}
  entry.promise=Promise.resolve().then(()=>scope===scopeOf(options)?api.getAssistantV4Capabilities():null).then(result=>{
@@ -19,7 +19,7 @@ async function probeAssistantCapability(options = {}) {
 }
 function createAssistantConversation(options = {}) {
  const api=options.api || require('./api'),store=options.workspaceStore,scope=scopeOf(options),read=options.read || (key=>wx.getStorageSync(key)),write=options.write || ((key,v)=>wx.setStorageSync(key,v)),makeId=options.uuid || uuid
- let active=true,key='',record=null,running=null
+ let active=true,actionsEnabled=true,key='',record=null,running=null
  let view={sessionId:null,messages:[],input:'',error:'',busy:false,recoverable:false,turn:null,nextCursor:null}
  const current=()=>active && scope===scopeOf(options)
  const state=()=>current()?clone({...view,selectionPending:!!(record&&record.renewal),confirmationPending:!!(record&&record.confirmation&&record.confirmation.unknown)}):{sessionId:null,messages:[],input:'',error:'请重新进入这一餐',busy:false,recoverable:false,turn:null}
@@ -58,6 +58,7 @@ function createAssistantConversation(options = {}) {
   if(!current())return state()
   const pending=record.pending
   if(pending.turnId)return poll(pending.turnId)
+  if(!actionsEnabled)return fail('助手暂不可用，原请求仍保留，请稍后核对')
   view.busy=true;persist()
   let result
   try{result=await api.sendAssistantV4Turn(record.sessionId,clone(pending.body))}
@@ -110,22 +111,38 @@ function createAssistantConversation(options = {}) {
    record.sessionId=result.sessionId;view.sessionId=result.sessionId;view.nextCursor=result.nextCursor || null
    if(Array.isArray(result.messages)&&result.messages.length)view.messages=clone(result.messages)
    record.messages=clone(view.messages)
-   if(result.latestTurn){adopt(result.latestTurn);await refreshWorkspace(result.latestTurn);if(!current())return state()}
+   if(result.latestTurn){
+    // A session's latest response may be the parent of an unresolved child send.
+    // Only dispatch/recovery of the original UUID can resolve that send.
+    if(record.pending&&record.pending.turnId!==result.latestTurn.turnId)view.turn=clone(record.lastTurn||null)
+    else {adopt(result.latestTurn);await refreshWorkspace(result.latestTurn);if(!current())return state()}
+   }
    if(record.pending)view.input=record.pending.body.message
    if(record.bindingExpired)view.error='原对话已过期，输入仍保留。请先核对日历和清单，再重新说明要办理的内容'
    persist();return state()
   }catch(error){return fail('对话暂未连接，输入已保留，请重新进入或重试')}
  }
  function load(workspaceRef){return exclusive(()=>loadRecord(workspaceRef))}
- function send(text) {return exclusive(async()=>{
+ function send(text,choice) {return exclusive(async()=>{
+  if(!actionsEnabled)return fail('助手暂不可用，输入仍保留')
   if(!record || !record.sessionId)return fail('对话尚未连接，请重新进入这一餐')
   if(record.pending)return fail('刚才的结果还待确认，请先恢复原请求')
-  const message=String(text || '').trim(),w=workspace(),local=store.state()
+  const w=workspace(),local=store.state();let message=String(text||'').trim(),selected
+  if(choice){
+   const turn=view.turn,card=turn&&(turn.cards||[]).find(c=>c.id===choice.cardId),ref=card&&card.workspaceRef
+   const negotiated=capabilities.get(scope),option=card&&require('./assistant-cards').clarificationOptions(card).find(o=>o.id===choice.optionId)
+   if(!negotiated||!negotiated.enabled||negotiated.until<=Date.now()||!negotiated.uiFeatures.includes('clarification_v1')||!turn||turn.status!=='needs_input'||!option||!w||!ref||ref.workspaceId!==w.id||ref.workspaceRevision!==w.revision||ref.planVersion!==(w.draft&&w.draft.planVersion||0))return fail('这组选项已变化，请重新说明需求')
+   selected={continuationRef:card.data.continuationRef,optionId:option.id}
+   if(option.requiresDate){try{require('./meal-save-target').validateMealTarget({date:choice.date,mealType:'breakfast'})}catch(_){return fail('请选择有效日期')};selected.date=choice.date}
+   else if(choice.date!==undefined)return fail('请重新选择当前选项')
+   message=[card.title,option.label,selected.date||''].filter(Boolean).join(' ')
+  }
   if(!message || message.length>2000)return fail('请用两千字以内说说这一餐的想法')
   if(!w || local.dirty || local.pending)return fail('本餐还有未同步内容，请回到今天先同步后再试')
   record.pending={body:{requestId:makeId(),message,workspaceId:w.id,expectedWorkspaceRevision:w.revision,expectedPlanVersion:w.draft && w.draft.planVersion || 0,entryScene:options.entryScene || 'chat'}}
   const negotiated=capabilities.get(scope)
   if(negotiated&&negotiated.enabled&&negotiated.until>Date.now()&&negotiated.uiFeatures&&negotiated.uiFeatures.length)record.pending.body.uiFeatures=negotiated.uiFeatures.slice()
+  if(selected)record.pending.body.clarificationChoice=selected
   record.bindingExpired=false;view.input='';view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
   try{return await dispatch()}catch(error){return fail()}
  })}
@@ -155,6 +172,7 @@ function createAssistantConversation(options = {}) {
   return current()
  }
  function confirm(cardId) {return exclusive(async()=>{
+  if(!actionsEnabled)return fail('助手暂不可用，请稍后再确认')
   const turn=view.turn,card=turn && (turn.cards || []).find(c=>c.id===cardId),pending=turn && turn.pendingAction
   if(!turn || turn.status!=='awaiting_confirmation' || !card || !['calendar_save','shopping_preview'].includes(card.type) || card.data&&card.data.kind==='readonly_fact' || !pending || card.taskId!==pending.taskId || card.previewToken!==pending.previewToken || !card.previewToken)return state()
   if(record.renewal)return fail('食材选择结果还待核对，请先恢复原请求')
@@ -171,7 +189,7 @@ function createAssistantConversation(options = {}) {
   }catch(error){return fail('保存结果待核对，请恢复刚才的请求')}
  })}
  async function resumeCurrent(){
-  if(!current() || !canResume(view.turn) || !api.resumeAssistantV4Turn)return state()
+  if(!current() || !actionsEnabled || !canResume(view.turn) || !api.resumeAssistantV4Turn)return state()
   const id=view.turn.turnId;view.busy=true;persist()
   const turn=await api.resumeAssistantV4Turn(id);if(!current())return state()
   if(!turn || turn.turnId!==id)throw Error('invalid resume')
@@ -206,6 +224,7 @@ function createAssistantConversation(options = {}) {
   record.renewal=null;adopt(turn);return state()
  }
  function selectShopping(cardId,selectedSourceKeys,excludedOwnedIngredients){return exclusive(async()=>{
+  if(!actionsEnabled)return fail('助手暂不可用，原预览仍保留')
   if(record&&record.renewal)return fail('上次食材选择还待核对，请先恢复原请求')
   if(record&&record.confirmation&&record.confirmation.unknown)return fail('刚才的加入结果还待核对，请先恢复原请求')
   const turn=view.turn,card=turn&&(turn.cards || []).find(c=>c.id===cardId),pending=turn&&turn.pendingAction
@@ -240,6 +259,6 @@ function createAssistantConversation(options = {}) {
  })}
  function setInput(input){if(current()){view.input=String(input || '');if(record)persist()}}
  function dispose(){active=false}
- return {load,loadOlder,send,confirm,selectShopping,cancelTurn,recover,state,setInput,dispose}
+ return {chooseClarification:(cardId,optionId,date)=>send('',{cardId,optionId,date}),setActionsEnabled(value){actionsEnabled=value===true;notify()},load,loadOlder,send,confirm,selectShopping,cancelTurn,recover,state,setInput,dispose}
 }
 module.exports={createAssistantConversation,probeAssistantCapability,clearCapabilityCache:()=>capabilities.clear(),uuid}

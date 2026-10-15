@@ -635,7 +635,7 @@
         "T16"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K06",
@@ -644,7 +644,8 @@
         "K20",
         "K22",
         "K31"
-      ]
+      ],
+      "evidenceNote": "80 Node assistant/history checks and 2 UI structure checks pass. Clarification choices/date picker connected with exact unknown-child UUID recovery; one active task card; foreground capability recheck; preserved input and non-forced historical scroll. No model or native proof. Includes generated workspace CSS removal of the shared actual styles moved globally in T14, inadvertently left unstaged then."
     },
     {
       "id": "T18",
