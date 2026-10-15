@@ -1,0 +1,1197 @@
+{
+  "schemaVersion": 1,
+  "kind": "implementation_plan_coverage",
+  "baseline": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+  "generatedDate": "2026-10-15",
+  "status": "in_progress",
+  "requirements": [
+    {
+      "id": "K01",
+      "text": "正式仓库只有 project/；四个主Tab“今天 / 菜谱 / 日历 / 我的”；不加第五个助手Tab、挡内容悬浮球或无功能星星。",
+      "tasks": [
+        "T01",
+        "T12",
+        "T18",
+        "T23"
+      ]
+    },
+    {
+      "id": "K02",
+      "text": "非菜品区域用温暖餐桌A；菜品卡片、助手整页/气泡/推荐用轻透F。旧“禁止强玻璃”不否定后来采用的轻透F。",
+      "tasks": [
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K03",
+      "text": "品牌#28634E、背景#F8F7F2、正文#25332B、当前辅助#56645B；F底#E9F0E9，145度#E4EEDA→#F5ECE2(60%)→#D7E9E3，白色66%面/74%边。不得逐卡堆模糊。",
+      "tasks": [
+        "T11",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K04",
+      "text": "现有字体24/18/16/13/12，正文与菜名16、行高1.5、长文1.65；正常44×44触控、主按钮至少48高；fontScale 1/1.3/2。大字允许增高换行，不压缩文字换首屏数量。",
+      "tasks": [
+        "T11",
+        "T23"
+      ]
+    },
+    {
+      "id": "K05",
+      "text": "间距4/8/12/16/20/24/32；照片缩略图圆角14、详情18，常规64/F紧凑56图；菜名两行，详情完整可读；系统中文字体与现有同套图标。",
+      "tasks": [
+        "T04",
+        "T11",
+        "T13",
+        "T23"
+      ]
+    },
+    {
+      "id": "K06",
+      "text": "图优先：保留真实封面与步骤图，无图或本次加载失败才分类占位；更换菜/地址后重置失败状态。访问成功不等于有使用权，不制造假菜品实拍。",
+      "tasks": [
+        "T04",
+        "T13",
+        "T17",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K07",
+      "text": "模板与token是样式唯一源，重新生成WXSS/JS；组件样式隔离保留。按钮主实色、次描边/浅底、危险操作明确，不只用颜色表达状态。",
+      "tasks": [
+        "T11",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K08",
+      "text": "动效100/180/200ms分别用于按压/列表/弹层；减少动态效果时关闭位移动画，不增加循环装饰或整页闪动。",
+      "tasks": [
+        "T11",
+        "T17",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K09",
+      "text": "今天日期、标题、横排早午晚；人数/搭配并排；已有菜单默认折叠设置；自己选菜可达。恢复、冲突、未应用设置不藏进折叠区。",
+      "tasks": [
+        "T10",
+        "T12",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K10",
+      "text": "荤素数量弹层不重复总菜数和介绍，只保留简短“应用后保留此搭配”；约束冲突才在受影响处说明。人数1–50、默认2，手动菜数不被人数改写。",
+      "tasks": [
+        "T12",
+        "T21"
+      ]
+    },
+    {
+      "id": "K11",
+      "text": "一页同一任务一个主要动作；状态决定生成/保存/核对/查看目标；重复点当前餐次不清空菜单，跨日目标不偷偷回今天。",
+      "tasks": [
+        "T10",
+        "T12",
+        "T19",
+        "T21"
+      ]
+    },
+    {
+      "id": "K12",
+      "text": "菜谱搜索+分类横滑+按需筛选/帮助；零选择不留空底栏，有选择才显示“本餐已选”；必要恢复任务是例外。",
+      "tasks": [
+        "T13",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K13",
+      "text": "菜品详情菜名与分享/收藏顶部对齐；有图展示圆润主图；主操作按来源选加入/查看本餐/开始做菜，问菜是次级入口。",
+      "tasks": [
+        "T13",
+        "T16",
+        "T23"
+      ]
+    },
+    {
+      "id": "K14",
+      "text": "本餐“保留/取消保留”“想换”“省时”不写长期偏好；保留不被下一次生成自动解除；整餐时长与每道菜上限是两个字段。",
+      "tasks": [
+        "T05",
+        "T12",
+        "T21"
+      ]
+    },
+    {
+      "id": "K15",
+      "text": "复制菜谱只在编辑保存成功时创建；取消未保存不留副本；未知结果恢复原请求，来源下架仍能从恢复入口核对。",
+      "tasks": [
+        "T09",
+        "T13",
+        "T19",
+        "T21"
+      ]
+    },
+    {
+      "id": "K16",
+      "text": "计划、购物、烹饪阅读进度、实吃分别建模；保存、买完、翻到最后一步都不能自动写“吃过”。删除计划后仍可按实际记录。",
+      "tasks": [
+        "T10",
+        "T14",
+        "T16",
+        "T21"
+      ]
+    },
+    {
+      "id": "K17",
+      "text": "采购食材身份、形态、部位、原用量及餐次来源不能删；多来源先选餐，不能由“全部已买”猜一餐完成。",
+      "tasks": [
+        "T10",
+        "T15",
+        "T21"
+      ]
+    },
+    {
+      "id": "K18",
+      "text": "缺价为空，不补零；用户实付0合法；官方参考/真实报价日/估算/实付分开；实付只在当前采购汇总填一次，不自动分摊或做历史账本。叮咚/盒马未配置验收不开放。",
+      "tasks": [
+        "T03",
+        "T15",
+        "T19",
+        "T21"
+      ]
+    },
+    {
+      "id": "K19",
+      "text": "助手保留独立对话页及当前餐/日历/单菜入口；单菜handoff按API+账号隔离、10分钟有效、一次消费；预填不自动发，不自动加菜；已有文字先确认替换。",
+      "tasks": [
+        "T06",
+        "T09",
+        "T17",
+        "T23"
+      ]
+    },
+    {
+      "id": "K20",
+      "text": "空助手最多4个与能力及当前菜单相关的快捷项；上下文一行、菜单折叠；新版语音隐藏，旧兼容仍提示“抱歉，该功能暂不可用”。",
+      "tasks": [
+        "T17",
+        "T18",
+        "T23"
+      ]
+    },
+    {
+      "id": "K21",
+      "text": "Python只提建议，Java鉴权、验证与执行。8类读取和3类动作是现有起点；工具存在、前端可见、服务启用、实际通过是四种不同状态。",
+      "tasks": [
+        "T06",
+        "T07",
+        "T09",
+        "T20",
+        "T22"
+      ]
+    },
+    {
+      "id": "K22",
+      "text": "写入必经目标/来源/变更预览、用户确认、版本/幂等/回执；未知核对原请求；过期重新核对；关助手后不能用旧预览继续写。",
+      "tasks": [
+        "T08",
+        "T09",
+        "T10",
+        "T17",
+        "T21",
+        "T22"
+      ]
+    },
+    {
+      "id": "K23",
+      "text": "硬忌口、早餐资格、权限、菜品/菜单版本与保留项不能为模型降级放宽；近期避重依据明确实吃，计划不冒充实吃；标签兼容原有OR语义。",
+      "tasks": [
+        "T03",
+        "T05",
+        "T06",
+        "T07",
+        "T20",
+        "T21",
+        "T22"
+      ]
+    },
+    {
+      "id": "K24",
+      "text": "长期偏好只由明确保存更新；临时客人、一次换菜、已有食材不自动形成长期记忆。收藏不是“每次都推荐”。",
+      "tasks": [
+        "T05",
+        "T06",
+        "T09",
+        "T18",
+        "T22"
+      ]
+    },
+    {
+      "id": "K25",
+      "text": "质量事实按来源/hash/版本保存；未知份数、克数、时间、营养保持未知。质量异常不得使普通浏览全停，也不得继承失效的换算资格。",
+      "tasks": [
+        "T03",
+        "T04",
+        "T05",
+        "T21"
+      ]
+    },
+    {
+      "id": "K26",
+      "text": "图片目前有精确旧域名兼容；本方案保留现有范围，不推广为全局TLS关闭或任意取图代理。凭据/私人数据不进公开菜库或日志。",
+      "tasks": [
+        "T02",
+        "T04",
+        "T20",
+        "T25"
+      ]
+    },
+    {
+      "id": "K27",
+      "text": "网页个人数据属于本浏览器IndexedDB；共享公开菜库不等于与微信同步；不绘制未实现网页助手或假云端保存。备份/恢复/回收站语义保留。",
+      "tasks": [
+        "T19",
+        "T21",
+        "T25"
+      ]
+    },
+    {
+      "id": "K28",
+      "text": "草稿、会话及事件保留期分别以当前代码/配置核对，不因UI修改扩大；已有回执、清理、恢复边界不可破坏。",
+      "tasks": [
+        "T08",
+        "T10",
+        "T18",
+        "T21"
+      ]
+    },
+    {
+      "id": "K29",
+      "text": "当前V4优先，旧聊天仅兼容；旧同步单并发不扩到V4。已有墓碑/普通分页/复杂排除缓存/旧聊天忙提示修复只回归，不重做。",
+      "tasks": [
+        "T02",
+        "T20",
+        "T21",
+        "T25"
+      ]
+    },
+    {
+      "id": "K30",
+      "text": "API/账号/请求代次隔离；切账号、切环境、退后台后迟到响应不能污染新页面，弱网不伪装退出登录。",
+      "tasks": [
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T21",
+        "T23"
+      ]
+    },
+    {
+      "id": "K31",
+      "text": "删除冗余技术和过程文字，保留用户决定所需的失败、限制、权限、未知和恢复；错误给可执行下一步，不透传SQL/堆栈/供应商原文。",
+      "tasks": [
+        "T02",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T17",
+        "T18",
+        "T19",
+        "T23"
+      ]
+    },
+    {
+      "id": "K32",
+      "text": "预览与实际页面同源验收；截图采集、几何、交互、真机、真实数据、真实模型分开记录；不能以截图数量充当通过率。",
+      "tasks": [
+        "T01",
+        "T21",
+        "T22",
+        "T23",
+        "T24",
+        "T25"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "冻结保留契约与可验证基线（保留回归）",
+      "dependencies": [],
+      "conditionalDependency": null,
+      "status": "complete",
+      "requirements": [
+        "K01",
+        "K32"
+      ],
+      "evidenceNote": "175 planned cases / 27 routes / 32 contracts; baseline Node 14/14; fresh native before capture blocked and explicitly not claimed"
+    },
+    {
+      "id": "T02",
+      "title": "安全错误与最小观测（完善）",
+      "dependencies": [
+        "T01"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K26",
+        "K29",
+        "K31"
+      ]
+    },
+    {
+      "id": "T03",
+      "title": "全量质量审计、分项资格与坏记录隔离（完善）",
+      "dependencies": [
+        "T01",
+        "T02"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K18",
+        "K23",
+        "K25"
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "图片与菜谱事实贯通两端（完善）",
+      "dependencies": [
+        "T03"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K05",
+        "K06",
+        "K25",
+        "K26"
+      ]
+    },
+    {
+      "id": "T05",
+      "title": "推荐质量、显式偏好与真实理由（完善）",
+      "dependencies": [
+        "T03",
+        "T04"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K14",
+        "K23",
+        "K24",
+        "K25"
+      ]
+    },
+    {
+      "id": "T06",
+      "title": "助手上下文去重与扩展协商（完善）",
+      "dependencies": [
+        "T02",
+        "T05"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K19",
+        "K21",
+        "K23",
+        "K24",
+        "K30"
+      ]
+    },
+    {
+      "id": "T07",
+      "title": "合法选项、个人内容读取与结构化澄清（新增连接）",
+      "dependencies": [
+        "T05",
+        "T06"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K21",
+        "K23",
+        "K30"
+      ]
+    },
+    {
+      "id": "T08",
+      "title": "新助手历史与原会话恢复（新增连接）",
+      "dependencies": [
+        "T06"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K22",
+        "K28",
+        "K30"
+      ]
+    },
+    {
+      "id": "T09",
+      "title": "助手到已有功能的安全交接（新增连接）",
+      "dependencies": [
+        "T07",
+        "T08"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K15",
+        "K19",
+        "K21",
+        "K22",
+        "K24",
+        "K30"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "全旅程状态与中断继续（完善）",
+      "dependencies": [
+        "T02",
+        "T08",
+        "T09"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K09",
+        "K11",
+        "K16",
+        "K17",
+        "K22",
+        "K28",
+        "K30",
+        "K31"
+      ]
+    },
+    {
+      "id": "T11",
+      "title": "共享组件、大字、键盘、读屏和动效（完善）",
+      "dependencies": [
+        "T10"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K07",
+        "K08",
+        "K31"
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "今天与本餐结果精修（完善）",
+      "dependencies": [
+        "T05",
+        "T10",
+        "T11"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K01",
+        "K02",
+        "K09",
+        "K10",
+        "K11",
+        "K14",
+        "K31"
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "菜谱、详情、收藏、个人菜与常用菜单（完善）",
+      "dependencies": [
+        "T04",
+        "T09",
+        "T11"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K05",
+        "K06",
+        "K12",
+        "K13",
+        "K15",
+        "K31"
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "日历、实际用餐与回顾（完善）",
+      "dependencies": [
+        "T09",
+        "T10",
+        "T11"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K16",
+        "K31"
+      ]
+    },
+    {
+      "id": "T15",
+      "title": "采购、费用与来源完整衔接（完善）",
+      "dependencies": [
+        "T03",
+        "T09",
+        "T10",
+        "T11"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K17",
+        "K18",
+        "K31"
+      ]
+    },
+    {
+      "id": "T16",
+      "title": "做菜阅读与继续（完善现有进度，不重造）",
+      "dependencies": [
+        "T04",
+        "T10",
+        "T11",
+        "T14"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K13",
+        "K16"
+      ]
+    },
+    {
+      "id": "T17",
+      "title": "助手对话、结果卡与历史界面（完善）",
+      "dependencies": [
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T16"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K06",
+        "K08",
+        "K19",
+        "K20",
+        "K22",
+        "K31"
+      ]
+    },
+    {
+      "id": "T18",
+      "title": "我的、偏好、同步与其余页面（完善）",
+      "dependencies": [
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K01",
+        "K02",
+        "K20",
+        "K24",
+        "K28",
+        "K31"
+      ]
+    },
+    {
+      "id": "T19",
+      "title": "网页完整同风格落地（完善）",
+      "dependencies": [
+        "T04",
+        "T05",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K02",
+        "K03",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K11",
+        "K12",
+        "K15",
+        "K18",
+        "K27",
+        "K31"
+      ]
+    },
+    {
+      "id": "T20",
+      "title": "候选查询与模型资源性能（完善）",
+      "dependencies": [
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T19"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K21",
+        "K23",
+        "K26",
+        "K29"
+      ]
+    },
+    {
+      "id": "T21",
+      "title": "同版本全栈与真实数据隔离验收（验收）",
+      "dependencies": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K10",
+        "K11",
+        "K14",
+        "K15",
+        "K16",
+        "K17",
+        "K18",
+        "K22",
+        "K23",
+        "K25",
+        "K27",
+        "K28",
+        "K29",
+        "K30",
+        "K32"
+      ]
+    },
+    {
+      "id": "T22",
+      "title": "模型离线与有限真实请求验收（验收）",
+      "dependencies": [
+        "T21"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K32"
+      ]
+    },
+    {
+      "id": "T23",
+      "title": "全页面原生、真机与连续交互验收（验收）",
+      "dependencies": [
+        "T21"
+      ],
+      "conditionalDependency": "模型相关场景还依赖T22；原生样式与确定性交互可先验。",
+      "status": "planned",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ]
+    },
+    {
+      "id": "T24",
+      "title": "真实用户任务验证与定向修正（验收）",
+      "dependencies": [
+        "T21",
+        "T23"
+      ],
+      "conditionalDependency": null,
+      "status": "planned",
+      "requirements": [
+        "K32"
+      ]
+    },
+    {
+      "id": "T25",
+      "title": "统一重评、候选打包与上线操作单（交付）",
+      "dependencies": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20",
+        "T21",
+        "T22",
+        "T23",
+        "T24"
+      ],
+      "conditionalDependency": "T23/T24的外部设备或参与者未具备时可以生成候选，但必须将对应发布门标blocked，不能标全量发布就绪。",
+      "status": "planned",
+      "requirements": [
+        "K26",
+        "K27",
+        "K29",
+        "K32"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "route": "pages/index/index",
+      "group": "决策",
+      "style": "F菜品 / A设置",
+      "states": "空菜单、草稿、未应用、生成、保存、未知、冲突",
+      "tasks": [
+        "T12",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/result/result",
+      "group": "决策",
+      "style": "F菜品 / A设置",
+      "states": "空菜单、草稿、未应用、生成、保存、未知、冲突",
+      "tasks": [
+        "T12",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/recommend-filter/recommend-filter",
+      "group": "决策",
+      "style": "F菜品 / A设置",
+      "states": "空菜单、草稿、未应用、生成、保存、未知、冲突",
+      "tasks": [
+        "T12",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/customize/customize",
+      "group": "菜谱与个人内容",
+      "style": "F",
+      "states": "搜索、选择、长名、坏图、缺字段、编辑取消、复制恢复",
+      "tasks": [
+        "T13",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/dish-detail/dish-detail",
+      "group": "菜谱与个人内容",
+      "style": "F",
+      "states": "搜索、选择、长名、坏图、缺字段、编辑取消、复制恢复",
+      "tasks": [
+        "T13",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "group": "菜谱与个人内容",
+      "style": "F",
+      "states": "搜索、选择、长名、坏图、缺字段、编辑取消、复制恢复",
+      "tasks": [
+        "T13",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/custom-dishes/custom-dishes",
+      "group": "菜谱与个人内容",
+      "style": "F",
+      "states": "搜索、选择、长名、坏图、缺字段、编辑取消、复制恢复",
+      "tasks": [
+        "T13",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/calendar/calendar",
+      "group": "执行",
+      "style": "F菜卡 / A工具",
+      "states": "计划与实吃、来源、过期采购、阅读继续、记录确认",
+      "tasks": [
+        "T14",
+        "T15",
+        "T16",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/calendar-detail/calendar-detail",
+      "group": "执行",
+      "style": "F菜卡 / A工具",
+      "states": "计划与实吃、来源、过期采购、阅读继续、记录确认",
+      "tasks": [
+        "T14",
+        "T15",
+        "T16",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/shopping-preview/shopping-preview",
+      "group": "执行",
+      "style": "F菜卡 / A工具",
+      "states": "计划与实吃、来源、过期采购、阅读继续、记录确认",
+      "tasks": [
+        "T14",
+        "T15",
+        "T16",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/shopping-list/shopping-list",
+      "group": "执行",
+      "style": "F菜卡 / A工具",
+      "states": "计划与实吃、来源、过期采购、阅读继续、记录确认",
+      "tasks": [
+        "T14",
+        "T15",
+        "T16",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/meal-cooking/meal-cooking",
+      "group": "执行",
+      "style": "F菜卡 / A工具",
+      "states": "计划与实吃、来源、过期采购、阅读继续、记录确认",
+      "tasks": [
+        "T14",
+        "T15",
+        "T16",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/chat/chat",
+      "group": "助手",
+      "style": "F",
+      "states": "澄清、查询、预览、部分完成、历史、失效、未知恢复",
+      "tasks": [
+        "T08",
+        "T09",
+        "T17",
+        "T22",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/assistant-history/assistant-history",
+      "group": "助手",
+      "style": "F",
+      "states": "澄清、查询、预览、部分完成、历史、失效、未知恢复",
+      "tasks": [
+        "T08",
+        "T09",
+        "T17",
+        "T22",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/profile/profile",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/settings/settings",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/profile-edit/profile-edit",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/statistics/statistics",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/sync/sync",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/about/about",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/logs/logs",
+      "group": "个人与辅助",
+      "style": "A",
+      "states": "偏好范围、实际口径、同步、账户、恢复、空态",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/admin/admin",
+      "group": "管理",
+      "style": "A工具 / F菜卡",
+      "states": "角色权限、搜索分页、空失败、大字；不扩大管理业务",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "group": "管理",
+      "style": "A工具 / F菜卡",
+      "states": "角色权限、搜索分页、空失败、大字；不扩大管理业务",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/admin-users/admin-users",
+      "group": "管理",
+      "style": "A工具 / F菜卡",
+      "states": "角色权限、搜索分页、空失败、大字；不扩大管理业务",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "group": "管理",
+      "style": "A工具 / F菜卡",
+      "states": "角色权限、搜索分页、空失败、大字；不扩大管理业务",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/admin-dishes/admin-dishes",
+      "group": "管理",
+      "style": "A工具 / F菜卡",
+      "states": "角色权限、搜索分页、空失败、大字；不扩大管理业务",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    },
+    {
+      "route": "pages/admin-audit/admin-audit",
+      "group": "管理",
+      "style": "A工具 / F菜卡",
+      "states": "角色权限、搜索分页、空失败、大字；不扩大管理业务",
+      "tasks": [
+        "T18",
+        "T23"
+      ],
+      "status": "planned"
+    }
+  ],
+  "web": {
+    "scope": "Today/Recipes/Calendar/Shopping/My/PersonalActions/DataManagement",
+    "tasks": [
+      "T04",
+      "T05",
+      "T19",
+      "T21",
+      "T23",
+      "T25"
+    ],
+    "boundary": "Public catalog + browser-local personal data; no WeChat cloud sync or web assistant"
+  },
+  "evidenceClasses": [
+    "source",
+    "unit",
+    "isolated_fullstack",
+    "real_provider",
+    "native_simulator",
+    "real_device",
+    "human_usability",
+    "production"
+  ],
+  "releaseGates": [
+    "final_code_and_data",
+    "real_device_core_paths",
+    "model_capability_evidence",
+    "matched_candidate",
+    "specific_production_approval"
+  ]
+}

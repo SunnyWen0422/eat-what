@@ -1,0 +1,6642 @@
+{
+  "schemaVersion": 1,
+  "kind": "requirements_not_results",
+  "baseline": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+  "cases": [
+    {
+      "id": "index-populated",
+      "route": "pages/index/index",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "index",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "index-loading",
+      "route": "pages/index/index",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "index",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "index-empty",
+      "route": "pages/index/index",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "index",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "index-read_failure",
+      "route": "pages/index/index",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "index",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "index-access_or_capability_unavailable",
+      "route": "pages/index/index",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "index",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "result-populated",
+      "route": "pages/result/result",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "result",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "result-loading",
+      "route": "pages/result/result",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "result",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "result-empty",
+      "route": "pages/result/result",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "result",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "result-read_failure",
+      "route": "pages/result/result",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "result",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "result-access_or_capability_unavailable",
+      "route": "pages/result/result",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "result",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "recommend-filter-populated",
+      "route": "pages/recommend-filter/recommend-filter",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "recommend-filter",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "recommend-filter-loading",
+      "route": "pages/recommend-filter/recommend-filter",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "recommend-filter",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "recommend-filter-empty",
+      "route": "pages/recommend-filter/recommend-filter",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "recommend-filter",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "recommend-filter-read_failure",
+      "route": "pages/recommend-filter/recommend-filter",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "recommend-filter",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "recommend-filter-access_or_capability_unavailable",
+      "route": "pages/recommend-filter/recommend-filter",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "recommend-filter",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "customize-populated",
+      "route": "pages/customize/customize",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "customize",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "customize-loading",
+      "route": "pages/customize/customize",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "customize",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "customize-empty",
+      "route": "pages/customize/customize",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "customize",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "customize-read_failure",
+      "route": "pages/customize/customize",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "customize",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "customize-access_or_capability_unavailable",
+      "route": "pages/customize/customize",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "customize",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "dish-detail-populated",
+      "route": "pages/dish-detail/dish-detail",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "dish-detail",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "dish-detail-loading",
+      "route": "pages/dish-detail/dish-detail",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "dish-detail",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "dish-detail-empty",
+      "route": "pages/dish-detail/dish-detail",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "dish-detail",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "dish-detail-read_failure",
+      "route": "pages/dish-detail/dish-detail",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "dish-detail",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "dish-detail-access_or_capability_unavailable",
+      "route": "pages/dish-detail/dish-detail",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "dish-detail",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "favorite-dishes-populated",
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "favorite-dishes",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "favorite-dishes-loading",
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "favorite-dishes",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "favorite-dishes-empty",
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "favorite-dishes",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "favorite-dishes-read_failure",
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "favorite-dishes",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "favorite-dishes-access_or_capability_unavailable",
+      "route": "pages/favorite-dishes/favorite-dishes",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "favorite-dishes",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "custom-dishes-populated",
+      "route": "pages/custom-dishes/custom-dishes",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "custom-dishes",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "custom-dishes-loading",
+      "route": "pages/custom-dishes/custom-dishes",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "custom-dishes",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "custom-dishes-empty",
+      "route": "pages/custom-dishes/custom-dishes",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "custom-dishes",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "custom-dishes-read_failure",
+      "route": "pages/custom-dishes/custom-dishes",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "custom-dishes",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "custom-dishes-access_or_capability_unavailable",
+      "route": "pages/custom-dishes/custom-dishes",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "custom-dishes",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-populated",
+      "route": "pages/calendar/calendar",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "calendar-loading",
+      "route": "pages/calendar/calendar",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-empty",
+      "route": "pages/calendar/calendar",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-read_failure",
+      "route": "pages/calendar/calendar",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-access_or_capability_unavailable",
+      "route": "pages/calendar/calendar",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-detail-populated",
+      "route": "pages/calendar-detail/calendar-detail",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar-detail",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "calendar-detail-loading",
+      "route": "pages/calendar-detail/calendar-detail",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar-detail",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-detail-empty",
+      "route": "pages/calendar-detail/calendar-detail",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar-detail",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-detail-read_failure",
+      "route": "pages/calendar-detail/calendar-detail",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar-detail",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "calendar-detail-access_or_capability_unavailable",
+      "route": "pages/calendar-detail/calendar-detail",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "calendar-detail",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-preview-populated",
+      "route": "pages/shopping-preview/shopping-preview",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-preview",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "shopping-preview-loading",
+      "route": "pages/shopping-preview/shopping-preview",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-preview",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-preview-empty",
+      "route": "pages/shopping-preview/shopping-preview",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-preview",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-preview-read_failure",
+      "route": "pages/shopping-preview/shopping-preview",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-preview",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-preview-access_or_capability_unavailable",
+      "route": "pages/shopping-preview/shopping-preview",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-preview",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-list-populated",
+      "route": "pages/shopping-list/shopping-list",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-list",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "shopping-list-loading",
+      "route": "pages/shopping-list/shopping-list",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-list",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-list-empty",
+      "route": "pages/shopping-list/shopping-list",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-list",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-list-read_failure",
+      "route": "pages/shopping-list/shopping-list",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-list",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "shopping-list-access_or_capability_unavailable",
+      "route": "pages/shopping-list/shopping-list",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "shopping-list",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "meal-cooking-populated",
+      "route": "pages/meal-cooking/meal-cooking",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "meal-cooking",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "meal-cooking-loading",
+      "route": "pages/meal-cooking/meal-cooking",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "meal-cooking",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "meal-cooking-empty",
+      "route": "pages/meal-cooking/meal-cooking",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "meal-cooking",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "meal-cooking-read_failure",
+      "route": "pages/meal-cooking/meal-cooking",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "meal-cooking",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "meal-cooking-access_or_capability_unavailable",
+      "route": "pages/meal-cooking/meal-cooking",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K16",
+        "K17",
+        "K18",
+        "K19",
+        "K20",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "meal-cooking",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "chat-populated",
+      "route": "pages/chat/chat",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "chat",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "chat-loading",
+      "route": "pages/chat/chat",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "chat",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "chat-empty",
+      "route": "pages/chat/chat",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "chat",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "chat-read_failure",
+      "route": "pages/chat/chat",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "chat",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "chat-access_or_capability_unavailable",
+      "route": "pages/chat/chat",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "chat",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "assistant-history-populated",
+      "route": "pages/assistant-history/assistant-history",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "assistant-history",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "assistant-history-loading",
+      "route": "pages/assistant-history/assistant-history",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "assistant-history",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "assistant-history-empty",
+      "route": "pages/assistant-history/assistant-history",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "assistant-history",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "assistant-history-read_failure",
+      "route": "pages/assistant-history/assistant-history",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "assistant-history",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "assistant-history-access_or_capability_unavailable",
+      "route": "pages/assistant-history/assistant-history",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K15",
+        "K19",
+        "K20",
+        "K21",
+        "K22",
+        "K23",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "assistant-history",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-populated",
+      "route": "pages/profile/profile",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "profile-loading",
+      "route": "pages/profile/profile",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-empty",
+      "route": "pages/profile/profile",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-read_failure",
+      "route": "pages/profile/profile",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-access_or_capability_unavailable",
+      "route": "pages/profile/profile",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "settings-populated",
+      "route": "pages/settings/settings",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "settings",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "settings-loading",
+      "route": "pages/settings/settings",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "settings",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "settings-empty",
+      "route": "pages/settings/settings",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "settings",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "settings-read_failure",
+      "route": "pages/settings/settings",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "settings",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "settings-access_or_capability_unavailable",
+      "route": "pages/settings/settings",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "settings",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-edit-populated",
+      "route": "pages/profile-edit/profile-edit",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile-edit",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "profile-edit-loading",
+      "route": "pages/profile-edit/profile-edit",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile-edit",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-edit-empty",
+      "route": "pages/profile-edit/profile-edit",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile-edit",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-edit-read_failure",
+      "route": "pages/profile-edit/profile-edit",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile-edit",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "profile-edit-access_or_capability_unavailable",
+      "route": "pages/profile-edit/profile-edit",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "profile-edit",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "statistics-populated",
+      "route": "pages/statistics/statistics",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "statistics",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "statistics-loading",
+      "route": "pages/statistics/statistics",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "statistics",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "statistics-empty",
+      "route": "pages/statistics/statistics",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "statistics",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "statistics-read_failure",
+      "route": "pages/statistics/statistics",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "statistics",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "statistics-access_or_capability_unavailable",
+      "route": "pages/statistics/statistics",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "statistics",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "sync-populated",
+      "route": "pages/sync/sync",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "sync",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "sync-loading",
+      "route": "pages/sync/sync",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "sync",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "sync-empty",
+      "route": "pages/sync/sync",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "sync",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "sync-read_failure",
+      "route": "pages/sync/sync",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "sync",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "sync-access_or_capability_unavailable",
+      "route": "pages/sync/sync",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "sync",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "about-populated",
+      "route": "pages/about/about",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "about",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "about-loading",
+      "route": "pages/about/about",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "about",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "about-empty",
+      "route": "pages/about/about",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "about",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "about-read_failure",
+      "route": "pages/about/about",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "about",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "about-access_or_capability_unavailable",
+      "route": "pages/about/about",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "about",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "logs-populated",
+      "route": "pages/logs/logs",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "logs",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "logs-loading",
+      "route": "pages/logs/logs",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "logs",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "logs-empty",
+      "route": "pages/logs/logs",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "logs",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "logs-read_failure",
+      "route": "pages/logs/logs",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "logs",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "logs-access_or_capability_unavailable",
+      "route": "pages/logs/logs",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "logs",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-populated",
+      "route": "pages/admin/admin",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "admin-loading",
+      "route": "pages/admin/admin",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-empty",
+      "route": "pages/admin/admin",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-read_failure",
+      "route": "pages/admin/admin",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-access_or_capability_unavailable",
+      "route": "pages/admin/admin",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dashboard-populated",
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dashboard",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "admin-dashboard-loading",
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dashboard",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dashboard-empty",
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dashboard",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dashboard-read_failure",
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dashboard",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dashboard-access_or_capability_unavailable",
+      "route": "pages/admin-dashboard/admin-dashboard",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dashboard",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-users-populated",
+      "route": "pages/admin-users/admin-users",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-users",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "admin-users-loading",
+      "route": "pages/admin-users/admin-users",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-users",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-users-empty",
+      "route": "pages/admin-users/admin-users",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-users",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-users-read_failure",
+      "route": "pages/admin-users/admin-users",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-users",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-users-access_or_capability_unavailable",
+      "route": "pages/admin-users/admin-users",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-users",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-user-detail-populated",
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-user-detail",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "admin-user-detail-loading",
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-user-detail",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-user-detail-empty",
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-user-detail",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-user-detail-read_failure",
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-user-detail",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-user-detail-access_or_capability_unavailable",
+      "route": "pages/admin-user-detail/admin-user-detail",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-user-detail",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dishes-populated",
+      "route": "pages/admin-dishes/admin-dishes",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dishes",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "admin-dishes-loading",
+      "route": "pages/admin-dishes/admin-dishes",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dishes",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dishes-empty",
+      "route": "pages/admin-dishes/admin-dishes",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dishes",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dishes-read_failure",
+      "route": "pages/admin-dishes/admin-dishes",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dishes",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-dishes-access_or_capability_unavailable",
+      "route": "pages/admin-dishes/admin-dishes",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-dishes",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-audit-populated",
+      "route": "pages/admin-audit/admin-audit",
+      "scenario": "populated",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-audit",
+        "state": "populated",
+        "needsDomainFixture": true
+      }
+    },
+    {
+      "id": "admin-audit-loading",
+      "route": "pages/admin-audit/admin-audit",
+      "scenario": "loading",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-audit",
+        "state": "loading",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-audit-empty",
+      "route": "pages/admin-audit/admin-audit",
+      "scenario": "empty",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-audit",
+        "state": "empty",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-audit-read_failure",
+      "route": "pages/admin-audit/admin-audit",
+      "scenario": "read_failure",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-audit",
+        "state": "read_failure",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "admin-audit-access_or_capability_unavailable",
+      "route": "pages/admin-audit/admin-audit",
+      "scenario": "access_or_capability_unavailable",
+      "requirements": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K12",
+        "K13",
+        "K19",
+        "K20",
+        "K24",
+        "K28",
+        "K30",
+        "K31",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-owned",
+      "environment": "native-isolated",
+      "status": "planned",
+      "evidence": [],
+      "assertions": [
+        "readable content and actionable controls",
+        "no unrelated technical diagnostics",
+        "recovery preserves original request when applicable"
+      ],
+      "fixture": {
+        "page": "admin-audit",
+        "state": "access_or_capability_unavailable",
+        "needsDomainFixture": false
+      }
+    },
+    {
+      "id": "journey-auto-meal-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open current dinner",
+        "generate",
+        "inspect real dishes",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-auto-meal-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open current dinner",
+        "generate",
+        "inspect real dishes",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-auto-meal-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open current dinner",
+        "generate",
+        "inspect real dishes",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-auto-meal-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open current dinner",
+        "generate",
+        "inspect real dishes",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-auto-meal-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open current dinner",
+        "generate",
+        "inspect real dishes",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-manual-meal-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "browse recipes",
+        "select dishes",
+        "return to meal",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-manual-meal-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "browse recipes",
+        "select dishes",
+        "return to meal",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-manual-meal-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "browse recipes",
+        "select dishes",
+        "return to meal",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-manual-meal-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "browse recipes",
+        "select dishes",
+        "return to meal",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-manual-meal-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "browse recipes",
+        "select dishes",
+        "return to meal",
+        "save specified target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-meal-adjustment-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "keep first dish",
+        "replace another",
+        "change settings",
+        "apply",
+        "verify kept dish"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-meal-adjustment-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "keep first dish",
+        "replace another",
+        "change settings",
+        "apply",
+        "verify kept dish"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-meal-adjustment-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "keep first dish",
+        "replace another",
+        "change settings",
+        "apply",
+        "verify kept dish"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-meal-adjustment-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "keep first dish",
+        "replace another",
+        "change settings",
+        "apply",
+        "verify kept dish"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-meal-adjustment-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "keep first dish",
+        "replace another",
+        "change settings",
+        "apply",
+        "verify kept dish"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-calendar-save-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "choose future meal",
+        "preview conflict",
+        "cancel",
+        "confirm once",
+        "verify receipt and target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-calendar-save-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "choose future meal",
+        "preview conflict",
+        "cancel",
+        "confirm once",
+        "verify receipt and target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-calendar-save-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "choose future meal",
+        "preview conflict",
+        "cancel",
+        "confirm once",
+        "verify receipt and target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-calendar-save-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "choose future meal",
+        "preview conflict",
+        "cancel",
+        "confirm once",
+        "verify receipt and target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-calendar-save-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "choose future meal",
+        "preview conflict",
+        "cancel",
+        "confirm once",
+        "verify receipt and target"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-shopping-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "preview saved meal",
+        "exclude existing ingredient",
+        "confirm selected sources",
+        "verify actual added keys"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-shopping-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "preview saved meal",
+        "exclude existing ingredient",
+        "confirm selected sources",
+        "verify actual added keys"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-shopping-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "preview saved meal",
+        "exclude existing ingredient",
+        "confirm selected sources",
+        "verify actual added keys"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-shopping-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "preview saved meal",
+        "exclude existing ingredient",
+        "confirm selected sources",
+        "verify actual added keys"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-shopping-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "preview saved meal",
+        "exclude existing ingredient",
+        "confirm selected sources",
+        "verify actual added keys"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-cooking-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open saved meal",
+        "read step",
+        "leave and resume",
+        "verify unchanged actual record"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-cooking-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open saved meal",
+        "read step",
+        "leave and resume",
+        "verify unchanged actual record"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-cooking-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open saved meal",
+        "read step",
+        "leave and resume",
+        "verify unchanged actual record"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-cooking-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open saved meal",
+        "read step",
+        "leave and resume",
+        "verify unchanged actual record"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-cooking-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "open saved meal",
+        "read step",
+        "leave and resume",
+        "verify unchanged actual record"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-actual-correction-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "record actual different from plan",
+        "verify eaten entries",
+        "edit actual",
+        "verify old plan unchanged"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-actual-correction-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "record actual different from plan",
+        "verify eaten entries",
+        "edit actual",
+        "verify old plan unchanged"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-actual-correction-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "record actual different from plan",
+        "verify eaten entries",
+        "edit actual",
+        "verify old plan unchanged"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-actual-correction-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "record actual different from plan",
+        "verify eaten entries",
+        "edit actual",
+        "verify old plan unchanged"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-actual-correction-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "record actual different from plan",
+        "verify eaten entries",
+        "edit actual",
+        "verify old plan unchanged"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-interruption-recovery-normal",
+      "route": "journey",
+      "scenario": "normal",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "submit write",
+        "drop response",
+        "restart",
+        "query original request",
+        "verify one write"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-interruption-recovery-cancel",
+      "route": "journey",
+      "scenario": "cancel",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "submit write",
+        "drop response",
+        "restart",
+        "query original request",
+        "verify one write"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-interruption-recovery-double_click",
+      "route": "journey",
+      "scenario": "double_click",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "submit write",
+        "drop response",
+        "restart",
+        "query original request",
+        "verify one write"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-interruption-recovery-offline_reopen",
+      "route": "journey",
+      "scenario": "offline_reopen",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "submit write",
+        "drop response",
+        "restart",
+        "query original request",
+        "verify one write"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    },
+    {
+      "id": "journey-interruption-recovery-account_change",
+      "route": "journey",
+      "scenario": "account_change",
+      "requirements": [
+        "K15",
+        "K16",
+        "K22",
+        "K30",
+        "K32"
+      ],
+      "sourceSha": "4b28ae106b722e8787b38d9c6da9d800fcc283ac",
+      "dataset": "synthetic-or-anonymized-owned",
+      "environment": "local-fullstack",
+      "status": "planned",
+      "evidence": [],
+      "steps": [
+        "submit write",
+        "drop response",
+        "restart",
+        "query original request",
+        "verify one write"
+      ],
+      "assertions": [
+        "persisted outcome matches displayed target",
+        "no duplicate write",
+        "cancel does not imply success",
+        "no cross-scope late mutation"
+      ]
+    }
+  ]
+}
