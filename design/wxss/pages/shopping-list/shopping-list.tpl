@@ -72,3 +72,10 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-page .dish-header { margin:0; white-space:normal; }
 .shopping-page .view-count { font-size:0.8125em; }
 .shopping-page button.dish-header { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }
+
+.shopping-costs { margin:12px 0 24px; padding:16px; border:1px solid {{border}}; border-radius:16px; background:{{card}}; }
+.cost-totals { display:flex; flex-wrap:wrap; gap:8px 16px; padding:8px 0; }
+.cost-row { display:flex; gap:8px; align-items:center; padding:12px 0; border-top:1px solid {{divider}}; }
+.cost-row .ew-grow { min-width:0; flex:1; overflow-wrap:anywhere; }
+.cost-row text { display:block; }
+.cost-row button { flex:0 0 auto; max-width:45%; white-space:normal; }

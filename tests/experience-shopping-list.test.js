@@ -297,12 +297,12 @@ test('the page only has pending and bought states and reuses compact rows and pe
   assert.equal(h.page.data.statusFilter, 'pending')
 })
 
-test('cost UI and automatic capability or quote reads are hidden without deleting old expenses', async () => {
+test('costs stay folded without automatic reads or deleting old expenses', async () => {
   const h = pageHarness(); await h.page.loadList()
   assert.equal(h.priceReads(), 0); assert.equal(h.capabilityReads(), 0)
   assert.deepEqual(plain(h.page._full.expenses), { old: { amount: '9.00' } })
   assert.deepEqual(plain(h.store.loadLocalShoppingList().expenses), { old: { amount: '9.00' } })
-  assert.doesNotMatch(read('pages/shopping-list/shopping-list.wxml'), /cost-overview|实际花费|记实付|参考价格|pricingRows|expenseVisible/)
+  assert.equal(!!h.page.data.detailsExpanded,false);assert.match(read('pages/shopping-list/shopping-list.wxml'), /wx:if="\{\{detailsExpanded\}\}"/)
 })
 
 for (const scope of ['checked', 'all']) test(`clear ${scope} confirms the exact source count and leaves calendar recipe and actual records outside the write`, async () => {

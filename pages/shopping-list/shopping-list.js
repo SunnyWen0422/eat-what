@@ -36,7 +36,7 @@ Page({
     const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
     this.finishTransition(); this.invalidateUndo()
     this.setData({ reducedMotion: experiencePreferences().get().reducedMotion })
-    if (this._scope !== scope) { this._undo=null;this._expandedDishes=[];this._expandedSources=[];this.setData({feedback:emptyFeedback(),statusFilter:'pending',viewMode:'summary'});this.setData({sourceMealsVisible:false,detailsExpanded:false,moreVisible:false,addVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
+    if (this._scope !== scope) { this._quotes={};this._priceEpoch=(this._priceEpoch||0)+1;this._undo=null;this._expandedDishes=[];this._expandedSources=[];this.setData({feedback:emptyFeedback(),statusFilter:'pending',viewMode:'summary'});this.setData({sourceMealsVisible:false,detailsExpanded:false,moreVisible:false,addVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ priceLoading:false,expensesEnabled:false,priceNotice:'',expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
     this._scope = scope
     this.applyList(store.loadLocalShoppingList())
     this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
@@ -53,7 +53,7 @@ Page({
     if (this._undo && Number(next.version) !== this._undo.expectedListVersion) this.invalidateUndo()
     if (this._settlingCheck && Number(next.version) !== this._settlingCheck.version) this.finishTransition()
     this._full = next
-    this.setData({ version: Number(next.version) || 0 }); this.renderList()
+    this.setData({ version: Number(next.version) || 0 }); this.renderList();if(this.data.detailsExpanded)this.refreshPricing()
   },
   renderList() {
     const view = buildShoppingView(this._full, this.data.statusFilter)
@@ -68,14 +68,39 @@ Page({
     this.setData({ sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
       dishes, summaryRows: decorateShoppingRows(display.rows.map(decorate), [], this._expandedSources || []) })
   },
-  // Pricing remains available in its utilities/backend, but this page has no price entry or automatic read.
-  async loadPrices(scope, epoch) { if (this.current(scope) && epoch === this._epoch) this.setData({ expensesEnabled: false, priceNotice: '' }) },
-  onEditExpense(e) {const row=this.data.pricingRows.find(r=>r.ingredientKey===e.currentTarget.dataset.key);if(!row||!this.current(this._scope)||!this.data.expensesEnabled)return;this._expenseKey=row.ingredientKey;this.setData({expenseVisible:true,expenseName:row.displayName,expenseAmount:row.expense?String(row.expense.amount):'',expenseChannel:row.channel||'',formError:''})},
+  refreshPricing(){
+    if(!this._full)return
+    const view=pricing.buildPricing(this._full,this._quotes||{})
+    this.setData({pricingRows:view.rows.map(row=>({...row,displayName:row.displayName+(row.normalizedVariant&&!row.displayName.includes(row.normalizedVariant)?'（'+row.normalizedVariant+'）':'')})),pendingPrice:view.pendingText,actualSpend:view.actualText,pendingMissing:view.pendingMissing})
+  },
+  async loadPrices(scope,epoch){
+    if(!this.data.detailsExpanded||!this.current(scope)||epoch!==this._epoch)return
+    const version=this._full.version,run=this._priceEpoch=(this._priceEpoch||0)+1
+    const current=()=>this.current(scope)&&epoch===this._epoch&&run===this._priceEpoch&&version===this._full.version
+    this.setData({priceLoading:true,expensesEnabled:false,priceNotice:''});this.refreshPricing()
+    try{
+      const app=typeof getApp==='function'?getApp():null;if(app&&app.waitForLogin)await app.waitForLogin()
+      if(!current())return
+      const capabilities=require('../../utils/shopping-capabilities'),config=await capabilities.refresh()
+      if(!current())return
+      this._quotes={};let notice=capabilities.notice()
+      if(config.pricesEnabled){
+        const rows=pricing.buildPricing(this._full).rows.map(row=>({ingredientKey:row.ingredientKey,canonicalName:row.canonicalName,normalizedVariant:row.normalizedVariant}))
+        try{for(let i=0;i<rows.length;i+=500){const batch=await api.getIngredientPriceQuotes(rows.slice(i,i+500));if(!current())return;Object.assign(this._quotes,batch)}}
+        catch(error){if(!current())return;if(error.statusCode===404)capabilities.markQuotesUnavailable();notice='参考价暂不可用；实际支出仍可单独记录'}
+      }
+      if(!current())return
+      this.setData({expensesEnabled:config.expensesEnabled===true,priceNotice:notice});this.refreshPricing()
+    }catch(error){if(current())this.setData({priceNotice:'费用服务暂不可用，清单可继续使用'})}
+    finally{if(this.current(scope)&&run===this._priceEpoch)this.setData({priceLoading:false})}
+  },
+  onEditExpense(e) {const row=this.data.pricingRows.find(r=>r.ingredientKey===e.currentTarget.dataset.key);if(!row||!this.current(this._scope)||!this.data.expensesEnabled)return;this._expenseKey=row.ingredientKey;this._expenseVersion=this.data.version;this.setData({expenseVisible:true,expenseName:row.displayName,expenseAmount:row.expense?String(row.expense.amount):'',expenseChannel:row.channel||'',formError:''})},
   onExpenseAmount(e){this.setData({expenseAmount:e.detail.value})},
   onExpenseChannel(e){this.setData({expenseChannel:pricing.CHANNELS[Number(e.detail.value)]})},
   closeExpense(){if(!this.data.busy)this.setData({expenseVisible:false})},
-  saveExpense(){try{pricing.amountCents(this.data.expenseAmount)}catch(error){return this.setData({formError:error.message})}return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,amount:String(this.data.expenseAmount).trim(),channel:this.data.expenseChannel}))},
-  removeExpense(){return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,remove:true}))},
+  canSaveExpense(){if(!this.current(this._scope)||this.data.busy||!this.data.expensesEnabled||!this.data.expenseVisible)return false;if(this._expenseVersion!==this.data.version||!this.data.pricingRows.some(row=>row.ingredientKey===this._expenseKey)){this.setData({formError:'清单已变化，请重新选择食材再记录支出'});return false}return true},
+  saveExpense(){if(!this.canSaveExpense())return;try{pricing.amountCents(this.data.expenseAmount)}catch(error){return this.setData({formError:error.message})}return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,amount:String(this.data.expenseAmount).trim(),channel:this.data.expenseChannel}))},
+  removeExpense(){if(!this.canSaveExpense())return;return this.perform(this.stableOperation('expense',{ingredientKey:this._expenseKey,remove:true}))},
   onOpenSourceMeal(event) {
     if(!this.current(this._scope) || this.data.busy)return
     const targets=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes)
@@ -88,7 +113,8 @@ Page({
   onCloseSourceMeals(){this.setData({sourceMealsVisible:false})},
   onCopyList(){wx.setClipboardData({data:pricing.copyPending(this._full)})},
   onMore(){this.setData({moreVisible:!this.data.moreVisible})},
-  onPriceDetails(){this.setData({detailsExpanded:!this.data.detailsExpanded})},
+  async onPriceDetails(){if(!this.current(this._scope)||this.data.busy)return;this.setData({detailsExpanded:!this.data.detailsExpanded});if(this.data.detailsExpanded)return this.loadPrices(this._scope,this._epoch)},
+  onAddFromCalendar(){this.setData({addVisible:false});wx.switchTab({url:'/pages/calendar/calendar'})},
   onSourceDetails(e){const key=e.detail && e.detail.key || e.currentTarget.dataset.key;this._expandedSources=this._expandedSources||[];this._expandedSources=this._expandedSources.includes(key)?this._expandedSources.filter(k=>k!==key):[...this._expandedSources,key];this.renderList()},
   onFilterChange(e) { const status=e.currentTarget.dataset.status; if (!['pending','checked'].includes(status)) return; this.finishTransition(); this.setData({ statusFilter: status }); this.renderList() },
   onViewMode(e) { const mode=e.currentTarget.dataset.mode; if (!['summary','byDish'].includes(mode)) return; this.finishTransition(); this.setData({ viewMode: mode }) },

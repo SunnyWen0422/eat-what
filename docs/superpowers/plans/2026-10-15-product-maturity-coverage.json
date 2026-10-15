@@ -595,13 +595,14 @@
         "T11"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K17",
         "K18",
         "K31"
-      ]
+      ],
+      "evidenceNote": "122 Node checks pass; costs restored only on explicit expand, capability/backoff and scoped version guard, missing/zero/unconvertible rules, current-summary expense editor and calendar entry. Ruling: prior test forbidding every cost entry superseded by approved T15 optional-cost requirement; auto-read prohibition retained; cost if wrong is a folded entry. DB and native not yet verified."
     },
     {
       "id": "T16",

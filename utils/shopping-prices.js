@@ -44,7 +44,7 @@ function buildPricing(list, quotes = {}, today = shanghaiDate()) {
     for (const raw of dish.items || []) {
       const item = { ...raw, sourceDishId: dish.dishId || raw.sourceDishId }
       const key = ingredientKey(item), quote = quotes[key], cost = estimate(item, quote, today)
-      if (!groups.has(key)) groups.set(key, { ingredientKey: key, displayName: item.displayName, canonicalName: item.canonicalName || item.displayName, normalizedVariant: item.normalizedVariant || '', items: [], cents: 0, missing: 0, priced: 0, quote: usableQuote(quote, today) ? quote : null })
+      if (!groups.has(key)) groups.set(key, { ingredientKey: key, displayName: item.displayName || item.canonicalName || '未命名食材', canonicalName: item.canonicalName || item.displayName, normalizedVariant: item.normalizedVariant || '', items: [], cents: 0, missing: 0, priced: 0, quote: usableQuote(quote, today) ? quote : null })
       const group = groups.get(key); group.items.push(item)
       if (cost == null) { missing++; group.missing++ } else { cents += cost; priced++; group.cents += cost; group.priced++ }
       if (!item.checked) { if (cost == null) pendingMissing++; else { pendingCents += cost; pendingPriced++ } }
@@ -53,7 +53,8 @@ function buildPricing(list, quotes = {}, today = shanghaiDate()) {
   }
   let actualCents = 0, recorded = 0
   const rows = [...groups.values()].map(group => {
-    const expense = (list.expenses || {})[group.ingredientKey]
+    const saved = (list.expenses || {})[group.ingredientKey]
+    const expense = saved && saved.amount != null ? saved : null
     if (expense && expense.amount != null) { actualCents += amountCents(expense.amount); recorded++ }
     const q = group.quote
     return { ...group, quantityText: totalQuantity(group.items), referenceText: group.missing ? '—' : money(group.priced ? group.cents : null),
