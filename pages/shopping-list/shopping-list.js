@@ -72,9 +72,9 @@ Page({
   onOpenSourceMeal(event) {
     if(!this.current(this._scope) || this.data.busy)return
     const targets=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes)
-    const index=event && event.currentTarget && event.currentTarget.dataset.index
-    if(index==null && targets.length>1){this.setData({sourceMealsVisible:true});return}
-    const target=targets[index==null?0:Number(index)]
+    const key=event && event.currentTarget && event.currentTarget.dataset.key
+    if(key==null && targets.length>1){this.setData({sourceMealsVisible:true});return}
+    const target=key==null?targets[0]:targets.find(t=>t.date+':'+t.mealType===key)
     if(!target)return
     this.setData({sourceMealsVisible:false});wx.navigateTo({url:require('../../utils/meal-next-step').mealSourceUrl(target)})
   },
