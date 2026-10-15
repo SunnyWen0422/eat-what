@@ -770,6 +770,7 @@ function getAdminAuditLogs(params = {}) {
 
 module.exports = {
   getAssistantV4Capabilities: () => assistantRequest('/assistant/v4/capabilities','GET'),
+  getAssistantV4Sessions: ({cursor,limit=20}={}) => assistantRequest('/assistant/v4/sessions?limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''),'GET'),
   createAssistantV4Session: body => assistantRequest('/assistant/v4/sessions','POST',body),
   getAssistantV4Session: (id,{cursor,limit=30}={}) => assistantRequest('/assistant/v4/sessions/'+encodeURIComponent(id)+'?limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''),'GET'),
   sendAssistantV4Turn: (id,body) => assistantRequest('/assistant/v4/sessions/'+encodeURIComponent(id)+'/turns','POST',body,{acceptedStatuses:[200,202]}),

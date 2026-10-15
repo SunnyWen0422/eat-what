@@ -6,6 +6,14 @@ import java.util.*;
 
 @Mapper
 public interface AssistantV4Mapper {
+    @Select("<script>SELECT s.id AS sessionId,s.user_id AS userId,s.workspace_id AS workspaceId,s.updated_at AS updatedAt,w.meal_date AS date,w.meal_type AS mealType,w.revision AS workspaceRevision,JSON_EXTRACT(w.state_json,'$.draft.planVersion') AS planVersion,"
+        +"(SELECT t.status FROM assistant_v4_turn t WHERE t.user_id=s.user_id AND t.session_id=s.id ORDER BY t.updated_at DESC,t.id DESC LIMIT 1) AS lastStatus,"
+        +"EXISTS(SELECT 1 FROM assistant_v4_turn t WHERE t.user_id=s.user_id AND t.session_id=s.id AND t.status IN ('queued','running','awaiting_confirmation')) AS hasPending "
+        +"FROM assistant_v4_session s LEFT JOIN meal_workspace w ON w.user_id=s.user_id AND w.id=s.workspace_id "
+        +"WHERE s.user_id=#{user} AND (s.updated_at&lt;#{before} OR (s.updated_at=#{before} AND s.id&lt;#{id})) ORDER BY s.updated_at DESC,s.id DESC LIMIT #{limit}</script>")
+    List<SessionSummary> sessions(@Param("user") Long user,@Param("before") long before,@Param("id") String id,@Param("limit") int limit);
+    @Select("SELECT "+TURN+" FROM assistant_v4_turn WHERE user_id=#{user} AND session_id=#{session} ORDER BY updated_at DESC,id DESC LIMIT 1")
+    TurnRecord latestSessionTurn(@Param("user") Long user,@Param("session") String session);
     @Update("UPDATE assistant_v4_turn SET result_json=#{result} WHERE user_id=#{user} AND id=#{id} AND status='needs_input'") int consumeClarification(@Param("user") Long user,@Param("id") String id,@Param("result") String result);
     @Select("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE' AND table_name IN ('assistant_v4_session','assistant_v4_turn','assistant_v4_message')") int installedSchemaTables();
     String SESSION="id,user_id AS userId,workspace_id AS workspaceId,request_id AS requestId,request_hash AS requestHash,created_at AS createdAt,updated_at AS updatedAt";

@@ -12,3 +12,5 @@
 .history-message.history-user { margin-left:auto; background:{{brand}}; color:{{card}}; border-color:{{brand}}; border-radius:16px 16px 4px 16px; }
 .history-user .ew-muted { color:{{card}}; }
 .history-meal { padding:16px; margin:16px 0; }
+.history-entry { margin:16px 0; }
+.history-entry > ui-button { display:block; margin-top:8px; }

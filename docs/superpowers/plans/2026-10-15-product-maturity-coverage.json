@@ -458,12 +458,13 @@
         "T06"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K22",
         "K28",
         "K30"
-      ]
+      ],
+      "evidenceNote": "Node47/47; Java105/105; same-time owner scoped keyset history; original session and pending request preservation; templates generated; V8_20 additive indexes manifest verified; no database migration or native claim."
     },
     {
       "id": "T09",

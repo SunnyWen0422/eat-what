@@ -81,14 +81,19 @@ function createAssistantConversation(options = {}) {
  async function loadRecord(workspaceRef) {
   const w=workspace(),id=workspaceRef && workspaceRef.workspaceId || w && w.id
   if(!id)return fail('请先回到今天，准备这一餐的菜单')
-  key=`assistant-v4:${encodeURIComponent(scope)}:${id}`;record=clone(read(key)) || {sessionBody:{workspaceId:id,requestId:makeId()},sessionId:null,pending:null,messages:[],input:'',confirmedTasks:[]}
+  const requestedSession=workspaceRef&&workspaceRef.sessionId
+  if(requestedSession&&(!w||w.id!==id))return fail('原来那一餐已变化，请返回记录后重新打开')
+  key=`assistant-v4:${encodeURIComponent(scope)}:${id}`
+  const existing=clone(read(key))
+  if(requestedSession&&(!existing||existing.sessionId!==requestedSession))key+=`:session:${encodeURIComponent(requestedSession)}`
+  record=clone(read(key)) || {sessionBody:{workspaceId:id,requestId:makeId()},sessionId:requestedSession||null,pending:null,messages:[],input:'',confirmedTasks:[]}
   view.input=record.input || '';view.messages=clone(record.messages || []);view.recoverable=!!(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown)
   try {
    let result
    if(record.sessionId){
     try{result=await api.getAssistantV4Session(record.sessionId)}catch(error){
      if(!current())return state()
-     if(!error || error.statusCode!==404)throw error
+     if(!error || error.statusCode!==404 || requestedSession)throw error
      // A definitive owner-scoped session absence expires only the binding. Keep
      // recovery evidence, but never replay its old business intent in a new session.
      record.expiredBindings=record.expiredBindings || []
@@ -101,9 +106,11 @@ function createAssistantConversation(options = {}) {
    if(!result){persist();result=await api.createAssistantV4Session(clone(record.sessionBody))}
    if(!current())return state()
    if(!result || !result.sessionId)throw Error('invalid session')
+   if(requestedSession&&(result.sessionId!==requestedSession||!result.workspaceRef||result.workspaceRef.workspaceId!==id))throw Error('history binding mismatch')
    record.sessionId=result.sessionId;view.sessionId=result.sessionId;view.nextCursor=result.nextCursor || null
    if(Array.isArray(result.messages)&&result.messages.length)view.messages=clone(result.messages)
    record.messages=clone(view.messages)
+   if(result.latestTurn){adopt(result.latestTurn);await refreshWorkspace(result.latestTurn);if(!current())return state()}
    if(record.pending)view.input=record.pending.body.message
    if(record.bindingExpired)view.error='原对话已过期，输入仍保留。请先核对日历和清单，再重新说明要办理的内容'
    persist();return state()
@@ -131,6 +138,7 @@ function createAssistantConversation(options = {}) {
    }
    if(record.renewal)return await resolveRenewal(true)
    if(turnId)return await poll(turnId)
+   if(view.turn&&['queued','running'].includes(view.turn.status))return await poll(view.turn.turnId)
    if(record.pending){await dispatch();if(!current())return state();return await resumeCurrent()}
    return await resumeCurrent()
   }catch(error){return fail('结果暂未核对，原请求已保留，请稍后恢复')}

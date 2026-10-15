@@ -77,9 +77,30 @@ public class AssistantV4Store {
         SessionRecord s=session(user,id);if(limit<1||limit>50)throw new IllegalArgumentException("分页数量无效");long before=Long.MAX_VALUE;
         if(cursor!=null){try{before=Long.parseLong(cursor);if(before<=0)throw new NumberFormatException();}catch(NumberFormatException e){throw new IllegalArgumentException("分页标识无效");}}
         SessionView v=new SessionView();v.setSessionId(id);WorkspaceRef ref=new WorkspaceRef();ref.setWorkspaceId(s.getWorkspaceId());v.setWorkspaceRef(ref);
+        try{MealWorkspace w=workspaces.get(user,s.getWorkspaceId());if(w!=null){ref.setWorkspaceRevision(w.getRevision());if(w.getDraft()!=null)ref.setPlanVersion(w.getDraft().getPlanVersion());if(w.getContext()!=null){Map<String,String> target=new LinkedHashMap<>();target.put("date",w.getContext().getDate());target.put("mealType",w.getContext().getMealType());v.setTarget(target);}}}
+        catch(ResponseStatusException absent){if(absent.getStatus()!=HttpStatus.NOT_FOUND)throw absent;}
+        TurnRecord latest=db.latestSessionTurn(user,id);
+        if(latest!=null){if(!Objects.equals(user,latest.getUserId())||!Objects.equals(id,latest.getSessionId()))throw new IllegalStateException("会话记录归属异常");v.setLatestTurn(view(latest));}
         List<Map<String,Object>> rows=db.messages(user,id,before,limit+1,clock.millis()-30*DAY);if(rows==null)rows=Collections.emptyList();
         for(int i=0;i<Math.min(rows.size(),limit);i++){Map<String,Object> r=rows.get(i);Message m=new Message();m.setId(String.valueOf(r.get("id")));m.setTurnId((String)r.get("turnId"));m.setRole((String)r.get("role"));m.setText((String)r.get("text"));m.setCreatedAt(((Number)r.get("createdAt")).longValue());Object cards=r.get("cardsJson");if(cards!=null)try{m.setCards(json.readValue(cards.toString(),new TypeReference<List<Card>>(){}));}catch(Exception e){throw new IllegalStateException("消息引用读取失败");}v.getMessages().add(m);}
         if(rows.size()>limit)v.setNextCursor(v.getMessages().get(v.getMessages().size()-1).getId());Collections.reverse(v.getMessages());return v;
+    }
+    public SessionList listSessions(Long user,String cursor,int limit){
+        requireUser(user);if(limit<1||limit>50)throw new IllegalArgumentException("分页数量无效");long before=Long.MAX_VALUE;String id="~";
+        if(cursor!=null){try{
+            if(cursor.length()>150)throw new IllegalArgumentException();
+            String raw=new String(Base64.getUrlDecoder().decode(cursor),java.nio.charset.StandardCharsets.UTF_8);
+            if(!raw.matches("[0-9]{1,19}\\|[0-9a-f-]{36}"))throw new IllegalArgumentException();
+            String[] parts=raw.split("\\|");before=Long.parseLong(parts[0]);id=parts[1];UUID.fromString(id);if(before<0)throw new IllegalArgumentException();
+        }catch(Exception invalid){throw new IllegalArgumentException("分页标识无效");}}
+        List<SessionSummary> rows=db.sessions(user,before,id,limit+1);if(rows==null)rows=Collections.emptyList();
+        SessionList result=new SessionList();
+        for(int n=0;n<Math.min(limit,rows.size());n++){SessionSummary row=rows.get(n);if(!Objects.equals(user,row.getUserId()))throw new IllegalStateException("会话记录归属异常");
+            WorkspaceRef ref=new WorkspaceRef();ref.setWorkspaceId(row.getWorkspaceId());ref.setWorkspaceRevision(row.getWorkspaceRevision());ref.setPlanVersion(row.getPlanVersion());row.setWorkspaceRef(ref);
+            if(row.getDate()!=null&&row.getMealType()!=null){Map<String,String> target=new LinkedHashMap<>();target.put("date",row.getDate());target.put("mealType",row.getMealType());row.setTarget(target);}result.getSessions().add(row);
+        }
+        if(rows.size()>limit){SessionSummary last=result.getSessions().get(result.getSessions().size()-1);result.setNextCursor(Base64.getUrlEncoder().withoutPadding().encodeToString((last.getUpdatedAt()+"|"+last.getSessionId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)));}
+        return result;
     }
     public TurnView claimTurn(Long user,String sessionId,TurnRequest request){
         if(request==null)throw new IllegalArgumentException("缺少消息");AssistantV4Contract.parseTurn(json.valueToTree(request));

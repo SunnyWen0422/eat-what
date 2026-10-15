@@ -44,7 +44,15 @@ public final class AssistantV4Contract {
         private PendingAction pendingAction; private PublicWorkflow continuation; private boolean retryable;
     }
     @Data public static class Message {private String id,role,text;private long createdAt;private List<Card> cards=new ArrayList<>();private String turnId;}
-    @Data public static class SessionView {private String sessionId;private WorkspaceRef workspaceRef;private List<Message> messages=new ArrayList<>();private String nextCursor;}
+    @Data public static class SessionView {private String sessionId;private WorkspaceRef workspaceRef;private List<Message> messages=new ArrayList<>();private String nextCursor;
+        @JsonInclude(JsonInclude.Include.NON_NULL) private Map<String,String> target;
+        @JsonInclude(JsonInclude.Include.NON_NULL) private TurnView latestTurn;
+    }
+    @Data public static class SessionSummary {
+        private String sessionId;private WorkspaceRef workspaceRef;private Map<String,String> target;private long updatedAt;private String lastStatus;private boolean hasPending;
+        @JsonIgnore private Long userId;@JsonIgnore private String workspaceId,date,mealType;@JsonIgnore private Long workspaceRevision,planVersion;
+    }
+    @Data public static class SessionList {private List<SessionSummary> sessions=new ArrayList<>();private String nextCursor;}
     /** Server-only state. userId is never part of model context or public responses. */
     @Data public static class SessionState {private String sessionId,workspaceId;@JsonIgnore private Long userId;private List<Message> messages=new ArrayList<>();}
     @Data public static class TurnScope {

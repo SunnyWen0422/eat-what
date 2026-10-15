@@ -26,11 +26,12 @@ module.exports=function assistantPage(fallback, options={}) {
    if(this.conversation)this.conversation.dispose()
    const store=this.store
    try {
-    if(!store.state().workspace)await store.save()
+    if(!store.state().workspace){if(this._assistantParams.sessionId)throw Error('missing original meal');await store.save()}
     if(!this._assistantAlive || !this.current() || store!==this.store)return
     this.renderWorkspace()
     this.conversation=createAssistantConversation({api:require('./api'),workspaceStore:store,entryScene:['home','calendar'].includes(this._assistantParams.entryScene)?this._assistantParams.entryScene:'chat',onChange:state=>this.renderConversation(state),onWorkspaceChange:()=>{if(this._assistantAlive&&this.current())this.renderWorkspace()}})
-    await this.conversation.load()
+    const history=this._assistantParams.sessionId?{sessionId:this._assistantParams.sessionId,workspaceId:this._assistantParams.workspaceId}:null
+    await this.conversation.load(history)
     this.applyAssistantEntry()
    }catch(error){if(this._assistantAlive&&this.current())this.setData({conversationError:'本餐暂未同步，请回到今天核对后再试'})}
   },

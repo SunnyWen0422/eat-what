@@ -75,6 +75,13 @@
       "description": "Durable owner-scoped procurement aliases across draft and saved meal references",
       "checksumSha256": "08ccfb4aee5de3f2b2c95b80cc1c39fc44d3b6d6a4a49245846c74a6532ac1fd",
       "rollback": "Disable ASSISTANT_V4_ENABLED; retain procurement aliases and shopping receipts. Restore only a reviewed backup; never drop live data."
+    },
+    {
+      "version": "V8_20__assistant_session_history_index",
+      "file": "V8_20__assistant_session_history_index.sql",
+      "description": "Owner-scoped assistant session history and latest turn keyset indexes",
+      "checksumSha256": "dc6cf889e4880d83dca0f45c424d60ca8d025172f5c7da33c4ae24d27c5b886d",
+      "rollback": "Disable assistant extensions; retain additive indexes and all conversation and domain receipts."
     }
   ]
 }
