@@ -109,4 +109,4 @@ function recipeValidation(form, original) {
   if (form.image && (!original || String(form.image) !== String(original.image || '')) && !/^https:\/\/[^\s]+$/i.test(String(form.image).trim())) return { field: 'image', message: '图片请填写 HTTPS 地址，也可以留空' }
   return null
 }
-module.exports = { createWriteJournal, menuHandoff, editableRecipeText, recipeFieldPayload, recipeForm, recipeEditBody, recipeCopyBody, recipeValidation }
+module.exports = { createWriteJournal, menuHandoff, readableRecipeLine,editableRecipeText, recipeFieldPayload, recipeForm, recipeEditBody, recipeCopyBody, recipeValidation }

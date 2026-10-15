@@ -556,7 +556,7 @@
         "T11"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K05",
@@ -565,7 +565,8 @@
         "K13",
         "K15",
         "K31"
-      ]
+      ],
+      "evidenceNote": "Node165/165; Python structure2/2; generated style; browse query scope and pagination recovery, return scroll without feedback loop, title-photo-ingredients-steps order, contextual favorites footer. Ruling: evidence-based main time label supersedes unreviewed numeric label, raw legacy duration retained in supplement; explicit unknown/estimated/verified tests. Native interaction pending T23."
     },
     {
       "id": "T14",

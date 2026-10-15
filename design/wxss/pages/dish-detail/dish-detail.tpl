@@ -392,3 +392,12 @@ button.share-btn { left:auto; bottom:auto; width:{{controls.touchSize.px}}; max-
 .copy-preview-text { display:block; white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 20px; color:{{text}}; }
 .step-content { min-width:0; }
 .dish-title-row { align-items:flex-start; }
+
+.container .dish-info.with-hero { padding-top:0; }
+.container .dish-image-container { margin:16px 0; height:220px; border-radius:{{radius.3.px}}; overflow:hidden; }
+.container .dish-image-container.is-placeholder { height:144px; }
+.dish-title-row { align-items:center; }
+.container.is-large-text .dish-title-row { flex-wrap:wrap; }
+.container.is-large-text .dish-title-row .dish-name { flex-basis:100%; }
+.container.is-large-text .dish-title-actions { margin-left:auto; }
+.container.is-large-text .dish-attributes { grid-template-columns:repeat(2,minmax(0,1fr)); }

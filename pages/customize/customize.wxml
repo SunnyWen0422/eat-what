@@ -5,7 +5,7 @@
   <view wx:if="{{!showCustomForm}}" class="recipe-page-header"><view class="ew-heading">菜谱</view><button class="ew-hit-target ew-link catalog-help" bindtap="onOpenCatalogHelp">使用说明</button></view>
     <!-- 搜索框 -->
     <view class="search-wrap" wx:if="{{!showCustomForm}}">
-      <input placeholder-class="ew-placeholder" class="search-input" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
+      <input placeholder-class="ew-placeholder" class="search-input" aria-label="搜索菜品" maxlength="200" placeholder="搜索菜品..." value="{{searchKeyword}}" bindinput="onSearchInput" />
       <view class="browse-filter-header">
         <view aria-role="button" class="ew-hit-target browse-filter-command" bindtap="onToggleBrowseFilters">
           <text>筛选{{browseFilterCount > 0 ? ' (' + browseFilterCount + ')' : ''}}</text>
@@ -20,7 +20,7 @@
   <view wx:if="{{personalSaveMessage}}" class="ew-notice" role="status">{{personalSaveMessage}}</view>
   <view wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-notice">正在编辑常用菜单，当前选择不会改动本餐草稿。<button class="ew-hit-target ew-link" disabled="{{menuBusy || menuPending}}" bindtap="onExitMenuEdit">退出菜单编辑，继续本餐</button></view>
   <!-- 分类独立横向滚动，末项始终可以滑到 -->
-  <scroll-view wx:if="{{!showCustomForm}}" class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation>
+  <scroll-view wx:if="{{!showCustomForm}}" class="category-scroll" scroll-x enhanced show-scrollbar="false" scroll-into-view="category-{{activeTab}}" scroll-with-animation="{{!reducedMotion}}">
   <view class="sidebar">
     <view aria-role="button"
       wx:for="{{tabs}}"
@@ -77,20 +77,22 @@
     <view class="dish-list" wx:if="{{!showCustomForm}}">
       <view class="dish-list-content">
       <text class="browse-filter-summary" wx:if="{{browseFilterSummary}}">当前：{{browseFilterSummary}}</text>
-      <ui-state wx:if="{{loading}}" kind="loading" title="正在读取菜品" /><ui-state wx:elif="{{browseError}}" kind="error" title="读取失败" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
+      <ui-state wx:if="{{loading}}" kind="loading" title="正在读取菜品" /><ui-state wx:elif="{{browseError && browseErrorPage <= 1}}" kind="error" title="读取失败" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
 
-      <view wx:for="{{currentDishes}}" wx:key="id" class="recipe-item">
+      <block wx:if="{{!loading && (!browseError || browseErrorPage > 1)}}"><view wx:for="{{currentDishes}}" wx:key="id" class="recipe-item">
         <compact-dish-row font-scale="{{fontScale}}" dish="{{item}}" mode="{{menuFormVisible || menuEditingId || menuPending ? 'select' : 'read'}}" selected="{{item.isSelected}}" disabled="{{savingPlan || menuBusy || menuPending || (!(menuFormVisible || menuEditingId) && (selectionBusy || selectionLoading || selectionBlocked))}}" bind:view="onTapDish" bind:select="onToggleSelect" />
       </view>
 
+      </block>
+      <ui-state wx:if="{{browseError && browseErrorPage > 1}}" kind="error" density="inline" title="更多菜品暂未读到" description="{{browseError}}" action-label="重试" bind:action="onRetryPage" />
       <!-- 加载更多 -->
       <view wx:if="{{loadingMore}}" class="tip-text">加载更多...</view>
-      <view wx:if="{{!hasMore && currentDishes.length > 0}}" class="tip-text">
+      <view wx:if="{{!loading && !loadingMore && !browseError && !hasMore && currentDishes.length > 0}}" class="tip-text">
         没有更多了
       </view>
 
       <view wx:if="{{!loading && !loadingMore && !browseError && currentDishes.length === 0}}" class="tip-text">
-        {{searchKeyword || browseFilterCount ? '没有符合搜索或筛选的菜品' : '这个分类暂时没有菜品'}}
+        {{searchKeyword || browseFilterCount ? '没有符合条件的菜品' : '这个分类暂时没有菜品'}}<button wx:if="{{searchKeyword || browseFilterCount}}" class="ew-hit-target ew-link" bindtap="onResetRecipeSearch">清空搜索与筛选</button>
       </view>
       </view>
     </view>

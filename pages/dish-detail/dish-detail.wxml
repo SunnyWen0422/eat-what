@@ -1,5 +1,24 @@
 <!--pages/dish-detail/dish-detail.wxml-->
-<view class="ew-page ew-dish-surface container" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
+<view class="ew-page ew-dish-surface container {{fontScale >= 1.3 ? 'is-large-text' : ''}}" style="font-size:{{fontBase * fontScale}}px" wx:if="{{!loading && !error && dish}}">
+  <!-- 菜品信息 -->
+  <view class="dish-info with-hero">
+    <view class="dish-header">
+      <view class="dish-title-row">
+        <text class="dish-name">{{dish.name}}</text>
+        <view class="dish-title-actions">
+          <button class="share-btn ew-hit-target" open-type="share" aria-label="分享{{dish.name}}">
+            <ui-icon class="line-icon line-icon-share" name="share" />
+          </button>
+          <button aria-label="{{isFavorite ? '取消收藏' : '收藏'}}{{dish.name}}" class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
+            <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}"  /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
+          </button>
+        </view>
+      </view>
+      <view class="dish-tags" wx:if="{{dish.tags}}">
+        <text class="tag" wx:for="{{dish.visibleTags}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+
   <!-- 菜品图片 -->
   <view class="dish-image-container {{!dish.image || dishImageFailed ? 'is-placeholder' : ''}}">
     <image
@@ -8,6 +27,7 @@
       src="{{dish.image}}" binderror="onDishImageError"
       mode="aspectFill"
       bindtap="previewImage"
+      aria-role="button" aria-label="预览{{dish.name}}的图片"
       data-url="{{dish.image}}"
       data-dishid="{{dish.id}}" data-version="{{dish.contentVersion}}"
     />
@@ -15,25 +35,6 @@
       <ui-icon name="{{dishPlaceholderIcon}}" size="48" />
     </view>
   </view>
-
-  <!-- 菜品信息 -->
-  <view class="dish-info with-hero">
-    <view class="dish-header">
-      <view class="dish-title-row">
-        <text class="dish-name">{{dish.name}}</text>
-        <view class="dish-title-actions">
-          <button class="share-btn" open-type="share">
-            <ui-icon class="line-icon line-icon-share" name="share" label="分享" />
-          </button>
-          <view aria-role="button" class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
-            <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}" label="{{isFavorite ? '取消收藏' : '收藏'}}" /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
-          </view>
-        </view>
-      </view>
-      <view class="dish-tags" wx:if="{{dish.tags}}">
-        <text class="tag" wx:for="{{dish.tagsList}}" wx:key="*this">{{item}}</text>
-      </view>
-    </view>
 
     <!-- 菜品属性 -->
     <view class="dish-attributes">
@@ -51,16 +52,8 @@
       </view>
     </view>
 
-    <!-- 烹饪方法 -->
-    <view class="section" wx:if="{{dish.methods}}">
-      <view class="section-title">
-        <text class="section-title-text">烹饪方法</text>
-      </view>
-      <text class="section-content" user-select>{{dish.methods}}</text>
-    </view>
-
     <!-- 食材与用量 -->
-    <view wx:if="{{qualityView && (qualityView.nutritionAvailable || qualityView.sourceLines.length)}}" class="section"><text wx:if="{{qualityView.nutritionAvailable}}" class="ew-muted">{{qualityView.nutritionText}}</text><button wx:if="{{qualityView.sourceLines.length}}" class="ew-hit-target ew-link" bindtap="onToggleQualitySources">{{qualitySourcesVisible ? '收起来源' : '查看用料来源'}}</button><view wx:if="{{qualitySourcesVisible}}"><view wx:for="{{qualityView.sourceLines}}" wx:key="name"><text class="ew-muted">{{item.name}} · {{item.status}}</text><text class="section-content" user-select>{{item.text}}</text></view></view></view>
+
     <view class="section" wx:if="{{dish.ingredientsList && dish.ingredientsList.length > 0}}">
       <view class="section-title">
         <text class="section-title-text">食材与用量</text>
@@ -96,36 +89,32 @@
           </view>
         </view>
       </view>
-      <!-- 所有步骤图片汇总 -->
-      <view class="section" wx:if="{{dish.allStepImages && dish.allStepImages.length > 0}}">
-        <view class="section-title">
-          <text class="section-title-text">步骤图片</text>
-        </view>
-        <view class="all-images">
-          <image
-            wx:for="{{dish.allStepImages}}" wx:key="*this"
-            class="all-image"
-            src="{{item}}"
-            mode="widthFix"
-            bindtap="previewStepImage"
-            data-url="{{item}}"
-          />
-        </view>
-      </view>
+
     </view>
 
-    <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤，不能猜测做法。</view>
+    <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤</view>
     <button wx:if="{{assistantAvailable}}" class="ew-hit-target ew-link detail-cooking-link" disabled="{{selectionBusy || selectionLoading}}" bindtap="onAskDish">问问这道菜</button>
-    <button class="ew-hit-target ew-link detail-cooking-link" bindtap="onOpenCooking">大字做法，接着上次步骤看</button>
+    <button class="ew-hit-target ew-link detail-cooking-link" bindtap="onOpenCooking">大字看做法</button>
+    <button wx:if="{{dish.methodsDisplay || dish.tipsDisplay || dish.cookTime || dish.cookMinutes || dish.tagsList.length > 3}}" class="ew-hit-target ew-link" aria-expanded="{{detailSupplementVisible}}" bindtap="onToggleSupplement">{{detailSupplementVisible ? '收起补充资料' : '补充做法与提示'}}</button>
+    <view wx:if="{{detailSupplementVisible}}">    <!-- 烹饪方法 -->
+    <view class="section" wx:if="{{dish.methodsDisplay}}">
+      <view class="section-title">
+        <text class="section-title-text">烹饪方法</text>
+      </view>
+      <text class="section-content" user-select>{{dish.methodsDisplay}}</text>
+    </view>
+
     <!-- 小贴士 -->
-    <view class="section" wx:if="{{dish.tips}}">
+    <view class="section" wx:if="{{dish.tipsDisplay}}">
       <view class="section-title">
         <text class="section-title-text">小贴士</text>
       </view>
       <view class="tips-content">
-        <text class="tips-text" user-select>{{dish.tips}}</text>
+        <text class="tips-text" user-select>{{dish.tipsDisplay}}</text>
       </view>
     </view>
+<text wx:if="{{dish.cookTime || dish.cookMinutes}}" class="ew-muted">原资料时长说明：{{dish.cookTime || (dish.cookMinutes + ' 分钟')}}</text><view wx:if="{{dish.tagsList.length > 3}}" class="dish-tags"><text class="tag" wx:for="{{dish.tagsList}}" wx:key="*this">{{item}}</text></view></view>
+    <view wx:if="{{qualityView && (qualityView.nutritionAvailable || qualityView.sourceLines.length)}}" class="section"><text wx:if="{{qualityView.nutritionAvailable}}" class="ew-muted">{{qualityView.nutritionText}}</text><button wx:if="{{qualityView.sourceLines.length}}" class="ew-hit-target ew-link" bindtap="onToggleQualitySources">{{qualitySourcesVisible ? '收起来源' : '查看用料来源'}}</button><view wx:if="{{qualitySourcesVisible}}"><view wx:for="{{qualityView.sourceLines}}" wx:key="name"><text class="ew-muted">{{item.name}} · {{item.status}}</text><text class="section-content" user-select>{{item.text}}</text></view></view></view>
   </view>
   <view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view>
   <view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view>

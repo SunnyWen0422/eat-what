@@ -28,7 +28,7 @@ Page({
       const list = Array.isArray(result) ? result : (result.list || result.data || [])
       const normalized = list.map(item => {
         const dish = item.dish || item
-        return { id: dish.id, name: dish.name, type: dish.type, image: dish.image || '', dish: dish }
+        return { id: dish.id, name: dish.name, type: dish.type, image: dish.image || '',contentVersion:dish.contentVersion,cookMinutes:dish.cookMinutes,quality:dish.quality, dish: dish }
       })
       this.setData({ favorites: normalized, loading: false })
       this.doFilter()

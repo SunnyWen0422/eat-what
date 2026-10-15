@@ -4,7 +4,7 @@ const { getDishById } = require('../../utils/api')
 
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    assistantAvailable:false, dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
+    detailSupplementVisible:false, assistantAvailable:false, dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
     showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
     loading: true,
     error: false,
@@ -102,7 +102,7 @@ Page({
   async loadDishDetail(id) {
     const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
     this._copyPreviewBinding = null
-    this.setData({ dish: null, qualityView:null,qualitySourcesVisible:false,isFavorite: false, favoriteBusy: false, canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
+    this.setData({ detailSupplementVisible:false,dish: null, qualityView:null,qualitySourcesVisible:false,isFavorite: false, favoriteBusy: false, canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
@@ -110,9 +110,11 @@ Page({
       
       if (dish) {
         dish.typeLabel = require('../../utils/recipe-quality').dishCategoryLabel(dish.type)
-        const minutes = Number(dish.cookMinutes)
-        dish.cookTimeDisplay = Number.isInteger(minutes) && minutes >= 1 && minutes <= 240 ? minutes + '分钟' : dish.cookTime || ''
-        dish.tagsList = Array.isArray(dish.tags) ? dish.tags : String(dish.tags || '').split(/[,，]/).map(s => s.trim()).filter(Boolean)
+        dish.cookTimeDisplay = require('../../utils/recipe-quality').recipeDurationLabel(dish)
+        dish.tagsList = (Array.isArray(dish.tags)?dish.tags:String(dish.tags||'').split(/[,，]/)).filter(t=>typeof t==='string'&&t.trim()).map(t=>t.trim())
+        dish.visibleTags=dish.tagsList.slice(0,3)
+        dish.methodsDisplay=require('../../utils/recipe-quality').presentRecipeLines(dish.methods).join('\n')
+        dish.tipsDisplay=require('../../utils/recipe-quality').presentRecipeLines(dish.tips).join('\n')
         // 处理步骤图片（如果是JSON字符串则解析，再按 # 拆分多张图）
         if (dish.stepImages && typeof dish.stepImages === 'string') {
           try {
@@ -136,35 +138,13 @@ Page({
 
         // 处理食材与用量（如果是JSON字符串则解析）
         if (!dish.ingredientsAmounts && dish.cl) dish.ingredientsAmounts = dish.cl
-        if (dish.ingredientsAmounts && typeof dish.ingredientsAmounts === 'string') {
-          try {
-            dish.ingredientsList = JSON.parse(dish.ingredientsAmounts)
-          } catch (e) {
-            // 如果不是JSON，按换行分割
-            dish.ingredientsList = dish.ingredientsAmounts.split(/###|#|\n/).filter(item => item.trim()).map(item => { const parts=item.split('|'); return parts.length >= 3 ? parts[0] + ' ' + parts[1] + parts[2] : item })
-          }
-        } else if (Array.isArray(dish.ingredientsAmounts)) {
-          dish.ingredientsList = dish.ingredientsAmounts.map(String)
-        } else {
-          dish.ingredientsList = []
-        }
+        dish.ingredientsList=require('../../utils/recipe-quality').presentRecipeLines(dish.ingredientsAmounts,true)
 
         const qualityView=require('../../utils/recipe-quality').presentRecipeQuality(dish)
         if(qualityView) {dish.ingredientsList=qualityView.ingredientLines;this.setData({qualityView,ingredientNotice:qualityView.notice})}
         else this.setData({qualityView:null})
         // 处理步骤（兼容 step/steps 两种字段名）
-        var stepsRaw = dish.steps || dish.step
-        if (stepsRaw && typeof stepsRaw === 'string') {
-          try {
-            dish.stepsList = JSON.parse(stepsRaw)
-          } catch (e) {
-            dish.stepsList = stepsRaw.split(/###|#|\n/).filter(item => item.trim())
-          }
-        } else if (Array.isArray(stepsRaw)) {
-          dish.stepsList = stepsRaw
-        } else {
-          dish.stepsList = []
-        }
+        dish.stepsList=require('../../utils/recipe-quality').presentRecipeLines(dish.steps||dish.step)
         // 展示图片使用已验证的 HTTPS 地址。
         dish.image = require('../../utils/dish-image').imageSource(dish.image)
 
@@ -193,6 +173,8 @@ Page({
       this.setData({ 'dish.ingredientsList': items.map(item => item.displayName + ' ' + (item.quantityText || '需核对')), ingredientNotice: items.every(item => item.calculationStatus === 'CALCULATED') ? `按本餐 ${this.data.targetPeople} 人换算，请按实际情况核对` : `本餐 ${this.data.targetPeople} 人，部分用量需手动核对` })
     } catch (error) { if (this.current(scope) && epoch === this._epoch) this.setData({ ingredientNotice: this.data.qualityView?'本餐份量暂未读到，用量仍待核实，请手动核对。':'份量换算暂不可用，以下为用户提供的原始用料' }) }
   },
+
+  onToggleSupplement(){if(this.current(this._scope))this.setData({detailSupplementVisible:!this.data.detailSupplementVisible})},
 
   async checkFavoriteStatus(dishId) {
     const scope = this._scope

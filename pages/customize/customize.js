@@ -77,11 +77,13 @@ Page({
   },
 
   async onShow() {
+    this.setData({reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
     this._recipeVisible = true
     this._visible = true
     if (this._menuApplyWasHidden) { this._menuApplyWasHidden = false; this.setData({ menuBusy: false }) }
     const scope = getUserStorageKey('customBrowse')
     if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
+    this.setData({browseScrollTop:this._browseScrollTop||0})
     this._browseScope = scope
     const menuIntentKey=getUserStorageKey('openPersonalMenus')
     if(this._openMenusRequested || wx.getStorageSync(menuIntentKey)){this._openMenusRequested=false;wx.removeStorageSync(menuIntentKey);this.onOpenMenus()}
@@ -133,12 +135,13 @@ Page({
     if (this._unloaded) return false
     const identity = currentIdentity()
     if (this._browseIdentity === undefined) { this._browseIdentity = identity; this._browseScope = getUserStorageKey('customBrowse'); return true }
-    if (this._browseIdentity === identity) return true
+    if (this._browseIdentity === identity && this._browseScope === getUserStorageKey('customBrowse')) return true
     require('../../utils/dish-workspace-handoff').disposeSelectionPage(this)
     this._browseIdentity = identity; this._browseScope = getUserStorageKey('customBrowse')
     this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1
     clearTimeout(this.searchTimer)
     this.allDishesMap = {}; this.currentPage = 1; this._pendingPlanWrite = null; this._customInitial = null; this._menuInitial = null; this._menuVersion = null; this._menuNamingDialog = null
+    this._browseScrollTop=0
     this._planOwnerScope = getUserStorageKey('mealView')
     this.setData({ activeTab: 'meat', recipeSource:'all', browseScrollTop:0, showMealSelected:false,mealSelectedDishes:[],selectedMeal:null, selectionFeedback:null, selectionBusy:false, selectionLoading:false, selectionMode:true, selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
       customForm: emptyCustomForm(), customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: false })),
@@ -151,7 +154,7 @@ Page({
   isBrowseCurrent(identity, epoch = this._privateEpoch || 0) {
     return this.ensureBrowseOwner() && identity === this._browseIdentity && epoch === (this._privateEpoch || 0)
   },
-  onRetryPage() { this.loadPage(this.data.activeTab, 1) },
+  onRetryPage() { return this.loadPage(this.data.activeTab,this.data.browseErrorPage>1?this.data.browseErrorPage:1) },
   onOpenCatalogHelp() { if(this.ensureBrowseOwner())this.setData({catalogHelpVisible:true}) },
   onCloseCatalogHelp() { this.setData({catalogHelpVisible:false}) },
   onDismissPersonalGuide() { if (this.ensureBrowseOwner()) { wx.setStorageSync(getUserStorageKey('personalRecipeGuideDismissed'), true); this.setData({ personalGuideVisible: false }) } },
@@ -248,6 +251,11 @@ Page({
     this.currentPage = 1
     return this.loadPage(this.data.activeTab, 1)
   },
+  onResetRecipeSearch(){
+    if(!this.ensureBrowseOwner())return
+    clearTimeout(this.searchTimer);this.setData({searchKeyword:'',browseCriteria:emptyBrowseCriteria()});this.renderBrowseFilters()
+    return this.loadPage(this.data.activeTab,1)
+  },
 
   // 把菜品加入全局缓存
   addToGlobalCache(dishes) {
@@ -275,11 +283,12 @@ Page({
     if (!this.ensureBrowseOwner()) return
     const identity = this._browseIdentity
     const epoch = this._pageEpoch = (this._pageEpoch || 0) + 1, scope = getUserStorageKey('customBrowse')
-    this.setData({ browseError: '' })
+    this.setData({ browseError: '',browseErrorPage:0 })
     const { selectedIds, searchKeyword } = this.data
 
     // 正常分页模式
     if (page === 1) {
+      this.resetBrowseScroll()
       this.setData({ loading: true })
     } else {
       this.setData({ loadingMore: true })
@@ -324,7 +333,7 @@ Page({
       this.currentPage = page
     } catch (err) {
       if (!this.isBrowseCurrent(identity) || epoch !== this._pageEpoch || scope !== getUserStorageKey('customBrowse')) return
-      this.setData({ browseError: require('../../utils/meal-workflow').errorMessage(err, '读取失败，请重试，已选菜品仍保留。') })
+      this.setData({ browseErrorPage:page,browseError: require('../../utils/meal-workflow').errorMessage(err, '读取失败，请重试，已选菜品仍保留。') })
       this.setData({ loading: false, loadingMore: false })
     }
   },
@@ -399,7 +408,7 @@ Page({
     if (!this.ensureBrowseOwner()) return
     const keyword = e.detail.value.trim()
     this._pageEpoch = (this._pageEpoch || 0) + 1
-    this.setData({ searchKeyword: keyword, loading: false, loadingMore: false, hasMore: false })
+    this.setData({ searchKeyword: keyword, loading: true, loadingMore: false, hasMore: false })
     const identity = this._browseIdentity
 
     clearTimeout(this.searchTimer)
@@ -587,7 +596,8 @@ Page({
   refreshSelectedMeal() { return require('../../utils/dish-workspace-handoff').refreshSelectionPage(this,this.selectionOptions()) },
   onRetrySelection() { return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'recover',null,this.selectionOptions()) },
   onViewMeal() { if(this.ensureBrowseOwner())return require('../../utils/dish-workspace-handoff').openSelectedMeal(this,wx) },
-  onBrowseScroll(e) { this.setData({browseScrollTop:Math.max(0,Number(e.detail.scrollTop)||0)}) },
+  onBrowseScroll(e) { this._browseScrollTop=Math.max(0,Number(e.detail.scrollTop)||0) },
+  resetBrowseScroll(){const before=this._browseScrollTop||0;this._browseScrollTop=0;this.setData({browseScrollTop:before},()=>this.setData({browseScrollTop:0}))},
   onBrowseReachEnd() { if (!this.data.showCustomForm) return this.onScrollToLower() },
   onRecipeSource(e) {
     if(!this.ensureBrowseOwner())return

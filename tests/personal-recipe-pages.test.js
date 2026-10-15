@@ -129,15 +129,19 @@ test('late menu resolve after hiding and changing active meal cannot navigate or
   pending.resolve({ menuId: 3, menuVersion: 2, menuDate: '2026-10-10', menuMealType: 'dinner', people: 2, dishIds: [1] }); await operation
   assert.equal(navigation.length, 0); assert.equal(wx.getStorageSync('A:activeMealTarget').date, '2026-10-11'); assert.equal(wx.getStorageSync('A:workspaceSelectedDishes'), undefined)
 })
-test('dish detail prefers numeric cooking time and shows it even without legacy text', async () => {
+test('dish detail time uses explicit evidence while raw legacy text remains in supplementary content', async () => {
   for (const [dish, expected] of [
-    [{ cookMinutes: 10, cookTime: '45分钟' }, '10分钟'],
-    [{ cookMinutes: 10, cookTime: null }, '10分钟'],
+    [{ cookMinutes: 10, cookTime: '45分钟' }, ''],
+    [{ cookMinutes: 10, cookTime: null }, ''],
     [{ cookMinutes: null, cookTime: null }, ''],
-    [{ cookMinutes: null, cookTime: '约45分钟' }, '约45分钟']
+    [{ cookMinutes: null, cookTime: '约45分钟' }, ''],
+    [{ cookMinutes: 10, quality:{timeStatus:'ESTIMATED'} }, '预计 10 分钟'],
+    [{ cookMinutes: 10, quality:{timeStatus:'VERIFIED',reviewStatus:'VERIFIED'} }, '10 分钟'],
+    [{ cookMinutes: 10, quality:{timeStatus:'UNKNOWN',reviewStatus:'VERIFIED'} }, '']
   ]) {
     const { page } = load('pages/dish-detail/dish-detail', { getDishById: async () => ({ id: 1, name: '鱼', ...dish }), checkFavoriteDish: async () => ({}) })
     await page.loadDishDetail(1); assert.equal(page.data.dish.cookTimeDisplay, expected)
   }
   assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /\{\{dish\.cookTimeDisplay\}\}/)
+  assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /原资料时长说明：\{\{dish\.cookTime/)
 })

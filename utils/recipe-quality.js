@@ -30,4 +30,20 @@ function editRecipeQualityNotice(dish, form) {
  const view = presentRecipeQuality(dish)
  return view ? view.statusLabel + '。' + view.notice : '用户提供的配方，请按实际情况核对。'
 }
-module.exports={presentRecipeQuality,dishCategoryLabel,editRecipeQualityNotice}
+function presentRecipeLines(value,ingredients=false){
+ let source=value
+ if(typeof source==='string'){try{source=JSON.parse(source)}catch(_){}}
+ const {readableRecipeLine}=require('./personal-recipes')
+ const lines=Array.isArray(source)?source:typeof source==='string'?source.split(/###|#|\n/):source&&typeof source==='object'?[source]:[]
+ return lines.map(row=>{
+  if(typeof row==='string'&&ingredients){const parts=row.split('|');if(parts.length>=3)return (parts[0]+' '+parts[1]+parts[2]).trim()}
+  return readableRecipeLine(row)
+ }).filter(line=>line&&line!=='请补充这一项'&&line.trim()).map(line=>line.trim())
+}
+function recipeDurationLabel(dish={}){
+ const q=dish.quality||{},n=Number(dish.cookMinutes)
+ if(!Number.isInteger(n)||n<1||n>480)return ''
+ if(q.timeStatus==='ESTIMATED')return '预计 '+n+' 分钟'
+ return q.timeStatus==='VERIFIED'&&q.reviewStatus==='VERIFIED'?n+' 分钟':''
+}
+module.exports={presentRecipeQuality,dishCategoryLabel,editRecipeQualityNotice,presentRecipeLines,recipeDurationLabel}
