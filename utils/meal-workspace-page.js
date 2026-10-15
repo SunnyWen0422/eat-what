@@ -1,4 +1,5 @@
 const api = require('./api')
+const { feedbackAction } = require('./meal-feedback')
 const theme = require('./ui-tokens')
 const { validateCounts, compositionRows } = require('./meal-composition')
 const experiencePreferences = require('./experience-preferences')
@@ -388,8 +389,17 @@ module.exports = function workspacePage(options = {}) {
       return this.runCommand('undo')
     },
     onCancelTask() { return this.runCommand('cancel') },
-    onReplace(e) { return this.runCommand('replace', { dishId: Number(e.detail && e.detail.id || e.currentTarget.dataset.id) }) },
+    onReplace(e) { const dishId=Number(e.detail && e.detail.id || e.currentTarget && e.currentTarget.dataset.id); if((this.data.draft.lockedDishIds || []).includes(dishId))return; return this.runCommand('replace', { dishId }) },
     onKeep(e) { return this.runCommand(e.currentTarget.dataset.locked ? 'release' : 'keep', { dishId: Number(e.currentTarget.dataset.id) }) },
+    onDishFeedback(e) {
+      if (!this.current()) return
+      const detail = e.detail || {}, dish = (this.data.draft.dishes || []).find(item => Number(item.id) === detail.dishId)
+      if (!dish) return
+      const result = feedbackAction({ ...detail, locked: !!dish.locked, busy: this.data.busy || this.data.contextLocked || this.data.loading })
+      if (result.action === 'keep' || result.action === 'release') return this.onKeep({ currentTarget: { dataset: { id: dish.id, locked: !!dish.locked } } })
+      if (result.action === 'replace') return this.onReplace({ detail: { id: dish.id } })
+      if (result.action === 'open_time') return this.onOpenMealSettings()
+    },
     onConfirmPlan() {
       if (!this.data.canConfirm || this.data.peopleError || this.data.busy || !this.current()) return
       const state = this.store.state()
@@ -651,6 +661,7 @@ module.exports = function workspacePage(options = {}) {
       try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}${route.includes('?')?'&':'?'}date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
       catch(error){if(this.current() && this.store===store)this.setData({errorMessage:userError(error,'本餐尚未保存，内容已保留')})}
     },
+    onOpenLongTermPreferences(){return this.openWorkspaceRoute('/pages/settings/settings')},
     onOpenMealResult(){return this.openWorkspaceRoute('/pages/result/result')},
     onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},
     onOpenConnectedAssistant(){if(this.data.assistantAvailable)return this.openWorkspaceRoute('/pages/chat/chat?entryScene=home')},

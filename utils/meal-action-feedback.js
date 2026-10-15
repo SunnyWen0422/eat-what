@@ -38,9 +38,9 @@ function deriveActionFeedback({before,after,command,requestId,pending=false,erro
   return {...value,state:'success',message,dishId,undoAvailable:['replace','select','generate','regenerate','undo'].includes(kind) && !!(workspace.draft.history || []).length}
 }
 function legacyLockNotice(draft) {
-  return draft && (draft.lockedDishIds || []).length ? '旧草稿中有保留菜。下次换菜、换一套或自己选菜时，会一并解除旧保留；原菜单快照仍可撤销恢复。' : ''
+  return draft && (draft.lockedDishIds || []).length ? '已保留的菜会留在这餐，可在菜品更多操作中取消保留。' : ''
 }
 function interactionCommand(command,extra={}) {
-  return {...extra,...(['generate','regenerate','replace','select','undo'].includes(command)?{releaseLegacyLocks:true}:{})}
+  return {...extra}
 }
 module.exports={deriveActionFeedback,legacyLockNotice,interactionCommand}

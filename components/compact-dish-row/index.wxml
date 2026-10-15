@@ -7,5 +7,6 @@
     <view class="dish-copy"><text class="dish-name">{{dishView.name}}</text><text class="dish-meta">{{dishView.meta}}</text><text wx:if="{{feedback}}" class="dish-feedback" aria-live="polite">{{feedback}}</text></view>
   </button>
   <text wx:if="{{mode === 'read' && selected}}" class="dish-selected">已加入</text>
-  <button wx:if="{{mode !== 'read'}}" class="{{(busy || disabled) ? 'is-disabled' : ''}} dish-replace" disabled="{{busy || disabled}}" loading="{{busy}}" catchtap="onReplace" aria-label="{{mode === 'select' ? (selected ? '查看本餐中的' : '加入本餐') : '换一道'}}{{dishView.name}}">{{mode === 'select' ? (selected ? '已加入' : '加入') : '换一道'}}</button>
+  <button wx:if="{{mode !== 'read'}}" class="{{(busy || disabled) ? 'is-disabled' : ''}} dish-replace" disabled="{{busy || disabled || (mode === 'replace' && dish.locked)}}" loading="{{busy}}" catchtap="onReplace" aria-label="{{mode === 'select' ? (selected ? '查看本餐中的' : '加入本餐') : (dish.locked ? '已保留' : '换一道')}}{{dishView.name}}">{{mode === 'select' ? (selected ? '已加入' : '加入') : (dish.locked ? '已保留' : '换一道')}}</button>
+  <button wx:if="{{mode === 'replace'}}" class="dish-more" disabled="{{busy || disabled}}" catchtap="onFeedback" aria-label="{{dishView.name}}的本餐操作"><ui-icon name="more" size="20" /></button>
 </view>

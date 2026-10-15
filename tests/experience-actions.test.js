@@ -62,7 +62,7 @@ test('replacement only marks that row busy and keeps old dishes until receipt',a
   assert.equal(page.data.draft.dishes[0].name,'青菜');assert.equal(page.data.draft.dishes[0].actionBusy,true);assert.equal(page.data.draft.dishes[1].actionBusy,false)
   await page.onReplace({detail:{id:8},currentTarget:{dataset:{}}});assert.equal(f.calls.length,1)
   waiting.resolve();await pending;assert.equal(page.data.actionFeedback.message,'已换为西兰花');assert.equal(page.data.draft.dishes[0].actionBusy,false)
-  assert.equal(f.calls[0].body.dishId,7);assert.equal(f.calls[0].body.releaseLegacyLocks,true)
+  assert.equal(f.calls[0].body.dishId,7);assert.notEqual(f.calls[0].body.releaseLegacyLocks,true)
 })
 test('failure keeps original dishes and shows unknown request recovery',async t=>{
   const f=fixture(),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target);const before=plain(page.data);f.fail({statusCode:503})
@@ -77,15 +77,15 @@ test('undo restores the real menu snapshot and never rewrites a saved calendar p
   assert.equal(page.data.draft.dishes[0].name,'青菜');assert.equal(page.data.actionFeedback.message,'已恢复青菜');assert.equal(page.data.saveState,'changed');assert.equal(f.row().confirmation.planVersion,3)
   assert.deepEqual(f.calls.map(c=>c.body.command),['replace','undo']);assert.ok(f.calls.every(c=>c.type==='command'))
 })
-test('legacyLocksStayVisibleUntilAtomicCommand',async t=>{
+test('kept dishes remain protected until explicitly released',async t=>{
   const f=fixture(),page=f.page;t.after(()=>page.onUnload());f.row().draft.lockedDishIds=[7];await page.initializeWorkspace(target)
   assert.match(page.data.legacyLockNotice,/保留/);assert.equal(f.calls.length,0);assert.deepEqual(f.row().draft.lockedDishIds,[7])
-  await page.onReplace({detail:{id:7},currentTarget:{dataset:{}}});assert.equal(f.calls.length,1);assert.equal(f.calls[0].body.releaseLegacyLocks,true);assert.deepEqual(f.row().draft.lockedDishIds,[])
+  await page.onReplace({detail:{id:7},currentTarget:{dataset:{}}});assert.equal(f.calls.length,0);assert.deepEqual(f.row().draft.lockedDishIds,[7])
 })
-test('more operations use a visible sheet and requirements hold the sole meal conversation entry',async t=>{
+test('more operations use a visible sheet and the header offers the contextual assistant',async t=>{
   const f=fixture(),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target);page.onToggleExtraActions();assert.equal(page.data.moreVisible,true)
   const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/<ui-sheet[^>]*visible="\{\{moreVisible\}\}"/);assert.match(template,/<compact-dish-row/);assert.match(template,/<action-feedback/)
-  assert.doesNotMatch(template,/workspace-keep-control|聊聊这餐/)
+  assert.doesNotMatch(template,/workspace-keep-control/);assert.match(template,/bindtap="onOpenConnectedAssistant"[^>]*>聊聊这餐/)
   const requirements=template.slice(template.indexOf('<ui-sheet visible="{{requirementsVisible}}"'),template.indexOf('<ui-sheet visible="{{settingsVisible}}"'))
   assert.match(requirements,/继续本餐对话/)
   assert.match(template,/<ui-sheet[^>]*moreVisible[\s\S]*预览保存计划与周回顾/)
@@ -180,7 +180,7 @@ test('unknown command disables the visible menu undo and replacement controls',a
 })
 test('conflict retains legacy locks and old dishes without issuing a separate unlock',async t=>{
   const f=fixture(),page=f.page;t.after(()=>page.onUnload());f.row().draft.lockedDishIds=[7]
-  await page.initializeWorkspace(target);f.fail({statusCode:409,message:'版本冲突'});await page.onReplace({detail:{id:7},currentTarget:{dataset:{}}})
+  await page.initializeWorkspace(target);f.fail({statusCode:409,message:'版本冲突'});await page.onReplace({detail:{id:8},currentTarget:{dataset:{}}})
   assert.equal(page.data.actionFeedback.state,'error');assert.equal(page.data.actionFeedback.undoAvailable,false)
   assert.deepEqual(f.row().draft.lockedDishIds,[7]);assert.equal(page.data.draft.dishes[0].name,'青菜');assert.equal(f.calls.length,1)
   await page.onRegenerate();assert.equal(f.calls.length,1)

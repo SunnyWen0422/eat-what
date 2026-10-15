@@ -7,6 +7,7 @@ const ingredients = require('../utils/shopping-ingredients')
 function page(route, api, store = {}) {
   let definition
   const sandbox = { Page: value => { definition = value }, require: name => {
+    if (name.endsWith('/meal-next-step')) return require('../utils/meal-next-step')
     if (name.endsWith('/shopping-view')) return require('../utils/shopping-view')
     if (name.endsWith('/experience-preferences')) return () => ({get:()=>({reducedMotion:false})})
     if (name.endsWith('/shopping-list-presentation')) return require('../utils/shopping-list-presentation')

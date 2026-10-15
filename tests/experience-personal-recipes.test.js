@@ -344,7 +344,7 @@ test('menu edit cancel confirms only actual changes and retain leaves draft inta
 test('editor optional panels, focus binding, three save labels and ignorable guide are wired', () => {
   const create = fs.readFileSync('pages/customize/customize.wxml', 'utf8'), edit = fs.readFileSync('pages/custom-dishes/custom-dishes.wxml', 'utf8'), workspace = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
   assert.match(create, /customExtrasVisible/); assert.match(edit, /editExtrasVisible/); assert.match(create, /customFocus === 'name'/); assert.match(edit, /formFocus === 'steps'/)
-  assert.match(create, /保存菜谱/); assert.match(create, /保存常用菜单/); assert.match(workspace, /存为常用菜单/); assert.match(create, /onDismissPersonalGuide/)
+  assert.match(create, /保存菜谱/); assert.match(create, /保存常用菜单/); assert.match(workspace, /存为常用菜单/); assert.match(create, /onOpenCatalogHelp/); assert.match(create, /onCloseCatalogHelp/)
 })
 
 test('menu naming opens with pinned target and loads the destination templates', async () => {

@@ -86,7 +86,7 @@ test('calendar read rows protect long names and full-sized touch targets',()=>{
  const css=fs.readFileSync('pages/calendar-detail/calendar-detail.wxss','utf8');assert.match(css,/\.calendar-dish-row[^}]*min-height:\s*80px/);assert.match(css,/\.dish-recipe-link[^}]*white-space:\s*normal/)
 })
 test('cooking reading does not invite future eaten confirmation and detail uses month-day heading',()=>{
- const cooking=fs.readFileSync('pages/meal-cooking/meal-cooking.wxml','utf8');assert.match(cooking,/wx:if="\{\{!recipeMode && canRecordActual\}\}" label="这餐吃了"/)
+ const cooking=fs.readFileSync('pages/meal-cooking/meal-cooking.wxml','utf8');assert.match(cooking,/wx:if="\{\{!recipeMode && canRecordActual\}\}" label="记录这餐"/)
  const detail=fs.readFileSync('pages/calendar-detail/calendar-detail.wxml','utf8');assert.match(detail,/\{\{dateHeading\}\}/)
 })
 

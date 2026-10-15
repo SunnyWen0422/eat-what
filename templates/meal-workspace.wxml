@@ -32,7 +32,7 @@
         <view wx:if="{{draft.dishes.length}}" class="workspace-menu-section">
           <view class="workspace-menu-heading"><text class="ew-muted">{{saveState === 'saved' ? '已保存到日历' : saveState === 'changed' ? '有修改尚未保存' : '搭配好了 · 看看菜单'}}</text><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onRegenerate"><ui-icon name="refresh" size="16" /><text>换一套</text></button></view>
           <view class="workspace-menu">
-            <compact-dish-row wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" />
+            <compact-dish-row wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
           </view>
           <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button wx:if="{{draft.history.length && !actionFeedback.undoAvailable}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onUndo">撤销上一步</button></view>
           <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>
@@ -51,6 +51,7 @@
   <ui-sheet visible="{{moreVisible}}" title="更多餐单操作" busy="{{busy}}" bind:close="onCloseMore">
     <picker class="ew-hit-target workspace-save-field" mode="date" disabled="{{loading || busy}}" value="{{context.date}}" bindchange="onDateTarget"><view class="workspace-save-field"><text>切换安排日期</text><text>{{context.date}}</text></view></picker>
     <ui-button label="用时与已有食材" variant="tertiary" disabled="{{contextLocked}}" bind:action="onOpenMealSettings" />
+    <ui-button label="长期口味偏好" variant="tertiary" disabled="{{contextLocked}}" bind:action="onOpenLongTermPreferences" />
     <ui-button label="存为常用菜单" variant="secondary" disabled="{{busy || !draft.dishes.length}}" bind:action="onSaveReusableMenu" />
     <ui-button label="查看助手历史" variant="tertiary" disabled="{{busy}}" bind:action="onOpenAdvancedAssistant" />
     <text class="ew-title">保存计划与周回顾</text><text class="ew-muted">先核对保存日期，再查看这一周的实际记录。保存计划不会算作实际吃过。</text>

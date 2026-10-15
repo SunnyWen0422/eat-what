@@ -23,7 +23,7 @@ test('shared homepage keeps one optional requirements entry and an independent p
   assert.match(firstScreen, /本餐要求（选填）/)
   assert.equal((firstScreen.match(/bindtap="onOpenRequirements"/g) || []).length, 1)
   assert.equal((firstScreen.match(/bindtap="onChooseDishes"/g) || []).length, 1)
-  assert.doesNotMatch(firstScreen, /<textarea|聊聊这餐|助手历史|bindtap="onQuickActual"/)
+  assert.doesNotMatch(firstScreen, /<textarea|助手历史|bindtap="onQuickActual"/)
   assert.match(firstScreen, /hardExclusionSummary/)
   assert.doesNotMatch(firstScreen, /bindchange="onDateTarget"|bind:action="onOpenMealSettings"/)
   assert.match(firstScreen, /bindtap="onMealTab"/)

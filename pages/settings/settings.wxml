@@ -55,7 +55,7 @@
   </view>
 
   <view class="section">
-    <view class="section-title">默认单菜最长用时</view>
+    <view class="section-title">每道菜用时上限</view>
     <view class="chip-grid">
       <view aria-role="button" class="ew-hit-target choice-chip {{(item === null && !preferences.maxCookMinutes) || preferences.maxCookMinutes === item ? 'selected' : ''}}" wx:for="{{durationOptions}}" wx:key="*this" data-value="{{item === null ? 'none' : item}}" bindtap="onDurationTap">{{item === null ? '不限' : item + '分钟'}}</view>
     </view>

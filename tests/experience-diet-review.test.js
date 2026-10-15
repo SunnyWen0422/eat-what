@@ -64,7 +64,7 @@ test('replacement Page and real store submit a one-time command without permanen
   await page.store.load(target.date,target.mealType)
   await page.onReplace({detail:{id:7}})
   assert.equal(commands.length,1);assert.equal(commands[0].command,'replace');assert.equal(commands[0].dishId,7)
-  assert.equal(commands[0].releaseLegacyLocks,true)
+  assert.notEqual(commands[0].releaseLegacyLocks,true)
   assert.equal(permanentPreferenceWrites.length, 0)
   assert.equal(page.data.errorMessage,'版本变化')
 })
