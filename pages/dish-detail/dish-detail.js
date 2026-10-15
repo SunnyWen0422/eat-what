@@ -12,6 +12,8 @@ Page({
   },
 
   onLoad(options) {
+    const handoff=require('../../utils/assistant-action-handoff').incoming(options,['view_favorite'],{storage:wx,storageKey:getUserStorageKey})
+    if(handoff)options={...options,id:handoff.ref.dishId}
     this._dishId = options.id
     const people = Number(options.people || 2)
     this.setData({ targetPeople: Number.isInteger(people) && people >= 1 && people <= 50 ? people : 2, ingredientNotice: '正在读取本餐份量' })

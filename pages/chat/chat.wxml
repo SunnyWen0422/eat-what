@@ -8,7 +8,7 @@
   <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="ew-title">说说你这一餐的想法</text><view class="connected-shortcuts"><button wx:for="{{conversationSuggestions}}" wx:key="id" class="ew-hit-target connected-shortcut" data-id="{{item.id}}" disabled="{{conversationBusy || conversationRecoverable}}" bindtap="onConversationSuggestion">{{item.label}}</button></view></view>
   <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">
    <text wx:if="{{item.text}}" class="connected-bubble" user-select>{{item.text}}</text>
-   <assistant-card wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy}}" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
+   <assistant-card wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy}}" bind:handoff="onConversationHandoff" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
   </view>
   <view wx:if="{{conversationBusy}}" class="connected-progress" aria-role="status"><text>正在帮你核对这一餐…</text><button class="ew-hit-target ew-link" bindtap="onConversationStop">停止</button></view>
   <view id="conversation-end"></view>

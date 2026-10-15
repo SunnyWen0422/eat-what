@@ -86,6 +86,14 @@ test('summaryCountsRemainSourceCounts', () => {
   assert.equal(h.page.data.dishes.flatMap(g => g.items).length, 8)
   assert.match(read('pages/shopping-list/shopping-list.wxml'), /已合并为\s*\{\{summaryRowCount\}\}\s*行/)
 })
+test('assistant edits exact shopping item only after latest list version is read',()=>{
+ const h=pageHarness();h.page._assistantHandoff={kind:'edit_shopping',ref:{itemId:5},sourceVersion:'2'}
+ h.page.applyAssistantHandoff();assert.equal(h.page._editId,5);assert.equal(h.page.data.formVisible,true);assert.equal(h.calls.length,0)
+ h.page.data.formVisible=false;h.page._assistantHandoff={kind:'edit_shopping',ref:{itemId:1},sourceVersion:'1'};h.page.applyAssistantHandoff();assert.equal(h.page.data.formVisible,false);assert.match(h.page.data.errorMessage,/变化/);assert.equal(h.calls.length,0)
+})
+test('assistant cannot replace an existing shopping form or unresolved operation',()=>{
+ const h=pageHarness();h.page.data.formVisible=true;h.page.data.formName='保留我的输入';h.page._assistantHandoff={kind:'edit_shopping',ref:{itemId:5},sourceVersion:'2'};h.page.applyAssistantHandoff();assert.equal(h.page.data.formName,'保留我的输入');assert.equal(h.calls.length,0)
+})
 
 test('mixedUnitsNeverCoerce', () => {
   const manual = item(4, '番茄', { userOverride: true, calculationStatus: 'USER_OVERRIDE', quantityValue: 2, quantityText: '我确认2个', unitFamily: 'count', unitCode: '个' })

@@ -65,6 +65,12 @@ class AssistantGuidanceTest {
         assertFalse(result.containsKey("taskId"));assertFalse(result.containsKey("previewToken"));
         assertNotNull(AssistantV4Contract.parseTurn(json.valueToTree(r)).getClarificationChoice());
     }
+    @Test void repeatedClarificationRetainsTheRootTaskRatherThanOnlyTheLastAnswer()throws Exception{
+        TurnRequest r=choice("tomorrow");TurnRecord row=parent(r,false);TurnResult result=json.readValue(row.getResultJson(),TurnResult.class);
+        result.getCards().get(0).getData().put("originalIntent","安排一餐并保存到我选择的日历");result.getCards().get(0).getData().put("priorSelection",Collections.singletonMap("mealType","lunch"));row.setResultJson(json.writeValueAsString(result));
+        Map<String,Object> validated=AssistantGuidanceService.validateChoice(7L,"s",r,row,workspace(),json,now,false);
+        assertEquals("安排一餐并保存到我选择的日历",validated.get("originalIntent"));assertEquals("lunch",((Map<?,?>)validated.get("selection")).get("mealType"));assertEquals("2026-10-16",((Map<?,?>)validated.get("selection")).get("date"));
+    }
     @Test void expiredStaleForeignAndUnknownChoicesAreRejected()throws Exception{
         TurnRequest r=choice("tomorrow");TurnRecord row=parent(r,false);
         assertThrows(ResponseStatusException.class,()->AssistantGuidanceService.validateChoice(7L,"s",r,row,workspace(),json,now+600000,false));
@@ -97,5 +103,25 @@ class AssistantGuidanceTest {
         assertEquals("LIGHT",reads.read(7L,call("get_recommendation_options",Collections.singletonMap("group","flavor")),scope()).getItems().get(0).get("code"));
         assertThrows(IllegalArgumentException.class,()->reads.read(7L,call("get_recommendation_options",Collections.singletonMap("group","invented")),scope()));
         assertTrue(reads.read(7L,call("read_favorites",Collections.emptyMap()),scope()).getItems().isEmpty());
+    }
+    @Test void navigationUsesOwnedCurrentReferencesAndNeverWritesBusinessData(){
+        MealWorkspaceService w=mock(MealWorkspaceService.class);when(w.get(7L,"w")).thenReturn(workspace());
+        DishQueryService d=mock(DishQueryService.class);Dish dish=new Dish();dish.setId(9L);dish.setName("青菜");when(d.getDishesByIdsForUser(Collections.singletonList(9L),7L)).thenReturn(Collections.singletonList(dish));
+        PersonalMenuService m=mock(PersonalMenuService.class);CustomRecipe menu=new CustomRecipe();menu.setId(3L);menu.setUserId(7L);menu.setVersion(5L);when(m.get(7L,3L)).thenReturn(menu);
+        FavoriteDishService f=mock(FavoriteDishService.class);when(f.getFavoriteDishIds(7L)).thenReturn(Collections.singletonList(9L));
+        ShoppingListService sh=mock(ShoppingListService.class);ShoppingListResponse list=new ShoppingListResponse();list.setVersion(8L);ShoppingDishDTO group=new ShoppingDishDTO();ShoppingPreviewItemDTO item=new ShoppingPreviewItemDTO();item.setId(4L);group.getItems().add(item);list.getDishes().add(group);when(sh.getList(7L,"all")).thenReturn(list);
+        MealConsumptionService actual=mock(MealConsumptionService.class);UserPreferenceService p=mock(UserPreferenceService.class);
+        AssistantGuidanceService service=new AssistantGuidanceService(w,mock(AssistantV4Store.class),json,new AssistantCapabilityService(true),Clock.fixed(Instant.ofEpochMilli(now),ZoneOffset.UTC));service.setupNavigation(d,m,f,sh,actual,p);
+        TurnScope scope=scope();scope.setTurnId("t");scope.getAuthorizedDishIds().add(9L);
+        Map<String,Object> intent=AssistantV4ContextService.map("kind","copy_recipe","ref",Collections.singletonMap("dishId",9L),"userText","伪造的克数");
+        Card card=service.resolveNavigation(7L,intent,scope,"少油一点");assertEquals("handoff",card.getType());assertNull(card.getReceiptRef());assertNull(card.getTaskId());assertEquals(dish.getContentVersion(),card.getData().get("sourceVersion"));assertEquals("少油一点",((Map<?,?>)card.getData().get("prefill")).get("userText"));
+        intent.put("url","https://evil.test");assertThrows(IllegalArgumentException.class,()->service.resolveNavigation(7L,intent,scope,"原句"));intent.remove("url");
+        scope.getAuthorizedDishIds().clear();assertThrows(IllegalArgumentException.class,()->service.resolveNavigation(7L,intent,scope,"原句"));
+        Card shopping=service.resolveNavigation(7L,AssistantV4ContextService.map("kind","edit_shopping","ref",Collections.singletonMap("itemId",4L)),scope,"改采购");assertEquals("8",shopping.getData().get("sourceVersion"));
+        assertThrows(IllegalArgumentException.class,()->service.resolveNavigation(7L,AssistantV4ContextService.map("kind","edit_shopping","ref",Collections.singletonMap("itemId",5L)),scope,"改采购"));
+        Card choice=service.resolveNavigation(7L,AssistantV4ContextService.map("kind","record_actual","ref",Collections.emptyMap()),scope,"记录晚餐");assertEquals("clarification",choice.getType());verifyNoInteractions(actual);
+        Card use=service.resolveNavigation(7L,AssistantV4ContextService.map("kind","use_personal_menu","ref",Collections.singletonMap("menuId",3L),"target",AssistantV4ContextService.map("date","2026-10-16","mealType","lunch")),scope,"用菜单");assertEquals("5",use.getData().get("sourceVersion"));
+        menu.setUserId(8L);assertThrows(IllegalArgumentException.class,()->service.resolveNavigation(7L,AssistantV4ContextService.map("kind","use_personal_menu","ref",Collections.singletonMap("menuId",3L),"target",AssistantV4ContextService.map("date","2026-10-16","mealType","lunch")),scope,"用菜单"));
+        verify(w,never()).mutate(anyLong(),anyString(),anyString(),any());verify(m,never()).save(anyLong(),any(),any());verifyNoInteractions(p);
     }
 }

@@ -42,7 +42,7 @@ function fixture(route = 'customize', overrides = {}, enabled = false) {
     if (basename === 'api.js') return api
     if (basename === 'util.js') return util
     if (basename === 'font-scale.js') return Object.assign(() => 1, { base: 16 })
-    if (basename === 'config.js') return { ENABLE_MEAL_WORKSPACE: enabled }
+    if (basename === 'config.js') return { ENABLE_MEAL_WORKSPACE: enabled, getApiBaseUrl: () => 'http://127.0.0.1/synthetic' }
     if (basename === 'recommendation-options.js') return { loadRecommendationOptions: async () => ({ options: { groups: {} } }) }
     const module = { exports: {} }
     vm.runInNewContext(fs.readFileSync(file, 'utf8'), { ...sandbox, module, exports: module.exports, require: name => moduleFrom(path.resolve(path.dirname(file), name + '.js')) })
@@ -62,6 +62,28 @@ test('saving one dish opens returned detail ID with a clear destination and unkn
   assert.match(f.navigation[0] || '', /dish-detail.*id=21/)
   assert.equal(f.sent[0].cookMinutes, null)
   assert.match(f.page.data.personalSaveMessage || '', /我的菜谱/)
+})
+
+test('assistant menu handoff rereads a same-name template and opens target review without applying',async()=>{
+ const f=fixture('customize',{},true),h=f.moduleFrom(path.resolve('utils/assistant-action-handoff.js'))
+ const token=h.currentStore().put({kind:'use_personal_menu',ref:{menuId:3},sourceVersion:'2',target:{date:'2026-10-16',mealType:'lunch'},prefill:{userText:'明天午餐用工作日菜单'}})
+ f.memory.set('A:assistantActionTab',{token});await f.page.applyAssistantMenuHandoff()
+ assert.equal(f.page.data.activeMenu.id,3);assert.equal(f.page.data.showMenuTarget,true);assert.equal(f.page.data.menuDate,'2026-10-16');assert.equal(f.page.data.menuMealIndex,1)
+ assert.equal(f.sent.length,0);assert.equal(f.calendarWrites.length,0);assert.equal(f.navigation.length,0)
+})
+test('assistant menu handoff cannot replace an existing edit or silently accept a changed template',async()=>{
+ const f=fixture('customize',{},true),h=f.moduleFrom(path.resolve('utils/assistant-action-handoff.js'))
+ for(const [editing,version] of [[true,'2'],[false,'1']]){
+  const token=h.currentStore().put({kind:'use_personal_menu',ref:{menuId:3},sourceVersion:version,target})
+  f.memory.set('A:assistantActionTab',{token});f.page.data.menuFormVisible=editing;f.page.data.menuName='未保存的菜名';await f.page.applyAssistantMenuHandoff()
+  assert.equal(f.page.data.menuName,'未保存的菜名');assert.equal(f.page.data.activeMenu,null);assert.equal(f.sent.length,0)
+ }
+})
+test('assistant copy opens an editable draft and cancelling creates no copy',async()=>{
+ const f=fixture('custom-dishes',{},true),h=f.moduleFrom(path.resolve('utils/assistant-action-handoff.js'))
+ const token=h.currentStore().put({kind:'copy_recipe',ref:{dishId:7},sourceVersion:'v1',prefill:{userText:'做一点调整'}})
+ f.page.onLoad({handoffToken:token});await f.page.onShow();assert.equal(f.page.data.copyDraft,true);assert.equal(f.sent.length,0)
+ f.page.cancelEdit();assert.equal(f.sent.length,0);assert.equal(f.page.data.editing,false)
 })
 for (const field of ['name', 'ingredients', 'steps']) test(`missing ${field} focuses that field and retains input`, async () => {
   const f = fixture(); f.page.data.customForm = { ...form(), [field]: '' }; await f.page.onSaveCustomDish()

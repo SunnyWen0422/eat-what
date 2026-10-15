@@ -14,6 +14,7 @@ public final class AssistantV4Contract {
     public static final Set<String> UI_FEATURES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("clarification_v1","handoff_v1")));
     public static final Set<String> STATUSES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("queued","running","needs_input","awaiting_confirmation","completed","partially_completed","failed","cancelled")));
     public static final Set<String> ACTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("draft_update","calendar_save","shopping_preview")));
+    public static final Set<String> HANDOFFS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("record_actual","edit_preferences","edit_shopping","copy_recipe","save_personal_menu","use_personal_menu","view_favorite")));
     public static boolean terminal(String status) {return Arrays.asList("needs_input","completed","partially_completed","failed","cancelled").contains(status);}
 
     @Data public static class SessionRequest {private String workspaceId; private String requestId;}
@@ -90,6 +91,7 @@ public final class AssistantV4Contract {
     @Data public static class StepOutput {
         private String type,question,reply,factSource,clarificationKind;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;
         private ProviderContinuation providerContinuation;
+        private Map<String,Object> navigationIntent;
     }
     @Data public static class WorkflowStep {
         private String stepId,requestId,kind;private Map<String,Object> arguments=new LinkedHashMap<>();

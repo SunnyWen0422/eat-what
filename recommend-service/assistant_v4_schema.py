@@ -121,6 +121,18 @@ ACTION_ARGUMENTS = {
         obj({"kind": string(10, ["plan"]), "date": DATE, "mealType": string(20, MEALS)}, ["kind", "date", "mealType"])]},
         "selectedSourceKeys": array(string(200, nonempty=True), 100), "excludedOwnedIngredients": STRINGS}, ["sourceRef"]),
 }
+HANDOFF_REFS = {"record_actual": obj(), "edit_preferences": obj(),
+    "edit_shopping": obj({"itemId": ID}, ["itemId"]), "copy_recipe": obj({"dishId": ID}, ["dishId"]),
+    "save_personal_menu": obj({"workspaceId": string(100, nonempty=True)}, ["workspaceId"]),
+    "use_personal_menu": obj({"menuId": ID}, ["menuId"]), "view_favorite": obj({"dishId": ID}, ["dishId"])}
+
+def navigation_schema():
+    variants=[]
+    for kind,ref in HANDOFF_REFS.items():
+        variants.append(obj({"kind":string(40,[kind]),"ref":copy.deepcopy(ref),
+            "target":obj({"date":DATE,"mealType":string(20,MEALS)}),
+            "userText":TEXT},["kind","ref"]))
+    return obj({"type":string(20,["navigation"]),"navigationIntent":{"anyOf":variants}},["type","navigationIntent"])
 
 
 def model_output_schema(capabilities=()):
@@ -136,12 +148,14 @@ def model_output_schema(capabilities=()):
     clarification = {"type": string(20, ["need_input"]), "question": string(2000, nonempty=True)}
     if "clarification_v1" in capabilities:
         clarification["clarificationKind"] = string(40, ["meal_target","dish_reference","source_choice","missing_people"])
-    return {"anyOf": [
+    result = {"anyOf": [
         obj(clarification, ["type", "question"]),
         obj(final_properties, ["type", "reply"]),
         obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
              "factSource": string(30, ["recent_actual"])}, ["type", "reply", "factSource"]),
     ]}
+    if "handoff_v1" in capabilities: result["anyOf"].append(navigation_schema())
+    return result
 
 # These nested shapes mirror AssistantV4ContextService's explicit Java view.
 DISH = obj({"id": ID, "name": nullable(string(200)), "type": nullable(string(40, TYPES)),
@@ -336,6 +350,13 @@ def clarification_question(supplier_question):
 
 def final_output(value, authorized_ids, allowed_actions=()):
     if not isinstance(value, dict): raise StepValidationError("invalid final output")
+    if value.get("type") == "navigation":
+        if "handoff_v1" not in allowed_actions: raise StepValidationError("handoff not enabled")
+        validate(value,navigation_schema())
+        intent=value["navigationIntent"]
+        if intent["kind"] in ("copy_recipe","view_favorite") and intent["ref"]["dishId"] not in authorized_ids:
+            raise StepValidationError("unsourced dish")
+        return copy.deepcopy(value)
     if value.get("type") == "need_input":
         schema = model_output_schema(allowed_actions)["anyOf"][0]
         validate(value, schema)

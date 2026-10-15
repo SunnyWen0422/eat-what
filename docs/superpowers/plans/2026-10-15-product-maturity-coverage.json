@@ -474,7 +474,7 @@
         "T08"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K15",
         "K19",
@@ -482,7 +482,8 @@
         "K22",
         "K24",
         "K30"
-      ]
+      ],
+      "evidenceNote": "Node242/242; Java108 before final48 targeted regressions; Python91 run89pass1skip1 Windows file replacement error, affected14-suite rerun all passed. Seven safe page handoffs; maturity.2 rejects older incomplete extension pair; repeated clarification retains root intent and prior choices; templates/77JSON valid. Ruling: reuse actual/favorite detail/menu confirmation paths and keep full preference editor rather than invent an inferred patch."
     },
     {
       "id": "T10",

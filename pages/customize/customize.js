@@ -100,8 +100,31 @@ Page({
       const intent = getUserStorageKey('openPersonalMenuForm')
       if (wx.getStorageSync(intent)) this.onOpenMenuFromCurrentMeal()
     }
-    if (require('../../utils/config').ENABLE_MEAL_WORKSPACE) { await this.refreshSelectedMeal(); openForm(); return }
+    if (require('../../utils/config').ENABLE_MEAL_WORKSPACE) { await this.refreshSelectedMeal(); await this.applyAssistantMenuHandoff(); openForm(); return }
     openForm()
+  },
+  async applyAssistantMenuHandoff(){
+    const handoff=require('../../utils/assistant-action-handoff'),p=handoff.incoming({},['save_personal_menu','use_personal_menu'],{storage:wx,storageKey:getUserStorageKey})
+    if(!p||!this.ensureBrowseOwner())return
+    const identity=this._browseIdentity,epoch=this._privateEpoch||0,current=()=>this.isBrowseCurrent(identity,epoch)&&this._visible!==false
+    const selection=this._recipeSelection&&this._recipeSelection.view(),state=selection&&selection.state
+    if(this.data.menuBusy||this.data.menuPending||this.data.customPending||this.data.showCustomForm||this.data.menuFormVisible||state&&(state.pending||state.dirty))return this.setData({menuError:'请先完成当前编辑或核对原保存，再从助手重新打开',showMenus:true})
+    try{
+      if(p.kind==='save_personal_menu'){
+        const result=await api.getMealWorkspace(p.target.date,p.target.mealType);if(!current())return
+        const w=result&&result.workspace
+        if(!w||w.id!==p.ref.workspaceId||p.sourceVersion!==w.revision+':'+w.draft.planVersion)throw Error('本餐菜单已变化，请重新查询后再保存')
+        wx.setStorageSync(getUserStorageKey('activeMealTarget'),p.target)
+        await this.refreshSelectedMeal();if(!current())return
+        wx.setStorageSync(getUserStorageKey('openPersonalMenuForm'),true);return this.onOpenMenuFromCurrentMeal()
+      }
+      const menu=await api.getPersonalMenu(p.ref.menuId);if(!current())return
+      if(!menu||String(menu.version)!==p.sourceVersion)throw Error('常用菜单已更新，请重新查看后再使用')
+      await this.onOpenMenus();if(!current())return
+      const fresh=this.data.menus.find(m=>Number(m.id)===p.ref.menuId)
+      if(!fresh||String(fresh.version)!==p.sourceVersion)throw Error('常用菜单已更新，请重新查看后再使用')
+      this.setData({activeMenu:fresh,showMenuTarget:true,menuDate:p.target.date,menuMealIndex:['breakfast','lunch','dinner'].indexOf(p.target.mealType),menuError:''})
+    }catch(error){if(current())this.setData({showMenus:true,menuError:require('../../utils/meal-workflow').errorMessage(error,'这份内容暂未读到，请重新查询后再打开')})}
   },
   onHide() { this._recipeVisible = false; clearTimeout(this._recipePoll); this._visible = false; this._menuApplyEpoch = (this._menuApplyEpoch || 0) + 1; if (this._menuApplying) { this._menuApplyWasHidden = true; this._menuApplying = false } },
   onUnload() { require('../../utils/dish-workspace-handoff').disposeSelectionPage(this); this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },

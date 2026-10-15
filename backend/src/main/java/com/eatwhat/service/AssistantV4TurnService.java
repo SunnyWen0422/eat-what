@@ -80,7 +80,15 @@ public class AssistantV4TurnService {
                     }
                     input.setReadResults(results);input.setProviderContinuation(output.getProviderContinuation());continue;
                 }
-                if("need_input".equals(output.getType())){String question=QUESTIONS.contains(output.getQuestion())?output.getQuestion():SAFE_QUESTION;TurnResult r=result("needs_input",question,UNAVAILABLE.equals(question));r.setCards(facts);r.setWorkspaceRef(reference(scope));if(guidance!=null&&actual.contains("clarification_v1")){Card card=guidance.createClarification(turnId,contextWorkspace(user,request),question);if(card!=null)r.getCards().add(card);}finish(user,lease,r);return;}
+                if("need_input".equals(output.getType())){String question=QUESTIONS.contains(output.getQuestion())?output.getQuestion():SAFE_QUESTION;TurnResult r=result("needs_input",question,UNAVAILABLE.equals(question));r.setCards(facts);r.setWorkspaceRef(reference(scope));if(guidance!=null&&actual.contains("clarification_v1")){Card card=guidance.createClarification(turnId,contextWorkspace(user,request),question);if(card!=null){retainOriginalIntent(card,context,request);r.getCards().add(card);}}finish(user,lease,r);return;}
+                if("navigation".equals(output.getType())){
+                    TurnResult r=result("needs_input","请在对应页面核对后操作",false);r.setCards(facts);r.setWorkspaceRef(reference(scope));
+                    if(guidance!=null&&actual.contains("handoff_v1")){
+                        try{Card card=guidance.resolveNavigation(user,output.getNavigationIntent(),scope,originalIntent(context,request));retainOriginalIntent(card,context,request);r.getCards().add(card);r.setReply(card.getType().equals("clarification")?card.getTitle():"打开页面后可继续编辑");}
+                        catch(IllegalArgumentException|org.springframework.web.server.ResponseStatusException unavailable){r.setReply("相关内容已变化，请重新查询后再操作");}
+                    }else r.setReply("可从日历、采购清单或我的内容进入对应功能");
+                    finish(user,lease,r);return;
+                }
                 if(!"final".equals(output.getType()))throw new IllegalArgumentException("无法理解本次请求");
                 if(output.getActionProposal()==null||output.getActionProposal().getSteps().isEmpty()){
                     if("recent_actual".equals(output.getFactSource()))facts.addAll(recentActualCards(user,context));
@@ -136,11 +144,27 @@ public class AssistantV4TurnService {
     private TurnResult result(String status,String reply,boolean retry){TurnResult r=new TurnResult();r.setStatus(status);r.setReply(reply);r.setRetryable(retry);return r;}
     private String encode(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalArgumentException("数据无效");}}
     private void boundContext(ModelContext context){List<Map<String,Object>> text=new ArrayList<>(rows(context.getConversation().get("recentText")));while(encode(context).length()>6000&&!text.isEmpty()){text.remove(0);context.getConversation().put("recentText",text);context.getEvidence().put("truncated",true);}if(encode(context).length()>6000)throw new IllegalArgumentException("本餐必要信息较多，请缩小请求范围");}
-    private void validateOutput(StepOutput output){if(output==null||!Arrays.asList("read_calls","final","need_input").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");if(output.getFactSource()!=null&&(!"final".equals(output.getType())||!"recent_actual".equals(output.getFactSource())||output.getActionProposal()!=null))throw new IllegalArgumentException("查询来源无效");if("read_calls".equals(output.getType())){if(output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null)throw new IllegalArgumentException("结果内容冲突");}else{if(!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("结果内容冲突");if("need_input".equals(output.getType())&&output.getActionProposal()!=null)throw new IllegalArgumentException("澄清不能附带操作");}}
+    private void validateOutput(StepOutput output){
+        if(output==null||!Arrays.asList("read_calls","final","need_input","navigation").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");
+        if(output.getFactSource()!=null&&(!"final".equals(output.getType())||!"recent_actual".equals(output.getFactSource())||output.getActionProposal()!=null))throw new IllegalArgumentException("查询来源无效");
+        if("navigation".equals(output.getType())){
+            if(output.getNavigationIntent()==null||output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null||!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("交接内容冲突");
+            return;
+        }
+        if(output.getNavigationIntent()!=null)throw new IllegalArgumentException("结果内容冲突");
+        if("read_calls".equals(output.getType())){if(output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null)throw new IllegalArgumentException("结果内容冲突");}
+        else{if(!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("结果内容冲突");if("need_input".equals(output.getType())&&output.getActionProposal()!=null)throw new IllegalArgumentException("澄清不能附带操作");}
+    }
     private List<ConversationFrame> frames(ModelContext context){List<ConversationFrame> out=new ArrayList<>();for(Map<String,Object> item:rows(context.getConversation().get("recentText"))){if(!Arrays.asList("user","assistant").contains(item.get("role")))continue;ConversationFrame f=new ConversationFrame();f.setRole((String)item.get("role"));f.setContent(String.valueOf(item.get("text")));out.add(f);}return out.size()>12?new ArrayList<>(out.subList(out.size()-12,out.size())):out;}
     private void authorizeCurrent(Map<String,Object> active,TurnScope scope){for(Map<String,Object> dish:rows(active.get("currentDishes")))addDishId(dish.get("id"),scope);}
     private void authorizeRead(ReadResult read,TurnScope scope){if(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods","read_favorites").contains(read.getName()))for(Map<String,Object> item:read.getItems())addDishId(item.get("id"),scope);else if("read_current_meal".equals(read.getName()))for(Map<String,Object> item:read.getItems())authorizeCurrent(item,scope);}
     private com.eatwhat.dto.MealWorkspace contextWorkspace(Long user,TurnRequest request){return guidance.currentWorkspace(user,request);}
+    private String originalIntent(ModelContext context,TurnRequest request){Object c=context.getRequestContext().get("clarification");Object original=c instanceof Map?((Map<?,?>)c).get("originalIntent"):null;return original instanceof String?(String)original:request.getMessage();}
+    private void retainOriginalIntent(Card card,ModelContext context,TurnRequest request){if(card!=null&&"clarification".equals(card.getType())){
+        card.getData().put("originalIntent",originalIntent(context,request));
+        Object clarification=context.getRequestContext().get("clarification"),selection=clarification instanceof Map?((Map<?,?>)clarification).get("selection"):null;
+        if(selection instanceof Map)card.getData().put("priorSelection",new LinkedHashMap<>((Map<?,?>)selection));
+    }}
     private void addDishId(Object value,TurnScope scope){if(value instanceof Number&&((Number)value).longValue()>0)scope.getAuthorizedDishIds().add(((Number)value).longValue());}
     private void validateActions(ActionProposal proposal,TurnScope scope){
         if(proposal.getSteps().isEmpty()||proposal.getSteps().size()>3)throw new IllegalArgumentException("操作数量无效");

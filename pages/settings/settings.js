@@ -41,7 +41,8 @@ Page({
   },
   onShow() { if (this._scope && this._scope !== getUserStorageKey('preferencesPage')) this.onLoad() },
   onUnload() { this._unloaded = true },
-  async onLoad() {
+  async onLoad(options={}) {
+    const handoff=require('../../utils/assistant-action-handoff').incoming(options,['edit_preferences'],{storage:wx,storageKey:getUserStorageKey})
     const scope = this._scope = getUserStorageKey('preferencesPage')
     this.experienceStore = experiencePreferences()
     this.setData({ reducedMotion: this.experienceStore.get().reducedMotion,
@@ -68,6 +69,7 @@ Page({
     })
     if (catalogChanged) this.setData({ dirty: true, statusText: '已清理失效选项，请保存' })
     this.renderOptions()
+    if(handoff&&handoff.prefill&&handoff.prefill.userText&&scope===getUserStorageKey('preferencesPage'))wx.showModal({title:'核对长期偏好',content:handoff.prefill.userText+'\n请在页面中调整，保存后生效。',showCancel:false})
   },
 
   renderOptions() {

@@ -17,5 +17,6 @@ Component({
   },
   onRepreview(){this.refresh();if(this.properties.active&&!this.properties.busy&&this.data.view.type==='shopping_preview'&&this.data.view.expired)this.triggerEvent('repreview',{id:this.properties.card.id})},
   onUndo(){if(this.properties.active&&!this.properties.busy&&this.data.view.canUndo)this.triggerEvent('undo',{id:this.properties.card.id})},
+  onHandoff(){this.refresh();if(this.properties.active&&!this.properties.busy&&this.data.view.canHandoff)this.triggerEvent('handoff',{id:this.properties.card.id})},
  }
 })

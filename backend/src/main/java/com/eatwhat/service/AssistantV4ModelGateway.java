@@ -39,7 +39,7 @@ public class AssistantV4ModelGateway {
             pending=requests.submit(()->transport.apply(1000).exchange(url.substring(0,url.length()-4)+"capabilities",HttpMethod.GET,new HttpEntity<Void>(headers),String.class).getBody());
             String response=pending.get(1000,TimeUnit.MILLISECONDS);
             if(response!=null&&response.length()<2000){com.fasterxml.jackson.databind.JsonNode body=json.readTree(response);
-                ready="maturity.1".equals(body.path("contractRevision").asText())&&body.path("uiFeatures").isArray()&&body.path("uiFeatures").toString().contains("\"clarification_v1\"")&&body.path("uiFeatures").toString().contains("\"handoff_v1\"");}
+                ready="maturity.2".equals(body.path("contractRevision").asText())&&body.path("uiFeatures").isArray()&&body.path("uiFeatures").toString().contains("\"clarification_v1\"")&&body.path("uiFeatures").toString().contains("\"handoff_v1\"");}
         }catch(InterruptedException cancelled){Thread.currentThread().interrupt();}
         catch(Exception unavailable){/* Old/unavailable adapters simply do not advertise extensions. */}
         finally{if(pending!=null&&!pending.isDone())pending.cancel(true);}

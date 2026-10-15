@@ -12,6 +12,11 @@ function harness(actual=eaten,options={}){let definition,scope=options.account||
  return {page,writes,memory,getActual:()=>structuredClone(consumptions),switchAccount:()=>scope='B'}
 }
 const event={currentTarget:{dataset:{meal:'dinner'}}}
+test('assistant actual handoff opens freshly read actual editor and cancellation writes nothing',async()=>{
+ const f=harness();await f.page.loadMealRecords();f.page._assistantHandoff={kind:'record_actual',ref:{},target:{date,mealType:'dinner'}}
+ await f.page.applyAssistantActualHandoff();assert.equal(f.page.data.actualVisible,true);assert.equal(f.page.data.actualMode,'changed');assert.equal(f.writes.length,0)
+ f.page.closeMealActual();assert.equal(f.writes.length,0);assert.deepEqual(f.getActual(),[eaten])
+})
 test('meal deep link displays only the chosen meal while date-only retains all three',async()=>{
  const f=harness();f.page.onLoad({date,mealType:'dinner'});await f.page.loadMealRecords();assert.equal(f.page.data.meals.length,1);assert.equal(f.page.data.meals[0].mealType,'dinner');assert.equal(f.page.data.dateHeading,'10月9日 晚餐');assert.equal(f.page.data.meals[0].presentation.dishes[0].name,'原来吃的鱼');assert.equal(f.page.data.meals[0].displayPeople,3)
  f.page.onLoad({date});await f.page.loadMealRecords();assert.deepEqual(Array.from(f.page.data.meals,m=>m.mealType),['breakfast','lunch','dinner'])

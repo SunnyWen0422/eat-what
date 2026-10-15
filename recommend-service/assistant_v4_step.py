@@ -113,11 +113,16 @@ def prepare_step(value):
               "activeMealSnapshotAvailable": all(key in context.get("activeMeal", {})
                   for key in ("workspaceRevision", "planVersion", "currentDishes"))}
     generation_hint = ""
+    navigation_hint = ""
+    if "handoff_v1" in allowed_actions:
+        navigation_hint = ("\n可用navigation建议去既有页面：record_actual/edit_preferences/edit_shopping/copy_recipe/save_personal_menu/use_personal_menu/view_favorite。"
+            "ref只用工具或当前餐的真实引用；不提供URL、不自动写入。长期偏好只在用户明确长期意图时交接；本餐临时要求仍留在本餐流程。"
+            "实吃和复用菜单目标不明先澄清，不默认今天。")
     if "draft_update" in allowed_actions:
         generation_hint = ("\n用户要求生成新方案且事实齐备时，第一步kind=draft_update，在arguments中设operation=generate；"
             "selectedDishIds选1至10个已授权的真实候选ID，遵守保留菜和硬限制。"
             "优先一次均衡候选查询后直接给出完整有界建议，不先创建空方案，不重复生成。")
-    messages = [{"role": "system", "content": SYSTEM + generation_hint + "\n工具循环预算（服务端）：" + bounded_json(budget, 2000)
+    messages = [{"role": "system", "content": SYSTEM + generation_hint + navigation_hint + "\n工具循环预算（服务端）：" + bounded_json(budget, 2000)
                  + "\n最终输出 JSON schema：" + bounded_json(model_output_schema(allowed_actions), 12000)},
                 {"role": "user", "content": "当前授权上下文资料(JSON)：" + bounded_json(context, 12000)}]
     messages.extend(copy.deepcopy(value["conversationFrames"]))

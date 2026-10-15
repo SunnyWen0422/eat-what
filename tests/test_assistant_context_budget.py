@@ -23,6 +23,6 @@ class AssistantContextBudgetTest(unittest.TestCase):
             main=load_main()
             with patch.dict('os.environ',{'MEAL_WORKSPACE_SERVICE_TOKEN':'synthetic-probe'}):
                 with self.assertRaises(main.HTTPException):main.assistant_v4_capabilities(None)
-                self.assertEqual(main.assistant_v4_capabilities('synthetic-probe')['contractRevision'],'maturity.1')
+                self.assertEqual(main.assistant_v4_capabilities('synthetic-probe')['contractRevision'],'maturity.2')
             self.assertEqual(service.network_attempts,[])
 if __name__=='__main__':unittest.main()

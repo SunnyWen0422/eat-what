@@ -100,6 +100,13 @@ module.exports=function assistantPage(fallback, options={}) {
   onConversationRecover(){if(this.conversation)return this.conversation.recover();return this.openConnectedConversation()},
   onConversationStop(){if(this.conversation)return this.conversation.cancelTurn()},
   onConversationConfirm(event){if(this.conversation&&!this.data.conversationBusy)return this.conversation.confirm(event.detail.id)},
+  onConversationHandoff(event){
+   if(!this.current()||!this.conversation||this.data.conversationBusy)return
+   const state=this.conversation.state(),turn=state.turn,w=this.store.state().workspace
+   if(state.recoverable||state.confirmationPending||state.selectionPending||!turn||turn.status!=='needs_input')return
+   const card=(turn.cards||[]).find(c=>c.id===event.detail.id)
+   if(!require('./assistant-action-handoff').openCard(card,w))this.setData({conversationError:'这项内容已变化，请重新查询后再打开'})
+  },
   onConversationSelection(event){if(this.conversation&&!this.data.conversationBusy)return this.conversation.selectShopping(event.detail.id,event.detail.selectedSourceKeys)},
   onConversationRepreview(event){if(this.conversation&&!this.data.conversationBusy)return this.conversation.selectShopping(event.detail.id)},
   async onConversationUndo(event){

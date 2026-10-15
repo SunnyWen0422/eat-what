@@ -32,7 +32,7 @@ class AssistantContextBudgetTest {
     @Test void providerExtensionProbeIsAuthenticatedAndDoesNotCallModels(){
         RestTemplate http=new RestTemplate();MockRestServiceServer server=MockRestServiceServer.bindTo(http).build();
         server.expect(requestTo("http://localhost/internal/v4/assistant/capabilities")).andExpect(header("X-Service-Token","synthetic"))
-            .andRespond(withSuccess("{\"contractRevision\":\"maturity.1\",\"uiFeatures\":[\"clarification_v1\",\"handoff_v1\"]}",MediaType.APPLICATION_JSON));
+            .andRespond(withSuccess("{\"contractRevision\":\"maturity.2\",\"uiFeatures\":[\"clarification_v1\",\"handoff_v1\"]}",MediaType.APPLICATION_JSON));
         AssistantV4ModelGateway gateway=new AssistantV4ModelGateway("http://localhost","synthetic",json,millis->http);
         try{assertTrue(gateway.supportsExtensions());assertTrue(gateway.supportsExtensions());server.verify();}finally{gateway.close();}
     }

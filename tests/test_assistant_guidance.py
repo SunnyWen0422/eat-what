@@ -26,4 +26,21 @@ class AssistantGuidanceTest(unittest.TestCase):
             messages=prepare_step(req)[0]
             facts=[x['content'] for x in messages if x['role']=='user']
             self.assertTrue(any('originalIntent' in x and '2026-10-16' in x for x in facts))
+    def test_navigation_is_negotiated_and_cannot_smuggle_a_url_or_unsourced_dish(self):
+        with isolated_service():
+            from assistant_v4_schema import final_output,StepValidationError
+            nav={'type':'navigation','navigationIntent':{'kind':'copy_recipe','ref':{'dishId':7}}}
+            self.assertEqual(final_output(nav,{7},{'handoff_v1'})['type'],'navigation')
+            with self.assertRaises(StepValidationError):final_output(nav,{7},set())
+            with self.assertRaises(StepValidationError):final_output(nav,set(),{'handoff_v1'})
+            nav['navigationIntent']['url']='https://evil.test'
+            with self.assertRaises(StepValidationError):final_output(nav,{7},{'handoff_v1'})
+    def test_all_enabled_output_schemas_fit_the_existing_bounded_envelope(self):
+        with isolated_service():
+            from assistant_v4_step import prepare_step
+            from assistant_v4_schema import READS,ACTION_ARGUMENTS,UI_FEATURES
+            request=body();request['context']['capabilities']=READS+list(ACTION_ARGUMENTS)+UI_FEATURES
+            messages=prepare_step(request)[0]
+            self.assertIn('navigationIntent',messages[0]['content'])
+            self.assertIn('clarificationKind',messages[0]['content'])
 if __name__=='__main__':unittest.main()

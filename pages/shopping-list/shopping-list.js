@@ -13,7 +13,14 @@ const clone = value => JSON.parse(JSON.stringify(value))
 const operationSignature = (type, payload, itemId) => { const { requestId, expectedListVersion, ...body } = payload; return JSON.stringify([type, body, itemId]) }
 Page({
   data: { sourceMeals:[],sourceMealsVisible:false,feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
-  onShow() { this.loadList() },
+  onLoad(options={}){this._assistantHandoff=require('../../utils/assistant-action-handoff').incoming(options,['edit_shopping'],{storage:wx,storageKey:getUserStorageKey})},
+  async onShow() { await this.loadList();this.applyAssistantHandoff() },
+  applyAssistantHandoff(){
+    const p=this._assistantHandoff;if(!p)return;this._assistantHandoff=null
+    if(!this.current(this._scope)||this.data.offline||this.data.busy||this.data.refreshing||this.data.formVisible||(this.data.drafts||[]).length)return this.setData({errorMessage:'请先核对当前清单或未完成的修改，再从助手重新打开'})
+    if(String(this.data.version)!==p.sourceVersion||!this.findItem(p.ref.itemId))return this.setData({errorMessage:'这条采购内容已变化，请重新选择要调整的条目'})
+    this.onEditItem({currentTarget:{dataset:{id:p.ref.itemId}}})
+  },
   onHide() { this.finishTransition() },
   onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1; this.finishTransition() },
   onPageScroll(e) { this._scrollTop = Number(e.scrollTop) || 0 },
