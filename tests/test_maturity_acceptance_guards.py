@@ -1,5 +1,6 @@
 """Guard checks run without starting any process, network or database."""
 import copy
+import json
 import importlib.util
 from pathlib import Path
 import tempfile
@@ -43,6 +44,29 @@ class MaturityAcceptanceGuardsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError):m.new_output(Path(directory))
             target=Path(directory)/'fresh';self.assertEqual(target.resolve(),m.new_output(target))
+
+    def test_public_snapshot_empty_owner_normalized_but_private_owner_rejected(self):
+        m=self.service();written=[]
+        class Cursor:
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def execute(self,sql):written.append(sql)
+            def executemany(self,sql,rows):
+                self.assert_rows=rows
+                if not all(type(r[0]) is int and r[-1]==0 for r in rows):raise AssertionError('Integer conversion failed')
+                written.extend(rows)
+        class Connection:
+            def cursor(self):return Cursor()
+        with tempfile.TemporaryDirectory() as directory:
+            source=Path(directory)/'public.jsonl'
+            rows=[{'id':str(i),'name':'菜','type':'veg','user_id':'','is_custom':''} for i in range(1,6666)]
+            def config():
+                source.write_text('\n'.join(json.dumps(r) for r in rows),encoding='utf-8')
+                return {'rows':6665,'catalog':str(source),'datasetHash':m.digest(source)}
+            self.assertEqual(6665,m.install_catalog(Connection(),config())['rows']);self.assertEqual(6666,len(written))
+            rows[0]['user_id']='7';written.clear()
+            with self.assertRaises(ValueError):m.install_catalog(Connection(),config())
+            self.assertEqual([],written)
 
 
 if __name__=='__main__':unittest.main()

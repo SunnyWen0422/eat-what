@@ -85,17 +85,22 @@ def main():
     report={'sourceSha':config['sourceSha'],'datasetHash':config['datasetHash'],'jarSha256':config['jarSha256'],'providerMode':'mock','productionTouched':False,'scenarios':[]}
     # New instance for each dataset; concurrency stages reuse its buffer pool and
     # record their order explicitly. Cold starts are separate from warm latency.
-    for size in (6665,50000):
-        cfg=dict(config,rows=size,privateDb='eatwhat_maturity_local_'+uuid.uuid4().hex[:8])
-        with owned_runtime(cfg,out/('rows-'+str(size))) as runtime:
-            for concurrency in (1,10,25):
-                result=bench(runtime,concurrency,args.seconds_per_scenario);result['rows']=size;report['scenarios'].append(result)
-                (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
-                print(json.dumps({'rows':size,'concurrency':concurrency,'requests':result['requests'],'errors':result['errors'],'groups':result['groups']},ensure_ascii=False),flush=True)
-    report['sustainedLoadSeconds']=sum(r['requestedSeconds'] for r in report['scenarios'])
+    variants=['baseline','candidate'] if config.get('baselineJar') else ['candidate']
+    for variant in variants:
+        for size in (6665,50000):
+            cfg=dict(config,rows=size,privateDb='eatwhat_maturity_local_'+uuid.uuid4().hex[:8])
+            if variant=='baseline':
+                receipt=json.loads(Path(config['baselineBuildManifest']).read_text(encoding='utf-8'))
+                cfg.update(jar=config['baselineJar'],buildManifest=config['baselineBuildManifest'],jarSha256=receipt['jarSha256'],buildSourceFingerprint=receipt['backendFingerprint'])
+            with owned_runtime(cfg,out/(variant+'-rows-'+str(size)),baseline=variant=='baseline') as runtime:
+                for concurrency in (1,10,25):
+                    result=bench(runtime,concurrency,20 if variant=='baseline' else args.seconds_per_scenario);result.update(rows=size,variant=variant);report['scenarios'].append(result)
+                    (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+                    print(json.dumps({'variant':variant,'rows':size,'concurrency':concurrency,'requests':result['requests'],'errors':result['errors'],'groups':result['groups']},ensure_ascii=False),flush=True)
+    report['sustainedLoadSeconds']=sum(r['requestedSeconds'] for r in report['scenarios'] if r['variant']=='candidate')
     report['thirtyMinuteGate']=report['sustainedLoadSeconds']>=1800
     report['targets']={'listP95Ms':300,'mealP95Ms':1000,'errorRate':.01}
-    report['latencyTargetsMet']=all(s['groups']['list']['p95Ms'] is not None and s['groups']['list']['p95Ms']<=300 and s['groups']['meal']['p95Ms'] is not None and s['groups']['meal']['p95Ms']<=1000 and s['errors']/max(1,s['requests'])<.01 for s in report['scenarios'])
+    report['latencyTargetsMet']=all(s['groups']['list']['p95Ms'] is not None and s['groups']['list']['p95Ms']<=300 and s['groups']['meal']['p95Ms'] is not None and s['groups']['meal']['p95Ms']<=1000 and s['errors']/max(1,s['requests'])<.01 for s in report['scenarios'] if s['variant']=='candidate')
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     return 0 if report['thirtyMinuteGate'] and report['latencyTargetsMet'] else 2
 

@@ -5,6 +5,7 @@ directory, and shutdown uses only Popen handles created by this context.
 """
 from contextlib import contextmanager
 import hashlib
+import io
 import importlib.util
 import json
 import os
@@ -14,6 +15,7 @@ import secrets
 import socket
 import subprocess
 import time
+import zipfile
 from types import SimpleNamespace
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -48,13 +50,28 @@ def validate_config(value):
     return value
 
 
-def validate_build(config,build_path,jar):
+def validate_build(config,build_path,jar,baseline=False):
     try:build=json.loads(Path(build_path).read_text(encoding='utf-8'))
     except (OSError,ValueError):raise ValueError('Build receipt missing') from None
     if build.get('jarSha256')!=config['jarSha256'] or build.get('backendFingerprint')!=config['buildSourceFingerprint']:
         raise ValueError('Build receipt does not match candidate')
     if not Path(jar).is_file() or Path(jar).is_symlink() or digest(jar)!=config['jarSha256']:raise ValueError('Pinned JAR changed')
-    if backend_fingerprint()!=config['buildSourceFingerprint']:raise ValueError('Backend source changed since build')
+    if baseline:
+        revision=config.get('baselineSha','')
+        if not re.fullmatch('[a-f0-9]{40}',revision) or build.get('sourceSha')!=revision:raise ValueError('Pinned baseline source required')
+        subprocess.run(['git','merge-base','--is-ancestor',revision,config['sourceSha']],cwd=ROOT,check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        archive=subprocess.check_output(['git','archive','--format=zip',revision,'backend/pom.xml','backend/src/main'],cwd=ROOT)
+        h=hashlib.sha256()
+        with zipfile.ZipFile(io.BytesIO(archive)) as z:
+            files=sorted(n for n in z.namelist() if not n.endswith('/') and not re.fullmatch(r'application(?:-.*)?\.(?:yml|yaml|properties)',Path(n).name))
+            # Match backend_fingerprint: POM first, then sorted source files.
+            files=['backend/pom.xml']+[n for n in files if n!='backend/pom.xml']
+            for name in files:h.update((name+':'+hashlib.sha256(z.read(name)).hexdigest()+'\n').encode())
+        if h.hexdigest()!=config['buildSourceFingerprint']:raise ValueError('Baseline source receipt differs from Git archive')
+    elif backend_fingerprint()!=config['buildSourceFingerprint']:raise ValueError('Backend source changed since build')
+    # A matching hash alone cannot establish that the archive is a configuration-
+    # free EatWhat Spring executable. Reuse the canonical strict archive check.
+    load('maturity_jar_guard','scripts/local_v4.py').validate_jar(jar)
     return build
 
 
@@ -83,7 +100,7 @@ def install_catalog(connection,config):
     path=Path(config['catalog'])
     if digest(path)!=config['datasetHash']:raise ValueError('Catalog hash changed')
     rows=[json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
-    if len(rows)!=6665 or len({r['id'] for r in rows})!=6665 or any(r.get('user_id') is not None for r in rows):raise ValueError('Public source catalog identity mismatch')
+    if len(rows)!=6665 or len({int(r['id']) for r in rows})!=6665 or any(r.get('user_id') not in (None,'') for r in rows):raise ValueError('Public source catalog identity mismatch')
     fields=['name','type','cl','fl','step','tags','image','difficulty','cook_time','ingredients_amounts','steps','step_images','tips','methods','kcal','is_custom']
     with connection.cursor() as c:
         # Only called before HTTP startup on a fresh DB created by this process.
@@ -92,18 +109,20 @@ def install_catalog(connection,config):
             batch=[]
             for index in range(start,min(size,start+256)):
                 row=rows[index%len(rows)]
-                batch.append(tuple([row['id'] if size==6665 else index+1]+[row.get(f) for f in fields]))
+                values=[row.get(f) for f in fields]
+                values[-1]=int(row.get('is_custom') or 0)
+                batch.append(tuple([int(row['id']) if size==6665 else index+1]+values))
             c.executemany('INSERT INTO food(id,'+','.join('`'+f+'`' for f in fields)+',IS_PUBLISHED,METADATA_VERSION) VALUES('+','.join(['%s']*17)+',1,1)',batch)
     return {'kind':'public-source-snapshot' if size==6665 else 'synthetic-expanded-from-public-snapshot','rows':size,
             'sourceRows':6665,'privateHistoryImported':False,'quality':'unreviewed; no invented evidence'}
 
 
 @contextmanager
-def owned_runtime(config,out):
+def owned_runtime(config,out,baseline=False):
     """Bootstrap schema + fixture + Java/Python in one owning process tree."""
     validate_config(config);out=new_output(out)
     if subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()!=config['sourceSha']:raise ValueError('Source HEAD changed')
-    jar=Path(config['jar']).resolve();validate_build(config,config['buildManifest'],jar)
+    jar=Path(config['jar']).resolve();validate_build(config,config['buildManifest'],jar,baseline)
     mysqld=Path(config['mysqld']).absolute();java=Path(config['java']).absolute()
     if not mysqld.is_file() or not java.is_file() or mysqld.is_symlink() or java.is_symlink():raise ValueError('Explicit installed runtime executables required')
     if config.get('rows',6665)>0 and digest(config['catalog'])!=config['datasetHash']:raise ValueError('Dataset hash changed')
@@ -159,7 +178,7 @@ def owned_runtime(config,out):
             'spring.jackson.time-zone':'GMT+8','mybatis.configuration.map-underscore-to-camel-case':True,
             'security.token.secret':token,'wechat.miniapp.appid':'local','wechat.miniapp.secret':'local',
             'admin.user-ids':'910001','meal-workspace.enabled':True,'meal-workspace.service-token':service_token,
-            'recommend.service.base-url':'http://127.0.0.1:18781','assistant.v4.enabled':True,
+            'recommend.service.base-url':'http://127.0.0.1:18781','assistant-v4.enabled':True,
             'management.endpoints.web.exposure.include':'health,info,metrics',
             'management.endpoint.health.group.local-ready.include':'db,ping','logging.level.com.eatwhat':'WARN'}
         config_file=data/'application.json';config_file.write_text(json.dumps(properties),encoding='utf-8')
@@ -179,6 +198,8 @@ def owned_runtime(config,out):
             except OSError:
                 if time.monotonic()>until:raise RuntimeError('Owned authenticated API readiness failed') from None
                 time.sleep(.2)
+        caps=a.http('/assistant/v4/capabilities')
+        if not caps.get('enabled') or len(caps.get('reads',[]))!=11:raise RuntimeError('Owned assistant capability handshake failed')
         yield SimpleNamespace(api=a,db=connection,state=state,model=model,java=jvm,mysql=mysql,output=out,data=data,
                               dataset=dataset,properties=properties,config=config)
     finally:
