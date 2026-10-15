@@ -20,18 +20,9 @@ function deriveWorkspacePresentation(value) {
   const compositionUnknownNotice = status === 'needs_input' && unknown ? '部分菜品分类未提供，无法确认准确缺额。可调整搭配、筛选或自己选菜。' : ''
   const generationLimitNotice = ['needs_input','failed'].includes(status) ? '自动安排尚未完成，当前菜单仍保留。智能服务不可用时，仍可自己选菜、查看做法或日历。' : ''
   const recovering = ['unknown', 'offline', 'conflict'].includes(syncStatus)
-  let primaryAction = 'onGenerate', primaryLabel = '生成本餐菜单'
-  if (syncStatus === 'unknown' || syncStatus === 'offline') { primaryAction = 'onRetryWorkspace'; primaryLabel = '核对并重试同步' }
-  else if (syncStatus === 'conflict') { primaryAction = 'onLoadLatest'; primaryLabel = '读取最新安排' }
-  else if (status === 'generating') { primaryAction = 'onCancelTask'; primaryLabel = '停止本次安排' }
-  else if (status === 'plan_changed') { primaryAction = 'onViewPlan'; primaryLabel = '查看最新安排' }
-  else if (status === 'draft' && canConfirm) { primaryAction = 'onConfirmPlan'; primaryLabel = '保存到日历' }
-  else if (value.saveState === 'saved' && value.savedTarget && (value.savedTarget.date !== context.date || value.savedTarget.mealType !== context.mealType)) { primaryAction = 'onViewSavedMeal'; primaryLabel = '查看已保存的这餐' }
-  else if (actual && actual.status === 'eaten') { primaryAction = 'onViewPlan'; primaryLabel = '查看 / 修改实际记录' }
-  else if (status === 'planned' && linkedPlan) { primaryAction = 'onViewRecipes'; primaryLabel = '开始做饭 · 本餐全部做法' }
-  else if (status === 'needs_regeneration') { primaryAction = 'onRegenerate'; primaryLabel = context.compositionMode === 'manual' ? '按新搭配换一套' : '按新条件换一套' }
-  else if (status === 'needs_input') { primaryAction = 'onOpenRequirements'; primaryLabel = '调整本餐要求' }
-  return { hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating', showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
+  const journey=require('./meal-journey-presentation').deriveMealJourney({workspace:{id:value.workspaceId,context,draft:value.draft,status},plan:linkedPlan,actual,pendingReceipts:value.pendingReceipts||[],syncStatus,busy,dirty:value.dirty,canConfirm,savedTarget:value.savedTarget,saveState:value.saveState})
+  const primaryAction=journey.primary.action,primaryLabel=journey.primary.label
+  return { journeyRecovery:journey.recovery, hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating' || !!journey.recovery&&['unknown','conflict','busy'].includes(journey.recovery.state), showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
 }
 
 function hardExclusionSummary(preferences, options) {

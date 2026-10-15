@@ -494,7 +494,7 @@
         "T09"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K09",
         "K11",
@@ -504,7 +504,8 @@
         "K28",
         "K30",
         "K31"
-      ]
+      ],
+      "evidenceNote": "Node75/75; unified pure priority table and scoped recovery pointers; exact saved target; multi-source shopping never implies eaten; ten duplicate confirmations one fixture boundary write; no second request queue. Regression caught empty needs_regeneration action drift, restored old regeneration semantics. Real DB assertions remain T21."
     },
     {
       "id": "T11",

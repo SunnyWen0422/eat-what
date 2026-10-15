@@ -282,7 +282,8 @@ module.exports = function workspacePage(options = {}) {
         mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
         ...contextPresentation(context),
         conditionsNotice:w && w.status === 'needs_regeneration' ? '条件已更新' : ''})
-      this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data, busy:this.data.busy}));
+      const config=require('./config'),pendingReceipts=require('./meal-journey-presentation').collectRecoveryPointers({storage:wx,storageKey:getUserStorageKey,assistantScope:config.getApiBaseUrl?config.getApiBaseUrl()+'|'+getCurrentUserIdentity():null})
+      this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data,workspaceId:w&&w.id,dirty:state.dirty,pendingReceipts,busy:this.data.busy}));
       if(state.pending && state.pending.type==='confirm' && !this._confirmation)this.restoreSavePreview(state)
       if (w && w.status === 'draft' && state.syncStatus === 'synced') this.expose(w)
     },
@@ -300,9 +301,10 @@ module.exports = function workspacePage(options = {}) {
     },
     onPrimaryAction() {
       if(this.data.primaryDisabled || this.data.loading)return
-      const allowed=['onGenerate','onRetryWorkspace','onLoadLatest','onCancelTask','onViewPlan','onViewRecipes','onViewSavedMeal','onConfirmPlan','onOpenRequirements','onRegenerate','onOpenComposition']
+      const allowed=['onGenerate','onRetryWorkspace','onLoadLatest','onCancelTask','onViewPlan','onViewRecipes','onViewSavedMeal','onConfirmPlan','onOpenRequirements','onRegenerate','onOpenComposition','onRecoverJourney']
       if(allowed.includes(this.data.primaryAction))return this[this.data.primaryAction]()
     },
+    onRecoverJourney(){if(this.current()&&!this.data.busy)return require('./meal-journey-presentation').openRecoveryPointer(this.data.journeyRecovery,{platform:wx,storageKey:getUserStorageKey})},
     onOpenRequirements() {
       if(!this.current() || this.data.busy || this.data.contextLocked)return
       const w=this.store && this.store.state().workspace

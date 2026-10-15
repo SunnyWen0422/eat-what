@@ -2,7 +2,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const store = require('../../utils/shopping-list')
 const flow = require('../../utils/meal-workflow')
 Page({
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), workspaceDrafts: [], pendingSync: [], shoppingDraftCount: 0, syncing: false, errorMessage: '', syncResult: { success: 0, failed: 0 } },
+  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), recoveryPointers:[],workspaceDrafts: [], pendingSync: [], shoppingDraftCount: 0, syncing: false, errorMessage: '', syncResult: { success: 0, failed: 0 } },
   onShow() { this.loadPendingSync() },
   onUnload() { this._unloaded = true },
   loadPendingSync() {
@@ -14,17 +14,12 @@ Page({
       const record = records[date][mealType]
       if (record && !record.synced) pending.push({ date, mealType, record, mealName: flow.mealNames[mealType] || mealType })
     }
-    const prefix=getUserStorageKey('meal-workspace:')
-    const workspaceDrafts=[]
-    if(wx.getStorageInfoSync) for(const key of wx.getStorageInfoSync().keys || []) {
-      if(!key.startsWith(prefix))continue
-      const draft=wx.getStorageSync(key)
-      if(!draft || !(draft.dirty || draft.pending || ['offline','unknown','conflict'].includes(draft.syncStatus)))continue
-      const parts=key.slice(prefix.length).split(':');if(parts.length!==2)continue
-      workspaceDrafts.push({date:parts[0],mealType:parts[1],mealName:flow.mealNames[parts[1]] || parts[1],label:draft.pending?'保存结果待确认':draft.syncStatus==='conflict'?'这餐已有更新，请重新核对':'输入已保留，尚未保存'})
-    }
-    this.setData({ workspaceDrafts, pendingSync: pending, shoppingDraftCount: store.loadPendingOperations().length })
+    const config=require('../../utils/config'),util=require('../../utils/util')
+    const recoveryPointers=require('../../utils/meal-journey-presentation').collectRecoveryPointers({storage:wx,storageKey:getUserStorageKey,assistantScope:config.getApiBaseUrl&&util.getCurrentUserIdentity?config.getApiBaseUrl()+'|'+util.getCurrentUserIdentity():null})
+    const workspaceDrafts=recoveryPointers.filter(p=>p.kind==='workspace').map(p=>({...p,...p.target,mealName:flow.mealNames[p.target.mealType]}))
+    this.setData({ recoveryPointers,workspaceDrafts, pendingSync: pending, shoppingDraftCount: store.loadPendingOperations().length })
   },
+  onRecoverPointer(e){if(this._viewScope!==getUserStorageKey('recipeRecords'))return this.loadPendingSync();const pointer=this.data.recoveryPointers[Number(e.currentTarget.dataset.index)];return require('../../utils/meal-journey-presentation').openRecoveryPointer(pointer,{platform:wx,storageKey:getUserStorageKey})},
   async syncData() {
     if (this.data.syncing || !this.data.pendingSync.length) return
     if (this._viewScope !== getUserStorageKey('recipeRecords')) { this.loadPendingSync(); return }
