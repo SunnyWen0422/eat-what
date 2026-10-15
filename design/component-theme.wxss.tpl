@@ -13,3 +13,5 @@
 .ew-button::after { border:0; }
 .ew-button.secondary { background:{{card}}; color:{{brand}}; border:1px solid {{controlBorder}}; }
 .is-disabled { opacity:1; }
+
+.ew-reading { line-height:1.65; overflow-wrap:anywhere; }

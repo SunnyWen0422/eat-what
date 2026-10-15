@@ -10,3 +10,5 @@
 .sheet-body { flex:0 1 auto; min-height:0; min-width:0; padding:{{space.2.px}} 0 {{space.3.px}}; box-sizing:border-box; }
 .sheet-footer { flex-shrink:0; min-width:0; }
 @keyframes sheet-in { from { transform:translateY(12px); } to { transform:translateY(0); } }
+
+.sheet-footer { max-height:45vh; overflow-y:auto; }

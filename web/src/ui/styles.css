@@ -108,3 +108,8 @@ nav button[aria-current="page"] { background:#EDF3ED; color:var(--brand); }
 @media (min-width:768px) { .today-page { max-width:800px; margin:auto; }.today-page .meal-tabs { max-width:720px; margin:16px auto; }.today-page > h2 { max-width:720px; margin:auto; } }
 @media (max-width:600px) { .app-header { padding:16px; }.app-header .muted { max-width:150px; } main { padding:0 0 16px; } main > :not(.dish-surface) { margin-inline:16px; }.dish-surface { border-radius:0; padding:16px; }.recipe-list { grid-template-columns:minmax(0,1fr); }.dialog-backdrop { align-items:flex-end; padding:0; }.dialog-panel { width:100%; max-height:90dvh; border-radius:24px 24px 0 0; padding:20px 16px calc(20px + env(safe-area-inset-bottom)); }.meal-tabs button { padding:8px 12px; }.settings-disclosure strong { white-space:nowrap; } }
 @media (prefers-reduced-motion:reduce) { button { transition:none; } button:active:not(:disabled) { transform:none; } }
+
+/* Stable reading rhythm; controls remain touch sized at enlarged text. */
+body { line-height:1.5; }
+.recipe-detail p, .recipe-detail li { line-height:1.65; }
+button { overflow-wrap:anywhere; }

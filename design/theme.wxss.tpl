@@ -1,5 +1,5 @@
 /* 家庭厨房主题；使用普通 WXSS 声明保持微信基础库兼容。 */
-page { background: {{background}}; color: {{text}}; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size:{{font.body.px}}; }
+page { background: {{background}}; color: {{text}}; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size:{{font.body.px}}; line-height:1.5; }
 .ew-page { box-sizing: border-box; min-width: 0; color: {{text}}; }
 .ew-screen { padding:{{space.3.rpx}}; padding-bottom:calc({{space.4.rpx}} + env(safe-area-inset-bottom)); min-height: 100%; box-sizing: border-box; }
 .ew-heading { font-size:{{font.page.em*1.00001}}; font-weight: 700; line-height: 1.3; letter-spacing:{{space.0.rpx*0.125}}; }
@@ -156,3 +156,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
  background-size:100% 100%; min-height:100vh;
 }
 .ew-dish-surface .ew-glass-card { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
+
+/* Focused reading baseline; retain fontScale from the page. */
+.ew-reading { line-height:1.65; overflow-wrap:anywhere; }
