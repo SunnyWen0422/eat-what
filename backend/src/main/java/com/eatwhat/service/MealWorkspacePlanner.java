@@ -16,7 +16,7 @@ public class MealWorkspacePlanner {
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
     private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
     private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
-    List<Dish> attachQuality(List<Dish> selected) { return enrich(selected); }
+    List<Dish> attachQuality(Long user,List<Dish> selected) { return enrich(candidates.detailsForFacts(user,selected)); }
     private final DishCandidateQueryService candidates;
     private final DishMapper dishes;
     private final UserPreferenceService preferences;
@@ -81,7 +81,8 @@ public class MealWorkspacePlanner {
             Set<Long> used=prior.getDishes().stream().map(Dish::getId).collect(Collectors.toSet());
             Dish replacement=pool.stream().filter(d->!used.contains(d.getId())&&category(d,c).equals(category(old,c))).filter(d->{List<Dish> next=new ArrayList<>(prior.getDishes());next.removeIf(v->Objects.equals(v.getId(),target));next.add(d);return fitsTime(next,c);}).findFirst().orElse(null);
             if(!MealWorkspaceRules.matchesContext(prior,c))throw new IllegalArgumentException("条件已变化，请重新安排整餐");
-            PlanDraft changed=MealWorkspaceRules.command(prior,command,target,enrich(replacement));attachEvidence(changed,c,ranking);return changed;
+            Dish complete=replacement==null?null:attachQuality(user,Collections.singletonList(replacement)).get(0);
+            PlanDraft changed=MealWorkspaceRules.command(prior,command,target,complete);attachEvidence(changed,c,ranking);return changed;
         }
         List<Dish> result=new ArrayList<>();
         for(Long lock:prior.getLockedDishIds()) {
@@ -110,7 +111,7 @@ public class MealWorkspacePlanner {
             }
             if(result.stream().anyMatch(d->!c.getCounts().containsKey(category(d,c))))throw new IllegalArgumentException("模板未包含保留菜品类型");
         }
-        PlanDraft next=new PlanDraft();next.setDishes(enrich(result));next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));next.setRequirementsFingerprint(prior.getRequirementsFingerprint());
+        PlanDraft next=new PlanDraft();next.setDishes(attachQuality(user,result));next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));next.setRequirementsFingerprint(prior.getRequirementsFingerprint());
         next.setSource("select".equals(command)?(origin==SelectionOrigin.USER_SELECTION?"manual":"agent"):"rules");next.setAdjustedBeforeConfirmation(!prior.getDishes().isEmpty() || prior.isAdjustedBeforeConfirmation());next.setLockedDishIds(new LinkedHashSet<>(prior.getLockedDishIds()));
         attachEvidence(next,c,ranking);
         if("breakfast".equals(c.getMealType())&&origin==SelectionOrigin.USER_SELECTION)next.setExplanations(Collections.singletonList("本餐由你选菜，请核对早餐适用性"));

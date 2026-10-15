@@ -69,7 +69,10 @@ class AssistantSearchSummaryTest {
             assertTrue(f.json.writeValueAsString(page).length() <= 4000); assertFalse(page.getItems().isEmpty());
             for (Map<String,Object> row : page.getItems()) assertTrue(seen.add((Long) row.get("id")), "Duplicate or skipped cursor");
             assertEquals(seen, f.scope.getAuthorizedDishIds());
-            if (page.isTruncated()) assertEquals(String.valueOf(seen.size()), page.getNextCursor());
+            if (page.isTruncated()) {
+                assertEquals(String.valueOf(seen.size()), page.getNextCursor().split("\\.")[1]);
+                assertTrue(page.getNextCursor().endsWith("." + page.getSourceVersion()));
+            }
             cursor = page.getNextCursor(); assertTrue(++pages <= 35);
         } while (cursor != null);
         assertEquals(35, seen.size()); assertTrue(pages > 1);
@@ -84,7 +87,7 @@ class AssistantSearchSummaryTest {
         assertEquals(101L, first.getItems().get(0).get("id")); assertEquals("soup", first.getItems().get(0).get("type"));
         assertFalse(first.getItems().get(0).containsKey("tagCodes"));
         assertTrue(((List<?>) first.getItems().get(0).get("omittedFields")).contains("tagCodes"));
-        assertEquals("1", first.getNextCursor());
+        assertEquals("1", first.getNextCursor().split("\\.")[1]);
         ReadResult next = reads.read(7L, f.call("search_dishes", "top_k", 1, "cursor", first.getNextCursor()), f.scope);
         assertEquals(102L, next.getItems().get(0).get("id")); assertFalse(next.isTruncated());
     }

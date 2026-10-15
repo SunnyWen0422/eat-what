@@ -71,6 +71,9 @@ def isolated_service():
                        "socket.create_connection", "socket.getaddrinfo"):
             stack.enter_context(patch(target, side_effect=denied))
         stack.enter_context(patch.object(socket, "socketpair", side_effect=local_socketpair))
+        # The managed resolver uses an owned child in production. Contract tests
+        # must not let a child bypass the parent process's DNS/network denial.
+        stack.enter_context(patch("asyncio.create_subprocess_exec", side_effect=denied))
         try:
             rag = importlib.import_module("rag")
             # Non-empty synthetic index prevents load_index from reading source artifacts.
@@ -101,7 +104,7 @@ def load_main():
 
 
 def asgi_post(app, path, body, headers):
-    """Run real ASGI HTTP middleware/router; inline only the sync threadpool."""
+    """Run real ASGI middleware/router with one loop-owned lifecycle; no sockets."""
     import fastapi.routing
     import httpx
     sent = []
@@ -122,15 +125,12 @@ def asgi_post(app, path, body, headers):
     async def inline(function, *args, **kwargs):
         return function(*args, **kwargs)
 
-    coroutine = app(scope, receive, send)
-    with patch.object(fastapi.routing, "run_in_threadpool", inline):
-        try:
-            coroutine.send(None)
-            raise AssertionError("Unexpected async wait in isolated synchronous route")
-        except StopIteration:
-            pass
-        finally:
-            coroutine.close()
+    import asyncio
+    async def invoke():
+        async with app.router.lifespan_context(app):
+            await app(scope,receive,send)
+    with patch.object(fastapi.routing,"run_in_threadpool",inline):
+        asyncio.run(invoke())
     start = next(item for item in sent if item["type"] == "http.response.start")
     content = b"".join(item.get("body", b"") for item in sent if item["type"] == "http.response.body")
     return httpx.Response(start["status"], content=content, headers=start["headers"])

@@ -53,7 +53,8 @@ class CatalogQueryPerformanceTest {
     }
     @Test void boundedRecommendationCandidatesEnrichOnlyFinalEligibleRows() {
         DishMapper dishes = mock(DishMapper.class);
-        when(dishes.selectFilteredCandidates(anyLong(), any(), any(), anyList(), anyList(), any())).thenReturn(rows());
+        when(dishes.selectRecommendationCandidateFacts(anyLong(), any(), any(), anyList(), anyList(), any(),any(),anyInt())).thenReturn(rows());
+        when(dishes.selectFilteredPageDetails(anyList(),anyLong())).thenAnswer(call -> {List<Long> ids=call.getArgument(0);return rows().stream().filter(d->ids.contains(d.getId())).collect(Collectors.toList());});
         DishQualityMapper profiles = mock(DishQualityMapper.class); when(profiles.find(anyList())).thenReturn(Collections.emptyList());
         DishCandidateQueryService candidates = new DishCandidateQueryService(dishes);
         candidates.setQuality(new DishQualityService(profiles, new ObjectMapper()));

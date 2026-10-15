@@ -10,7 +10,18 @@ import chat_handler
 import assistant_engine
 import agent_runtime
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(application):
+    from assistant_v4_provider import ManagedV4Provider
+    async with ManagedV4Provider() as provider:
+        application.state.v4_provider=provider
+        try: yield
+        finally: application.state.v4_provider=None
+
 app = FastAPI(
+    lifespan=lifespan,
     title="吃什么 - 菜谱推荐服务",
     description="基于 LangGraph + 通义千问的健康饮食搭配推荐",
     version="1.0.0",
@@ -370,16 +381,16 @@ def assistant_v4_capabilities(x_service_token: Optional[str] = Header(default=No
     return {"contractRevision":"maturity.2","uiFeatures":["clarification_v1","handoff_v1"]}
 
 @app.post("/internal/v4/assistant/step")
-def assistant_v4_step(req: Any = Body(...), x_service_token: Optional[str] = Header(default=None)):
+async def assistant_v4_step(req: Any = Body(...), x_service_token: Optional[str] = Header(default=None)):
     import hmac
     import os
     from assistant_v4_schema import StepValidationError
-    from assistant_v4_step import run_step
+    from assistant_v4_step import run_step_async
     configured = os.getenv("MEAL_WORKSPACE_SERVICE_TOKEN", "")
     if not configured or not x_service_token or not hmac.compare_digest(x_service_token, configured):
         raise HTTPException(status_code=403, detail="internal service authorization required")
     try:
-        return run_step(req)
+        return await run_step_async(req,getattr(app.state,"v4_provider",None))
     except StepValidationError:
         raise HTTPException(status_code=400, detail="invalid assistant step") from None
 

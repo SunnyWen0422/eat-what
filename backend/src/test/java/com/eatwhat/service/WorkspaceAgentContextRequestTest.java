@@ -31,7 +31,7 @@ class WorkspaceAgentContextRequestTest {
     }
     private List<Long> catalog(MealWorkspace workspace,List<Dish> eligible) {
         when(planner.eligible(eq(7L),any())).thenReturn(eligible);
-        when(planner.attachQuality(anyList())).thenAnswer(call -> call.getArgument(0));
+        when(planner.attachQuality(anyLong(),anyList())).thenAnswer(call -> call.getArgument(1));
         List<Map<String,Object>> rows = (List<Map<String,Object>>)service.build(7L,workspace).get("catalog");
         return rows.stream().map(row -> (Long)row.get("id")).collect(Collectors.toList());
     }

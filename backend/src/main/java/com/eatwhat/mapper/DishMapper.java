@@ -45,6 +45,19 @@ public interface DishMapper {
         @Param("cuisineCodes") List<String> cuisineCodes, @Param("includeTagCodes") List<String> includeTagCodes,
         @Param("maxCookMinutes") Integer maxCookMinutes, @Param("beforeId") Long beforeId, @Param("limit") int limit);
 
+    /** All ranking/exclusion/ownership facts; recipe bodies and media load only after selection. */
+    @Select("<script>SELECT ID as id, NAME as name, TYPE as type, CL as cl, "
+        + "INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes, CUISINE_CODE as cuisineCode, "
+        + "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, user_id as userId, "
+        + "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom "
+        + FILTERED_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
+        + "ORDER BY ID DESC LIMIT #{limit}</script>")
+    @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
+    List<Dish> selectRecommendationCandidateFacts(@Param("userId") Long userId,
+        @Param("type") String type, @Param("keyword") String keyword,
+        @Param("cuisineCodes") List<String> cuisineCodes, @Param("includeTagCodes") List<String> includeTagCodes,
+        @Param("maxCookMinutes") Integer maxCookMinutes, @Param("beforeId") Long beforeId, @Param("limit") int limit);
+
     /** At most one requested page of complete recipes, still scoped to the current reader. */
     @Select("<script>" + "SELECT " + CANDIDATE_COLUMNS
         + "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) AND "

@@ -18,7 +18,8 @@ class BreakfastManualSelectionTest {
         Fixture() {
             when(preferences.get(7L)).thenReturn(new UserPreferenceDTO());
             // These are exactly the recipes visible to user 7; another user's recipe is absent.
-            when(dishes.selectFilteredCandidates(eq(7L), any(), any(), anyList(), anyList(), any())).thenAnswer(call -> visibleRows());
+            when(dishes.selectRecommendationCandidateFacts(eq(7L), any(), any(), anyList(), anyList(), any(),any(),anyInt())).thenAnswer(call -> visibleRows());
+            when(dishes.selectFilteredPageDetails(anyList(),eq(7L))).thenAnswer(call -> {List<Long> ids=call.getArgument(0);return visibleRows().stream().filter(d->ids.contains(d.getId())).collect(Collectors.toList());});
             when(dishes.lockReadableDishes(anyList(), eq(7L))).thenAnswer(call -> {
                 List<Long> ids = call.getArgument(0); return visibleRows().stream().filter(d -> ids.contains(d.getId())).collect(Collectors.toList());
             });

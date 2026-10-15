@@ -720,13 +720,14 @@
         "T19"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "in_progress",
       "requirements": [
         "K21",
         "K23",
         "K26",
         "K29"
-      ]
+      ],
+      "evidenceNote": "71 Java checks +4 expanded candidate checks/package; Python assistant90pass1skip and provider11 pass; guards3 pass. Ruling: bootstrap T21 new-owned-loopback guard now because T20 load depends on it. Original backup ZIP missing at recorded path; use immutable public6665 snapshot without claiming private-history restore. Performance gate not yet passed."
     },
     {
       "id": "T21",

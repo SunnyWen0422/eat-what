@@ -74,35 +74,57 @@ public class DishCandidateQueryService {
                                   String keyword,
                                   RecommendationCriteria criteria,
                                   int maxResults) {
-        List<Dish> result = findRawForUser(userId, type, keyword, criteria, maxResults);
+        List<Dish> result = detailsForFacts(userId,findRawForUser(userId, type, keyword, criteria, maxResults));
         if (quality != null && !result.isEmpty()) quality.enrich(result);
         return result;
     }
 
-    /** Filter raw facts before pagination; quality evidence does not decide eligibility. */
+    /** Per-request scoped scan. No shared cache; callers own a consistent read transaction.
+     * Returned rows are selection facts, not complete recipes or content-version evidence. */
     public List<Dish> findRawForUser(Long userId,
                                      String type,
                                      String keyword,
                                      RecommendationCriteria criteria,
                                      int maxResults) {
         RecommendationCriteria value = criteria == null ? new RecommendationCriteria() : criteria;
-        List<Dish> source = dishMapper.selectFilteredCandidates(
-                userId,
-                blankToNull(type),
-                blankToNull(keyword),
-                safe(value.getCuisineCodes()),
-                safe(value.getIncludeTagCodes()),
-                value.getMaxCookMinutes());
-        if (source == null || source.isEmpty()) return Collections.emptyList();
         int limit = Math.max(1, maxResults);
         List<Dish> result = new ArrayList<>();
-        for (Dish dish : source) {
-            if (dish == null || hasExcludedTag(dish, value.getExcludeTagCodes())
-                    || containsExcludedIngredient(dish, value.getExcludedIngredients())) continue;
-            result.add(dish);
-            if (result.size() >= limit) break;
+        Set<Long> seen=new HashSet<>();Long beforeId=null;
+        for(;;){
+            List<Dish> batch=dishMapper.selectRecommendationCandidateFacts(userId,blankToNull(type),blankToNull(keyword),
+                    safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),beforeId,256);
+            if(batch==null||batch.isEmpty())break;
+            if(batch.size()>256)throw new IllegalStateException("候选读取超出范围");
+            for(Dish dish:batch){
+                if(dish==null||dish.getId()==null||!seen.add(dish.getId())||(dish.getUserId()!=null&&!dish.getUserId().equals(userId)))throw new IllegalStateException("菜谱目录已变化，请重新读取");
+                if(hasExcludedTag(dish,value.getExcludeTagCodes())||containsExcludedIngredient(dish,value.getExcludedIngredients()))continue;
+                result.add(dish);if(result.size()>=limit)return result;
+            }
+            Long next=batch.get(batch.size()-1).getId();
+            if(beforeId!=null&&next>=beforeId)throw new IllegalStateException("菜谱目录已变化，请重新读取");
+            beforeId=next;if(batch.size()<256)break;
         }
         return result;
+    }
+
+    /** Materialize only selected IDs, preserving order and rejecting changed selection facts. */
+    public List<Dish> detailsForFacts(Long user,List<Dish> facts){
+        List<Dish> result=new ArrayList<>();
+        for(int from=0;from<facts.size();from+=256){
+            List<Dish> part=facts.subList(from,Math.min(facts.size(),from+256));
+            List<Long> ids=new ArrayList<>();for(Dish d:part)ids.add(d.getId());
+            Map<Long,Dish> byId=new HashMap<>();List<Dish> rows=dishMapper.selectFilteredPageDetails(ids,user);
+            if(rows!=null)for(Dish d:rows)if(d.getUserId()==null||d.getUserId().equals(user))byId.put(d.getId(),d);
+            for(Dish fact:part){Dish detail=byId.get(fact.getId());if(detail==null||!sameSelectionFacts(fact,detail))throw new MealConsumptionService.VersionConflict("候选菜品已变化，请重新查询");result.add(detail);}
+        }
+        return result;
+    }
+    private boolean sameSelectionFacts(Dish a,Dish b){
+        return java.util.Objects.equals(a.getName(),b.getName())&&java.util.Objects.equals(a.getType(),b.getType())
+            &&java.util.Objects.equals(a.getCl(),b.getCl())&&java.util.Objects.equals(a.getIngredientsAmounts(),b.getIngredientsAmounts())
+            &&java.util.Objects.equals(a.getTagCodes(),b.getTagCodes())&&java.util.Objects.equals(a.getCuisineCode(),b.getCuisineCode())
+            &&java.util.Objects.equals(a.getCookMinutes(),b.getCookMinutes())&&java.util.Objects.equals(a.getMetadataVersion(),b.getMetadataVersion())
+            &&java.util.Objects.equals(a.getUserId(),b.getUserId());
     }
 
     private boolean hasExcludedTag(Dish dish, List<String> exclusions) {

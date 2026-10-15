@@ -133,6 +133,23 @@ def prepare_step(value):
     return messages, history, seen, results, allowed, allowed_actions
 
 
+def _step_result(value,message,history,seen,results,allowed,allowed_actions):
+    if message.get("tool_calls"):
+        if value["finalRound"]: raise StepValidationError("tools forbidden in final round")
+        calls = assistant_calls(message, allowed)
+        if any(call["callId"] in seen for call in calls) or len(seen) + len(calls) > 8:
+            raise StepValidationError("tool limit exceeded")
+        continuation = {"assistantMessage": copy.deepcopy(message), "messages": history + [copy.deepcopy(message)]}
+        bounded_json(continuation, 300000)
+        return {"type": "read_calls", "readCalls": calls, "providerContinuation": continuation}
+    # Final content must be JSON only; code fences and appended prose are invalid.
+    validate(message, obj({"role": string(20, ["assistant"]), "content": string(20000),
+        "reasoning_content": {"anyOf": [string(60000), {"type": "null"}]},
+        "tool_calls": {"type": "array", "items": {"type": "object"}, "maxItems": 0}}, ["role", "content"]))
+    output = strict_json(message["content"])
+    return final_output(output, _authorized_ids(value["context"], results), allowed_actions)
+
+
 def run_step(value: dict, model=None) -> dict:
     """One provider request; malformed internal envelopes raise StepValidationError."""
     started = monotonic()
@@ -148,20 +165,22 @@ def run_step(value: dict, model=None) -> dict:
             raise StepValidationError("insufficient provider deadline")
         message = model.complete_message(messages, tool_catalog(allowed), final_round=value["finalRound"],
                                          timeout_seconds=remaining)
-        if message.get("tool_calls"):
-            if value["finalRound"]: raise StepValidationError("tools forbidden in final round")
-            calls = assistant_calls(message, allowed)
-            if any(call["callId"] in seen for call in calls) or len(seen) + len(calls) > 8:
-                raise StepValidationError("tool limit exceeded")
-            continuation = {"assistantMessage": copy.deepcopy(message), "messages": history + [copy.deepcopy(message)]}
-            bounded_json(continuation, 300000)
-            return {"type": "read_calls", "readCalls": calls, "providerContinuation": continuation}
-        # Final content must be JSON only; code fences and appended prose are invalid.
-        validate(message, obj({"role": string(20, ["assistant"]), "content": string(20000),
-            "reasoning_content": {"anyOf": [string(60000), {"type": "null"}]},
-            "tool_calls": {"type": "array", "items": {"type": "object"}, "maxItems": 0}}, ["role", "content"]))
-        output = strict_json(message["content"])
-        return final_output(output, _authorized_ids(value["context"], results), allowed_actions)
+        return _step_result(value,message,history,seen,results,allowed,allowed_actions)
     except Exception:
         # Raw reasoning, provider frames, content and exception text never reach the caller/logs.
         return {"type": "need_input", "question": SAFE_QUESTION}
+
+
+async def run_step_async(value: dict, model) -> dict:
+    """Same protocol validation as the compatibility entry, with lifespan-owned HTTP."""
+    started=monotonic()
+    messages,history,seen,results,allowed,allowed_actions=prepare_step(value)
+    try:
+        remaining=value.get("timeoutSeconds",10)-(monotonic()-started)
+        if value.get("deadlineEpochMillis") is not None:
+            remaining=min(remaining,value["deadlineEpochMillis"]/1000-time())
+        if remaining<3.5:raise StepValidationError("insufficient provider deadline")
+        message=await model.complete_message_async(messages,tool_catalog(allowed),final_round=value["finalRound"],timeout_seconds=remaining)
+        return _step_result(value,message,history,seen,results,allowed,allowed_actions)
+    except Exception:
+        return {"type":"need_input","question":SAFE_QUESTION}

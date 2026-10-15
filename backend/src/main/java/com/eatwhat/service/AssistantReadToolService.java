@@ -51,12 +51,13 @@ public class AssistantReadToolService {
         String type=filters.containsKey("type")?text(filters.get("type"),40):null;if(type!=null&&!TYPES.contains(type))throw new IllegalArgumentException("菜品类别无效");
         RecommendationCriteria hard=new RecommendationCriteriaResolver().resolve(w.getContext().getCriteria(),preferences.get(user),true);
         RecommendationCriteria query=merge(hard,additional);String keyword=args.containsKey("query")?text(args.get("query"),200):null;
-        List<String> ingredients=ingredientsSearch?strings(args.get("ingredients"),true):Collections.emptyList();int limit=args.containsKey("top_k")?integer(args.get("top_k"),1,30):10,offset=offset(args.get("cursor"));
+        List<String> ingredients=ingredientsSearch?strings(args.get("ingredients"),true):Collections.emptyList();int limit=args.containsKey("top_k")?integer(args.get("top_k"),1,30):10;
         List<Dish> pool=new ArrayList<>();for(Dish d:orEmpty(candidates.findRawForUser(user,type,keyword,query,Integer.MAX_VALUE))){checkDish(d,user);if(!matches(d,hard,null)||!matches(d,additional,type))continue;if(ingredientsSearch&&!hasAnyIngredient(d,ingredients))continue;pool.add(d);}
         // Deterministic paging; respect current/locked references before canonical category recall.
         Set<Long> current=w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toSet());Set<Long> locked=w.getDraft().getLockedDishIds();
         pool.sort(Comparator.comparingInt((Dish d)->locked.contains(d.getId())?0:current.contains(d.getId())?1:2).thenComparing(d->d.getId()));
         if(type==null)pool=categoryRoundRobin(pool,current,locked);
+        String scanVersion=candidateVersion(user,w,query,type,keyword,ingredients,pool);int offset=searchOffset(args.get("cursor"),scanVersion);
         int end=(int)Math.min(pool.size(),(long)offset+limit);if(offset>pool.size())throw new IllegalArgumentException("分页位置无效，请重新查询");
         List<Dish> selected=pool.subList(offset,end);List<Long> selectedIds=selected.stream().map(Dish::getId).collect(Collectors.toList());Map<Long,Dish> enriched=new HashMap<>();for(Dish d:orEmpty(dishes.getDishesByIdsForUser(selectedIds,user))){checkDish(d,user);if(matches(d,hard,null)&&matches(d,additional,type))enriched.put(d.getId(),d);}
         int returnedEnd=offset;
@@ -64,7 +65,7 @@ public class AssistantReadToolService {
             Dish d=enriched.get(raw.getId());if(d==null)throw new MealConsumptionService.VersionConflict("候选菜品已变化，请重新查询");
             int unknownStart=out.getUnknownFields().size();Map<String,Object> item=recipeSummary(d,out);
             List<String> omitted=new ArrayList<>(Arrays.asList("ingredients","ingredientFacts","steps","methods"));
-            item.put("omittedFields",omitted);out.getItems().add(item);searchPage(out,returnedEnd+1,pool.size());
+            item.put("omittedFields",omitted);out.getItems().add(item);searchPage(out,returnedEnd+1,pool.size(),scanVersion);
             // A single valid but escape-heavy summary must still make progress. Omit whole optional
             // fields explicitly; never slice a fact value or present an omitted field as known empty.
             if(out.getItems().size()==1&&encodedLength(out)>SEARCH_RESULT_CHAR_LIMIT){
@@ -81,9 +82,26 @@ public class AssistantReadToolService {
             }
             returnedEnd++;scope.getAuthorizedDishIds().add(d.getId());
         }
-        searchPage(out,returnedEnd,pool.size());
+        searchPage(out,returnedEnd,pool.size(),scanVersion);
     }
-    private void searchPage(ReadResult out,int end,int total){out.setTruncated(end<total);out.setNextCursor(out.isTruncated()?String.valueOf(end):null);out.setSourceVersion(fingerprint(out.getItems()));}
+    private void searchPage(ReadResult out,int end,int total,String version){out.setTruncated(end<total);out.setNextCursor(out.isTruncated()?"c2."+end+"."+version:null);out.setSourceVersion(version);}
+    private int searchOffset(Object raw,String version){
+        if(raw==null)return 0;String value=text(raw,100);
+        if(!value.startsWith("c2."))return offset(raw); // Legacy compatibility remains owner-filtered.
+        String[] pieces=value.split("\\.");
+        if(pieces.length!=3||!pieces[1].matches("0|[1-9][0-9]{0,9}")||!pieces[2].equals(version))throw new MealConsumptionService.VersionConflict("候选目录或条件已变化，请重新查询");
+        return offset(pieces[1]);
+    }
+    private String candidateVersion(Long user,MealWorkspace w,RecommendationCriteria criteria,String type,String keyword,List<String> ingredients,List<Dish> pool){
+        try{
+            java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");
+            digest.update(fingerprint(map("reader",user,"workspace",w.getId(),"revision",w.getRevision(),"planVersion",w.getDraft().getPlanVersion(),"criteria",criteria,"type",type,"query",keyword,"ingredients",ingredients)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            // A ranking-fact snapshot, deliberately not a recipe content-version claim.
+            // Update incrementally instead of building one full-catalog JSON string.
+            for(Dish dish:pool)digest.update((dish.getId()+":"+dish.getContentVersion()+";").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex=new StringBuilder();for(byte b:digest.digest()){hex.append("0123456789abcdef".charAt((b&255)>>>4));hex.append("0123456789abcdef".charAt(b&15));}return hex.toString();
+        }catch(java.security.NoSuchAlgorithmException impossible){throw new IllegalStateException("目录版本无法读取",impossible);}
+    }
     private int encodedLength(Object value){try{return json.writeValueAsString(value).length();}catch(Exception ex){throw new IllegalStateException("查询结果无法读取",ex);}}
     private List<Dish> categoryRoundRobin(List<Dish> pool,Set<Long> current,Set<Long> locked){List<Dish> out=new ArrayList<>();Map<String,Deque<Dish>> groups=new LinkedHashMap<>();for(String type:TYPES)groups.put(type,new ArrayDeque<>());for(Dish d:pool){if(current.contains(d.getId())||locked.contains(d.getId()))out.add(d);else groups.computeIfAbsent(d.getType(),k->new ArrayDeque<>()).add(d);}boolean added;do{added=false;for(Deque<Dish> group:groups.values())if(!group.isEmpty()){out.add(group.removeFirst());added=true;}}while(added);return out;}
     private RecommendationCriteria merge(RecommendationCriteria hard,RecommendationCriteria extra){RecommendationCriteria out=new RecommendationCriteria();out.setCuisineCodes(hard.getCuisineCodes().isEmpty()?extra.getCuisineCodes():hard.getCuisineCodes());out.setIncludeTagCodes(union(hard.getIncludeTagCodes(),extra.getIncludeTagCodes()));out.setExcludeTagCodes(union(hard.getExcludeTagCodes(),extra.getExcludeTagCodes()));out.setExcludedIngredients(union(hard.getExcludedIngredients(),extra.getExcludedIngredients()));Integer h=hard.getMaxCookMinutes(),e=extra.getMaxCookMinutes();if(h==null)out.setMaxCookMinutes(e);else if(e==null)out.setMaxCookMinutes(h);else out.setMaxCookMinutes(Math.min(h,e));return out;}
