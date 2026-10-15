@@ -523,3 +523,10 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .selected-view-link { flex:0 0 auto; font-size:{{font.secondary.em}}; color:{{brand}}; }
 .ew-page .custom-form button.save-custom-btn { display:flex; align-items:center; justify-content:center; width:100%; height:auto; min-height:{{controls.primaryHeight.px}}; line-height:1.5; padding:12px 16px; margin:12px 0 0; border:0; border-radius:{{radius.2.px}}; font-size:{{font.body.em}}; white-space:normal; }
 .ew-page .custom-form button.custom-form-secondary { font-size:{{font.secondary.em}}; line-height:1.5; padding:8px 0; margin:0; background:transparent; border:0; border-radius:0; white-space:normal; }
+
+.recipe-page-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.recipe-page-header .catalog-help { margin:0; padding:0 4px; font-size:.8125em; background:transparent; }
+.recipe-sources { margin:4px 0; }
+.search-wrap { margin:4px 0; }
+.page .bottom-bar { padding:6px 16px; gap:4px; }
+.page .bottom-bar .selected-wrap { min-height:44px; }

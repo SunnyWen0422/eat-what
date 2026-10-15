@@ -51,7 +51,7 @@ Page({
     selectedTotal: 0,
     selectedList: [],
     showSelectedPanel: false,
-    showBrowseFilters: false,
+    catalogHelpVisible:false, showBrowseFilters: false,
     browseCriteria: emptyBrowseCriteria(),
     browseFilterGroups: [],
     browseDurationOptions: BROWSE_DURATIONS,
@@ -129,6 +129,8 @@ Page({
     return this.ensureBrowseOwner() && identity === this._browseIdentity && epoch === (this._privateEpoch || 0)
   },
   onRetryPage() { this.loadPage(this.data.activeTab, 1) },
+  onOpenCatalogHelp() { if(this.ensureBrowseOwner())this.setData({catalogHelpVisible:true}) },
+  onCloseCatalogHelp() { this.setData({catalogHelpVisible:false}) },
   onDismissPersonalGuide() { if (this.ensureBrowseOwner()) { wx.setStorageSync(getUserStorageKey('personalRecipeGuideDismissed'), true); this.setData({ personalGuideVisible: false }) } },
   onToggleCustomExtras() { if (this.ensureBrowseOwner()) this.setData({ customExtrasVisible: !this.data.customExtrasVisible }) },
   syncCustomLeaveAlert() {

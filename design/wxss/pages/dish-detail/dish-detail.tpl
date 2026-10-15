@@ -391,4 +391,4 @@ button.share-btn { left:auto; bottom:auto; width:{{controls.touchSize.px}}; max-
 .detail-action-spacer { width:100%; flex:none; }
 .copy-preview-text { display:block; white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 20px; color:{{text}}; }
 .step-content { min-width:0; }
-@media(max-width:360px) { .dish-title-row { flex-wrap:wrap; } .dish-title-row .dish-name { flex-basis:100%; } }
+.dish-title-row { align-items:flex-start; }
