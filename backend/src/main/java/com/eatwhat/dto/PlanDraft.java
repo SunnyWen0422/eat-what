@@ -16,6 +16,7 @@ public class PlanDraft {
     private Set<Long> lockedDishIds = new LinkedHashSet<>();
     private String source = "rules";
     private List<String> explanations = new ArrayList<>();
+    private Map<String,Object> recommendationEvidence = new LinkedHashMap<>();
     private Integer totalCookMinutes;
     private List<PlanDraft> history = new ArrayList<>();
 }

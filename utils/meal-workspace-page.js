@@ -255,7 +255,11 @@ module.exports = function workspacePage(options = {}) {
       if (!this.current()) return
       const state = this.store.state(), w = state.workspace
       const labels = { synced: '已同步', unsynced: '本机修改尚未同步', saving: '正在同步', unknown: '上次保存结果待确认', offline: '离线内容，仅供查看；恢复后请重试', conflict: '本餐已在另一处更新，请查看最新内容' }
-      const draft = w && w.draft || { dishes: [], history: [], lockedDishIds: [], planVersion: 0 }
+      const storedDraft = w && w.draft || { dishes: [], history: [], lockedDishIds: [], planVersion: 0 }
+      const grounded=storedDraft.recommendationEvidence && Array.isArray(storedDraft.recommendationEvidence.codes)
+      const explanations=grounded?require('./recommendation-evidence').presentRecommendationEvidence(storedDraft.recommendationEvidence):(storedDraft.explanations || []).slice(0,2)
+      if((state.context || this.data.context).mealType==='breakfast'&&storedDraft.source==='manual')explanations.splice(0,2,'本餐由你选菜，请核对早餐适用性')
+      const draft={...storedDraft,explanations}
       const settingsContext=state.context || this.data.context
       const settingsKey=`${this._scope}:${settingsContext.date}:${settingsContext.mealType}:${!!draft.dishes.length}`
       if(this._settingsViewKey!==settingsKey){this._settingsViewKey=settingsKey;this.setData({mealSettingsExpanded:!draft.dishes.length})}

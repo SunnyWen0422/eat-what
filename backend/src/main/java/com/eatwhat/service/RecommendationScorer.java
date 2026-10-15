@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
 
 public class RecommendationScorer {
     static final int CUISINE_WEIGHT = 30;
@@ -39,6 +40,31 @@ public class RecommendationScorer {
             score += RECENT_WEIGHT;
         }
         return score;
+    }
+    public int ownedIngredientScore(Dish dish,List<String> owned){
+        Set<String> names=new HashSet<>();
+        String raw=dish.getIngredientsAmounts();if(raw==null||raw.trim().isEmpty())raw=dish.getCl();
+        if(raw!=null)for(String line:raw.split("###|#|\\n|、|,"))names.add(line.split("\\|",2)[0].trim());
+        int count=0;for(String name:owned)if(name!=null&&names.contains(name.trim()))count++;
+        return count*5;
+    }
+    public Map<String,Object> evidence(List<Dish> selected,EffectiveRecommendationCriteria criteria,List<String> owned,Set<Long> recent){
+        Set<String> codes=new LinkedHashSet<>(),unknown=new LinkedHashSet<>();
+        if(selected.stream().anyMatch(d->ownedIngredientScore(d,owned)>0))codes.add("OWNED_INGREDIENT_MATCH");
+        if(selected.stream().anyMatch(d->criteria.getPreferredCuisineCodes().contains(d.getCuisineCode())||tags(d.getTagCodes()).stream().anyMatch(criteria.getPreferredTagCodes()::contains)))codes.add("EXPLICIT_PREFERENCE_MATCH");
+        if(criteria.getAvoidRecentDays()!=null&&criteria.getAvoidRecentDays()>0&&!recent.isEmpty()&&!selected.isEmpty()&&selected.stream().noneMatch(d->recent.contains(d.getId())))codes.add("RECENT_ACTUAL_AVOIDED");
+        boolean timeKnown=!selected.isEmpty()&&selected.stream().allMatch(d->d.getCookMinutes()!=null&&d.getCookMinutes()>0&&d.getQuality()!=null&&Arrays.asList("VERIFIED","ESTIMATED").contains(d.getQuality().getTimeStatus()));
+        if(!timeKnown)unknown.add("cookMinutes");
+        if(timeKnown&&criteria.getMaxCookMinutes()!=null&&selected.stream().allMatch(d->d.getCookMinutes()<=criteria.getMaxCookMinutes()))codes.add("KNOWN_TIME_MATCH");
+        Map<String,Object> result=new LinkedHashMap<>();result.put("codes",new ArrayList<>(codes));
+        List<String> versions=new ArrayList<>();for(Dish dish:selected)versions.add(dish.getContentVersion());
+        result.put("sourceVersion",com.eatwhat.util.WorkflowRequestHash.sha256(String.join("|",versions)));
+        result.put("unknownFields",new ArrayList<>(unknown));return result;
+    }
+    public List<String> explanations(Map<String,Object> evidence){
+        Map<String,String> labels=new LinkedHashMap<>();labels.put("OWNED_INGREDIENT_MATCH","包含你填写的已有食材");labels.put("EXPLICIT_PREFERENCE_MATCH","符合已保存的口味偏好");
+        labels.put("RECENT_ACTUAL_AVOIDED","避开了近期已记录的菜");labels.put("KNOWN_TIME_MATCH","符合已选单菜用时上限");
+        List<String> result=new ArrayList<>();for(Object code:(List<?>)evidence.get("codes"))if(labels.containsKey(code)&&result.size()<2)result.add(labels.get(code));return result;
     }
 
     /** Explicit actual snapshot identities only; never resolve arbitrary food names. */

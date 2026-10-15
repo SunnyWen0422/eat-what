@@ -33,6 +33,13 @@ public class MealWorkspacePlanner {
         return eligible(user,c,SelectionOrigin.AUTOMATIC);
     }
     private List<Dish> eligible(Long user,MealContext c,SelectionOrigin origin) {
+        return rank(user,c,origin).pool;
+    }
+    private static class RankedCandidates{
+        final List<Dish> pool;final EffectiveRecommendationCriteria criteria;final Set<Long> recent;
+        RankedCandidates(List<Dish> pool,EffectiveRecommendationCriteria criteria,Set<Long> recent){this.pool=pool;this.criteria=criteria;this.recent=recent;}
+    }
+    private RankedCandidates rank(Long user,MealContext c,SelectionOrigin origin) {
         if(!metadata.validateCriteria(c.getCriteria()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
         EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolve(c.getCriteria(),preferences.get(user),true);
         List<Dish> pool=new ArrayList<>(candidates.findRawForUser(user,null,null,criteria,Integer.MAX_VALUE));
@@ -43,7 +50,7 @@ public class MealWorkspacePlanner {
         Set<Long> recentIds=recentDishIds(user,c,criteria.getAvoidRecentDays());
         RecommendationScorer scorer=new RecommendationScorer();
         pool.sort(Comparator.comparingInt((Dish d)->scorer.score(d,effective,favoriteIds,recentIds)+ownedScore(d,c)).reversed());
-        return pool;
+        return new RankedCandidates(pool,criteria,recentIds);
     }
     private Set<Long> recentDishIds(Long user,MealContext context,Integer days) {
         if (days == null || days <= 0) return Collections.emptySet();
@@ -60,9 +67,7 @@ public class MealWorkspacePlanner {
         return ids;
     }
     private int ownedScore(Dish d,MealContext c) {
-        int score=0;String ingredients=String.valueOf(d.getCl())+String.valueOf(d.getIngredientsAmounts());
-        for(String ingredient:c.getOwnedIngredients()) if(!ingredient.trim().isEmpty()&&ingredients.contains(ingredient.trim())) score+=5;
-        return score;
+        return new RecommendationScorer().ownedIngredientScore(d,c.getOwnedIngredients());
     }
     public PlanDraft generate(Long user,MealWorkspace w,String command,Long target,List<Long> selected) {
         // Only the explicit user selection command may choose untagged breakfast recipes.
@@ -70,13 +75,13 @@ public class MealWorkspacePlanner {
     }
     private PlanDraft generate(Long user,MealWorkspace w,String command,Long target,List<Long> selected,SelectionOrigin origin) {
         MealContext c=MealWorkspaceRules.normalize(w.getContext());PlanDraft prior=w.getDraft();
-        List<Dish> pool=eligible(user,c,origin);Map<Long,Dish> valid=pool.stream().collect(Collectors.toMap(Dish::getId,d->d,(a,b)->a));
+        RankedCandidates ranking=rank(user,c,origin);List<Dish> pool=ranking.pool;Map<Long,Dish> valid=pool.stream().collect(Collectors.toMap(Dish::getId,d->d,(a,b)->a));
         if ("replace".equals(command)) {
             Dish old=prior.getDishes().stream().filter(d->Objects.equals(d.getId(),target)).findFirst().orElseThrow(()->new IllegalArgumentException("菜品不在方案中"));
             Set<Long> used=prior.getDishes().stream().map(Dish::getId).collect(Collectors.toSet());
             Dish replacement=pool.stream().filter(d->!used.contains(d.getId())&&category(d,c).equals(category(old,c))).filter(d->{List<Dish> next=new ArrayList<>(prior.getDishes());next.removeIf(v->Objects.equals(v.getId(),target));next.add(d);return fitsTime(next,c);}).findFirst().orElse(null);
             if(!MealWorkspaceRules.matchesContext(prior,c))throw new IllegalArgumentException("条件已变化，请重新安排整餐");
-            return MealWorkspaceRules.command(prior,command,target,enrich(replacement));
+            PlanDraft changed=MealWorkspaceRules.command(prior,command,target,enrich(replacement));attachEvidence(changed,c,ranking);return changed;
         }
         List<Dish> result=new ArrayList<>();
         for(Long lock:prior.getLockedDishIds()) {
@@ -107,8 +112,14 @@ public class MealWorkspacePlanner {
         }
         PlanDraft next=new PlanDraft();next.setDishes(enrich(result));next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));next.setRequirementsFingerprint(prior.getRequirementsFingerprint());
         next.setSource("select".equals(command)?(origin==SelectionOrigin.USER_SELECTION?"manual":"agent"):"rules");next.setAdjustedBeforeConfirmation(!prior.getDishes().isEmpty() || prior.isAdjustedBeforeConfirmation());next.setLockedDishIds(new LinkedHashSet<>(prior.getLockedDishIds()));
-        next.setExplanations(Arrays.asList("按本餐人数和菜数搭配","已校验明确排除条件", "breakfast".equals(c.getMealType())?(origin==SelectionOrigin.USER_SELECTION?"本餐菜品由你选择，请自行核对早餐适用性":"仅使用早餐适用候选"):"采购前核对份量，有可信依据的材料才按人数换算"));
+        attachEvidence(next,c,ranking);
+        if("breakfast".equals(c.getMealType())&&origin==SelectionOrigin.USER_SELECTION)next.setExplanations(Collections.singletonList("本餐由你选菜，请核对早餐适用性"));
         return MealWorkspaceRules.advance(prior,next);
+    }
+    private void attachEvidence(PlanDraft draft,MealContext context,RankedCandidates ranking){
+        RecommendationScorer scorer=new RecommendationScorer();
+        draft.setRecommendationEvidence(scorer.evidence(draft.getDishes(),ranking.criteria,context.getOwnedIngredients(),ranking.recent));
+        draft.setExplanations(scorer.explanations(draft.getRecommendationEvidence()));
     }
     public PlanDraft lockAndValidate(Long user,MealWorkspace w,List<Long> ids) {
         return lockAndValidate(user,w,ids,false);

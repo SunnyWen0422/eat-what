@@ -408,13 +408,14 @@
         "T04"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K14",
         "K23",
         "K24",
         "K25"
-      ]
+      ],
+      "evidenceNote": "Node17/17; web59/59; targeted Java22 and broader recommendation/workspace81 pass; grounded max2 reasons; no permanent learned preference"
     },
     {
       "id": "T06",

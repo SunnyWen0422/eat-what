@@ -37,6 +37,13 @@ export function selectionWeight(recipe: RecipeSnapshot, input: Pick<GenerateInpu
   const recent = input.actualMeals.some((actual) => isRecentLocalDate(actual.date, input.today) && actual.snapshots.some((snapshot) => duplicate(snapshot, recipe)));
   return (input.favoriteIds.includes(recipe.recipeId) ? 2 : 1) * (recent ? 0.5 : 1);
 }
+export function recommendationEvidence(recipe: RecipeSnapshot, input: Pick<GenerateInput, 'favoriteIds' | 'actualMeals' | 'today'>): string[] {
+  const reasons:string[]=[];
+  if(input.favoriteIds.includes(recipe.recipeId))reasons.push('来自你的收藏');
+  const recent=input.actualMeals.filter(actual=>isRecentLocalDate(actual.date,input.today));
+  if(recent.length&&!recent.some(actual=>actual.snapshots.some(snapshot=>duplicate(snapshot,recipe))))reasons.push('近期已记录的用餐中未重复');
+  return reasons.slice(0,2);
+}
 function validCatalogRecipe(value: unknown): value is CatalogRecipe {
   return isRecipeSnapshot(value, ['meals', 'reviewStatus', 'generationEligible', 'reviewedAt', 'issues', 'stepStatus', 'servingsStatus', 'familyIdentity', 'mealEligibility'])
     && isObject(value) && Array.isArray(value.meals) && value.meals.every((meal) => MEAL_VALUES.includes(meal))
