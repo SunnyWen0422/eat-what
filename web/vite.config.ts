@@ -9,5 +9,7 @@ export default defineConfig({
   base: '/',
   server: { host: '127.0.0.1', proxy: catalogProxy(process.env.EATWHAT_CATALOG_PROXY) },
   build: { assetsDir: releaseId ? `web-assets/${releaseId}` : 'assets' },
-  test: { environment: 'node', include: ['test/**/*.test.ts', 'test/**/*.test.tsx'] },
+  // Release tests intentionally rebuild the same dist directory inspected by
+  // boundary tests. Serialize files so the audit sees a complete artifact.
+  test: { environment: 'node', fileParallelism: false, include: ['test/**/*.test.ts', 'test/**/*.test.tsx'] },
 });

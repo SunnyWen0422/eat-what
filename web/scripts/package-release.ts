@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runNpm } from './run-npm.ts';
@@ -6,6 +6,7 @@ import { checkBoundaries } from './check-boundaries.ts';
 import { checkOnlineContract } from './check-online-contract.ts';
 import { checkReleaseResources } from './check-release-resources.ts';
 import { digest, inventory, safeReleaseId, verifyRelease, type FileDigest } from './release-files.ts';
+import {promoteReleaseDirectory} from './promote-release.ts';
 export { verifyRelease } from './release-files.ts';
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const supportedDependencies: Record<string, string> = { react: '19.3.0', 'react-dom': '19.3.0', scheduler: '0.28.0' };
@@ -92,14 +93,20 @@ export async function packageRelease(dist: string, releaseId: string): Promise<{
   const directory = join(releases, releaseId); const archive = directory + '.zip';
   for (const path of [directory, archive]) if (await lstat(path).then(() => true, () => false)) throw new Error('Release already exists; use a new release ID');
   await mkdir(releases, { recursive: true }); const staging = join(releases, `${releaseId}.staging`); await mkdir(staging);
+  let archiveCreated=false;
   try {
     for (const file of current) { await mkdir(resolve(staging, file.path, '..'), { recursive: true }); await cp(join(dist, file.path), join(staging, file.path)); }
     await mkdir(join(staging, 'tools')); for (const file of ['serve-release.ts', 'release-files.ts']) await cp(join(projectRoot, 'scripts', file), join(staging, 'tools', file));
     for (const file of ['README_LOCAL.md', 'nginx-web.example.conf']) await cp(join(projectRoot, 'deploy', file), join(staging, file));
     const manifest = { schemaVersion: 1, releaseId, status: review.status, productionApproved: false, browserAcceptance: 'NOT_RUN', publicCatalog: { source: 'online-only', enabledByDefault: false, approvedIdsByDefault: [], liveDataVerified: false }, review: review.review, sourceSha256: review.sourceSha256, lockSha256: review.lockSha256, dependencies: review.dependencies, files: await inventory(staging) };
     await writeFile(join(staging, 'release-manifest.json'), json(manifest)); const sums = (await inventory(staging)).map(file => `${file.sha256}  ${file.path}\n`).join(''); await writeFile(join(staging, 'SHA256SUMS'), sums); await verifyRelease(staging);
-    const archiveBytes = await zip(staging); await writeFile(archive, archiveBytes, { flag: 'wx' }); await rename(staging, directory); return { directory, sha256: digest(sums), archive };
-  } catch (error) { await rm(staging, { recursive: true, force: true }); throw error; }
+    const archiveBytes = await zip(staging); await writeFile(archive, archiveBytes, { flag: 'wx' }); archiveCreated=true; await promoteReleaseDirectory(staging, directory); return { directory, sha256: digest(sums), archive };
+  } catch (error) {
+    // These paths were created by this invocation; pre-existing releases are
+    // rejected above. Never leave an orphan ZIP that blocks a safe fresh retry.
+    if(archiveCreated)await rm(archive,{force:true,maxRetries:3,retryDelay:100});
+    await rm(staging, { recursive: true, force: true,maxRetries:3,retryDelay:100 }); throw error;
+  }
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const releaseId = process.argv[2] ?? 'candidate-20261009'; validateId(releaseId);

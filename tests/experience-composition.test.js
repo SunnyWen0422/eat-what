@@ -248,7 +248,7 @@ test('nonbreakfast side counts do not relabel factual soup or dessert categories
 })
 test('filter surface explicitly keeps long-term exclusions and labels temporary clearing', () => {
   const filter=fs.readFileSync('pages/recommend-filter/recommend-filter.wxml','utf8')
-  assert.match(filter,/只影响本餐.*长期忌口/);assert.match(filter,/清空本餐筛选/)
+  assert.match(filter,/仅用于本餐.*长期忌口/);assert.match(filter,/清空本餐筛选/)
 })
 test('invalid people input also disables the new whole-menu regeneration action', () => {
   const view=require('../utils/meal-workspace-presentation').deriveWorkspacePresentation({status:'needs_regeneration',syncStatus:'synced',peopleError:'人数无效',context:{...target,compositionMode:'manual'}})

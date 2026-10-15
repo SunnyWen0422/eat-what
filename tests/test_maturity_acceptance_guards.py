@@ -53,7 +53,7 @@ class MaturityAcceptanceGuardsTest(unittest.TestCase):
             def execute(self,sql):written.append(sql)
             def executemany(self,sql,rows):
                 self.assert_rows=rows
-                if not all(type(r[0]) is int and r[-1]==0 for r in rows):raise AssertionError('Integer conversion failed')
+                if not all(type(r[0]) is int and len(r)==19 and r[16:]==(0,1,1) for r in rows):raise AssertionError('Integer conversion failed')
                 written.extend(rows)
         class Connection:
             def cursor(self):return Cursor()

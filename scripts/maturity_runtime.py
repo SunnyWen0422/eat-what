@@ -115,8 +115,10 @@ def install_catalog(connection,config):
                 row=rows[index%len(rows)]
                 values=[row.get(f) for f in fields]
                 values[-1]=int(row.get('is_custom') or 0)
-                batch.append(tuple([int(row['id']) if size==6665 else index+1]+values))
-            c.executemany('INSERT INTO food(id,'+','.join('`'+f+'`' for f in fields)+',IS_PUBLISHED,METADATA_VERSION) VALUES('+','.join(['%s']*17)+',1,1)',batch)
+                batch.append(tuple([int(row['id']) if size==6665 else index+1]+values+[1,1]))
+            # All values are placeholders so PyMySQL can emit bounded multi-row
+            # INSERTs instead of silently falling back to 50k autocommit roundtrips.
+            c.executemany('INSERT INTO food(id,'+','.join('`'+f+'`' for f in fields)+',IS_PUBLISHED,METADATA_VERSION) VALUES('+','.join(['%s']*(len(fields)+3))+')',batch)
     return {'kind':'public-source-snapshot' if size==6665 else 'synthetic-expanded-from-public-snapshot','rows':size,
             'sourceRows':6665,'privateHistoryImported':False,'quality':'unreviewed; no invented evidence'}
 
@@ -132,6 +134,11 @@ def owned_runtime(config,out,baseline=False):
     if config.get('rows',6665)>0 and digest(config['catalog'])!=config['datasetHash']:raise ValueError('Dataset hash changed')
     available(18780);available(18781)
     out.mkdir(parents=True);data=out/'private';data.mkdir();mysql_data=data/'mysql';mysql_data.mkdir()
+    pinned=data/('eatwhat-backend-'+config['jarSha256']+'.jar')
+    with jar.open('rb') as source,pinned.open('xb') as target:
+        for chunk in iter(lambda:source.read(1024*1024),b''):target.write(chunk)
+    if digest(pinned)!=config['jarSha256']:raise ValueError('Candidate changed while pinning owned runtime')
+    jar=pinned
     processes=[];connection=None;server=None;thread=None;provider_context=None
     password=secrets.token_urlsafe(32);token=secrets.token_urlsafe(40);service_token=secrets.token_urlsafe(40)
     db_port=port();database=config['privateDb'];jdbc=f'jdbc:mysql://127.0.0.1:{db_port}/{database}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8'
@@ -150,7 +157,8 @@ def owned_runtime(config,out,baseline=False):
             c.execute("ALTER USER 'root'@'localhost' IDENTIFIED BY %s",(password,));c.execute('CREATE DATABASE `'+database+'` CHARACTER SET utf8mb4');c.execute('USE `'+database+'`')
             c.execute('CREATE TABLE food(id INT PRIMARY KEY AUTO_INCREMENT,NAME VARCHAR(255),TYPE VARCHAR(16),CL TEXT,FL TEXT,STEP LONGTEXT)')
             scripts=['database_migration.sql','ensure_food_import_schema.sql','create_favorite_dishes_table.sql','shopping_list_schema.sql','recommendation_preferences_schema.sql']
-            migrations=json.loads((ROOT/'backend/db/migration-manifest.json').read_text(encoding='utf-8'))['migrations']
+            migration_source=subprocess.check_output(['git','show',config['baselineSha']+':backend/db/migration-manifest.json'],cwd=ROOT) if baseline else (ROOT/'backend/db/migration-manifest.json').read_bytes()
+            migrations=json.loads(migration_source)['migrations']
             for item in migrations:
                 path=ROOT/'backend/db/migrations'/item['file']
                 if hashlib.sha256(path.read_text(encoding='utf-8').replace('\r\n','\n').encode()).hexdigest()!=item['checksumSha256']:raise ValueError('Migration source hash differs')
@@ -170,6 +178,13 @@ def owned_runtime(config,out,baseline=False):
                 for index,(name,kind,ingredient) in enumerate(zip(names,kinds,ingredients)):
                     c.execute("INSERT INTO food(NAME,TYPE,CL,INGREDIENTS_AMOUNTS,STEPS,COOK_MINUTES,COOK_TIME,TAG_CODES,IS_PUBLISHED,METADATA_VERSION) VALUES(%s,%s,%s,%s,'洗净###煮熟###装盘',15,'15分钟',%s,1,1)",(name,kind,ingredient,ingredient,'BREAKFAST_ELIGIBLE' if index==12 else 'HOME_STYLE'))
         dataset=install_catalog(connection,config)
+        dataset['migrations']=[item['version'] for item in migrations]
+        with connection.cursor() as c:
+            c.execute("SELECT id FROM food WHERE user_id IS NULL AND TYPE IN ('meat','veg','soup','staple','dessert') ORDER BY id LIMIT 100");public_ids=[int(row[0]) for row in c.fetchall()]
+            c.execute('SELECT MAX(id)+1 FROM food');future_private_id=int(c.fetchone()[0])
+        # Include one deliberately future ID: the public API must still reject
+        # an owned recipe even if that ID was accidentally put in its allowlist.
+        state['publicFixtureIds']=public_ids;state['futurePrivateFixtureId']=future_private_id
         acceptance=load('maturity_assistant','scripts/assistant_v4_acceptance.py');model=acceptance.MockCompletion()
         provider_context=acceptance.local_provider(model);provider_url=provider_context.__enter__()
         import uvicorn,threading
@@ -185,6 +200,7 @@ def owned_runtime(config,out,baseline=False):
             'spring.jackson.time-zone':'GMT+8','mybatis.configuration.map-underscore-to-camel-case':True,
             'security.token.secret':token,'wechat.miniapp.appid':'local','wechat.miniapp.secret':'local',
             'admin.user-ids':'910001','meal-workspace.enabled':True,'meal-workspace.service-token':service_token,
+            'public-catalog.enabled':True,'public-catalog.allowed-dish-ids':public_ids+[future_private_id],
             'recommend.service.base-url':'http://127.0.0.1:18781','assistant-v4.enabled':True,'assistant-v4.extensions-enabled':True,
             'management.endpoints.web.exposure.include':'health,info,metrics',
             'management.endpoint.health.group.local-ready.include':'db,ping','logging.level.com.eatwhat':'WARN'}
@@ -223,7 +239,7 @@ def owned_runtime(config,out,baseline=False):
                     if time.monotonic()>until:raise RuntimeError('Owned restart readiness failed') from None
                     time.sleep(.2)
         yield SimpleNamespace(api=a,db=connection,state=state,model=model,java=jvm,mysql=mysql,output=out,data=data,
-                              dataset=dataset,properties=properties,config=config,restart=restart)
+                              dataset=dataset,properties=properties,config=config,restart=restart,app=app)
     finally:
         if connection is not None:connection.close()
         if server is not None:server.should_exit=True

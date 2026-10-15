@@ -401,7 +401,7 @@ test('the homepage shows saved exclusions and failed reads but hides a confirmed
   assert.equal(page.data.hardExclusionsUnavailable, true)
   assert.match(page.data.hardExclusionSummary, /未读到/)
   const template = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
-  assert.match(template, /wx:if="\{\{hasHardExclusions \|\| hardExclusionsUnavailable\}\}" class="workspace-exclusions"/)
+  assert.match(template, /wx:if="\{\{hardExclusionsUnavailable && !workspaceNotice\}\}" class="workspace-exclusions"/); assert.match(template, /wx:if="\{\{hasHardExclusions\}\}" class="workspace-exclusions"/); assert.match(template, /本餐设置\{\{hasHardExclusions/)
 })
 
 test('a new draft can be saved after independently recording actual food without changing that record', async t => {

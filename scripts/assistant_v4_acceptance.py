@@ -100,7 +100,7 @@ def bearer(state, user):
 class MockCompletion:
     """Scripted model output only. All tools, validation and effects run in real services."""
     def __init__(self):
-        self.scripts = {}; self.calls = []; self.lock = threading.Lock()
+        self.scripts = {}; self.calls = []; self.lock = threading.Lock();self.final_overrides={}
     def register(self, message, steps=None, reads=None, question=None, delay=0, unavailable=False):
         with self.lock:
             self.scripts[message] = dict(steps=steps, reads=reads or [], question=question,
@@ -117,7 +117,7 @@ class MockCompletion:
                 {'id':f'call-{i}', 'type':'function','function':{'name':read['name'],
                  'arguments':json.dumps(read.get('arguments',{}), ensure_ascii=False)}}
                 for i,read in enumerate(script['reads'])]}
-        result = {'type':'need_input','question':script['question']} if script['question'] else {'type':'final','reply':'请核对本次需求。'}
+        result = self.final_overrides.get(users[-1]) or ({'type':'need_input','question':script['question']} if script['question'] else {'type':'final','reply':'请核对本次需求。'})
         if script['steps']: result['actionProposal']={'steps':script['steps']}
         return {'role':'assistant','content':json.dumps(result, ensure_ascii=False)}
 
@@ -248,6 +248,8 @@ def run_case(a,case,index):
     elif mode=='parallel_reads': reads=[{'name':'read_current_meal','arguments':{}},{'name':'read_shopping','arguments':{'status':'all'}}]
     elif mode=='cross_account': reads=[{'name':'read_current_meal','arguments':{}}]
     elif mode=='partial_resume': steps=[save,shopping]
+    elif mode=='forged_success': a.model.final_overrides[message]={'type':'final','reply':'已为你保存计划，并记录这餐为已吃。'}
+    elif mode=='unsupported_write': steps=[action('delete_dish',dishId=a.ids[1])]
     if mode=='tomorrow': save['arguments']['targetDate']=str(date.today()+timedelta(days=1));target=save['arguments']['targetDate']
     prior_target_count=a.sql('SELECT COUNT(*) FROM recipe_records WHERE user_id=%s AND record_date=%s AND meal_type=%s',(user,target,'dinner'))[0][0]
     tid,body=a.start(user,w,session,message,steps,reads,question,delay=1 if mode=='cancel' else .3 if mode=='stale' else 0,unavailable=mode=='provider_unavailable')
@@ -338,8 +340,11 @@ def run_case(a,case,index):
         pending=a.turn(user,w,session,message+' 重新预览',[save]);require(pending['status']=='awaiting_confirmation','Cancellation setup preview absent')
         a.http('/assistant/v4/turns/'+pending['turnId']+'/cancel',{},user)
         require(a.confirm(user,pending)['status']!='completed','Cancelled preview still confirmed');require(a.counts(user)==before,'Cancelled preview wrote persistent state')
-    elif case['group']=='readonly' or mode in ('ambiguous','injection','provider_unavailable','parallel_reads','cross_account'):
+    elif case['group']=='readonly' or mode in ('ambiguous','injection','provider_unavailable','parallel_reads','cross_account','forged_success','unsupported_write'):
         require(a.workspace(w,user)==original,'Readonly/refusal modified workspace')
+    if mode in ('forged_success','unsupported_write'):
+        require(not turn.get('pendingAction') and not any(card.get('receiptRef') for card in turn.get('cards',[])),'Forged/unsupported response invented a business receipt')
+        require('已为你保存' not in turn.get('reply','') and '记录这餐为已吃' not in turn.get('reply',''),'Supplier success text reached UI without a receipt')
     if mode=='parallel_reads':
         require(a.model.scripts[message]['calls']==2,'Parallel tool results did not resume in a single model round')
     if case['group']=='readonly':

@@ -43,7 +43,7 @@ test('sync page lists only the current environment guest workspace drafts', () =
     Page: value => { page = value }, wx: { getStorageInfoSync: () => ({ keys: [...data.keys()] }), getStorageSync: key => data.get(key) },
     require: path => path.endsWith('/util') ? { getCurrentUserIdentity: () => 'guest', getUserStorageKey: key => prefix + key }
       : path.endsWith('/shopping-list') ? { loadPendingOperations: () => [] }
-      : path.endsWith('/meal-workflow') ? { mealNames: { lunch: '午餐' } } : Object.assign(() => '', { base: 16 })
+      : path.endsWith('/meal-workflow') ? { mealNames: { lunch: '午餐' } } : path.endsWith('/meal-journey-presentation') ? require('../utils/meal-journey-presentation') : Object.assign(() => '', { base: 16 })
   })
   page.setData = update => Object.assign(page.data, update)
   page.loadPendingSync()

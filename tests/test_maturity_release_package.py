@@ -60,7 +60,7 @@ class MaturityReleasePackageTest(unittest.TestCase):
                 'files': {name: hashlib.sha256((bundle / name).read_bytes()).hexdigest() for name in members},
             }), encoding='utf-8')
             with patch.object(packager, 'ROOT', source), \
-                 patch.object(packager.subprocess, 'check_output', side_effect=['synthetic-commit\n', '']):
+                 patch.object(packager.subprocess, 'check_output', side_effect=['a'*40+'\n', '']):
                 result = packager.package(bundle, output)
             prompt = output / 'recommend-service/prompts/recommendation.txt'
             self.assertTrue((output / 'recommend-service/graph/nodes.py').is_file())

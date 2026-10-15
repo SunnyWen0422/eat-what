@@ -10,6 +10,18 @@ ROOT=Path(__file__).resolve().parents[1]
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def candidate_metadata(source_sha,evidence,migration):
+    if not re.fullmatch('[0-9a-f]{40}',source_sha):raise ValueError('Exact source SHA required')
+    return {'sourceSha':source_sha,'schemaDelta':{name:(migration or {}).get(name,[]) for name in ('newTables','addedColumns','addedIndexes')},
+        'configDelta':['ASSISTANT_V4_ENABLED','ASSISTANT_V4_EXTENSIONS_ENABLED','MEAL_WORKSPACE_SERVICE_TOKEN','recommend.service.base-url','PUBLIC_CATALOG_ENABLED','public-catalog.allowed-dish-ids'],
+        'capabilities':{'assistantReads':11,'assistantDirectWrites':3,'pageHandoffs':7,'extensionProtocol':'maturity.2','runtimeNegotiationRequired':True,'voiceEnabled':False,'webAccountSync':False},
+        'publicCatalogVersion':{'mode':'deployment-selected-public-system-ids','allowlistMustBeRechecked':True},'testEvidence':evidence,
+        'openGates':['native continuous gestures and physical iOS/Android','approved finite supplier-model acceptance','10 participant usability study','fresh target schema and backup preflight','production approval'],
+        'rollback':{'services':'Restore the matched prior Java/Python/web bundle and prior environment; pause new writes first.',
+            'restore':'Restore the pre-cutover database backup only after reconciling writes accepted since cutover.',
+            'schema':'Retain additive tables/columns/indexes during service rollback; never reverse DDL by deleting user records.'}}
+
+
 def release_path(value):
     # Normalize '..' lexically first: Windows sandbox realpath may preserve it
     # for a not-yet-created path when native handle lookup is unavailable.
@@ -69,7 +81,7 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     api=frontend_api(ROOT)
     web_release=release_path(web_release) if web_release else None
     migration_bundle=release_path(migration_bundle) if migration_bundle else None
-    if migration_bundle:check_prepared_migration(migration_bundle)
+    migration_receipt=check_prepared_migration(migration_bundle) if migration_bundle else None
     if web_release:
         subprocess.run([shutil.which('node') or 'node','--input-type=module','-e',
             "import {verifyRelease} from '"+(ROOT/'web/scripts/release-files.ts').as_uri()+"'; await verifyRelease(process.argv[1]);",str(web_release)],check=True)
@@ -107,6 +119,9 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     for name in ('2026-10-10-local-merged-readiness.md',):
         source=ROOT/'docs/release'/name
         if source.is_file():copy(source,source.relative_to(ROOT))
+    for relative in ('docs/testing/product-maturity-final.md','docs/release/product-maturity-candidate.md'):
+        source=ROOT/relative
+        if source.is_file():copy(source,Path(relative))
     if web_release:
         for source in sorted(web_release.rglob('*')):
             if source.is_file():copy(source,Path('web')/source.relative_to(web_release))
@@ -126,6 +141,8 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
             'datasetLimitations':['unreviewed recipes cannot become trusted automatic web recommendations','unknown portions/prices/nutrition remain unknown'],
             'deploymentAllowed':False,'frontendApi':api,'webIncluded':bool(web_release),'preparedMigrationIncluded':bool(migration_bundle),
             'pythonEntrypoint':'main:app','productionConfigurationIncluded':False}
+    record.update(candidate_metadata(commit,[],migration_receipt))
+    record['artifactHashes']=files
     (out/'release-manifest.json').write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf-8')
     return {'status':record['status'],'files':len(files),'datasetVersion':record['datasetVersion'],'output':str(out),'snapshotSha256':record['snapshotSha256']}
 

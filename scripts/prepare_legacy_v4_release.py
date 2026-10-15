@@ -29,6 +29,11 @@ ADDITIONS = (('recipe_records', 'revision', 'BIGINT NOT NULL DEFAULT 1'),
              ('user_preference', 'default_people', 'INT NOT NULL DEFAULT 2'))
 BASE_TABLES = frozenset({'food', 'users', 'recipe_records', 'shopping_list', 'shopping_dish',
                          'shopping_item', 'shopping_request_log', 'user_preference', 'schema_migrations'})
+ADDITIVE_INDEXES=(
+    ('food','ix_food_visibility',('user_id','is_published','id')),
+    ('assistant_v4_session','ix_av4_session_owner_updated',('user_id','updated_at','id')),
+    ('assistant_v4_turn','ix_av4_turn_session_updated',('user_id','session_id','updated_at','id')),
+)
 IDENTIFIER = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 
@@ -262,7 +267,7 @@ def build_plan(snapshots):
     last_login = shapes.get('users', {}).get('columns', {}).get('last_login_time')
     last_type = _normalize_column(last_login)['columnType'] if last_login is not None else observed_columns.get('users', {}).get('last_login_time')
     if last_type != 'datetime': raise ValueError('Existing users.last_login_time must be attested; it is never added implicitly')
-    steps = []; added = []; skipped_columns = []; skipped_tables = []; new_tables = []
+    steps = []; added = []; skipped_columns = []; skipped_tables = []; new_tables = []; added_indexes=[];skipped_indexes=[]
     for table, name, definition in ADDITIONS:
         if not shapes.get(table, {}).get('columns') and not observed_columns.get(table): raise ValueError('Column inventory evidence required: ' + table)
         table_collation = shapes.get(table, {}).get('collation', collation)
@@ -276,16 +281,39 @@ def build_plan(snapshots):
             steps.append({'name': table + '.' + name, 'sql': 'ALTER TABLE `' + table + '` ADD COLUMN `' + name + '` ' + definition}); added.append(table + '.' + name)
     for name in NEW_TABLES:
         if name in tables:
-            if name not in shapes or _normalize_table(shapes[name]) != _normalize_table(expected[name]): raise ValueError('Existing target table shape differs or cannot be attested: ' + name)
+            if name not in shapes:raise ValueError('Existing target table shape differs or cannot be attested: ' + name)
+            actual=_normalize_table(shapes[name]);base=_normalize_table(expected[name])
+            known={index for table,index,_ in ADDITIVE_INDEXES if table==name}
+            # Only explicitly reviewed extra indexes can differ from the original
+            # CREATE TABLE contract. Their complete shape is checked below.
+            actual['indexes']=[row for row in actual['indexes'] if row['name'] not in known]
+            if actual!=base:raise ValueError('Existing target table shape differs or cannot be attested: ' + name)
             skipped_tables.append(name)
         else:
             steps.append({'name': name, 'sql': creates[name]}); new_tables.append(name)
+    if 'food' not in shapes:raise ValueError('Complete food shape required for visibility index preflight')
+    expected['food']=_normalize_table(shapes['food'])
+    primary=next((row for row in expected['food']['indexes'] if row['name']=='PRIMARY'),None)
+    if not primary or primary['columns']!=['id'] or not primary['unique']:raise ValueError('food primary key must attest the ID keyset')
+    for table,name,columns in ADDITIVE_INDEXES:
+        target=expected[table]
+        if not set(columns)<=set(target['columns']):raise ValueError('Index source columns missing: '+table+'.'+name)
+        wanted={'name':name,'unique':False,'columns':list(columns),'prefixLengths':[None]*len(columns),'orders':['A']*len(columns),'type':'BTREE'}
+        existing=next((row for row in _normalize_table(shapes[table])['indexes'] if row['name']==name),None) if table in shapes else None
+        if existing is not None:
+            if existing!=wanted:raise ValueError('Existing additive index shape differs: '+table+'.'+name)
+            skipped_indexes.append(table+'.'+name)
+        else:
+            steps.append({'name':table+'.'+name,'sql':'ALTER TABLE `'+table+'` ADD KEY `'+name+'` ('+','.join('`'+c+'`' for c in columns)+')'});added_indexes.append(table+'.'+name)
+        target['indexes']=[row for row in target['indexes'] if row['name']!=name]+[wanted]
+        target['indexes'].sort(key=lambda row:row['name'])
     if count:
         steps.append({'name': 'shopping_item.unknown-portion-status', 'sql': "UPDATE shopping_item SET calculation_status='NEEDS_ADJUSTMENT',updated_at=updated_at WHERE source_base_people IS NULL AND calculation_status='CALCULATED'",
                       'expectedAffected': count, 'changesQuantityOrMoney': False, 'preservesUpdatedAt': True})
     return {'formatVersion': 1, 'mode': 'prepare-only', 'productionApproved': False, 'sourceDatabase': database, 'snapshotTimes': dates,
             'legacyVersions': sorted(LEGACY_VERSIONS), 'newTables': new_tables, 'addedColumns': added,
             'skippedTables': skipped_tables, 'skippedColumns': skipped_columns, 'shoppingStatusCorrectionRows': count,
+            'addedIndexes':added_indexes,'skippedIndexes':skipped_indexes,
             'changesOriginalRecipesOrIdentity': False, 'inventsActualMeals': False, 'migrationRegistryWrites': 0,
             'steps': steps, 'contracts': expected, 'migrationSources': sources}
 

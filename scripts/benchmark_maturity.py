@@ -9,7 +9,7 @@ import statistics
 import threading
 import time
 import uuid
-from maturity_runtime import owned_runtime,validate_config
+from maturity_runtime import owned_runtime,validate_config,digest
 
 
 class BenchmarkHttpError(RuntimeError):
@@ -21,14 +21,16 @@ class PersistentAPI:
     def __init__(self,state):
         if state['api']!='http://127.0.0.1:18780/api':raise ValueError('Only owned loopback API allowed')
         self.state=state;self.local=threading.local();self.clients=[];self.lock=threading.Lock()
-    def __call__(self,path,body=None,user=910001):
+    def __call__(self,path,body=None,user=910001,timeout=None):
         if not path.startswith('/') or path.startswith('//') or '://' in path:raise ValueError('Relative owned API path required')
         import httpx
         from assistant_v4_acceptance import bearer
         if not hasattr(self.local,'client'):
             self.local.client=httpx.Client(trust_env=False,follow_redirects=False,timeout=40,limits=httpx.Limits(max_connections=1,max_keepalive_connections=1,keepalive_expiry=30))
             with self.lock:self.clients.append(self.local.client)
-        r=self.local.client.request('POST' if body is not None else 'GET',self.state['api']+path,json=body if body is not None else None,headers={'Authorization':'Bearer '+bearer(self.state,user)})
+        budget=timeout if timeout is not None else 2 if path.startswith('/actuator/metrics/') else 40
+        if not 0<budget<=40:raise TimeoutError('Owned request deadline exhausted')
+        r=self.local.client.request('POST' if body is not None else 'GET',self.state['api']+path,json=body if body is not None else None,headers={'Authorization':'Bearer '+bearer(self.state,user)},timeout=budget)
         if r.status_code not in (200,201,202,204):raise BenchmarkHttpError(r.status_code)
         return r.json() if r.content else None
     def close(self):
@@ -53,7 +55,7 @@ def bench(runtime,concurrency,seconds):
             # Separate connection per thread; never share a PyMySQL connection.
             import pymysql
             try:
-                with pymysql.connect(host='127.0.0.1',port=runtime.state['dbPort'],user='root',password=runtime.state['password'],database=runtime.state['database'],connect_timeout=2) as db:
+                with pymysql.connect(host='127.0.0.1',port=runtime.state['dbPort'],user='root',password=runtime.state['password'],database=runtime.state['database'],connect_timeout=2,read_timeout=2,write_timeout=2) as db:
                     with db.cursor() as c:
                         c.execute("SHOW STATUS LIKE 'Threads_connected'");sample['mysqlConnections']=int(c.fetchone()[1])
                         c.execute("SHOW GLOBAL STATUS WHERE Variable_name IN ('Questions','Innodb_rows_read','Threads_running','Slow_queries')");sample['sqlCounters']={k:int(v) for k,v in c.fetchall()}
@@ -82,7 +84,7 @@ def bench(runtime,concurrency,seconds):
                         'expectedWorkspaceRevision':w['revision'],'planVersion':w['draft']['planVersion']},user)
                     until=time.monotonic()+45
                     while True:
-                        w=http(f'/meal-workspaces/current?date={day}&mealType=dinner',user=user)['workspace']
+                        w=http(f'/meal-workspaces/current?date={day}&mealType=dinner',user=user,timeout=min(40,until-time.monotonic()))['workspace']
                         if w['status']!='generating':break
                         if time.monotonic()>until:raise TimeoutError('Rule task deadline')
                         time.sleep(.05)
@@ -97,7 +99,7 @@ def bench(runtime,concurrency,seconds):
                     http('/meal-workspaces/'+w['id']+'/requests/'+request_id,user=user)
                     until=time.monotonic()+45
                     while True:
-                        w=http(f'/meal-workspaces/current?date={day}&mealType=dinner',user=user)['workspace']
+                        w=http(f'/meal-workspaces/current?date={day}&mealType=dinner',user=user,timeout=min(40,until-time.monotonic()))['workspace']
                         if w['status']!='generating':break
                         if time.monotonic()>until:raise TimeoutError('Recovery deadline')
                         time.sleep(.05)
@@ -125,7 +127,8 @@ def main():
     out=Path(args.out).absolute()
     from maturity_runtime import new_output
     new_output(out);out.mkdir(parents=True)
-    report={'sourceSha':config['sourceSha'],'datasetHash':config['datasetHash'],'jarSha256':config['jarSha256'],'providerMode':'mock','productionTouched':False,'scenarios':[]}
+    report={'sourceSha':config['sourceSha'],'datasetHash':config['datasetHash'],'jarSha256':config['jarSha256'],'providerMode':'mock','productionTouched':False,'scenarios':[],
+            'harnessHashes':{name:digest(Path(__file__).parent/name) for name in ('benchmark_maturity.py','maturity_runtime.py','assistant_v4_acceptance.py')}}
     # New instance for each dataset; concurrency stages reuse its buffer pool and
     # record their order explicitly. Cold starts are separate from warm latency.
     variants=['baseline','candidate'] if config.get('baselineJar') else ['candidate']
@@ -137,7 +140,7 @@ def main():
                 cfg.update(jar=config['baselineJar'],buildManifest=config['baselineBuildManifest'],jarSha256=receipt['jarSha256'],buildSourceFingerprint=receipt['backendFingerprint'])
             with owned_runtime(cfg,out/(variant+'-rows-'+str(size)),baseline=variant=='baseline') as runtime:
                 for concurrency in (1,10,25):
-                    result=bench(runtime,concurrency,20 if variant=='baseline' else args.seconds_per_scenario);result.update(rows=size,variant=variant);report['scenarios'].append(result)
+                    result=bench(runtime,concurrency,20 if variant=='baseline' else args.seconds_per_scenario);result.update(rows=size,variant=variant,migrations=runtime.dataset['migrations']);report['scenarios'].append(result)
                     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
                     print(json.dumps({'variant':variant,'rows':size,'concurrency':concurrency,'requests':result['requests'],'errors':result['errors'],'groups':result['groups']},ensure_ascii=False),flush=True)
     report['sustainedLoadSeconds']=sum(r['requestedSeconds'] for r in report['scenarios'] if r['variant']=='candidate')

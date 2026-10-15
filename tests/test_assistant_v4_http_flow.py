@@ -64,8 +64,8 @@ class AcceptanceGuardsTest(unittest.TestCase):
         contract=json.loads((ROOT/'contracts/assistant-v4.json').read_text(encoding='utf-8'))
         self.assertIn(runner.ENTRY_SCENE,contract['publicRequests']['entryScenes'])
     def test_fixed_cases_have_executable_assertions_and_exact_distribution(self):
-        fixtures=runner.load_fixtures();self.assertEqual(40,len(fixtures));self.assertEqual(40,len({x['id'] for x in fixtures}))
-        expected={'generation':8,'adjustment':8,'calendar':8,'shopping':6,'readonly':4,'recovery':6}
+        fixtures=runner.load_fixtures();self.assertEqual(42,len(fixtures));self.assertEqual(42,len({x['id'] for x in fixtures}))
+        expected={'generation':8,'adjustment':8,'calendar':8,'shopping':6,'readonly':4,'recovery':8}
         self.assertEqual(expected,{group:sum(x['group']==group for x in fixtures) for group in expected})
         for case in fixtures:
             self.assertTrue(case['initial']['dishIds']);self.assertTrue(case['input']);self.assertTrue(case['expectedDomainEffects'])
@@ -104,10 +104,10 @@ class ProviderBudgetTest(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('ASSISTANT_V4_ACCEPTANCE_MANIFEST'),'Real HTTP/MySQL requires validated explicit synthetic manifest')
 class RealAssistantHTTPFlowTest(unittest.TestCase):
-    def test_all_40_business_outcomes_in_owned_process_tree(self):
+    def test_all_42_business_outcomes_in_owned_process_tree(self):
         path=Path(os.environ['ASSISTANT_V4_ACCEPTANCE_MANIFEST'])
         manifest=runner.validate_manifest(json.loads(path.read_text(encoding='utf-8')))
         report=runner.run_owned(manifest,manifest['jarPath'],manifest['outputPath'])
-        self.assertEqual(40,report['total']);self.assertEqual(40,report['passed'])
+        self.assertEqual(42,report['total']);self.assertEqual(42,report['passed'])
 
 if __name__=='__main__':unittest.main()

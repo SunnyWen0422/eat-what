@@ -88,6 +88,19 @@ class UiSelfCheckTest(unittest.TestCase):
             for node in Template(file.read_text(encoding='utf-8')).nodes:
                 if node.tag in ('view', 'text', 'picker') and any(key.endswith('tap') for key in node.attrs):
                     style = styles(node, css)
+                    # The sheet shell swallows bubbling; it is not a control.
+                    # Its backdrop fills the viewport, while the shell is
+                    # intentionally clamped below 44px if the keyboard leaves
+                    # no room. Actual buttons and keyboard dismissal have their
+                    # own geometry/behavior checks in experience-components.
+                    if file.parent.name == 'ui-sheet' and node.attrs.get('class') == 'ew-mask':
+                        self.assertEqual('fixed', style.get('position'))
+                        self.assertEqual('0', style.get('inset'))
+                        continue
+                    if file.parent.name == 'ui-sheet' and node.attrs.get('class') == 'ew-sheet' and node.attrs.get('catchtap') == 'stop':
+                        self.assertEqual('100%', style.get('width'))
+                        self.assertIn('sheetHeight < 44 ? sheetHeight : 44', node.attrs['style'])
+                        continue
                     if not self.fixed_touch_minimum(style.get('min-width')) or not self.fixed_touch_minimum(style.get('min-height')):
                         failures.append((str(file.relative_to(ROOT)), node.attrs))
         self.assertEqual([], failures)

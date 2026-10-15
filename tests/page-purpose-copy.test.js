@@ -32,7 +32,7 @@ test('calendar detail labels saving a plan separately from recording food', () =
   const source = read('pages/calendar-detail/calendar-detail.wxml')
   // The approved read-first layout removes the repeated introduction and
   // gives copying its own destination label instead of generic save wording.
-  assert.match(source, /bindtap="onActualDifferent"[^>]*>更正记录/)
+  assert.match(source, /bindtap="onActualDifferent"[^>]*>更正实际记录/)
   assert.match(source, /原安排保留，只复制菜单，不复制实际记录/)
   const expression = source.match(/confirm-label="\{\{(.*?)\}\}"/)
   assert.ok(expression, 'the form confirm label reflects its action')
@@ -45,12 +45,12 @@ test('food recording sheet states its actual-only purpose and keeps the meal con
   const source = read('templates/meal-actual-sheet.wxml')
   assert.match(source, /<ui-sheet[^>]*title="记录饮食"/)
   assert.match(source, />\{\{actualTitle\}\}<\/text>/)
-  assert.match(source, /只记录实际吃过的内容，用于饮食回顾；保存计划不会计入/)
+  assert.match(source, /按实际情况记录，不影响原安排/)
   const expression = source.match(/slot="footer" label="\{\{(.*?)\}\}"/)
   assert.ok(expression, 'recording has an explicit confirmation label')
   assert.equal(vm.runInNewContext(expression[1], { actualMode: 'changed' }), '记录饮食')
   assert.equal(vm.runInNewContext(expression[1], { actualMode: 'byPlan' }), '记录饮食')
-  assert.equal(vm.runInNewContext(expression[1], { actualMode: 'skipped' }), '确认未按计划')
+  assert.equal(vm.runInNewContext(expression[1], { actualMode: 'skipped' }), '确认这餐没吃')
 })
 
 test('recipe details are clearly ingredients and cooking instructions', () => {

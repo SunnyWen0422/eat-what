@@ -85,7 +85,7 @@ test('kept dishes remain protected until explicitly released',async t=>{
 test('more operations use a visible sheet and the header offers the contextual assistant',async t=>{
   const f=fixture(),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target);page.onToggleExtraActions();assert.equal(page.data.moreVisible,true)
   const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/<ui-sheet[^>]*visible="\{\{moreVisible\}\}"/);assert.match(template,/<compact-dish-row/);assert.match(template,/<action-feedback/)
-  assert.doesNotMatch(template,/workspace-keep-control/);assert.match(template,/bindtap="onOpenConnectedAssistant"[^>]*>聊聊这餐/)
+  assert.doesNotMatch(template,/workspace-keep-control/);assert.match(template,/bindtap="onOpenConnectedAssistant"[^>]*>餐桌助手/)
   const requirements=template.slice(template.indexOf('<ui-sheet visible="{{requirementsVisible}}"'),template.indexOf('<ui-sheet visible="{{settingsVisible}}"'))
   assert.match(requirements,/继续本餐对话/)
   assert.match(template,/<ui-sheet[^>]*moreVisible[\s\S]*预览保存计划与周回顾/)
@@ -215,7 +215,7 @@ test('generation limitation keeps manual selection, dish reading and calendar ac
   page.onDishOpen({currentTarget:{dataset:{id:7}}});page.onViewPlan();page.onChooseDishes()
   assert.deepEqual(f.navigation,['/pages/dish-detail/dish-detail?id=7&people=2','/pages/calendar-detail/calendar-detail?date=2026-10-06&mealType=dinner','/pages/customize/customize'])
   assert.equal(f.calls.length,0)
-  const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/generationLimitNotice/)
+  const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/workspaceNotice.text/);assert.match(page.data.workspaceNotice.text,/还缺|补充要求|调整条件/)
 })
 test('continuing this meal keeps its edited requirements and gives visible next-step feedback',async t=>{
   const f=fixture('assistant'),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target)

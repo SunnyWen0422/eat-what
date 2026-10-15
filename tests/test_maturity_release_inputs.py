@@ -8,6 +8,15 @@ spec=importlib.util.spec_from_file_location('maturity_release',ROOT/'scripts/pac
 release=importlib.util.module_from_spec(spec);spec.loader.exec_module(release)
 
 class ReleaseInputsTest(unittest.TestCase):
+    def test_candidate_metadata_never_converts_partial_evidence_to_release_approval(self):
+        value=release.candidate_metadata('a'*40,[],{'steps':[]})
+        self.assertEqual('a'*40,value['sourceSha'])
+        self.assertEqual(11,value['capabilities']['assistantReads'])
+        self.assertEqual(3,value['capabilities']['assistantDirectWrites'])
+        self.assertTrue(value['openGates'])
+        self.assertIn('restore',value['rollback'])
+        with self.assertRaises(ValueError):release.candidate_metadata('not-a-sha',[],None)
+
     def test_project_relative_output_normalizes_parent_segments(self):
         source=ROOT/'..'/'work'/'independent-web-fixes-20261010'/'release-local-final'
         result=release.release_path(source)

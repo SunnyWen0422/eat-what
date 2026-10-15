@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "requirementsOnly": true,
+  "journeys": [
+    {"id":"J01","name":"登录与完整菜库","assertions":["anonymous denied","first and last page","private account boundary"]},
+    {"id":"J02","name":"生成保留与换菜","assertions":["persistent draft IDs","kept dish unchanged","stale revision rejected"]},
+    {"id":"J03","name":"跨日保存与恢复","assertions":["exact target date meal","idempotent receipt","no actual record"]},
+    {"id":"J04","name":"采购来源与实付","assertions":["source date meal dish line variant","unknown quantity not scaled","zero spend independent"]},
+    {"id":"J05","name":"做菜与实际用餐","assertions":["reading has no business write","explicit actual snapshot","corrected actual persists"]},
+    {"id":"J06","name":"编辑后复制与恢复","assertions":["cancel creates nothing","save creates once","source down original request recoverable"]},
+    {"id":"J07","name":"助手个人内容和交接","assertions":["11 reads negotiated","owned preferences favorites menus","handoff is not a business write"]},
+    {"id":"J08","name":"冲突取消与重启","assertions":["old version rejected","cancellation not revived","original request survives process restart"]}
+  ],
+  "limits":["This is a requirement fixture, not a passing report","Native interaction and device evidence are separate","All writes only in a new owned instance"]
+}

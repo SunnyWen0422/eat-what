@@ -28,7 +28,17 @@ class WorkspaceQualityReadScopeTest {
         Fixture(int count) {
             this.count = count;
             when(preferences.get(7L)).thenReturn(new UserPreferenceDTO());
-            when(dishes.selectFilteredCandidates(anyLong(), any(), any(), anyList(), anyList(), any())).thenAnswer(call -> rawRows());
+            when(dishes.selectRecommendationCandidateFacts(anyLong(), any(), any(), anyList(), anyList(), any(),any(),anyInt())).thenAnswer(call -> {
+                Long before=call.getArgument(6);int limit=call.getArgument(7);
+                assertTrue(limit<=256);
+                return rawRows().stream().filter(d->before==null||d.getId()<before)
+                    .sorted(Comparator.comparing(Dish::getId).reversed()).limit(limit)
+                    .peek(d->d.setSteps(null)).collect(Collectors.toList());
+            });
+            when(dishes.selectFilteredPageDetails(anyList(),eq(7L))).thenAnswer(call -> {
+                List<Long> ids=call.getArgument(0);assertTrue(ids.size()<=256);
+                return rawRows().stream().filter(d->ids.contains(d.getId())).collect(Collectors.toList());
+            });
             when(dishes.lockReadableDishes(anyList(), eq(7L))).thenAnswer(call -> {
                 List<Long> ids = call.getArgument(0); return rawRows().stream().filter(d -> ids.contains(d.getId())).collect(Collectors.toList());
             });

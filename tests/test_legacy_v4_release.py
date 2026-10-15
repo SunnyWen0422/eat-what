@@ -41,6 +41,7 @@ def quality_shapes():
 def fixture():
     legacy = ['food', 'users', 'recipe_records', 'shopping_list', 'shopping_dish', 'shopping_item', 'shopping_request_log', 'user_preference', 'schema_migrations']
     shapes = quality_shapes()
+    shapes['food']={'engine':'InnoDB','collation':'utf8mb4_0900_ai_ci','columns':{'id':column('int'),'user_id':column('bigint',True),'is_published':column('tinyint',True,1)},'indexes':[index('PRIMARY',['id'],True)],'foreignKeys':[]}
     return {'checkedAtUtc': '2026-10-10T02:06:18+00:00', 'database': 'food', 'databaseCollation': 'utf8mb4_0900_ai_ci',
         'credentialSource': '/private/do-not-export.yml', 'tables': [{'table': name, 'engine': 'InnoDB'} for name in legacy + list(shapes)],
         'schemaContracts': shapes,
@@ -72,6 +73,17 @@ class LegacyV4ReleaseTest(unittest.TestCase):
         correction = plan['steps'][-1]
         self.assertEqual(50, correction['expectedAffected']); self.assertFalse(correction['changesQuantityOrMoney'])
         self.assertIn('updated_at=updated_at', correction['sql']); self.assertNotIn('quantity_value=', correction['sql'])
+
+    def test_reviewed_additive_indexes_are_prepared_resumable_and_shape_checked(self):
+        data=fixture();data['schemaContracts']['food']={'engine':'InnoDB','collation':'utf8mb4_0900_ai_ci','columns':{'id':column('int'),'user_id':column('bigint',True),'is_published':column('tinyint',True,1)},'indexes':[index('PRIMARY',['id'],True)],'foreignKeys':[]}
+        plan=self.helper.build_plan([data]);names={s['name'] for s in plan['steps']}
+        required={'food.ix_food_visibility','assistant_v4_session.ix_av4_session_owner_updated','assistant_v4_turn.ix_av4_turn_session_updated'}
+        self.assertTrue(required<=names)
+        resumed=copy.deepcopy(data)
+        for table in ('food','assistant_v4_session','assistant_v4_turn'):resumed['schemaContracts'][table]=copy.deepcopy(plan['contracts'][table])
+        again=self.helper.build_plan([resumed]);self.assertFalse(required&{s['name'] for s in again['steps']});self.assertEqual(required,set(again['skippedIndexes']))
+        bad=copy.deepcopy(resumed);next(i for i in bad['schemaContracts']['food']['indexes'] if i['name']=='ix_food_visibility')['columns']=['id','user_id','is_published']
+        with self.assertRaises(ValueError):self.helper.build_plan([bad])
 
     def test_quality_schema_requires_full_shape_and_rejects_same_name_wrong_lengths(self):
         for mutation in ['length', 'missing-metadata', 'wrong-index', 'foreign-key']:

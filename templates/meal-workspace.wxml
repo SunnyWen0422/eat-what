@@ -11,7 +11,7 @@
       <block wx:else>
         <block wx:if="{{workspaceNotice && !requirementsVisible}}">
           <ui-state wx:if="{{workspaceNotice.kind === 'loading'}}" kind="loading" density="inline" title="{{workspaceNotice.text}}" />
-          <view wx:else class="workspace-notice {{workspaceNotice.kind}}" aria-role="{{workspaceNotice.kind === 'error' ? 'alert' : 'status'}}"><text>{{workspaceNotice.text}}</text><button wx:if="{{workspaceNotice.action === 'composition'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenComposition">调整搭配</button><button wx:if="{{workspaceNotice.action === 'choose'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onChooseDishes">自己选菜</button></view>
+          <view wx:else class="workspace-notice {{workspaceNotice.kind}}" aria-role="{{workspaceNotice.kind === 'error' ? 'alert' : 'status'}}"><text>{{workspaceNotice.text}}</text><button wx:if="{{workspaceNotice.action === 'composition'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenComposition">调整搭配</button></view>
         </block>
         <ui-button wx:if="{{conflictDraftAvailable}}" label="重新应用保留的输入" variant="secondary" bind:action="onRestoreLocalDraft" />
         <ui-button wx:if="{{suggestedTarget}}" label="切换到 {{suggestedTarget.date}} {{suggestedMealLabel}} 并安排" variant="secondary" bind:action="onSuggestedTarget" />
