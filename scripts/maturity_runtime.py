@@ -30,7 +30,7 @@ def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def backend_fingerprint(root=ROOT):
     root=Path(root);files=[root/'backend/pom.xml']
-    files+=sorted(p for p in (root/'backend/src/main').rglob('*') if p.is_file() and not re.fullmatch(r'application(?:-.*)?\.(?:yml|yaml|properties)',p.name))
+    files+=sorted((p for p in (root/'backend/src/main').rglob('*') if p.is_file() and not re.fullmatch(r'application(?:-.*)?\.(?:yml|yaml|properties)',p.name)),key=lambda p:p.relative_to(root).as_posix())
     h=hashlib.sha256()
     for path in files:h.update((path.relative_to(root).as_posix()+':'+digest(path)+'\n').encode())
     return h.hexdigest()
