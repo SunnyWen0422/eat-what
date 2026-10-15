@@ -864,14 +864,14 @@
         "T24"
       ],
       "conditionalDependency": "T23/T24的外部设备或参与者未具备时可以生成候选，但必须将对应发布门标blocked，不能标全量发布就绪。",
-      "status": "in_progress",
+      "status": "complete",
       "requirements": [
         "K26",
         "K27",
         "K29",
         "K32"
       ],
-      "evidenceNote": "Final report78/100 and sourcecd8a974 frozen; DB22/22+IT12, offline42/42, Node1058, Java524, Python276pass1skip, web526 andbrowser4. Capacity36123/0 but10/25meal latency target notpassed; native5/8 andsupplier/users gate. Building and checking matched DRAFT; no push/deploy."
+      "evidenceNote": "DRAFT delivery verified:434allowlisted files, config-free Java8 JAR, Python/mini/web/public6665 matched, file+ZIP hashes and paired validation receipt verified. Report desktop/mobile2/2,7images0network. Source runtimecd8a974; independentreview Important2 fixed,2Minor deferred. No push/deploy; capacity latency, real supplier, native/physical devices, user study and fresh production preflight remain explicit gates."
     }
   ],
   "routes": [
