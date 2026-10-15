@@ -614,12 +614,13 @@
         "T14"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K13",
         "K16"
-      ]
+      ],
+      "evidenceNote": "50 Node checks pass; exact readable content signatures, active dish and per-ID reading resume, material foldout, structured steps, storage failure read-through and future actual guard. Ruling: pre-signature progress cannot prove source equality and resets once; cost loss of old reading position only, no business records. Native acceptance pending."
     },
     {
       "id": "T17",
