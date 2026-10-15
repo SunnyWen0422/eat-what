@@ -108,24 +108,31 @@ Page({
   async applyAssistantMenuHandoff(){
     const handoff=require('../../utils/assistant-action-handoff'),p=handoff.incoming({},['save_personal_menu','use_personal_menu'],{storage:wx,storageKey:getUserStorageKey})
     if(!p||!this.ensureBrowseOwner())return
-    const identity=this._browseIdentity,epoch=this._privateEpoch||0,current=()=>this.isBrowseCurrent(identity,epoch)&&this._visible!==false
+    const identity=this._browseIdentity,epoch=this._privateEpoch||0
     const selection=this._recipeSelection&&this._recipeSelection.view(),state=selection&&selection.state
     if(this.data.menuBusy||this.data.menuPending||this.data.customPending||this.data.showCustomForm||this.data.menuFormVisible||state&&(state.pending||state.dirty))return this.setData({menuError:'请先完成当前编辑或核对原保存，再从助手重新打开',showMenus:true})
+    const handoffEpoch=this._assistantMenuHandoffEpoch=(this._assistantMenuHandoffEpoch||0)+1
+    let activeTarget=JSON.stringify(wx.getStorageSync(getUserStorageKey('activeMealTarget'))||null)
+    const viewSnapshot=()=>JSON.stringify({date:this.data.menuDate,meal:this.data.menuMealIndex,active:this.data.activeMenu&&[this.data.activeMenu.id,this.data.activeMenu.version],form:this.data.menuFormVisible,editing:this.data.menuEditingId,name:this.data.menuName,people:this.data.menuPeople,custom:this.data.showCustomForm,pending:this.data.menuPending,customPending:this.data.customPending,ids:p.kind==='use_personal_menu'?this.data.selectedIds:null})
+    const view=viewSnapshot(),current=()=>this.isBrowseCurrent(identity,epoch)&&this._visible!==false&&handoffEpoch===this._assistantMenuHandoffEpoch&&view===viewSnapshot()&&activeTarget===JSON.stringify(wx.getStorageSync(getUserStorageKey('activeMealTarget'))||null)
     try{
       if(p.kind==='save_personal_menu'){
         const result=await api.getMealWorkspace(p.target.date,p.target.mealType);if(!current())return
         const w=result&&result.workspace
         if(!w||w.id!==p.ref.workspaceId||p.sourceVersion!==w.revision+':'+w.draft.planVersion)throw Error('本餐菜单已变化，请重新查询后再保存')
         wx.setStorageSync(getUserStorageKey('activeMealTarget'),p.target)
+        activeTarget=JSON.stringify(p.target)
         await this.refreshSelectedMeal();if(!current())return
         wx.setStorageSync(getUserStorageKey('openPersonalMenuForm'),true);return this.onOpenMenuFromCurrentMeal()
       }
       const menu=await api.getPersonalMenu(p.ref.menuId);if(!current())return
       if(!menu||String(menu.version)!==p.sourceVersion)throw Error('常用菜单已更新，请重新查看后再使用')
-      await this.onOpenMenus();if(!current())return
-      const fresh=this.data.menus.find(m=>Number(m.id)===p.ref.menuId)
+      // Loading the list must not reset the visible destination/form while the
+      // user can still interact with it. Commit the handoff view only once.
+      const menus=await api.getPersonalMenus();if(!current())return
+      const list=Array.isArray(menus)?menus:[],fresh=list.find(m=>Number(m.id)===p.ref.menuId)
       if(!fresh||String(fresh.version)!==p.sourceVersion)throw Error('常用菜单已更新，请重新查看后再使用')
-      this.setData({activeMenu:fresh,showMenuTarget:true,menuDate:p.target.date,menuMealIndex:['breakfast','lunch','dinner'].indexOf(p.target.mealType),menuError:''})
+      this.setData({menus:list,showMenus:true,showSelectedPanel:false,menuMissingDishes:[],activeMenu:fresh,showMenuTarget:true,menuDate:p.target.date,menuMealIndex:['breakfast','lunch','dinner'].indexOf(p.target.mealType),menuError:''})
     }catch(error){if(current())this.setData({showMenus:true,menuError:require('../../utils/meal-workflow').errorMessage(error,'这份内容暂未读到，请重新查询后再打开')})}
   },
   onHide() { this._recipeVisible = false; clearTimeout(this._recipePoll); this._visible = false; this._menuApplyEpoch = (this._menuApplyEpoch || 0) + 1; if (this._menuApplying) { this._menuApplyWasHidden = true; this._menuApplying = false } },

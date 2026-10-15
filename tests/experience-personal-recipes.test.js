@@ -594,3 +594,19 @@ test('rereview R1 guard: failed snapshot reread retains local form and version u
   await f.page.onEditMenu(event('id', 3)); f.page.onMenuInput(event('menuName', '不能丢的输入')); failRead = true; await f.page.onEditMenu(event('id', 3)); await f.dialogs[0].success({ confirm: true })
   assert.equal(f.page._menuVersion, 2); assert.equal(f.page.data.menuName, '不能丢的输入'); assert.equal(f.page.data.menuBusy, false); assert.ok(f.leaveAlerts.at(-1)); assert.equal(f.sent.length, 0)
 })
+
+for(const phase of ['detail','list'])for(const change of ['date','meal','template','form','activeTarget'])test(`late assistant menu ${phase} read cannot overwrite changed ${change}`,async()=>{
+ const waiting=deferred(),overrides=phase==='detail'?{getPersonalMenu:()=>waiting.promise}:{getPersonalMenus:()=>waiting.promise};
+ const f=fixture('customize',overrides,true),h=f.moduleFrom(path.resolve('utils/assistant-action-handoff.js'));
+ const token=h.currentStore().put({kind:'use_personal_menu',ref:{menuId:3},sourceVersion:'2',target:{date:'2026-10-16',mealType:'lunch'}});
+ f.memory.set('A:assistantActionTab',{token});const pending=f.page.applyAssistantMenuHandoff();await new Promise(resolve=>setImmediate(resolve));
+ if(change==='date')f.page.onMenuDate({detail:{value:'2026-10-20'}});
+ if(change==='meal')f.page.onMenuMeal({detail:{value:f.page.data.menuMealIndex===2?0:2}});
+ if(change==='template')f.page.setData({activeMenu:{...menu(),id:9}});
+ if(change==='form')f.page.setData({menuFormVisible:true,menuName:'尚未保存的新菜单'});
+ if(change==='activeTarget')f.memory.set('A:activeMealTarget',{date:'2026-10-20',mealType:'dinner'});
+ const before=plain({date:f.page.data.menuDate,meal:f.page.data.menuMealIndex,active:f.page.data.activeMenu,form:f.page.data.menuFormVisible,name:f.page.data.menuName});
+ waiting.resolve(phase==='detail'?menu():[menu()]);await pending;
+ assert.deepEqual(plain({date:f.page.data.menuDate,meal:f.page.data.menuMealIndex,active:f.page.data.activeMenu,form:f.page.data.menuFormVisible,name:f.page.data.menuName}),before);
+ assert.equal(f.sent.length,0);assert.equal(f.calendarWrites.length,0);
+});

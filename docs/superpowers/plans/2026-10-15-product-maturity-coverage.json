@@ -755,7 +755,7 @@
         "T20"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K10",
         "K11",
@@ -772,7 +772,8 @@
         "K29",
         "K30",
         "K32"
-      ]
+      ],
+      "evidenceNote": "Frozen4f2c4de fullstack22/22 groups passed;12 realMySQL IT, two datasets19/6665, public100imagefields and owner rejection, actual JVMrestart, 38table59885row pinned anonymous backup withV8_20/V8_30 replay. No production, no external provider."
     },
     {
       "id": "T22",
@@ -781,14 +782,15 @@
         "T21"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "in_progress",
       "requirements": [
         "K21",
         "K22",
         "K23",
         "K24",
         "K32"
-      ]
+      ],
+      "evidenceNote": "Offline42/42 and provider lifecycle11 passed. Supplier matrix notrun; fresh20-request approval pending, oldledger20/20 and15/16 unchanged."
     },
     {
       "id": "T23",
@@ -797,7 +799,7 @@
         "T21"
       ],
       "conditionalDependency": "模型相关场景还依赖T22；原生样式与确定性交互可先验。",
-      "status": "planned",
+      "status": "in_progress",
       "requirements": [
         "K01",
         "K02",
@@ -815,7 +817,8 @@
         "K30",
         "K31",
         "K32"
-      ]
+      ],
+      "evidenceNote": "27routes represented;243 screenshot attempts206captured37internalquotaerrors,0exceptions,actual390x671; original-lifecycle localfullstack native driver nowactive. Realdevices/320430native/physicalkeyboard pending."
     },
     {
       "id": "T24",
@@ -825,10 +828,11 @@
         "T23"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K32"
-      ]
+      ],
+      "evidenceNote": "Delivered consent/script/40blanktrial rows and36of40target perplan fallback. Realparticipants notavailable, notconducted; noagent-as-user substitution."
     },
     {
       "id": "T25",

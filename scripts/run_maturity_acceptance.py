@@ -135,14 +135,19 @@ class Journeys:
     def assistant_personal(self):
         a=self.a;w=self.current()['workspace'];caps=a.http('/assistant/v4/capabilities',user=self.user)
         require(len(caps['reads'])==11 and {'clarification_v1','handoff_v1'}<=set(caps['supportedUiFeatures']),'Extended capability negotiation absent')
+        a.http('/menus',{'requestId':key(),'expectedVersion':0,'name':'隔离验收常用菜单','people':4,'dishIds':self.plan['dishIds']},self.user)
         session=a.http('/assistant/v4/sessions',{'requestId':key(),'workspaceId':w['id']},self.user)['sessionId']
         message='隔离验收查看字典收藏和菜单 '+key();self.r.model.register(message,reads=[{'name':'get_recommendation_options','arguments':{'group':'scene'}},{'name':'read_favorites','arguments':{}},{'name':'read_saved_menus','arguments':{}}])
         body={'requestId':key(),'message':message,'workspaceId':w['id'],'expectedWorkspaceRevision':w['revision'],'expectedPlanVersion':w['draft']['planVersion'],'entryScene':'chat','uiFeatures':['clarification_v1','handoff_v1']}
         before=a.counts(self.user);accepted=a.http('/assistant/v4/sessions/'+session+'/turns',body,self.user);turn=a.poll(self.user,accepted['turnId'])
         require(turn['status']=='completed' and a.counts(self.user)==before,'Personal read modified business state or failed')
+        menu_cards=[c for c in turn.get('cards',[]) if c.get('type')=='personal_menu']
+        option_cards=[c for c in turn.get('cards',[]) if c.get('type')=='recommendation_options']
+        require(menu_cards and '隔离验收常用菜单' in menu_cards[0].get('text','') and '4人' in menu_cards[0].get('text',''),'Saved menus were read but not visible')
+        require(option_cards and option_cards[0].get('text') and '用餐场景' in option_cards[0]['text'],'Dictionary was read but not visible')
         history=a.http('/assistant/v4/sessions/'+session,user=self.user);require(history.get('messages'),'Durable assistant history missing')
         a.http('/assistant/v4/sessions/'+session,user=910001,allowed=(404,))
-        self.session=session;return {'reads':len(caps['reads']),'personalReadStatus':turn['status'],'historyMessages':len(history['messages']),'businessCountsUnchanged':True}
+        self.session=session;return {'reads':len(caps['reads']),'personalReadStatus':turn['status'],'menuAndDictionaryVisible':True,'historyMessages':len(history['messages']),'businessCountsUnchanged':True}
 
     def original_request(self):
         w=self.current()['workspace'];a=self.a
