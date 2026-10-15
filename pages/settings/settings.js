@@ -42,7 +42,7 @@ Page({
   onShow() { if (this._scope && this._scope !== getUserStorageKey('preferencesPage')) this.onLoad() },
   onUnload() { this._unloaded = true },
   async onLoad(options={}) {
-    const handoff=require('../../utils/assistant-action-handoff').incoming(options,['edit_preferences'],{storage:wx,storageKey:getUserStorageKey})
+    const handoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['edit_preferences'],{storage:wx,storageKey:getUserStorageKey}):null
     const scope = this._scope = getUserStorageKey('preferencesPage')
     this.experienceStore = experiencePreferences()
     this.setData({ reducedMotion: this.experienceStore.get().reducedMotion,

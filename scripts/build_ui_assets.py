@@ -65,10 +65,12 @@ def render_template(source):
         key = match[1]
         if key in COLOR:
             return COLOR[key]
-        dimension = re.fullmatch(r"(font|space|radius|controls)\.([\w]+)\.(px|rpx|em)(?:\*([\d.]+))?", key)
+        dimension = re.fullmatch(r"(font|space|radius|controls|motion)\.([\w]+)\.(px|rpx|em|ms)(?:\*([\d.]+))?", key)
         if not dimension:
             raise ValueError(f"Unknown token binding: {key}")
         group, name, unit, multiplier = dimension.groups()
+        if (group == "motion") != (unit == "ms"):
+            raise ValueError(f"Motion tokens require milliseconds: {key}")
         values = TOKENS[group]
         value = values[int(name)] if isinstance(values, list) else values[name]
         value *= float(multiplier or 1)

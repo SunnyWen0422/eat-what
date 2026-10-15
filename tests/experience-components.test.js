@@ -217,6 +217,12 @@ test('sheet reserves safe area and keyboard space while keeping the body scrolla
   assert.equal(f.view.data.sheetHeight, 426)
   assert.equal(f.view.data.bodyHeight, 266)
 })
+test('late sheet measurement cannot replace chrome geometry from a newer title or opening',()=>{
+ const f=component('ui-sheet',{visible:true},{getWindowInfo:()=>({windowHeight:700})}),callbacks=[]
+ f.view.createSelectorQuery=()=>{const query={select:()=>query,boundingClientRect:()=>query,exec:fn=>callbacks.push(fn)};return query}
+ f.view.measureChrome();f.view.measureChrome();callbacks[1]([{height:20},{height:48},{height:4}]);const fresh=f.view._chromeHeight
+ callbacks[0]([{height:300},{height:300},{height:4}]);assert.equal(f.view._chromeHeight,fresh)
+})
 test('sheet measures wrapped headers and footers before sizing its scroll body', () => {
   const f = component('ui-sheet', { visible: true }, { getWindowInfo: () => ({ windowHeight: 700 }) })
   const query = { select() { return this }, boundingClientRect() { return this }, exec(callback) { callback([{ height: 70 }, { height: 96 }, { height: 4 }]) } }

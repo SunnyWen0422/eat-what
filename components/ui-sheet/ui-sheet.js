@@ -65,10 +65,11 @@ Component({
     },
     measureChrome() {
       if (!this.properties.visible || !this.createSelectorQuery) return
+      const epoch=this._measureEpoch=(this._measureEpoch||0)+1
       const measure = () => {
-        if (this._detached || !this.properties.visible) return
+        if (this._detached || !this.properties.visible || epoch!==this._measureEpoch) return
         this.createSelectorQuery().select('.sheet-header').boundingClientRect().select('.sheet-footer').boundingClientRect().select('.sheet-handle').boundingClientRect().exec(rects => {
-          if (this._detached || !this.properties.visible || !rects || rects.some(rect => !rect || !Number.isFinite(rect.height))) return
+          if (this._detached || !this.properties.visible || epoch!==this._measureEpoch || !rects || rects.some(rect => !rect || !Number.isFinite(rect.height))) return
           // Include the handle margin, sheet padding and scroll-body padding. Text
           // may wrap at 200%; never reserve only one fixed-height line for actions.
           this._chromeHeight = rects.reduce((height, rect) => height + rect.height, 0) + tokens.space[1] + (tokens.space[2] + tokens.space[3]) * 2

@@ -8,3 +8,5 @@
 .button.secondary { border-color:#7C8E80; background:#FFFFFF; }
 .button.tertiary { background:#EDF3ED; border:1px solid #D9E1D5; color:#28634E; padding:10px 12px; font-size:1em; }
 .button.is-disabled { background:#E8EBE5; color:#56645B; border-color:#D9E1D5; }
+
+.button { transition:background-color 100ms ease-out,border-color 100ms ease-out; white-space:normal; overflow-wrap:anywhere; }

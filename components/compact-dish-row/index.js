@@ -5,7 +5,7 @@ const labels = { meat: '荤菜', veg: '素菜', soup: '汤羹', staple: '主食'
 
 Component({
   properties: { fontScale: { type: Number, value: 1 }, mode: { type: String, value: 'replace' }, selected: Boolean, dish: Object, busy: Boolean, disabled: Boolean, feedback: String, reducedMotion: Boolean },
-  data: { dishView: { name: '菜品', meta: '', image: '', placeholderIcon: 'recipe' }, imageFailed: false, motionDuration: 0 },
+  data: { dishView: { name: '菜品', meta: '', image: '', placeholderIcon: 'recipe' }, imageFailed: false, motionDuration: 0,pressDuration:0 },
   lifetimes: { attached() { this.updateDish(); this.updateMotion() } },
   pageLifetimes: { show() { this.updateMotion() } },
   observers: { dish() { this.updateDish(); this.updateMotion() }, reducedMotion() { this.updateMotion() } },
@@ -26,7 +26,7 @@ Component({
         imageFailed: this._imageIdentity === identity && this.data.imageFailed || false })
       this._imageIdentity = identity
     },
-    updateMotion() { this.setData({ motionDuration: this.properties.reducedMotion || experiencePreferences().get().reducedMotion ? 0 : tokens.motion.row }) },
+    updateMotion() { const reduced=this.properties.reducedMotion||experiencePreferences().get().reducedMotion;this.setData({motionDuration:reduced?0:tokens.motion.row,pressDuration:reduced?0:tokens.motion.press}) },
     onImageError(event) {
       const source = event && event.currentTarget && event.currentTarget.dataset.source
       const identity = event && event.currentTarget && event.currentTarget.dataset.identity

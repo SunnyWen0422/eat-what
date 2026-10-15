@@ -12,7 +12,7 @@ Page({
   },
 
   onLoad(options) {
-    const handoff=require('../../utils/assistant-action-handoff').incoming(options,['view_favorite'],{storage:wx,storageKey:getUserStorageKey})
+    const handoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['view_favorite'],{storage:wx,storageKey:getUserStorageKey}):null
     if(handoff)options={...options,id:handoff.ref.dishId}
     this._dishId = options.id
     const people = Number(options.people || 2)

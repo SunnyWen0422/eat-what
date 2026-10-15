@@ -13,7 +13,7 @@ const clone = value => JSON.parse(JSON.stringify(value))
 const operationSignature = (type, payload, itemId) => { const { requestId, expectedListVersion, ...body } = payload; return JSON.stringify([type, body, itemId]) }
 Page({
   data: { sourceMeals:[],sourceMealsVisible:false,feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
-  onLoad(options={}){this._assistantHandoff=require('../../utils/assistant-action-handoff').incoming(options,['edit_shopping'],{storage:wx,storageKey:getUserStorageKey})},
+  onLoad(options={}){this._assistantHandoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['edit_shopping'],{storage:wx,storageKey:getUserStorageKey}):null},
   async onShow() { await this.loadList();this.applyAssistantHandoff() },
   applyAssistantHandoff(){
     const p=this._assistantHandoff;if(!p)return;this._assistantHandoff=null

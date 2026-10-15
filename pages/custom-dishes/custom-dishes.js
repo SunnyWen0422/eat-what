@@ -5,7 +5,7 @@ const { currentIdentity } = require('../../utils/account-identity')
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], pendingCopies: [], pendingCopyGeneration: 0, recoveryError: '', loading: true, errorMessage: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, form: {}, formError: '', editPending: false, editExtrasVisible: false, formFocus: '', editQualityNotice: '', personalSaveMessage: '', types: ['荤菜','素菜','汤品','主食','甜品','配餐'], typeIndex: 0 },
   onLoad(options = {}) {
-    const handoff=require('../../utils/assistant-action-handoff').incoming(options,['copy_recipe'],{storage:wx,storageKey:getUserStorageKey})
+    const handoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['copy_recipe'],{storage:wx,storageKey:getUserStorageKey}):null
     if(handoff)options={...options,copy:handoff.ref.dishId,version:handoff.sourceVersion||''}
     this._requestedEdit = options.edit
     const id = Number(options.copy)

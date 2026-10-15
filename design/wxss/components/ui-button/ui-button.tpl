@@ -7,3 +7,5 @@
 .button.secondary { border-color:{{controlBorder}}; background:{{card}}; }
 .button.tertiary { background:{{brandSoft}}; border:1px solid {{border}}; color:{{brand}}; padding:10px 12px; font-size:{{font.body.em}}; }
 .button.is-disabled { background:{{disabled}}; color:{{muted}}; border-color:{{border}}; }
+
+.button { transition:background-color {{motion.press.ms}} ease-out,border-color {{motion.press.ms}} ease-out; white-space:normal; overflow-wrap:anywhere; }

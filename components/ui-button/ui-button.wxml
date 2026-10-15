@@ -1,1 +1,1 @@
-<button class="{{(disabled || loading) ? 'is-disabled' : ''}} ew-hit-target button {{variant}}" disabled="{{disabled || loading}}" loading="{{loading}}" bindtap="onTap">{{label}}<slot /></button>
+<button class="{{(disabled || loading) ? 'is-disabled' : ''}} ew-hit-target button {{variant}}" style="transition-duration:{{pressDuration}}ms" aria-label="{{loading ? label + '，正在处理' : label}}" disabled="{{disabled || loading}}" loading="{{loading}}" bindtap="onTap">{{label}}<slot /></button>

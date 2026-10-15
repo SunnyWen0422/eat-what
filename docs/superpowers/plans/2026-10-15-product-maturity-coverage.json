@@ -514,7 +514,7 @@
         "T10"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K02",
         "K03",
@@ -523,7 +523,8 @@
         "K07",
         "K08",
         "K31"
-      ]
+      ],
+      "evidenceNote": "Node74/74; Python structure2/2; generated styles and strict motion ms bindings; reusable keyboard sheet confirmation; accessible field names and large-font input height; stale measurement guards. T09 optional handoff module loads only for token path. Native registration regression caught and fixed T08 history icon path. Native widths/keyboard/reader pending T23: WeChat process not running."
     },
     {
       "id": "T12",

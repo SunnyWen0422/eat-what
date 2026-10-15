@@ -1,1 +1,5 @@
-<view wx:if="{{visible}}" class="ew-hit-target mask" style="bottom:{{keyboardHeight}}px" catchtap="cancel"><view class="ew-hit-target sheet" catchtap="noop"><text class="title">{{title}}</text><text class="description">{{description}}</text><scroll-view class="content" scroll-y><slot /></scroll-view><view class="actions"><button class="confirm-action {{(busy) ? 'is-disabled' : ''}} ew-hit-target cancel" disabled="{{busy}}" bindtap="cancel">取消</button><button class="confirm-action {{(busy) ? 'is-disabled' : ''}} ew-hit-target confirm" loading="{{busy}}" disabled="{{busy}}" bindtap="confirm">{{confirmLabel}}</button></view></view></view>
+<ui-sheet visible="{{visible}}" title="{{title}}" busy="{{busy}}" reduced-motion="{{reducedMotion}}" return-focus-id="{{returnFocusId}}" bind:close="cancel" bind:restorefocus="restoreFocus">
+  <text wx:if="{{description}}" class="description">{{description}}</text>
+  <view class="content"><slot /></view>
+  <view slot="footer" class="actions"><button class="confirm-action {{busy ? 'is-disabled' : ''}} ew-hit-target cancel" disabled="{{busy}}" bindtap="cancel">取消</button><button class="confirm-action {{busy ? 'is-disabled' : ''}} ew-hit-target confirm" loading="{{busy}}" disabled="{{busy}}" bindtap="confirm">{{confirmLabel}}</button></view>
+</ui-sheet>
