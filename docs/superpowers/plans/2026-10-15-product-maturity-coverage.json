@@ -425,14 +425,15 @@
         "T05"
       ],
       "conditionalDependency": null,
-      "status": "planned",
+      "status": "complete",
       "requirements": [
         "K19",
         "K21",
         "K23",
         "K24",
         "K30"
-      ]
+      ],
+      "evidenceNote": "Java93/93; Node41/41; Python context3 + step32 pass; duplicate history RED-GREEN; old requests omit optional UI features; paired extension probe does not call supplier"
     },
     {
       "id": "T07",

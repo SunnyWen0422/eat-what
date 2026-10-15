@@ -9,7 +9,9 @@ async function probeAssistantCapability(options = {}) {
  if(!api.getAssistantV4Capabilities)return false
  const entry={until:now+300000,enabled:false}
  entry.promise=Promise.resolve().then(()=>scope===scopeOf(options)?api.getAssistantV4Capabilities():null).then(result=>{
-  entry.enabled=!!(result && result.enabled===true && result.schemaVersion==='assistant.v4.1' && Array.isArray(result.reads) && Array.isArray(result.draftCommands) && Array.isArray(result.previewActions));return entry.enabled
+  entry.enabled=!!(result && result.enabled===true && result.schemaVersion==='assistant.v4.1' && Array.isArray(result.reads) && Array.isArray(result.draftCommands) && Array.isArray(result.previewActions))
+  entry.uiFeatures=entry.enabled&&Array.isArray(result.supportedUiFeatures)?['clarification_v1','handoff_v1'].filter(name=>result.supportedUiFeatures.includes(name)):[]
+  return entry.enabled
  }).catch(()=>false).finally(()=>{delete entry.promise})
  capabilities.set(scope,entry)
  const enabled=await entry.promise
@@ -115,6 +117,8 @@ function createAssistantConversation(options = {}) {
   if(!message || message.length>2000)return fail('请用两千字以内说说这一餐的想法')
   if(!w || local.dirty || local.pending)return fail('本餐还有未同步内容，请回到今天先同步后再试')
   record.pending={body:{requestId:makeId(),message,workspaceId:w.id,expectedWorkspaceRevision:w.revision,expectedPlanVersion:w.draft && w.draft.planVersion || 0,entryScene:options.entryScene || 'chat'}}
+  const negotiated=capabilities.get(scope)
+  if(negotiated&&negotiated.enabled&&negotiated.until>Date.now()&&negotiated.uiFeatures&&negotiated.uiFeatures.length)record.pending.body.uiFeatures=negotiated.uiFeatures.slice()
   record.bindingExpired=false;view.input='';view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
   try{return await dispatch()}catch(error){return fail()}
  })}

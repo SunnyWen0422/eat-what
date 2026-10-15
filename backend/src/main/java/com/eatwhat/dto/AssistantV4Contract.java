@@ -11,6 +11,7 @@ import java.util.*;
 public final class AssistantV4Contract {
     private AssistantV4Contract() {}
     public static final String SCHEMA_VERSION="assistant.v4.1";
+    public static final Set<String> UI_FEATURES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("clarification_v1","handoff_v1")));
     public static final Set<String> STATUSES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("queued","running","needs_input","awaiting_confirmation","completed","partially_completed","failed","cancelled")));
     public static final Set<String> ACTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("draft_update","calendar_save","shopping_preview")));
     public static boolean terminal(String status) {return Arrays.asList("needs_input","completed","partially_completed","failed","cancelled").contains(status);}
@@ -19,11 +20,13 @@ public final class AssistantV4Contract {
     @Data public static class TurnRequest {
         private String requestId; private String message; private String workspaceId;
         private Long expectedWorkspaceRevision; private Long expectedPlanVersion; private String entryScene;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY) private List<String> uiFeatures;
     }
     @Data public static class WorkspaceRef {private String workspaceId; private Long workspaceRevision; private Long planVersion;}
     @Data public static class Capabilities {
         private String schemaVersion=SCHEMA_VERSION; private boolean enabled;
         private List<String> reads=new ArrayList<>(),draftCommands=new ArrayList<>(),previewActions=new ArrayList<>();
+        private List<String> supportedUiFeatures=new ArrayList<>();
     }
     @Data @JsonInclude(JsonInclude.Include.NON_NULL) public static class Card {
         private String id,type,title,text; private String taskId,previewToken,receiptRef;
@@ -98,10 +101,15 @@ public final class AssistantV4Contract {
         fields(node,"workspaceId","requestId");SessionRequest r=new SessionRequest();r.setWorkspaceId(text(node,"workspaceId",100));r.setRequestId(uuid(node));return r;
     }
     public static TurnRequest parseTurn(JsonNode node) {
-        fields(node,"requestId","message","workspaceId","expectedWorkspaceRevision","expectedPlanVersion","entryScene");
+        fields(node,"requestId","message","workspaceId","expectedWorkspaceRevision","expectedPlanVersion","entryScene","uiFeatures");
         TurnRequest r=new TurnRequest();r.setRequestId(uuid(node));r.setMessage(text(node,"message",2000));r.setWorkspaceId(text(node,"workspaceId",100));
         r.setExpectedWorkspaceRevision(number(node,"expectedWorkspaceRevision"));r.setExpectedPlanVersion(number(node,"expectedPlanVersion"));
-        r.setEntryScene(text(node,"entryScene",40));if(!Arrays.asList("home","calendar","chat").contains(r.getEntryScene()))throw new IllegalArgumentException("入口无效");return r;
+        r.setEntryScene(text(node,"entryScene",40));if(!Arrays.asList("home","calendar","chat").contains(r.getEntryScene()))throw new IllegalArgumentException("入口无效");
+        if(node.has("uiFeatures")){
+            JsonNode values=node.get("uiFeatures");if(!values.isArray()||values.size()>8)throw new IllegalArgumentException("界面能力无效");
+            Set<String> unique=new LinkedHashSet<>();for(JsonNode value:values)if(!value.isTextual()||!UI_FEATURES.contains(value.textValue())||!unique.add(value.textValue()))throw new IllegalArgumentException("界面能力无效");
+            r.setUiFeatures(new ArrayList<>(unique));
+        }return r;
     }
     public static void fields(JsonNode n,String... names) {
         if(n==null||!n.isObject())throw new IllegalArgumentException("请求须为对象");Set<String> allowed=new HashSet<>(Arrays.asList(names));

@@ -97,6 +97,10 @@ def prepare_step(value):
     allowed_actions = enabled & set(ACTION_ARGUMENTS)
     history, seen, results = _continuation(value["providerContinuation"], value["readResults"], allowed)
     context = copy.deepcopy(value["context"])
+    # Legacy Java supplies both projections. History reaches the provider once,
+    # without mutating the validated context used for authorization and budgets.
+    if value["conversationFrames"]:
+        context.get("conversation", {}).pop("recentText", None)
     context["capabilities"] = [name for name in READS + list(ACTION_ARGUMENTS) if name in enabled]
     # Context remains a user data frame, never interpolated into instruction authority.
     previous_tool_rounds = sum(frame.get("role") == "assistant" for frame in history)

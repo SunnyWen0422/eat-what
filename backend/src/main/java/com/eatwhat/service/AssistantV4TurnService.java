@@ -51,7 +51,7 @@ public class AssistantV4TurnService {
             AiProtectionService.Decision decision=protection.acquire(user,"assistant-v4",request.getMessage().getBytes(StandardCharsets.UTF_8).length);
             if(!decision.isAllowed()){finish(user,lease,result("failed","请求较多，请稍后重试",true));return;}acquired=true;
             TurnScope scope=scope(user,lease,request);ModelContext context=contexts.build(user,request,store.sessionState(user,lease.getSessionId()));
-            Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());context.setCapabilities(actual);boundContext(context);
+            Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
             Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();int readCount=0,factChars=0;

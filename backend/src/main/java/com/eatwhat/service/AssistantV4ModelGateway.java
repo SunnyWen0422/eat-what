@@ -21,12 +21,30 @@ public class AssistantV4ModelGateway {
     private final String url,token;
     private final ObjectMapper json;
     private final IntFunction<RestTemplate> transport;
+    private volatile long extensionCheckUntil;
+    private volatile boolean extensionReady;
     private final ExecutorService requests=new ThreadPoolExecutor(0,2,30,TimeUnit.SECONDS,new SynchronousQueue<>(),r->{Thread t=new Thread(r,"assistant-v4-http");t.setDaemon(true);return t;},new ThreadPoolExecutor.AbortPolicy());
     @Autowired public AssistantV4ModelGateway(@Value("${recommend.service.base-url:http://127.0.0.1:8000}") String baseUrl,
             @Value("${meal-workspace.service-token:}") String token,ObjectMapper json) {
         this(baseUrl,token,json,millis->{SimpleClientHttpRequestFactory f=new SimpleClientHttpRequestFactory();int connect=Math.max(1,Math.min(1000,millis/4));f.setConnectTimeout(connect);f.setReadTimeout(Math.max(1,millis-connect));return new RestTemplate(f);});
     }
     AssistantV4ModelGateway(String baseUrl,String token,ObjectMapper json,IntFunction<RestTemplate> transport){this.url=baseUrl.replaceAll("/+$","")+"/internal/v4/assistant/step";this.token=token;this.json=json.copy().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);this.transport=transport;}
+    /** Small authenticated protocol probe; never reaches the supplier or joins a DB transaction. */
+    public synchronized boolean supportsExtensions(){
+        if(token==null||token.trim().isEmpty()||TransactionSynchronizationManager.isActualTransactionActive())return false;
+        long now=System.currentTimeMillis();if(now<extensionCheckUntil)return extensionReady;
+        Future<String> pending=null;boolean ready=false;
+        try{
+            HttpHeaders headers=new HttpHeaders();headers.set("X-Service-Token",token);
+            pending=requests.submit(()->transport.apply(1000).exchange(url.substring(0,url.length()-4)+"capabilities",HttpMethod.GET,new HttpEntity<Void>(headers),String.class).getBody());
+            String response=pending.get(1000,TimeUnit.MILLISECONDS);
+            if(response!=null&&response.length()<2000){com.fasterxml.jackson.databind.JsonNode body=json.readTree(response);
+                ready="maturity.1".equals(body.path("contractRevision").asText())&&body.path("uiFeatures").isArray()&&body.path("uiFeatures").toString().contains("\"clarification_v1\"")&&body.path("uiFeatures").toString().contains("\"handoff_v1\"");}
+        }catch(InterruptedException cancelled){Thread.currentThread().interrupt();}
+        catch(Exception unavailable){/* Old/unavailable adapters simply do not advertise extensions. */}
+        finally{if(pending!=null&&!pending.isDone())pending.cancel(true);}
+        extensionReady=ready;extensionCheckUntil=now+(ready?60000:10000);return ready;
+    }
     public StepOutput step(StepInput input){
         if(token==null||token.trim().isEmpty())throw new IllegalStateException("智能理解尚未配置");
         if(TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("不能在业务事务内调用模型");
