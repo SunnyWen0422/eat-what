@@ -114,6 +114,7 @@
     </view>
 
     <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤，不能猜测做法。</view>
+    <button wx:if="{{assistantAvailable}}" class="ew-hit-target ew-link detail-cooking-link" disabled="{{selectionBusy || selectionLoading}}" bindtap="onAskDish">问问这道菜</button>
     <button class="ew-hit-target ew-link detail-cooking-link" bindtap="onOpenCooking">大字做法，接着上次步骤看</button>
     <!-- 小贴士 -->
     <view class="section" wx:if="{{dish.tips}}">

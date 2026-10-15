@@ -4,7 +4,7 @@ const { getDishById } = require('../../utils/api')
 
 Page({
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
+    assistantAvailable:false, dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
     showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
     loading: true,
     error: false,
@@ -25,6 +25,7 @@ Page({
 
   async onShow() {
     this._recipeVisible = true
+    this.probeDetailAssistant()
     // onShow must not await login: login can complete after this lifecycle ends.
     const initialization = this._detailInitialization
     if (initialization) {
@@ -37,6 +38,21 @@ Page({
       return this._loadAfterLogin(this._dishId)
     }
     return this.refreshSelectedMeal()
+  },
+  async probeDetailAssistant() {
+    this.setData({assistantAvailable:false})
+    const app=getApp();if(app.waitForLogin)await app.waitForLogin()
+    if(this._unloaded)return
+    const scope=getUserStorageKey('dishView'),id=this._dishId
+    const available=await require('../../utils/assistant-conversation').probeAssistantCapability()
+    if(!this._unloaded && this.current(scope) && id===this._dishId)this.setData({assistantAvailable:available})
+  },
+  onAskDish() {
+    if(!this.data.assistantAvailable || !this.current(this._scope) || this.data.selectionBusy || this.data.selectionLoading)return
+    const dish=this.data.dish,target=this.data.selectedMeal && this.data.selectedMeal.target
+    if(!dish || !target){wx.showToast({title:'请先核对当前餐次',icon:'none'});return}
+    const token=require('../../utils/assistant-entry').currentEntryStore().put({dishId:Number(dish.id),dishName:dish.name,...target})
+    if(token)wx.navigateTo({url:`/pages/chat/chat?entryScene=chat&entryToken=${encodeURIComponent(token)}&date=${encodeURIComponent(target.date)}&mealType=${encodeURIComponent(target.mealType)}`})
   },
   onHide() { this._recipeVisible=false;clearTimeout(this._recipePoll) },
   onReady() { this.measureDetailActions() },

@@ -31,7 +31,28 @@ module.exports=function assistantPage(fallback, options={}) {
     this.renderWorkspace()
     this.conversation=createAssistantConversation({api:require('./api'),workspaceStore:store,entryScene:['home','calendar'].includes(this._assistantParams.entryScene)?this._assistantParams.entryScene:'chat',onChange:state=>this.renderConversation(state),onWorkspaceChange:()=>{if(this._assistantAlive&&this.current())this.renderWorkspace()}})
     await this.conversation.load()
+    this.applyAssistantEntry()
    }catch(error){if(this._assistantAlive&&this.current())this.setData({conversationError:'本餐暂未同步，请回到今天核对后再试'})}
+  },
+  applyAssistantEntry() {
+   if(!this._assistantAlive || !this.current() || !this.conversation || !this._assistantParams.entryToken)return
+   const state=this.conversation.state()
+   if(state.busy || state.recoverable || state.confirmationPending || state.turn && ['queued','running','awaiting_confirmation'].includes(state.turn.status))return
+   const entry=require('./assistant-entry').currentEntryStore().take(this._assistantParams.entryToken)
+   if(!entry)return
+   this._assistantParams.entryToken=''
+   if(entry.date!==this.data.context.date || entry.mealType!==this.data.context.mealType)return
+   this.offerConversationInput(`请介绍菜品 ID ${entry.dishId}「${entry.dishName}」的做法`)
+  },
+  offerConversationInput(text) {
+   const conversation=this.conversation,scope=this._scope
+   if(!conversation || !this.current())return
+   const state=conversation.state(),before=state.input || ''
+   const blocked=s=>s.busy || s.recoverable || s.confirmationPending || s.turn && ['queued','running','awaiting_confirmation'].includes(s.turn.status)
+   if(blocked(state))return
+   const apply=()=>{if(!this._assistantAlive || !this.current() || scope!==this._scope || conversation!==this.conversation)return;const latest=conversation.state();if(!blocked(latest)&&latest.input===state.input)conversation.setInput(text)}
+   if(before.trim()&&before!==text)wx.showModal({title:'替换当前输入？',content:'当前尚未发送的文字会被替换。',success:result=>{if(result.confirm)apply()}})
+   else apply()
   },
   renderConversation(state) {
    if(!this._assistantAlive || !this.current())return
