@@ -671,7 +671,7 @@
         "K28",
         "K31"
       ],
-      "evidenceNote": "Node secondary/preferences/admin identity/recovery/journey checks pass (actual count in t18-node.log), 2 UI structure checks pass. Invalid people draft retained, load/save failure resolved without false saved claim, stale/saving input guards; admin diagnostics collapsed/readable labels and shared large-font controls. Existing save fixtures now explicitly ready; no permission changes. Native and live services pending."
+      "evidenceNote": "Corrected final expanded run: 106/106 Node checks pass; prior 104/105 failure retained in t18-node-before-contract-update.log. Optional cost disclosure contract updated to match approved T15; all journey, account and permissions assertions retained. UI structure 2/2 already passed unchanged."
     },
     {
       "id": "T19",

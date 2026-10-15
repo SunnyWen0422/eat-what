@@ -98,8 +98,12 @@ test('first use through tomorrow, shopping undo, own recipe and next menu applic
 })
 test('registered ordinary pages have accessible root scaling, including the startup log', () => {
   const routes = JSON.parse(fs.readFileSync('app.json')).pages.filter(p => !p.startsWith('pages/admin'))
-  for (const route of routes) { const text = fs.readFileSync(route + '.wxml', 'utf8'); assert.match(text, /fontBase \* fontScale/, route); assert.doesNotMatch(text, /聊聊这餐|选菜搭一餐|需要确认|待买参考|本次实付/, route) }
+  for (const route of routes) { const text = fs.readFileSync(route + '.wxml', 'utf8'); assert.match(text, /fontBase \* fontScale/, route); assert.doesNotMatch(text, /聊聊这餐|选菜搭一餐|需要确认|本次实付/, route) }
 })
+test('optional shopping reference costs are folded and preserve missing-price disclosure',()=>{
+ const text=fs.readFileSync('pages/shopping-list/shopping-list.wxml','utf8');assert.match(text,/wx:if="\{\{detailsExpanded\}\}"/);assert.match(text,/暂无可靠估算/);assert.match(text,/实际支出/)
+})
+
 test('ordinary tappable views and text expose button semantics to assistive technology', () => {
   const routes = JSON.parse(fs.readFileSync('app.json')).pages.filter(p => !p.startsWith('pages/admin'))
   const files = [...routes.map(p => p + '.wxml'), 'templates/meal-workspace.wxml', 'templates/recipe-selected-sheet.wxml']
