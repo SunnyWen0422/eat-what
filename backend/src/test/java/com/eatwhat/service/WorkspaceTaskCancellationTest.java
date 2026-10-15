@@ -17,6 +17,7 @@ class WorkspaceTaskCancellationTest {
         org.apache.ibatis.mapping.BoundSql bound=config.getMappedStatement(MealWorkspaceMapper.class.getName()+".cancel").getBoundSql(args);
         String sql=bound.getSql().toLowerCase(Locale.ROOT).replaceAll("\\s+"," ");
         assertTrue(sql.contains("where user_id=? and workspace_id=?"),"Use existing ix_task_owner(user_id,workspace_id); status-only scans lock unrelated tasks");
+        assertTrue(sql.contains("force index(ix_task_owner)"),"After completed history grows MySQL chooses the status queue index again; keep cancellation on the stable ownership index");
         assertEquals("user",bound.getParameterMappings().get(0).getProperty());
     }
     @Test void transientClaimFailureLeavesOriginalQueuedTaskForNextPollWithoutCallingModel(){

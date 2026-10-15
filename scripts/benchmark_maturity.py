@@ -43,6 +43,19 @@ def summary(values):
     return {'count':len(ordered),'p50Ms':percentile(.5),'p95Ms':percentile(.95),'p99Ms':percentile(.99),'maxMs':round(max(ordered),2) if ordered else None}
 
 
+def elapsed_ms(start):
+    # Windows monotonic() may use the 15.625ms tick clock. QPC retains useful
+    # sub-millisecond latency instead of quantizing fast local operations to 0.
+    return round((time.perf_counter()-start)*1000,2)
+
+
+def sustained_seconds(scenarios):
+    # A requested duration is not evidence that a failed worker actually ran.
+    # Do not credit baseline time or shutdown/drain beyond the scheduled offer.
+    return round(sum(min(max(0,r['elapsedSeconds']),r['requestedSeconds'])
+                     for r in scenarios if r['variant']=='candidate'),2)
+
+
 def bench(runtime,concurrency,seconds):
     a=runtime.api;http=PersistentAPI(runtime.state);end=time.monotonic()+seconds;records=[];gauges=[];lock=threading.Lock();stopped=threading.Event();workers_stopped=[]
     def observe():
@@ -71,7 +84,7 @@ def bench(runtime,concurrency,seconds):
             'context':{'date':str(day),'mealType':'dinner','people':2,'compositionMode':'auto','requirements':'','ownedIngredients':[]}},user)
         iteration=0
         while time.monotonic()<end:
-            mode=('list','complexList','meal')[iteration%3];iteration+=1;start=time.monotonic();error=None;status=None;recovered=None;request_id=str(uuid.uuid4())
+            mode=('list','complexList','meal')[iteration%3];iteration+=1;start=time.perf_counter();error=None;status=None;recovered=None;request_id=str(uuid.uuid4())
             try:
                 if mode=='list':
                     result=http('/dishes?page=1&pageSize=20',user=user)
@@ -91,7 +104,7 @@ def bench(runtime,concurrency,seconds):
                     if w['status']!='draft' or not w['draft']['dishes']:raise AssertionError('Rule generation failed')
             except Exception as e:
                 error=type(e).__name__;status=getattr(e,'status',None)
-            elapsed=round((time.monotonic()-start)*1000,2)
+            elapsed=elapsed_ms(start)
             if error and mode=='meal':
                 # No write retry and no endless stale-version spin. Read the
                 # original receipt/current draft before the next independent job.
@@ -111,13 +124,13 @@ def bench(runtime,concurrency,seconds):
                 return
             # Explicit bounded offer, no unlimited request queue or tight spin.
             time.sleep(.05)
-    started=time.monotonic()
+    started=time.perf_counter()
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as pool:list(pool.map(worker,range(concurrency)))
     finally:stopped.set();observer.join(timeout=20);http.close()
     groups={kind:dict(summary([r['ms'] for r in records if r['kind']==kind and not r['error']]),totalCount=sum(r['kind']==kind for r in records),errors=sum(bool(r['error']) for r in records if r['kind']==kind)) for kind in ('list','complexList','meal')}
-    return {'concurrency':concurrency,'requestedSeconds':seconds,'elapsedSeconds':round(time.monotonic()-started,2),'requests':len(records),'errors':sum(bool(r['error']) for r in records),'groups':groups,'samples':records,'resourceSamples':gauges,
-        'healthUnderFailure':'not part of steady-state load; separate lifecycle/integration checks','workerUsers':2,'offerPacingMs':50,'latencyPopulation':'successful complete operations; failures counted separately','workersStoppedAfterFailedRecovery':workers_stopped,'transport':'per-thread keep-alive, no proxy, no redirects'}
+    return {'concurrency':concurrency,'requestedSeconds':seconds,'elapsedSeconds':round(time.perf_counter()-started,2),'requests':len(records),'errors':sum(bool(r['error']) for r in records),'groups':groups,'samples':records,'resourceSamples':gauges,
+        'healthUnderFailure':'not part of steady-state load; separate lifecycle/integration checks','workerUsers':2,'offerPacingMs':50,'latencyPopulation':'successful complete operations; failures counted separately','latencyClock':dict(implementation=time.get_clock_info('perf_counter').implementation,resolutionSeconds=time.get_clock_info('perf_counter').resolution),'workersStoppedAfterFailedRecovery':workers_stopped,'transport':'per-thread keep-alive, no proxy, no redirects'}
 
 
 def main():
@@ -143,8 +156,9 @@ def main():
                     result=bench(runtime,concurrency,20 if variant=='baseline' else args.seconds_per_scenario);result.update(rows=size,variant=variant,migrations=runtime.dataset['migrations']);report['scenarios'].append(result)
                     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
                     print(json.dumps({'variant':variant,'rows':size,'concurrency':concurrency,'requests':result['requests'],'errors':result['errors'],'groups':result['groups']},ensure_ascii=False),flush=True)
-    report['sustainedLoadSeconds']=sum(r['requestedSeconds'] for r in report['scenarios'] if r['variant']=='candidate')
-    report['thirtyMinuteGate']=report['sustainedLoadSeconds']>=1800
+    report['sustainedLoadSeconds']=sustained_seconds(report['scenarios'])
+    candidate=[r for r in report['scenarios'] if r['variant']=='candidate']
+    report['thirtyMinuteGate']=len(candidate)==6 and {(r['rows'],r['concurrency']) for r in candidate}=={(size,c) for size in (6665,50000) for c in (1,10,25)} and report['sustainedLoadSeconds']>=1800
     report['targets']={'listP95Ms':300,'mealP95Ms':1000,'errorRate':.01}
     report['latencyTargetsMet']=all(not s['workersStoppedAfterFailedRecovery'] and s['groups']['list']['p95Ms'] is not None and s['groups']['list']['p95Ms']<=300 and s['groups']['meal']['p95Ms'] is not None and s['groups']['meal']['p95Ms']<=1000 and s['errors']/max(1,s['requests'])<.01 for s in report['scenarios'] if s['variant']=='candidate')
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')

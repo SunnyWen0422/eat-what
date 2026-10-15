@@ -28,7 +28,9 @@ public interface MealWorkspaceMapper {
     int claim(@Param("id") String id,@Param("lease") String lease);
     @Update("UPDATE workspace_task SET status=#{status},result_json=#{result},updated_at=NOW() WHERE id=#{id} AND status='running' AND lease_token=#{lease}")
     int finish(@Param("id") String id,@Param("lease") String lease,@Param("status") String status,@Param("result") String result);
-    @Update("UPDATE workspace_task SET status='cancelled',input_json='{}',updated_at=NOW() WHERE user_id=#{user} AND workspace_id=#{id} AND status IN ('queued','running')")
+    // Status history changes the optimizer's estimates. Keep this update on the
+    // ownership range so unrelated queue tasks cannot invert its lock order.
+    @Update("UPDATE workspace_task FORCE INDEX(ix_task_owner) SET status='cancelled',input_json='{}',updated_at=NOW() WHERE user_id=#{user} AND workspace_id=#{id} AND status IN ('queued','running')")
     int cancel(@Param("id") String id,@Param("user") Long user);
     @Insert("INSERT IGNORE INTO behavior_event(event_id,user_id,workspace_id,plan_version,event_type,source) VALUES(#{id},#{user},#{ws},#{version},#{type},#{source})")
     int event(@Param("id") String id,@Param("user") Long user,@Param("ws") String ws,@Param("version") Long version,@Param("type") String type,@Param("source") String source);
