@@ -142,13 +142,33 @@ public class DishCandidateQueryService {
 
     private boolean containsExcludedIngredient(Dish dish, List<String> exclusions) {
         if (exclusions == null || exclusions.isEmpty()) return false;
-        String searchable = ((dish.getCl() == null ? "" : dish.getCl()) + " "
-                + (dish.getIngredientsAmounts() == null ? "" : dish.getIngredientsAmounts())).toLowerCase();
+        String searchable = null;
         for (String excluded : exclusions) {
-            if (excluded != null && !excluded.trim().isEmpty()
-                    && searchable.contains(excluded.trim().toLowerCase())) return true;
+            if (excluded == null || excluded.trim().isEmpty()) continue;
+            String term = excluded.trim();
+            // Han characters have no lowercase mapping, and a Han-only term
+            // cannot span the space separating the two source fields. Avoid
+            // copying and case-scanning large ingredient bodies in this path.
+            if (isHanOnly(term)) {
+                if ((dish.getCl() != null && dish.getCl().contains(term))
+                        || (dish.getIngredientsAmounts() != null && dish.getIngredientsAmounts().contains(term))) return true;
+            } else {
+                // Retain the original default-locale and cross-field matching
+                // semantics for Latin, whitespace, punctuation and Unicode.
+                if (searchable == null) searchable = ((dish.getCl() == null ? "" : dish.getCl()) + " "
+                        + (dish.getIngredientsAmounts() == null ? "" : dish.getIngredientsAmounts())).toLowerCase();
+                if (searchable.contains(term.toLowerCase())) return true;
+            }
         }
         return false;
+    }
+
+    private boolean isHanOnly(String term) {
+        for (int i = 0; i < term.length(); i++) {
+            char value = term.charAt(i);
+            if (value < '\u3400' || value > '\u9fff') return false;
+        }
+        return !term.isEmpty();
     }
 
     private Set<String> splitCodes(String value) {
