@@ -215,7 +215,7 @@ test('generation limitation keeps manual selection, dish reading and calendar ac
   page.onDishOpen({currentTarget:{dataset:{id:7}}});page.onViewPlan();page.onChooseDishes()
   assert.deepEqual(f.navigation,['/pages/dish-detail/dish-detail?id=7&people=2','/pages/calendar-detail/calendar-detail?date=2026-10-06&mealType=dinner','/pages/customize/customize'])
   assert.equal(f.calls.length,0)
-  const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/workspaceNotice.text/);assert.match(page.data.workspaceNotice.text,/还缺|补充要求|调整条件/)
+  const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/resultNotice.text/);assert.match(page.data.workspaceNotice.text,/还缺|补充要求|调整条件/)
 })
 test('continuing this meal keeps its edited requirements and gives visible next-step feedback',async t=>{
   const f=fixture('assistant'),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target)

@@ -1,7 +1,7 @@
 <view class="ew-page ew-dish-surface mobile-screen workspace-screen {{fontScale >= 1.3 ? 'is-large-text' : ''}} mode-{{mode}}" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
     <view class="mobile-scroll-content">
-      <view class="workspace-header"><view class="workspace-date"><ui-icon name="calendar" tone="muted" size="16" /><text>{{dateLabel}}</text></view><button class="ew-hit-target workspace-shopping" bindtap="onOpenShoppingList"><ui-icon name="shopping-basket" size="20" /><text>清单</text></button></view>
+      <view class="workspace-header"><view class="workspace-date" aria-label="{{contextLabel}}"><ui-icon name="calendar" tone="muted" size="16" /><text>{{dateLabel}}</text></view><button class="ew-hit-target workspace-shopping" bindtap="onOpenShoppingList"><ui-icon name="shopping-basket" size="20" /><text>清单</text></button></view>
       <view class="workspace-title-row"><view class="ew-heading">{{pageTitle}}</view><button wx:if="{{assistantAvailable}}" class="ew-hit-target ew-link" disabled="{{loading || busy}}" bindtap="onOpenConnectedAssistant" aria-label="餐桌助手 · {{mealName}}">餐桌助手</button><button class="ew-hit-target workspace-more" disabled="{{busy}}" bindtap="onToggleExtraActions" aria-label="更多餐单操作"><ui-icon name="more" tone="muted" size="22" /></button></view>
       <view class="workspace-meals" aria-label="选择餐次"><button wx:for="{{mealLabels}}" wx:key="*this" class="workspace-meal {{mealIndex === index ? 'is-active' : ''}}" disabled="{{loading || busy}}" aria-pressed="{{mealIndex === index}}" data-index="{{index}}" bindtap="onMealTab">{{item}}</button></view>
       <meal-composition-summary people="{{context.people}}" summary="{{compositionLabel}}" busy="{{loading || contextLocked || compositionSaving}}" bind:people="onOpenPeople" bind:composition="onOpenComposition" />
@@ -9,25 +9,30 @@
       <view wx:if="{{context.date !== todayDate}}" class="workspace-other-day"><text>正在安排{{dateLabel}}</text><button class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onReturnToday">回到今天</button></view>
       <ui-state wx:if="{{loading}}" kind="loading" density="inline" title="正在读取这一餐" />
       <block wx:else>
-        <block wx:if="{{workspaceNotice && !requirementsVisible}}">
-          <ui-state wx:if="{{workspaceNotice.kind === 'loading'}}" kind="loading" density="inline" title="{{workspaceNotice.text}}" />
-          <view wx:else class="workspace-notice {{workspaceNotice.kind}}" aria-role="{{workspaceNotice.kind === 'error' ? 'alert' : 'status'}}"><text>{{workspaceNotice.text}}</text><button wx:if="{{workspaceNotice.action === 'composition'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenComposition">调整搭配</button></view>
-        </block>
+        <view wx:if="{{resultNotice}}" class="workspace-notice {{resultNotice.kind}}" aria-role="{{resultNotice.kind === 'error' ? 'alert' : 'status'}}">
+          <text>{{resultNotice.text}}</text>
+          <button wx:if="{{resultNotice.action !== 'onViewSavedMeal' && journeyRecovery && journeyRecovery.state !== 'busy'}}" class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onPrimaryAction">{{primaryLabel}}</button>
+          <button wx:if="{{workspaceNotice.action === 'composition'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenComposition">调整搭配</button>
+          <button wx:if="{{workspaceNotice.action === 'requirements'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenRequirements">补充要求</button>
+          <button wx:if="{{workspaceNotice.action === 'choose'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onChooseDishes">自己选菜</button>
+          <button wx:if="{{savedTarget}}" class="ew-hit-target ew-link" bindtap="onViewSavedMeal">查看这餐</button>
+          <button wx:if="{{savedTarget && canConfirm && !journeyRecovery}}" class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onConfirmPlan">另存到日历</button>
+        </view>
         <ui-button wx:if="{{conflictDraftAvailable}}" label="重新应用保留的输入" variant="secondary" bind:action="onRestoreLocalDraft" />
         <ui-button wx:if="{{suggestedTarget}}" label="切换到 {{suggestedTarget.date}} {{suggestedMealLabel}} 并安排" variant="secondary" bind:action="onSuggestedTarget" />
         <view wx:if="{{conversationNotice && !workspaceNotice}}" class="ew-notice" aria-role="status">{{conversationNotice}}</view>
         <view wx:if="{{compositionPreferenceNotice && !workspaceNotice}}" class="ew-notice" aria-role="status">{{compositionPreferenceNotice}}</view>
-        <view wx:if="{{hardExclusionsUnavailable && !workspaceNotice}}" class="workspace-exclusions">{{hardExclusionSummary}}</view>
-        <view class="workspace-light-actions workspace-focus-actions"><button wx:if="{{draft.dishes.length}}" class="ew-hit-target ew-link" bindtap="onToggleMealSettings" aria-expanded="{{mealSettingsExpanded}}">本餐设置{{hasHardExclusions ? ' · 含忌口' : ''}} {{mealSettingsExpanded ? '收起' : '展开'}}</button><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onChooseDishes"><ui-icon name="recipes" tone="muted" size="16" /><text>自己选菜</text></button></view>
+        <view wx:if="{{hardExclusionsUnavailable}}" class="workspace-exclusions" role="alert">{{hardExclusionSummary}}</view>
+        <view class="workspace-light-actions workspace-focus-actions"><button wx:if="{{draft.dishes.length}}" class="ew-hit-target ew-link" bindtap="onToggleMealSettings" aria-expanded="{{mealSettingsExpanded}}">本餐设置{{hasHardExclusions ? ' · 含忌口' : ''}} {{mealSettingsExpanded ? '收起' : '展开'}}</button><button wx:if="{{workspaceNotice.action !== 'choose'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onChooseDishes"><ui-icon name="recipes" tone="muted" size="16" /><text>自己选菜</text></button></view>
         <view wx:if="{{!draft.dishes.length || mealSettingsExpanded}}" class="workspace-settings-panel"><text wx:if="{{hasHardExclusions}}" class="workspace-exclusions">{{hardExclusionSummary}}</text>
-        <button class="ew-hit-target workspace-requirements-entry" disabled="{{contextLocked}}" bindtap="onOpenRequirements" aria-label="本餐要求（选填）"><text class="requirements-label">补充要求</text><text class="requirements-summary">{{context.requirements || '少油、不吃香菜…'}}</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
+        <button wx:if="{{workspaceNotice.action !== 'requirements'}}" class="ew-hit-target workspace-requirements-entry" disabled="{{contextLocked}}" bindtap="onOpenRequirements" aria-label="本餐要求（选填）"><text class="requirements-label">补充要求</text><text class="requirements-summary">{{context.requirements || '少油、不吃香菜…'}}</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
           <view class="workspace-light-actions workspace-optional-actions"><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenFilter"><ui-icon name="filter" tone="muted" size="16" /><text>偏好筛选{{filterSummary ? ' · ' + filterSummary : ''}}</text></button><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenMealSettings">用时与食材</button></view>
         </view>
         <view wx:if="{{midnightNotice}}" class="ew-notice" role="status">{{midnightNotice}}</view>
         <view wx:if="{{!draft.dishes.length && status === 'empty' && !errorMessage}}" class="workspace-empty"><ui-icon name="servings" size="40" /><text class="workspace-empty-title">不用费心，直接生成这一餐</text><text class="ew-muted">默认已配好，也可以自己调整</text></view>
 
-        <view wx:if="{{draft.dishes.length}}" class="workspace-menu-section">
-          <view class="workspace-menu-heading"><text class="ew-muted">{{saveState === 'saved' ? '已保存到日历' : saveState === 'changed' ? '有修改尚未保存' : '搭配好了 · 看看菜单'}}</text><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onRegenerate"><ui-icon name="refresh" size="16" /><text>换一套</text></button></view>
+        <view wx:if="{{draft.dishes.length}}" class="workspace-menu-section menu-state-{{menuState}}">
+          <view class="workspace-menu-heading"><text class="ew-muted">本餐菜单</text><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onRegenerate"><ui-icon name="refresh" size="16" /><text>换一套</text></button></view>
           <view class="workspace-menu">
             <compact-dish-row font-scale="{{fontScale}}" wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
           </view>
@@ -35,7 +40,6 @@
           <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>
         </view>
 
-        <view wx:if="{{savedTarget}}" class="workspace-saved-result" role="status"><text>{{savedMessage}}</text><text wx:if="{{saveState === 'changed'}}" class="ew-muted">当前草稿已调整，日历中的安排仍保留。</text><button class="ew-hit-target ew-link" bindtap="onViewSavedMeal">查看这餐</button><button wx:if="{{canConfirm}}" class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onConfirmPlan">另存到日历</button></view>
         <action-feedback wx:if="{{showActionFeedback}}" feedback="{{actionFeedback}}" busy="{{busy || contextLocked}}" bind:undo="onUndo" />
         <view wx:if="{{linkedPlan}}" class="workspace-next"><button class="ew-hit-target workspace-next-row" bindtap="onShoppingPreview"><ui-icon name="shopping-basket" tone="muted" size="20" /><text class="ew-title">准备食材</text><ui-icon name="chevron-right" tone="muted" size="16" /></button><button class="ew-hit-target workspace-next-row" bindtap="onViewPlan"><ui-icon name="check" tone="muted" size="20" /><text class="ew-title">{{actual && actual.status === 'eaten' ? '查看饮食记录' : '记录实际用餐'}}</text><ui-icon name="chevron-right" tone="muted" size="16" /></button></view>
         <view wx:if="{{harnessMessage}}" class="ew-notice" role="status">{{harnessTargetLabel}} {{harnessMessage}}<button class="ew-hit-target ew-link" bindtap="onToggleExtraActions">查看任务与恢复</button></view>

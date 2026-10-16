@@ -35,7 +35,6 @@
 .workspace-next-row .ew-title { flex:1; min-width:0; font-weight:500; }
 .workspace-next-row::after { border:0; }
 .workspace-feedback { margin:8px 0; }
-.workspace-saved-result { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 0; color:{{brand}}; font-size:{{font.secondary.em}}; }
 .workspace-screen .ew-bottom { flex-shrink:0; background:{{background}}; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); }
 .mode-today .ew-bottom { padding-bottom:12px; }
 .workspace-people { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:12px 0; }
@@ -66,5 +65,6 @@
 .workspace-notice { display:flex; flex-wrap:wrap; align-items:center; gap:{{space.1.px}}; padding:{{space.1.px}} {{space.2.px}}; margin:{{space.1.px}} 0; border:1px solid {{border}}; border-radius:{{radius.1.px}}; background:{{warningSoft}}; color:{{warning}}; font-size:{{font.secondary.em}}; line-height:1.6; }
 .workspace-notice > text { flex:1 1 180px; min-width:0; overflow-wrap:anywhere; }
 .workspace-notice.error { background:{{dangerSoft}}; color:{{danger}}; }
-.workspace-screen .workspace-notice .ew-link { flex:0 1 auto; padding:0 4px; }
-.workspace-saved-result { border-top:1px solid {{divider}}; margin-top:{{space.2.px}}; }
+.workspace-notice.success,.workspace-notice.info { background:{{brandSoft}}; color:{{brand}}; }
+.workspace-notice.loading { background:{{card}}; color:{{muted}}; }
+.workspace-screen .workspace-notice .ew-link { flex:0 1 auto; padding:0 4px; margin:0; border:0; background:transparent; font-size:{{font.secondary.em}}; white-space:normal; text-align:left; }

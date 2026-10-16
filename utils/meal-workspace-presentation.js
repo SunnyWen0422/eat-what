@@ -26,18 +26,23 @@ function continuityPresentation(value, journey, workspaceNotice) {
   else if (value.saveState === 'changed' || value.status === 'plan_changed') menuState = 'changed'
   else if (saved && value.saveState === 'saved') menuState = 'saved'
 
-  if (recovery) {
+  const rowPending = state === 'busy' && recovery.kind === 'workspace' && value.actionFeedback && value.actionFeedback.kind === 'replace' && value.actionFeedback.state === 'pending'
+  if (rowPending) {
+    // The affected dish owns replacement progress. Keep only the old receipt here.
+    if (saved) resultNotice = { kind:'info', text:`此前已保存到${targetLabel(savedTarget)}，日历安排仍保留`, target:savedTarget, action:'onViewSavedMeal' }
+  } else if (recovery) {
     const text = { unknown:'本次结果待核对，原菜单仍保留', conflict:'这餐已有更新，请先读取最新安排', busy:'正在处理本餐', unapplied:'条件已修改，按新条件换一套后生效', confirmation:'本餐安排待确认' }[state] || recovery.label
     resultNotice = {
       kind: state === 'busy' ? 'loading' : state === 'confirmation' ? 'info' : 'warning',
-      text: text + (saved ? `；此前已保存到${targetLabel(savedTarget)}，本次操作尚未确认保存` : ''),
+      text: text + (saved ? `。此前已保存到${targetLabel(savedTarget)}，本次操作尚未确认保存` : ''),
       target: journey.primary.target, action: journey.primary.action,
     }
   } else if (workspaceNotice) {
-    resultNotice = { kind:workspaceNotice.kind, text:workspaceNotice.text, target, action:journey.primary.action }
+    const savedText = saved ? `。此前已保存到${targetLabel(savedTarget)}` + (value.saveState === 'changed' ? '；当前菜单有修改，尚未保存' : '') : ''
+    resultNotice = { kind:workspaceNotice.kind, text:workspaceNotice.text + savedText, target, action:journey.primary.action }
   } else if (saved) {
     resultNotice = { kind:menuState === 'saved' ? 'success' : 'info',
-      text:menuState === 'saved' ? `已保存到${targetLabel(savedTarget)}` : `此前已保存到${targetLabel(savedTarget)}；当前菜单有修改，尚未保存`,
+      text:menuState === 'saved' ? `已保存到${targetLabel(savedTarget)}` : `此前已保存到${targetLabel(savedTarget)}。当前菜单有修改，尚未保存`,
       target:savedTarget, action:'onViewSavedMeal' }
   }
   return { contextLabel, menuState, resultNotice }

@@ -21,8 +21,10 @@ test('shared homepage keeps one optional requirements entry and an independent p
   assert.match(peopleSheet, /bindinput="onPeopleInput"/)
   assert.match(peopleSheet, /bindtap="onPeopleStep"/)
   assert.match(firstScreen, /本餐要求（选填）/)
-  assert.equal((firstScreen.match(/bindtap="onOpenRequirements"/g) || []).length, 1)
-  assert.equal((firstScreen.match(/bindtap="onChooseDishes"/g) || []).length, 1)
+  assert.equal((firstScreen.match(/bindtap="onOpenRequirements"/g) || []).length, 2)
+  assert.match(firstScreen, /workspaceNotice.action !== 'requirements'/); assert.match(firstScreen, /workspaceNotice.action === 'requirements'/)
+  assert.equal((firstScreen.match(/bindtap="onChooseDishes"/g) || []).length, 2)
+  assert.match(firstScreen, /workspaceNotice.action !== 'choose'/); assert.match(firstScreen, /workspaceNotice.action === 'choose'/)
   assert.doesNotMatch(firstScreen, /<textarea|助手历史|bindtap="onQuickActual"/)
   assert.match(firstScreen, /hardExclusionSummary/)
   assert.doesNotMatch(firstScreen, /bindchange="onDateTarget"|bind:action="onOpenMealSettings"/)
@@ -401,7 +403,7 @@ test('the homepage shows saved exclusions and failed reads but hides a confirmed
   assert.equal(page.data.hardExclusionsUnavailable, true)
   assert.match(page.data.hardExclusionSummary, /未读到/)
   const template = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
-  assert.match(template, /wx:if="\{\{hardExclusionsUnavailable && !workspaceNotice\}\}" class="workspace-exclusions"/); assert.match(template, /wx:if="\{\{hasHardExclusions\}\}" class="workspace-exclusions"/); assert.match(template, /本餐设置\{\{hasHardExclusions/)
+  assert.match(template, /wx:if="\{\{hardExclusionsUnavailable\}\}" class="workspace-exclusions"/); assert.match(template, /wx:if="\{\{hasHardExclusions\}\}" class="workspace-exclusions"/); assert.match(template, /本餐设置\{\{hasHardExclusions/)
 })
 
 test('a new draft can be saved after independently recording actual food without changing that record', async t => {
