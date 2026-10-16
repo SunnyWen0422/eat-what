@@ -92,23 +92,33 @@ def run(args):
         session_file.write_text(json.dumps(session), encoding='utf-8')
         command = [args.node,args.driver,'--mode','service','--config',args.config,
                    '--session',str(session_file),'--out',str(out / 'native'),'--python',args.python,
-                   '--port',args.port,'--width',args.width,'--widths',args.widths,'--scales',args.scales]
+                   '--port',args.port,'--width',args.width,'--widths',args.widths]
         for key in ['sdk','cli','cases']:
             if getattr(args,key): command += ['--'+key,getattr(args,key)]
         if args.prepare_only: command += ['--prepare-only']
         if args.remote: command += ['--remote']
         before = {str(u):int(runtime.api.sql('SELECT COUNT(*) FROM food WHERE user_id=%s',(u,))[0][0]) for u in [910001,910002]}
-        child = subprocess.Popen(command, env=dict(os.environ,EATWHAT_E18_CHILD=nonce),
-                                 creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-        try:
-            code = child.wait(timeout=3600)
-        except BaseException:
-            child.terminate(); child.wait(timeout=20)
-            raise
+        # Page modules and administrative reset snapshots cache initial data.
+        # A distinct cold export per factor prevents an acceptance adapter from
+        # hiding that product limitation. Same explicitly owned stack, no adoption.
+        font_runs=[]; code=0
+        for factor in args.scales.split(','):
+            single=list(command)
+            single[single.index('--out')+1]=str(out/('native-font'+factor))
+            single += ['--scales',factor]
+            child = subprocess.Popen(single, env=dict(os.environ,EATWHAT_E18_CHILD=nonce),
+                                     creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            try:
+                result = child.wait(timeout=3600)
+            except BaseException:
+                child.terminate(); child.wait(timeout=20)
+                raise
+            font_runs.append({'fontScale':float(factor),'exitCode':result,'evidence':single[single.index('--out')+1]})
+            if result: code=result; break
         after = {str(u):int(runtime.api.sql('SELECT COUNT(*) FROM food WHERE user_id=%s',(u,))[0][0]) for u in [910001,910002]}
         receipt = {'sourceSha':config['sourceSha'],'fingerprints':session['fingerprints'],
                    'lifecycleEnabled':True,'providerMode':'mock','authentication':'local-v4 synthetic, not WeChat SSO',
-                   'copyCountsBefore':before,'copyCountsAfter':after,'nativeExitCode':code,
+                   'copyCountsBefore':before,'copyCountsAfter':after,'nativeExitCode':code,'fontRuns':font_runs,
                    'realDeviceProof':False,'runtimeManifest':'owned-runtime/private/runtime.json'}
         (out / 'service-receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
     return code

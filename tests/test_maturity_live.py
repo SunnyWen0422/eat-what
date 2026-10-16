@@ -4,6 +4,22 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 
 class MaturityLiveAssertionsTest(unittest.TestCase):
+    def test_supported_temporary_filter_requires_exact_owned_receipt_and_preserves_old_hard_constraints(self):
+        from run_maturity_live import require_temporary_filter
+        before={'id':'owned','revision':1,'context':{'date':'2026-10-17','mealType':'dinner','people':2,'requirements':'','criteria':{'excludedIngredients':['香菜']}},'draft':{'planVersion':1}}
+        after=copy.deepcopy(before);after['revision']=2;after['draft']['planVersion']=2;after['context']['criteria']['excludedIngredients'].append('花生')
+        turn={'status':'completed','cards':[{'receiptRef':'workspace:owned:request','workspaceRef':{'workspaceId':'owned','workspaceRevision':2,'planVersion':2}}]}
+        require_temporary_filter(turn,before,after,{}, {})
+        for field in ('old_exclusion','peanut','people','receipt','revision','preferences'):
+            bad=copy.deepcopy(after);bad_turn=copy.deepcopy(turn);prefs={}
+            if field=='old_exclusion':bad['context']['criteria']['excludedIngredients']=['花生']
+            elif field=='peanut':bad['context']['criteria']['excludedIngredients']=['香菜']
+            elif field=='people':bad['context']['people']=3
+            elif field=='receipt':bad_turn['cards'][0]['receiptRef']='provider-claim'
+            elif field=='revision':bad_turn['cards'][0]['workspaceRef']['workspaceRevision']=1
+            else:prefs={'changed':True}
+            with self.assertRaises(AssertionError):require_temporary_filter(bad_turn,before,bad,{},prefs)
+
     def test_temporary_requirement_never_changes_long_term_preferences_or_meal_identity(self):
         from run_maturity_live import require_temporary_requirement
         before={'id':'owned','context':{'people':2,'requirements':''}}

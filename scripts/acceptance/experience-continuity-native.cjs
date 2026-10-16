@@ -35,21 +35,21 @@ function matrix(routes) {
  }
  return rows
 }
-function guardSource({mode,runId,api}) {
- return `// Export-only boundary; never used by canonical app.\nconst state=${JSON.stringify({mode,runId,api,lifecycleEnabled:mode==='service',label:'E18 '+mode+' · 合成账号',denied:{},storage:{},lifecycle:[],requests:[],fontScale:1})};
+function guardSource({mode,runId,api,fontScale=1}) {
+ return `// Export-only boundary; never used by canonical app.\nconst state=${JSON.stringify({mode,runId,api,lifecycleEnabled:mode==='service',label:'E18 '+mode+' · 合成账号',denied:{},storage:{},lifecycle:[],requests:[],fontScale,readDelayMs:0})};
 const deny=name=>function(o={}){state.denied[name]=(state.denied[name]||0)+1;const e={errMsg:name+':fail E18_BOUNDARY_BLOCKED'};Promise.resolve().then(()=>{if(o.fail)o.fail(e);if(o.complete)o.complete(e)});return {abort(){},close(){},onOpen(){},onMessage(){},onError(){},onClose(){},onHeadersReceived(){},onChunkReceived(){}}};
 const install=(target,name,fn)=>{target[name]=fn;if(target[name]!==fn)throw Error('E18_GUARD_INSTALL_FAILED:'+name)};
-const request=wx.request;install(wx,'request',function(o={}){const allowed=state.lifecycleEnabled&&typeof o.url==='string'&&(o.url===state.api||o.url.indexOf(state.api+'/')===0);if(!allowed)return deny('request')(o);state.requests.push({path:o.url.slice(state.api.length).split('?')[0],method:o.method||'GET'});return request.call(wx,o)});
+const request=wx.request;install(wx,'request',function(o={}){const allowed=state.lifecycleEnabled&&typeof o.url==='string'&&(o.url===state.api||o.url.indexOf(state.api+'/')===0);if(!allowed)return deny('request')(o);const route=o.url.slice(state.api.length).split('?')[0],method=o.method||'GET';state.requests.push({path:route,method});const delay=route==='/dishes'&&method==='GET'?Math.min(1000,Math.max(0,Number(state.readDelayMs)||0)):0;if(!delay)return request.call(wx,o);const wrapped=Object.assign({},o);for(const key of ['success','fail','complete'])if(typeof o[key]==='function')wrapped[key]=value=>setTimeout(()=>o[key](value),delay);return request.call(wx,wrapped)});
 for(const name of ['login','checkSession','uploadFile','downloadFile','connectSocket','sendSocketMessage','getUserInfo','getUserProfile','getPhoneNumber','requestPayment','openEmbeddedMiniProgram','navigateToMiniProgram','openOfficialAccountArticle','createLivePusherContext'])install(wx,name,deny(name));
 if(wx.cloud)for(const name of ['init','callFunction','uploadFile','downloadFile','getTempFileURL','connectContainer','callContainer','database'])install(wx.cloud,name,deny('cloud.'+name));
 const memory={getStorageSync:k=>state.storage[k]==null?'':state.storage[k],setStorageSync:(k,v)=>{state.storage[k]=v},removeStorageSync:k=>{delete state.storage[k]},clearStorageSync:()=>{state.storage={}},getStorageInfoSync:()=>({keys:Object.keys(state.storage),currentSize:0,limitSize:10240})};for(const name of Object.keys(memory))install(wx,name,memory[name]);
 for(const name of ['getStorage','setStorage','removeStorage','clearStorage','getStorageInfo'])install(wx,name,function(o={}){let r={errMsg:name+':ok'};if(name==='getStorage')r.data=wx.getStorageSync(o.key);if(name==='setStorage')wx.setStorageSync(o.key,o.data);if(name==='removeStorage')wx.removeStorageSync(o.key);if(name==='clearStorage')wx.clearStorageSync();if(name==='getStorageInfo')Object.assign(r,wx.getStorageInfoSync());Promise.resolve().then(()=>{if(o.success)o.success(r);if(o.complete)o.complete(r)})});
 const base=wx.getAppBaseInfo;install(wx,'getAppBaseInfo',function(){return Object.assign({},base?base.call(wx):{},{fontSizeScaleFactor:state.fontScale})});
-const originalPage=Page;Page=function(def){for(const name of ['onLoad','onShow','onReady','onHide','onUnload'])if(typeof def[name]==='function'||name==='onLoad'){const fn=def[name];def[name]=function(...args){state.lifecycle.push({route:this.route,name});if(state.lifecycleEnabled){if(name==='onLoad'&&this.setData)this.setData({fontScale:state.fontScale});if(fn)return fn.apply(this,args)}}}return originalPage(def)};module.exports=state;\n`
+const originalPage=Page;Page=function(def){for(const name of ['onLoad','onShow','onReady','onHide','onUnload'])if(typeof def[name]==='function'||name==='onLoad'){const fn=def[name];def[name]=function(...args){state.lifecycle.push({route:this.route,name});if(state.lifecycleEnabled){if(fn)return fn.apply(this,args)}}}return originalPage(def)};module.exports=state;\n`
 }
 function assess({measurements,errors=[]}) {
  if(!measurements.length)return {status:'blocked',reason:'No measurable native content; no layout conclusion'}
- const violations=measurements.filter(r=>r.clipped||(r.hit&&(r.width<43.5||r.height<(r.primary?47.5:43.5))))
+ const violations=measurements.filter(r=>r.clipped&&!r.scrollContained||(r.hit&&(r.width<43.5||r.height<(r.primary?47.5:43.5))))
  return {status:violations.length||errors.length?'failed':'measured',violations,errors,reason:'Geometry only; clipping, overlap, text reachability and reader still require inspection'}
 }
 function outside(p) {const r=path.resolve(p);if(r===ROOT||r.startsWith(ROOT+path.sep))throw Error('Canonical repository/output forbidden');return r}
@@ -71,7 +71,8 @@ function prepare(o,session) {
  if(exported.status!==0)throw Error('Export failed: '+exported.stderr)
  const source=read(path.join(project,'source-manifest.json')),api=o.mode==='service'?session.api:'http://127.0.0.1:9/api',runId=path.basename(o.out)+'-'+crypto.createHash('sha256').update(o.out).digest('hex').slice(0,12)
  const sourceSha=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim()
- write(path.join(project,'native-guard.js'),guardSource({mode:o.mode,runId,api}))
+ if(o.mode==='service'&&o.scales.length!==1)throw Error('Each service export must use one cold font factor; coordinator splits scales')
+ write(path.join(project,'native-guard.js'),guardSource({mode:o.mode,runId,api,fontScale:o.scales[0]}))
  let app=fs.readFileSync(path.join(project,'app.js'),'utf8')
  app="const e18=require('./native-guard');\n"+app.replace('App({','App({\n nativeAcceptance:e18,')
  if(o.mode==='fixture')app="const e18=require('./native-guard');App({nativeAcceptance:e18,globalData:{userInfo:null,loginReady:true,isLoggedIn:false},waitForLogin(){return Promise.resolve()}})"
@@ -124,10 +125,21 @@ async function geometry(mini,page,width) {
  const boxes=found.flatMap(row=>row.status==='fulfilled'?row.value.elements.map(async element=>{const [size,offset]=await Promise.all([bounded(element.size()),bounded(element.offset())]);return {...size,...offset,selector:row.value.selector,hit:row.value.hit,primary:row.value.primary}}):[])
  for(const row of found)if(row.status==='rejected')errors.push(String(row.reason.message).slice(0,200))
  for(const row of await Promise.allSettled(boxes))if(row.status==='fulfilled'){const r=row.value;if(r.width>0&&r.height>0)measurements.push({...r,right:r.left+r.width,clipped:r.left<-.5||r.left+r.width>width+.5})}else errors.push(String(row.reason.message).slice(0,200))
- return {measurements,errors}
+ const category=await bounded(page.$('.category-scroll'))
+ let horizontalCategory=null
+ if(category){const [size,offset,scrollWidth]=await Promise.all([bounded(category.size()),bounded(category.offset()),bounded(category.scrollWidth())]);horizontalCategory={...size,...offset,scrollWidth};if(scrollWidth>size.width)for(const r of measurements)if(r.id?.startsWith('category-')&&r.top>=offset.top-1&&r.top+r.height<=offset.top+size.height+1)r.scrollContained=true}
+ return {measurements,errors,horizontalCategory}
+}
+async function fontStyles(page,scale) {
+ const fontBase=await bounded(page.data('fontBase')),styles=[]
+ for(const selector of ['.ew-page','.connected-assistant','.container','.ew-heading','.cooking-step','.ew-hit-target']){
+  const element=await bounded(page.$(selector));if(element)styles.push({selector,fontSize:await bounded(element.style('font-size')),lineHeight:await bounded(element.style('line-height'))})
+ }
+ const root=styles.find(s=>['.ew-page','.connected-assistant','.container'].includes(s.selector))
+ return {fontBase,requestedScale:scale,styles,rootMatches:root&&Number.isFinite(fontBase)?Math.abs(parseFloat(root.fontSize)-fontBase*scale)<.5:null,scope:'Actual native computed styles via official SDK; export font adapter, not OS font responsiveness'}
 }
 async function capture(o,manifest,session) {
- const report={mode:o.mode,lifecycleEnabled:o.mode==='service',sourceSha:manifest.sourceSha,appFingerprint:manifest.appFingerprint,authentication:manifest.authentication,requestedViewport:{width:o.width,widths:o.widths},actualViewport:null,fontScale:o.scales,device:null,evidence:[],matrix:matrix(read(path.join(manifest.project,'app.json')).pages),cases:[],exceptions:[],status:'not-run',physical:{android:'not-run',ios:'blocked: no iOS device available'},limits:['Measurements are not a complete layout/reader verdict','Font scale is an export-only base-info + onLoad data adapter for cached Page modules; original lifecycle still executes; this does NOT prove product response to OS font changes or reader','No production/upload/release; original WeChat SSO unverified']}
+ const report={mode:o.mode,lifecycleEnabled:o.mode==='service',sourceSha:manifest.sourceSha,appFingerprint:manifest.appFingerprint,authentication:manifest.authentication,requestedViewport:{width:o.width,widths:o.widths},actualViewport:null,fontScale:o.scales,device:null,evidence:[],matrix:matrix(read(path.join(manifest.project,'app.json')).pages),cases:[],exceptions:[],status:'not-run',physical:{android:'not-run',ios:'blocked: no iOS device available'},limits:['Measurements are not a complete layout/reader verdict','Font scale is fixed by export-only base-info before cold module loading; no per-page data override; original lifecycle executes; this does NOT prove product response to OS font changes or reader','No production/upload/release; original WeChat SSO unverified']}
  const save=()=>write(path.join(o.out,'native-results.json'),report);save()
  let mini
  try {
@@ -166,6 +178,8 @@ async function capture(o,manifest,session) {
      item.interaction=await exercise(mini,page,name,o.out,item.actualViewport.windowWidth)
     }
     item.fontScaleObserved=await bounded(page.data('fontScale'))
+    item.fontStyles=await fontStyles(page,scale)
+    if(item.fontStyles.rootMatches===false)throw Error('Actual page font factor differs from native computed size')
     if(item.fontScaleObserved!==scale){item.status='failed';item.fontScaleMismatch={requested:scale,observed:item.fontScaleObserved};throw Error('Actual page font factor differs from requested; remaining scale claims rejected')}
     item.lifecycle=await bounded(mini.evaluate(()=>getApp().nativeAcceptance.lifecycle.slice(-12)))
     row.states[row.role==='ordinary'&&name.startsWith('admin')?'permission':'normal'].evidence.push(...item.evidence)
@@ -178,40 +192,50 @@ async function capture(o,manifest,session) {
   }}
   report.guard=await bounded(mini.evaluate(()=>({denied:getApp().nativeAcceptance.denied,requests:getApp().nativeAcceptance.requests,lifecycle:getApp().nativeAcceptance.lifecycle,mode:getApp().nativeAcceptance.mode})))
   report.status=report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':'captured-requires-inspection'
- }catch(e){report.status='blocked';report.reason=String(e.message).slice(0,800)}finally{if(mini)mini.disconnect();report.endedAt=new Date().toISOString();save()}
+ }catch(e){report.status='blocked';report.reason=String(e.message).slice(0,800)}finally{
+  // mini is assigned only after launch verifies this export's runId/mode.
+  if(mini){try{await bounded(mini.close(),10000);report.ownedIdeClosed=true}catch(error){report.ownedIdeCloseError=error.message;mini.disconnect()}}
+  report.endedAt=new Date().toISOString();save()
+ }
  return report
 }
 async function exercise(mini,page,name,out,width) {
  const result={status:'not-run'}
+ const call=(method,...args)=>bounded(mini.evaluate((route,method,args)=>{const p=getCurrentPages().slice(-1)[0];if(p.route!==route||typeof p[method]!=='function')throw Error('Native controller target mismatch');return p[method](...args)},page.path,method,args))
  try {
   if(name==='custom-dishes'){
    result.name='system cancel creates no copy';result.scope='Native editor discard dialog in developer tools; physical system-back remains not-run'
    if(!await bounded(page.data('copyDraft')))throw Error('Public recipe copy draft was not loaded')
-   await bounded(page.callMethod('onInput',{currentTarget:{dataset:{field:'name'}},detail:{value:'E18 未保存副本'}}))
-   await bounded(page.callMethod('cancelEdit'));await sleep(200)
+   await call('onInput',{currentTarget:{dataset:{field:'name'}},detail:{value:'E18 未保存副本'}})
+   await call('cancelEdit');await sleep(200)
    result.modalScreenshot=path.join(out,'copy-cancel-modal-w'+width+'.png');await bounded(mini.screenshot({path:result.modalScreenshot}))
    await bounded(mini.native().confirmModal(),10000);await sleep(300)
    result.editorClosed=!await bounded(page.data('editing'));result.status=result.editorClosed?'observed-requires-db-count':'failed'
   }else if(name==='meal-cooking'){
    result.name='cooking heading, ingredient return and footer reachability'
-   const index=await bounded(page.data('stepIndex'));await bounded(page.callMethod('onNextStep'));await sleep(300)
+   const index=await bounded(page.data('stepIndex'));await call('onNextStep');await sleep(300)
    result.stepBefore=index;result.stepAfter=await bounded(page.data('stepIndex'))
    result.heading=await bounded(mini.evaluate(()=>new Promise(r=>wx.createSelectorQuery().select('#cooking-step-heading').boundingClientRect(r).exec())))
-   await bounded(page.callMethod('onIngredients'));await sleep(250)
+   await call('onIngredients');await sleep(250)
    result.sheetScreenshot=path.join(out,'cooking-ingredients-w'+width+'-f2.png');await bounded(mini.screenshot({path:result.sheetScreenshot}))
-   await bounded(page.callMethod('closeIngredients'));await sleep(250)
+   await call('closeIngredients');await sleep(250)
    result.closed=!await bounded(page.data('ingredientsVisible'));result.stepRetained=await bounded(page.data('stepIndex'))===result.stepAfter
    result.status=result.closed&&result.stepRetained&&result.heading?'observed':'failed'
   }else if(name==='customize'){
    result.name='native filter removal preserves scroll'
-   await bounded(page.callMethod('onBrowseDurationTap',{currentTarget:{dataset:{value:60}}}));await sleep(200)
+   await call('onBrowseDurationTap',{currentTarget:{dataset:{value:60}}});await sleep(200)
    const scroll=await bounded(page.$('.recipe-browse-scroll'));if(!scroll)throw Error('Native recipe scroll unavailable')
    await bounded(scroll.scrollTo(0,300));await sleep(200)
    result.before=await bounded(mini.evaluate(()=>getCurrentPages().slice(-1)[0]._browseScrollTop||0))
-   await bounded(page.callMethod('onRemoveBrowseFilter',{currentTarget:{dataset:{key:'maxCookMinutes'}}}));await sleep(250)
+   result.transportDelayMs=250
+   await bounded(mini.evaluate(()=>{getApp().nativeAcceptance.readDelayMs=250}))
+   try{await call('onRemoveBrowseFilter',{currentTarget:{dataset:{key:'maxCookMinutes'}}})}finally{await bounded(mini.evaluate(()=>{getApp().nativeAcceptance.readDelayMs=0}))}
+   await sleep(250)
    result.after=await bounded(mini.evaluate(()=>getCurrentPages().slice(-1)[0]._browseScrollTop||0))
    result.status=result.before>50&&Math.abs(result.before-result.after)<=4?'observed':result.before<=50?'blocked':'failed'
    result.limit='Handler called through native SDK after real scroll; physical chip tap/focus remains separate'
+   const categories=await bounded(page.$('.category-scroll'))
+   if(categories){result.categoryScrollWidth=await bounded(categories.scrollWidth());await bounded(categories.scrollTo(99999,0));await sleep(150);const last=await bounded(page.$('#category-side'));if(last){result.lastCategory={offset:await bounded(last.offset()),size:await bounded(last.size())};const r=result.lastCategory;result.lastCategoryReachable=r.offset.left>=0&&r.offset.left+r.size.width<=width+1}}
   }
  }catch(error){result.status='blocked';result.reason=String(error.message).slice(0,600)}
  return result

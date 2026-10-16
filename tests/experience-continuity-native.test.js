@@ -29,6 +29,8 @@ test('native page content stays reachable requires measurements; screenshots are
   assert.equal(native.assess({measurements:[{selector:'button',width:40,height:48,left:0,right:40,hit:true}]}).status,'failed')
   assert.equal(native.assess({measurements:[{selector:'primary',width:100,height:44,left:0,right:100,hit:true,primary:true}]}).status,'failed')
   assert.equal(native.assess({measurements:[{selector:'button',width:48,height:48,left:0,right:48,hit:true}]}).status,'measured')
+  assert.equal(native.assess({measurements:[{selector:'category chip',width:48,height:48,left:300,right:348,hit:true,clipped:true,scrollContained:true}]}).status,'measured')
+  assert.equal(native.assess({measurements:[{selector:'category chip',width:20,height:48,left:300,right:320,hit:true,clipped:true,scrollContained:true}]}).status,'failed')
 })
 test('service guard retains lifecycle, isolates storage, and rejects non-owned transport', () => {
   let registration, calls=0, lifecycle=0
@@ -51,18 +53,28 @@ test('fixture guard denies transport and suppresses lifecycle while retaining ha
   context.Page({onLoad(){calls++},handler(){return 7}});registered.onLoad.call({route:'test'});wx.request({url:'http://127.0.0.1:9/api/a'})
   assert.equal(calls,0);assert.equal(registered.handler(),7)
 })
-test('cached service Page registrations receive the requested font factor on every real load', () => {
+test('cold service font factor initializes modules without overriding lifecycle data', () => {
   let registered, loads=0
   const wx={cloud:{},request(){},getAppBaseInfo:()=>({fontSizeScaleFactor:1})}
   const context={wx,Page:def=>{registered=def},module:{exports:{}},Promise}
-  vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api'}),context)
-  context.Page({data:{fontScale:1},onLoad(){loads++}})
-  registered.setData=value=>Object.assign(registered.data,value)
-  for(const factor of [1,1.3,2]){context.module.exports.fontScale=factor;registered.onLoad();assert.equal(registered.data.fontScale,factor)}
-  assert.equal(loads,3)
+  vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api',fontScale:1.3}),context)
+  context.Page({data:{fontScale:wx.getAppBaseInfo().fontSizeScaleFactor},onLoad(){loads++}})
+  registered.setData=()=>assert.fail('Acceptance must not force page font data')
+  registered.onLoad();assert.equal(registered.data.fontScale,1.3);assert.equal(loads,1)
 })
+
 test('guard installation fails closed when native request replacement is rejected', () => {
   const wx={cloud:{},getAppBaseInfo:()=>({})}
   Object.defineProperty(wx,'request',{value(){throw Error('real transport reached')},writable:false})
   assert.throws(()=>vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api'}),{wx,Page(){},module:{exports:{}},Promise}),/GUARD_INSTALL/)
+})
+test('service read delay preserves the actual response and remains limited to owned catalog GET', async () => {
+  let received, calls=0
+  const wx={cloud:{},getAppBaseInfo:()=>({}),request:o=>{calls++;o.success?.({statusCode:200,data:{actual:true}})}}
+  const context={wx,Page(){},module:{exports:{}},Promise,setTimeout}
+  vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api'}),context)
+  context.module.exports.readDelayMs=20
+  wx.request({url:'http://127.0.0.1:18780/api/dishes',method:'GET',success:r=>{received=r}})
+  assert.equal(received,undefined)
+  await new Promise(r=>setTimeout(r,40));assert.equal(received.data.actual,true);assert.equal(calls,1)
 })

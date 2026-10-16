@@ -44,6 +44,19 @@ def require_temporary_requirement(turn, before, after, preferences_before, prefe
             'Unsupported temporary wording lacks a supported next step')
 
 
+def require_temporary_filter(turn, before, after, preferences_before, preferences_after):
+    require(turn['status']=='completed' and not turn.get('pendingAction'),'Structured temporary filter did not execute')
+    require(before['id']==after['id'] and preferences_before==preferences_after,'Temporary filter changed account preferences or meal identity')
+    for key in ('date','mealType','people','requirements'):
+        require(before['context'][key]==after['context'][key],'Temporary filter changed an unrelated meal field')
+    old=before['context']['criteria'].get('excludedIngredients',[])
+    current=after['context']['criteria'].get('excludedIngredients',[])
+    require('花生' in current and set(old)<=set(current),'Temporary peanut exclusion absent or old hard constraint weakened')
+    ref={'workspaceId':after['id'],'workspaceRevision':after['revision'],'planVersion':after['draft']['planVersion']}
+    require(any(c.get('receiptRef','').startswith('workspace:'+after['id']+':') and all(c.get('workspaceRef',{}).get(k)==v for k,v in ref.items()) for c in turn.get('cards',[])),
+            'Temporary filter lacks an actual owned workspace receipt')
+
+
 class Execution(LiveExecution):
     def __init__(self,fields,budget,authorization_date):
         self.fields=fields;self.ledger=ProviderBudget(budget,authorization_date=authorization_date)
@@ -182,10 +195,17 @@ class Cases:
         require_temporary_requirement(turn,before,after,preferences,self.a.http('/users/preferences',user=self.user))
         return {'unsupportedWordingClarified':True,'noBlindRetry':True,'longTermPreferencesUnchanged':True,'calendarAndShoppingUnchanged':True,'sameMeal':True}
 
+    def temporary_filter(self):
+        before=self.current();preferences=self.a.http('/users/preferences',user=self.user)
+        turn=self.turn('只给当前这一餐增加临时排除食材“花生”，请用满足这项排除的菜组成完整本餐。其他人数和餐次保持，原有忌口继续生效，不改长期偏好，不保存日历，不加入采购。')
+        after=self.current()
+        require_temporary_filter(turn,before,after,preferences,self.a.http('/users/preferences',user=self.user))
+        return {'temporaryPeanutExclusionApplied':True,'ownedWorkspaceReceipt':True,'oldExclusionsRetained':True,'longTermPreferencesUnchanged':True,'calendarAndShoppingUnchanged':True}
+
 
 def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
     require(approved_live,'Explicit approved-live invocation required')
-    require(case_ids is None or set(case_ids)<={'discovery','adjust','clarify','save','shopping','actual','handoff','temporary'},'Unknown live cases')
+    require(case_ids is None or set(case_ids)<={'discovery','adjust','clarify','save','shopping','actual','handoff','temporary','temporary_filter'},'Unknown live cases')
     date.fromisoformat(authorization_date)
     execution=Execution(approved_provider_fields(Path(__file__).resolve().parents[1]/'recommend-service/.env'),budget,authorization_date)
     require(config.get('providerMode')=='live' and Path(config['modelBudgetLedger']).resolve()==execution.ledger.path,'Live mode and atomic ledger must match')
@@ -199,7 +219,7 @@ def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
         require(runtime.dataset['rows']==6665,'Use pinned real public snapshot for live tasks')
         cases=Cases(runtime,execution);cases.setup(shopping_only=case_ids==['shopping'])
         report['setupMode']='direct API confirmed plan for targeted shopping' if case_ids==['shopping'] else 'rule draft and synthetic personal facts; model saves the plan'
-        for group,name in [('temporary','temporary'),('discovery','discovery'),('adjust','adjust'),('calendar','clarify'),('calendar','save'),('shopping','shopping'),('review_handoff','actual'),('review_handoff','handoff')]:
+        for group,name in [('temporary','temporary'),('temporary','temporary_filter'),('discovery','discovery'),('adjust','adjust'),('calendar','clarify'),('calendar','save'),('shopping','shopping'),('review_handoff','actual'),('review_handoff','handoff')]:
             if case_ids is not None and name not in case_ids:continue
             start=time.perf_counter();used=execution.budget_used()
             try:detail=getattr(cases,name)();row={'id':name,'group':group,'passed':True,'businessOutcome':'clarified' if name in ('clarify','temporary') else 'passed','detail':detail}
