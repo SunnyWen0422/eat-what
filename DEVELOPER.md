@@ -114,4 +114,6 @@ npm run e2e -- --project=chromium
 
 新本机验收只能通过`scripts/maturity_runtime.py`创建全新专属实例；不得将其配置改成生产目标或接管原有MySQL。`run_maturity_acceptance.py`的database/assistant阶段、`benchmark_maturity.py`均校验源/JAR/所有权并默认替身供应商；真实模型沿原子预算入口另行核对有效额度。最终包为DRAFT，步骤与回退见[候选发布单](docs/release/product-maturity-candidate.md)。
 
-显式真实模型入口为`scripts/run_maturity_live.py`：必须同时给出`--approved-live`、匹配授权日期、隔离配置、仓库外预算账本与全新输出目录；每次HTTP尝试先由既有`ProviderBudget`预留，失败不退款、不自动重试。默认回归仍不读取供应商凭据或发送真实请求。2026-10-16新增20次授权实际使用14次，七项业务场景覆盖及单次生产异步传输直连结果见[模型验收](docs/testing/product-maturity-model.md)，不得将其外推为生产或所有表达均已验收。
+显式真实模型入口为`scripts/run_maturity_live.py`：必须同时给出`--approved-live`、匹配授权日期、隔离配置、仓库外预算账本与全新输出目录；每次HTTP尝试先由既有`ProviderBudget`预留，失败不退款、不自动重试。默认回归仍不读取供应商凭据或发送真实请求。2026-10-16新增20次授权累计使用16次，剩余4次；早先七项覆盖及直连与本候选的一项忌口换菜复验分开记录，见[模型验收](docs/testing/product-maturity-model.md)。不得将其外推为所有表达均已验收。
+
+追加验收已将任务取消收敛到服务端持久化的当前`taskId`主键点查，保留用户/工作区/状态与版本校验；不要恢复空归属范围更新，否则不同用户首次生成时仍可能发生间隙锁死锁。真实MySQL新增并发首次插入回归后共13项事务IT；最终原生7/8、六场300秒短测及线上只读快照的范围见[当前现状](docs/testing/product-maturity-final.md)。30分钟历史证据、物理设备和生产预检不可用短测代替。线上服务未在本轮更新。

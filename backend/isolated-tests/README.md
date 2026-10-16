@@ -27,3 +27,5 @@
 2026-10-15 整合补充：F2现在含复杂排除批次、普通COUNT+LIMIT两项事务快照测试；每项会重建专属f2_aop_test中的food与dish_quality_profile合成表。F1仍8项。此入口合计10项，必须确认数据库归属。生产数据、治理备份不在本入口测试范围内。
 
 2026-10-16成熟度补充：F2增加独立推荐候选的跨批次快照/缓存检查（共3项）。另有`WorkspaceTaskCancellationMysqlIT`：仅在新建独占`eatwhat_task_test_<10位小写十六进制>`库上设置`EATWHAT_TASK_CANCEL_TEST=1`、`EATWHAT_TASK_CANCEL_JDBC`、`EATWHAT_TASK_CANCEL_PASSWORD`才运行。它创建合成workspace_task表，并在另一个连接锁住其他用户任务，核对取消只影响当前用户/餐。三类合计12项；旧10项历史记录不作本次通过证明。统一入口`run_maturity_acceptance.py`在自己的新实例中创建各专用schema，不得手动指到已有库。
+
+2026-10-16追加复验：任务取消IT新增双账号同时首次插入的屏障场景，原归属范围更新确定性触发间隙锁死锁；按服务端当前任务主键点查取消后通过。该类现在2项，三类合计13项。每个用例只在上述新建专属schema中重建合成表；原500条完成历史/其他用户及同用户其他工作区锁场景仍保留，不用mock替代事务证据。

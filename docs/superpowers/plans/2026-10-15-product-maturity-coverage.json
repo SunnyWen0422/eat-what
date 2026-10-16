@@ -727,7 +727,7 @@
         "K26",
         "K29"
       ],
-      "evidenceNote": "Frozen cd8a974: six candidate300s scenes total1800s,36123operations0failures and0stoppedworkers. Listp95<=27.74ms; mealp95 at10/25 exceeds1000ms (max5086.25). Measurement/equivalence complete; latency target NOT passed, production capacity gate remains. Raw failed diagnostic runs retained."
+      "evidenceNote": "Original cd8a974 30min remains historical. New dc401e5 six300s diagnostics13762operations0errors/no deadlocks;25-worker first-task gap fixed with realMySQL RED-GREEN. Latency target still NOT fully met and new30min gate notrun. No production load."
     },
     {
       "id": "T21",
@@ -773,7 +773,7 @@
         "K30",
         "K32"
       ],
-      "evidenceNote": "Frozen cd8a974: final DB22/22 plus12 realMySQL IT pass; 500completedhistory owner-index regression RED locktimeout to GREEN; public6665 and synthetic19 datasets; pinned38table59885row restoration/replay; no production."
+      "evidenceNote": "dc401e5 newJar21/22groups plus13 realMySQL IT pass; only unchangedR01 restore notrerun, old38table59885row/hash proof retained. Gap first-insert test RED deadlock to GREEN; two owned19/6665 datasets, no production writes."
     },
     {
       "id": "T22",
@@ -790,7 +790,7 @@
         "K24",
         "K32"
       ],
-      "evidenceNote": "Application cd8a974 unchanged; offline42/42+lifecycle11 valid. New authorized20 ledger used14, remaining6:13 business HTTP plus1 actual ManagedV4Provider async DNS/TLS call. Effective7/7 cases across5groups from initial6/7 plus focused shopping1/1; DTO-null harness assertion fixed, original failure retained,22 persisted sources checked. Python282run281pass1explicit skip. No production/push/deploy."
+      "evidenceNote": "dc401e5 offline42/42 and real hard-exclusion adjust1/1 using2HTTP. Same approved ledger16/20,4remaining, old seals retained. Earlier7-task/14HTTP coverage retains old appSHA; not all rerun on newJAR. No production model requests."
     },
     {
       "id": "T23",
@@ -818,7 +818,7 @@
         "K31",
         "K32"
       ],
-      "evidenceNote": "Chromium4/4; final report render2/2 with7images0network. Native243attempts206captured37quota errors notpasses; original-handler5/8 on unchangedfrontend, remaining3 manual/tool gates. Physical320/430/iOS/Android/IME/reader/motion notrun."
+      "evidenceNote": "Same dc401e5 JAR native7/8; exact-lunch SQL+3procurement sources+independentactual verified. System copy-cancel modal blocked, physical320/430/iOS/Android/IME/reader/continuousframes pending. Independent ports/identity and one bounded route-read retry; report render2/2,7images0external. Prior web4 reusable, unchanged frontend."
     },
     {
       "id": "T24",
@@ -864,14 +864,14 @@
         "T24"
       ],
       "conditionalDependency": "T23/T24的外部设备或参与者未具备时可以生成候选，但必须将对应发布门标blocked，不能标全量发布就绪。",
-      "status": "complete",
+      "status": "in_progress",
       "requirements": [
         "K26",
         "K27",
         "K29",
         "K32"
       ],
-      "evidenceNote": "Refreshed DRAFT probe8472ee3 verified434 allowlisted files, no production config/private data, exact Java8 JAR/appcd8a974 and Python/mini/web/public6665. New live7/7 coverage+async1 and14/20 ledger/leaf hashes verified by paired receipt; report390/1440 render2/2,7images0network. Final same-input package resealed at delivery commit. No push/deploy; high-concurrency latency, remaining native/physical devices, user study, fresh production preflight/approval remain gates."
+      "evidenceNote": "Refreshing matched DRAFT after Han filter and current-task gap fixes; app dc401e5/Java528, IT13, DB21/22(R01notrun), offline42, live2HTTP/total16, native7/8 and300s load13762/0 verified. New package verification pending; prior candidate5468cb2 retained. Production read-only observation does not authorize rollout."
     }
   ],
   "routes": [
