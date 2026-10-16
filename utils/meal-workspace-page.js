@@ -5,7 +5,7 @@ const { validateCounts, compositionRows } = require('./meal-composition')
 const experiencePreferences = require('./experience-preferences')
 const { contextPresentation } = require('./meal-workspace-presentation')
 const { getCurrentUserIdentity, getUserStorageKey } = require('./util')
-const { createWorkspaceStore, defaultTarget, resolveActiveTarget, normalizeContext, requestId } = require('./meal-workspace')
+const { createWorkspaceStore, defaultTarget, resolveActiveTarget, normalizeContext, requestId, matchesWorkspaceReference } = require('./meal-workspace')
 const { freezeSaveSnapshot, matchesSaveSnapshot, hasUnfinishedSource, saveTargetView, validateMealTarget } = require('./meal-save-target')
 const { deriveActionFeedback, legacyLockNotice, interactionCommand } = require('./meal-action-feedback')
 const { beginShoppingSelection } = require('./shopping-list')
@@ -137,7 +137,7 @@ module.exports = function workspacePage(options = {}) {
       catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({ syncLabel: '常用人数暂未读到，本餐默认两人', hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true }) }
       let fontScale = 1
       if (wx.getAppBaseInfo) { const info = wx.getAppBaseInfo(); fontScale = info.fontSizeScaleFactor || (info.fontSizeSetting ? info.fontSizeSetting / 16 : 1) }
-      this.store = createWorkspaceStore()
+      this.store = createWorkspaceStore({canCommand:expectedRef=>!expectedRef || !this.canRunReferencedCommand || this.canRunReferencedCommand(expectedRef)})
       this.setData({ loading: true, busy: false, errorMessage: '', context: normalizeContext({ ...target, people }), draft: { dishes: [], history: [], lockedDishIds: [] }, linkedPlan: null, actual: null, settingsContext: null, settingsVisible: false, confirmationVisible: false, fontScale: Math.max(1, fontScale) })
       this._experiencePreferences = experiencePreferences()
       const remembered = this._experiencePreferences.get().compositionByMeal[target.mealType]
@@ -370,14 +370,17 @@ module.exports = function workspacePage(options = {}) {
       const operation=store.save();this._draftSave=operation
       try {await operation} finally {if(this._draftSave===operation)this._draftSave=null}
     },
-    async runCommand(command, extra = {}) {
+    async runCommand(command, extra = {}, expectedRef = null) {
       if (this.data.busy || !this.store || !this.current()) return
       if(this.store.state().pending || this.data.syncStatus==='conflict' || this.data.status==='generating' && command!=='cancel')return
       if(this.data.peopleError && ['generate','regenerate','select'].includes(command))return
       if (getCurrentUserIdentity() === 'guest') return this.onLogin()
-      clearTimeout(this._draftTimer); const store = this.store
+      clearTimeout(this._draftTimer); const store = this.store,scope=this._scope,source=require('./config').getApiBaseUrl()
+      const checkReference=()=>{
+        if(expectedRef && (!matchesWorkspaceReference(expectedRef,store.state().workspace,store.state().context) || this.canRunReferencedCommand && !this.canRunReferencedCommand(expectedRef)))throw new Error('本餐或待确认操作已变化，请查看当前菜单或完成当前核对')
+      }
       this._actionError=null;this.setData({ errorMessage: '' }); this.setWorkspaceBusy(true)
-      try { await this.flushDraft(); if(!this.current() || store!==this.store)return false; const operation=store.command(command, interactionCommand(command,extra));this.renderWorkspace();await operation; if (this.current() && store === this.store) { this.renderWorkspace(); this.pollTask(); return true } }
+      try { checkReference();await this.flushDraft(); if(!this.current() || scope!==this._scope || source!==require('./config').getApiBaseUrl() || store!==this.store)return false;checkReference(); const operation=store.command(command, interactionCommand(command,extra),expectedRef);this.renderWorkspace();await operation; if (this.current() && store === this.store) { this.renderWorkspace(); this.pollTask(); return true } }
       catch (error) { if (this.current() && store === this.store) { this._actionError=error;this.renderWorkspace(); this.setData({ errorMessage: userError(error,'安排未完成，输入和原方案已保留') }) } }
       finally { if (this.current() && store === this.store) this.setWorkspaceBusy(false) }
     },

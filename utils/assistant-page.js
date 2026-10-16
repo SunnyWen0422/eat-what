@@ -1,13 +1,21 @@
 const {createAssistantConversation,probeAssistantCapability}=require('./assistant-conversation')
-const {safeText}=require('./assistant-cards')
+const {safeText,presentMenuActions,conversationBlocksMenu}=require('./assistant-cards')
+const {workspaceReference,matchesWorkspaceReference}=require('./meal-workspace')
 // Keep the existing page's handlers and lifecycle intact when the service is unavailable.
 module.exports=function assistantPage(fallback, options={}) {
  return {...fallback,data:{...fallback.data,assistantConnected:false,conversationMenuExpanded:false,conversationSuggestions:[],conversationMenuCount:0,conversationCurrentMenu:null,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false,conversationRecoverable:false,keyboardHeight:0},
   renderWorkspace(){
    if(fallback.renderWorkspace)fallback.renderWorkspace.call(this)
    if(!this.data.assistantConnected || !this.current())return
-   const w=this.store&&this.store.state().workspace,context=w&&w.context,dishes=w&&w.draft&&w.draft.dishes
-   this.setData({conversationMenuCount:(dishes || []).length,conversationSuggestions:require('./assistant-presentation').buildAssistantSuggestions({hasMenu:!!(dishes&&dishes.length),available:true}),conversationCurrentMenu:context&&Array.isArray(dishes)&&dishes.length?{id:'current-menu',type:'menu',title:'当前本餐菜单',data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}:null})
+   this.refreshConversationMenus()
+  },
+  refreshConversationMenus(state=this.conversation&&this.conversation.state()) {
+   if(!this.store || !this.current())return
+   const local=this.store.state(),w=local.workspace,context=w&&w.context,dishes=w&&w.draft&&w.draft.dishes
+   const conversationState={...(state||{}),actionsEnabled:!!state&&this.data.conversationActionsEnabled!==false},workspaceState={...local,busy:!!this.data.busy}
+   const decorate=card=>({...card,menuActions:presentMenuActions({card,workspace:w,conversationState,workspaceState})})
+   const live=context&&Array.isArray(dishes)&&dishes.length?decorate({id:'current-menu',type:'menu',title:'当前本餐菜单',workspaceRef:workspaceReference(w),data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}):null
+   this.setData({conversationMenuCount:(dishes||[]).length,conversationSuggestions:require('./assistant-presentation').buildAssistantSuggestions({hasMenu:!!(dishes&&dishes.length),available:true}),conversationCurrentMenu:live,conversationMessages:(this.data.conversationMessages||[]).map(message=>({...message,cards:(message.cards||[]).map(decorate)})),conversationWorkspaceRecoverable:!!local.pending,conversationWorkspaceBlocked:!!local.pending||!!this.data.busy||w&&w.status==='generating',conversationWorkspaceFeedback:this.data.errorMessage || this.data.actionFeedback&&this.data.actionFeedback.message || ''})
   },
   async onLoad(params={}) {
    this._assistantAlive=true;this._assistantParams=params
@@ -49,11 +57,11 @@ module.exports=function assistantPage(fallback, options={}) {
    if(entry.date!==this.data.context.date || entry.mealType!==this.data.context.mealType)return
    this.offerConversationInput(`请介绍菜品 ID ${entry.dishId}「${entry.dishName}」的做法`)
   },
-  offerConversationInput(text) {
+  offerConversationInput(text, expectedRef=null) {
    const conversation=this.conversation,scope=this._scope
    if(!conversation || !this.current())return
    const state=conversation.state(),before=state.input || ''
-   const blocked=s=>s.busy || s.recoverable || s.confirmationPending || s.turn && ['queued','running','awaiting_confirmation'].includes(s.turn.status)
+   const blocked=s=>conversationBlocksMenu(s) || expectedRef && (this.workspaceBlocksConversation() || !matchesWorkspaceReference(expectedRef,this.store&&this.store.state().workspace,this.store&&this.store.state().context))
    if(blocked(state))return
    const apply=()=>{if(!this._assistantAlive || !this.current() || scope!==this._scope || conversation!==this.conversation)return;const latest=conversation.state();if(!blocked(latest)&&latest.input===state.input)conversation.setInput(text)}
    if(before.trim()&&before!==text)wx.showModal({title:'替换当前输入？',content:'当前尚未发送的文字会被替换。',success:result=>{if(result.confirm)apply()}})
@@ -66,6 +74,7 @@ module.exports=function assistantPage(fallback, options={}) {
    const currentCards=new Set(actionable.map(c=>c.id)),enabled=this.data.conversationActionsEnabled!==false&&!state.busy&&!state.recoverable
    const messages=state.messages.map(m=>({...m,text:safeText(m.text || m.content),cards:(m.cards || []).map(card=>({...card,active:enabled&&!!turn&&m.turnId===turn.turnId&&currentCards.has(card.id)&&!state.selectionPending&&!state.confirmationPending&&(!card.taskId||turn.status==='awaiting_confirmation'&&turn.pendingAction&&turn.pendingAction.taskId===card.taskId&&turn.pendingAction.previewToken===card.previewToken)}))}))
    this.setData({conversationMessages:messages,conversationInput:state.input,conversationError:state.error,conversationBusy:state.busy,conversationRecoverable:state.recoverable,conversationCanStop:!!turn&&['queued','running','awaiting_confirmation'].includes(turn.status),conversationStopLabel:turn&&turn.status==='awaiting_confirmation'?'取消预览':'停止这次请求',conversationHasOlder:!!state.nextCursor,conversationProgressLabel:turn&&turn.status==='queued'?'正在排队…':'正在处理这次请求…'})
+   this.refreshConversationMenus(state)
    const last=state.messages[state.messages.length-1],stamp=last?JSON.stringify([last.id,last.text||last.content,last.cards,turn&&turn.status]):''
    if(stamp!==this._conversationStamp){this._conversationStamp=stamp;if(this._conversationAtBottom!==false||this._conversationForceBottom)this.onConversationLatest();else this.setData({conversationScrollTarget:'',conversationHasNew:true})}
    this._conversationForceBottom=false
@@ -106,16 +115,42 @@ module.exports=function assistantPage(fallback, options={}) {
   onHide(){this._assistantVisible=false;clearTimeout(this._conversationTimer);if(fallback.onHide)fallback.onHide.call(this)},
   onUnload(){this._assistantAlive=false;clearTimeout(this._conversationTimer);if(this.conversation)this.conversation.dispose();if(fallback.onUnload)fallback.onUnload.call(this)},
   onToggleConversationMenu(){if(this.current())this.setData({conversationMenuExpanded:!this.data.conversationMenuExpanded})},
+  onConversationCurrentMenu(){if(this.current()){this.setData({conversationMenuExpanded:true,conversationScrollTarget:''},()=>this.setData({conversationScrollTarget:'conversation-current-menu'}));this.refreshConversationMenus()}},
+  workspaceBlocksConversation(){const local=this.store&&this.store.state();return !!(this.data.busy || this._directDishBinding || local&&(local.pending || ['saving','unknown','conflict'].includes(local.syncStatus) || local.workspace&&local.workspace.status==='generating'))},
+  canRunReferencedCommand(expectedRef){
+   const binding=this._directDishBinding
+   return !!this.conversation && this.data.conversationActionsEnabled!==false && !conversationBlocksMenu(this.conversation.state()) && (!binding || binding.conversation===this.conversation&&binding.store===this.store&&binding.scope===this._scope) && matchesWorkspaceReference(expectedRef,this.store.state().workspace,this.store.state().context)
+  },
+  async onConversationDishAction(event){
+   if(!this.current())return
+   if(event.detail&&event.detail.action==='current')return this.onConversationCurrentMenu()
+   if(!this.conversation || !this.store || this.workspaceBlocksConversation())return
+   const {cardId,dishId,action,expectedRef}=event.detail||{},conversation=this.conversation,local=this.store.state(),state=conversation.state()
+   const card=cardId==='current-menu'?this.data.conversationCurrentMenu:(state.messages||[]).flatMap(m=>m.cards||[]).find(c=>c.id===cardId)
+   const menu=presentMenuActions({card,workspace:local.workspace,conversationState:{...state,actionsEnabled:this.data.conversationActionsEnabled!==false},workspaceState:local}),row=menu.rows.find(r=>r.dishId===dishId)
+   if(!menu.enabled || !row || !matchesWorkspaceReference(expectedRef,local.workspace,local.context) || ['workspaceId','workspaceRevision','planVersion','date','mealType'].some(key=>expectedRef[key]!==menu.expectedRef[key])){this.setData({conversationError:'这份菜单已变化，请查看当前餐或完成当前核对'});return}
+   if(action==='lighter'){
+    const dish=local.workspace.draft.dishes.find(d=>(d.id||d.dishId)===dishId)
+    if(!row.locked)this.offerConversationInput(`请把${expectedRef.date}${require('./meal-workspace-presentation').contextPresentation(local.workspace.context).mealName || '这餐'}的「${dish.name}」换清淡点，保留其他已保留的菜`,{...expectedRef})
+    return
+   }
+   if(!['keep','release','replace'].includes(action) || action==='replace'&&!row.canReplace || action==='keep'&&row.locked || action==='release'&&!row.locked)return
+   const binding={conversation,store:this.store,scope:this._scope};this._directDishBinding=binding
+   this.setData({conversationError:''})
+   try{return await this.runCommand(action,{dishId},{...expectedRef})}
+   finally{if(this._directDishBinding===binding){this._directDishBinding=null;if(this.current()&&binding.store===this.store&&conversation===this.conversation){this.refreshConversationMenus();this.setData({conversationMenuExpanded:true})}}}
+  },
+  onConversationWorkspaceRecover(){if(this.current()&&!this.data.busy&&this.store&&this.store.state().pending&&!conversationBlocksMenu(this.conversation&&this.conversation.state()))return this.onRetryWorkspace()},
   onConversationSuggestion(event){
    if(!this.data.assistantConnected || (this.data.conversationMessages || []).length)return
    const item=require('./assistant-presentation').buildAssistantSuggestions({available:true,hasMenu:!!this.data.conversationCurrentMenu}).find(s=>s.id===event.currentTarget.dataset.id)
    if(item)this.offerConversationInput(item.text)
   },
   onConversationInput(event){if(this.conversation)this.conversation.setInput(event.detail.value)},
-  onConversationSend(){if(this.conversation&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false){this._conversationForceBottom=true;return this.conversation.send(this.data.conversationInput)}},
+  onConversationSend(){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false){this._conversationForceBottom=true;return this.conversation.send(this.data.conversationInput)}},
   onConversationRecover(){if(this.conversation)return this.conversation.recover();return this.openConnectedConversation()},
   onConversationStop(){if(this.conversation)return this.conversation.cancelTurn()},
-  onConversationConfirm(event){if(this.conversation&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false)return this.conversation.confirm(event.detail.id)},
+  onConversationConfirm(event){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false)return this.conversation.confirm(event.detail.id)},
   onConversationHandoff(event){
    if(!this.current()||!this.conversation||this.data.conversationBusy||this.data.conversationActionsEnabled===false)return
    const state=this.conversation.state(),turn=state.turn,w=this.store.state().workspace
@@ -124,10 +159,10 @@ module.exports=function assistantPage(fallback, options={}) {
    if(!require('./assistant-action-handoff').openCard(card,w,{kind:'assistant',sessionId:state.sessionId,workspaceId:w&&w.id,date:this.data.context.date,mealType:this.data.context.mealType}))this.setData({conversationError:'这项内容已变化，请重新查询后再打开'})
   },
   onConversationChoice(event){
-   if(!this.conversation||this.data.conversationBusy||this.data.conversationActionsEnabled===false||!this.current())return
+   if(!this.conversation||this.workspaceBlocksConversation()||this.data.conversationBusy||this.data.conversationActionsEnabled===false||!this.current())return
    const conversation=this.conversation,scope=this._scope,before=conversation.state(),choice={...event.detail}
    if(before.recoverable||before.confirmationPending||before.selectionPending)return
-   const apply=()=>{if(!this._assistantAlive||!this.current()||scope!==this._scope||conversation!==this.conversation||conversation.state().input!==before.input)return;this._conversationForceBottom=true;return conversation.chooseClarification(choice.id,choice.optionId,choice.date)}
+   const apply=()=>{if(!this._assistantAlive||!this.current()||this.workspaceBlocksConversation()||scope!==this._scope||conversation!==this.conversation||conversation.state().input!==before.input)return;this._conversationForceBottom=true;return conversation.chooseClarification(choice.id,choice.optionId,choice.date)}
    if(String(before.input||'').trim())wx.showModal({title:'使用这个选项？',content:'当前尚未发送的文字会被替换。',success:result=>{if(result.confirm)apply()}})
    else return apply()
   },
@@ -137,8 +172,8 @@ module.exports=function assistantPage(fallback, options={}) {
   onConversationScroll(event){const h=this._conversationViewportHeight;this._conversationAtBottom=!!h&&event.detail.scrollHeight-event.detail.scrollTop-h<64;if(!this._conversationAtBottom)this.setData({conversationScrollTarget:''})},
   onConversationBottom(){this._conversationAtBottom=true;this.setData({conversationHasNew:false})},
   onConversationLatest(){this._conversationAtBottom=true;this.setData({conversationScrollTarget:'',conversationHasNew:false},()=>this.setData({conversationScrollTarget:'conversation-end'}))},
-  onConversationSelection(event){if(this.conversation&&!this.data.conversationBusy)return this.conversation.selectShopping(event.detail.id,event.detail.selectedSourceKeys)},
-  onConversationRepreview(event){if(this.conversation&&!this.data.conversationBusy)return this.conversation.selectShopping(event.detail.id)},
+  onConversationSelection(event){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy)return this.conversation.selectShopping(event.detail.id,event.detail.selectedSourceKeys)},
+  onConversationRepreview(event){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy)return this.conversation.selectShopping(event.detail.id)},
   async onConversationUndo(event){
    if(this.data.conversationBusy || !this.current() || !this.conversation || this.data.conversationActionsEnabled===false)return
    const turn=this.conversation.state().turn,card=turn && (turn.cards || []).find(c=>c.id===event.detail.id),w=this.store.state().workspace,ref=card && card.workspaceRef

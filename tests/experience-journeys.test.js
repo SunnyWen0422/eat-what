@@ -42,7 +42,7 @@ function journey() {
   function read(file) { file = path.resolve(file); if (cache[file]) return cache[file]; const name = path.basename(file)
     if (name === 'api.js') return api
     if (name === 'util.js') return util
-    if (name === 'config.js') return { ENABLE_MEAL_WORKSPACE: true }
+    if (name === 'config.js') return { ENABLE_MEAL_WORKSPACE: true, getApiBaseUrl:()=> 'https://isolated.invalid/api' }
     if (name === 'font-scale.js') return Object.assign(() => 2, { base: 16 })
     if (name === 'recommendation-options.js') return { loadRecommendationOptions: async () => ({ options: { groups: {} } }) }
     const module = { exports: {} }; cache[file] = module.exports

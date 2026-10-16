@@ -8,6 +8,14 @@ const canonicalContext = value => {
   return canonical(context)
 }
 const requestId = () => `ws-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+function workspaceReference(workspace) {
+  if(!workspace || !workspace.context || !workspace.draft)return null
+  return {workspaceId:workspace.id,workspaceRevision:workspace.revision,planVersion:workspace.draft.planVersion,date:workspace.context.date,mealType:workspace.context.mealType}
+}
+function matchesWorkspaceReference(expected, workspace, context=workspace && workspace.context) {
+  const actual=workspaceReference(workspace)
+  return !!expected && !!actual && ['workspaceId','workspaceRevision','planVersion','date','mealType'].every(key=>expected[key]!=null && expected[key]===actual[key]) && !!context && context.date===expected.date && context.mealType===expected.mealType
+}
 
 function defaultTarget(now = new Date()) {
   const china = new Date(now.getTime() + 8 * 3600000)
@@ -38,6 +46,9 @@ function normalizeContext(input) {
 /** An instance is permanently bound to one account; pages recreate it on account switch. */
 function createWorkspaceStore(options = {}) {
   const api = options.api || require('./api')
+  const apiSource = options.source || (()=>require('./config').getApiBaseUrl())
+  const source = () => typeof apiSource==='function'?apiSource():apiSource
+  const ownerSource=source()
   const accountIdentity = options.identity || require('./util').getCurrentUserIdentity
   const identity = () => {
     const account = accountIdentity()
@@ -47,11 +58,11 @@ function createWorkspaceStore(options = {}) {
   const write = options.write || ((key, value) => wx.setStorageSync(key, value))
   const scope = identity()
   let active = true, generation = 0, mutation = 0, key = '', workspace = null, context = null, linked = {}, dirty = false, pending = null, lastAction = null, syncStatus = 'loading'
-  const ensure = () => { if (!active || scope !== identity()) throw new Error('账号已切换，请重新进入本餐') }
-  const owns = (ticket,mutationTicket) => active && scope===identity() && ticket===generation && mutationTicket===mutation
+  const ensure = () => { if (!active || scope !== identity()) throw new Error('账号已切换，请重新进入本餐');if(ownerSource!==source())throw new Error('服务已切换，请重新进入本餐') }
+  const owns = (ticket,mutationTicket) => active && scope===identity() && ownerSource===source() && ticket===generation && mutationTicket===mutation
   const superseded = () => Object.assign(new Error('当前餐已切换'),{superseded:true})
   const persist = () => { ensure(); if (key) write(key, clone({ workspace, context, linked, dirty, pending, lastAction, syncStatus })) }
-  const state = () => scope === identity() && active ? clone({ workspace, context, linked, dirty, pending, lastAction, syncStatus }) : { workspace: null, context: null, linked: {}, dirty: false, pending: null, syncStatus: 'account_changed' }
+  const state = () => scope === identity() && ownerSource===source() && active ? clone({ workspace, context, linked, dirty, pending, lastAction, syncStatus }) : { workspace: null, context: null, linked: {}, dirty: false, pending: null, syncStatus: 'account_changed' }
   async function load(date, mealType, defaults = {}) {
     ensure(); const ticket = ++generation, mutationTicket=mutation
     key = `user:${scope}:meal-workspace:${date}:${mealType}`
@@ -160,8 +171,11 @@ function createWorkspaceStore(options = {}) {
     if (!dirty) return state()
     return send({ type: 'context', id: workspace.id, body: { requestId: requestId(), expectedWorkspaceRevision: workspace.revision, context: clone(context) } })
   }
-  async function command(command, extra = {}) {
+  async function command(command, extra = {}, expectedRef = null) {
+    const checkReference=()=>{if(expectedRef && (!matchesWorkspaceReference(expectedRef,workspace,context) || options.canCommand && options.canCommand(expectedRef)===false))throw new Error('本餐或待确认操作已变化，请查看当前菜单或完成当前核对')}
+    checkReference()
     available(); if(dirty || !workspace)await save(); available()
+    checkReference()
     return send({ type: 'command', id: workspace.id, body: { ...extra, requestId: extra.requestId || requestId(), expectedWorkspaceRevision: workspace.revision, planVersion: workspace.draft.planVersion, command } })
   }
   async function confirm(planRevision, target, snapshot) {
@@ -212,4 +226,4 @@ function createWorkspaceStore(options = {}) {
   return { load, edit, save, command, confirm, retry, revalidateConfirmation, reloadLatest, state, dispose }
 }
 
-module.exports = { resolveActiveTarget, defaultTarget, normalizeContext, createWorkspaceStore, requestId }
+module.exports = { resolveActiveTarget, defaultTarget, normalizeContext, createWorkspaceStore, requestId, workspaceReference, matchesWorkspaceReference }

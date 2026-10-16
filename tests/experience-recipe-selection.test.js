@@ -35,7 +35,7 @@ function fixture(options = {}) {
     commandMealWorkspace: async (id, body) => { writes.push({ id, body: plain(body) }); if (hold) await hold; if (commandFailure || failure) throw commandFailure || failure; const next = replies.shift(); if (!next) throw Error('No declared HTTP reply'); row = plain(next); return plain(next) },
     getWorkspaceRequest: async () => null, getWorkspaceTask: async () => plain(options.task || { id: 'task-one', workspaceId: 'workspace-A', baseRevision: 5, status: 'draft' }),
     confirmMealWorkspace: () => { throw Error('Recipe browsing must never write calendar') }, saveMealPlan: () => { throw Error('Recipe browsing must never write calendar') }, }
-  const overrides = { 'utils/api.js': api, 'utils/util.js': util, 'utils/account-identity.js': { currentIdentity: () => account }, 'utils/config.js': { ENABLE_MEAL_WORKSPACE: true },
+  const overrides = { 'utils/api.js': api, 'utils/util.js': util, 'utils/account-identity.js': { currentIdentity: () => account }, 'utils/config.js': { ENABLE_MEAL_WORKSPACE: true, getApiBaseUrl:()=> 'https://isolated.invalid/api' },
     'utils/font-scale.js': Object.assign(() => 1, { base: 16 }), 'utils/recommendation-options.js': { loadRecommendationOptions: async () => ({ options: { groups: {} } }) } }
   function load(relative) {
     relative = relative.replace(/\\/g, '/')

@@ -21,3 +21,8 @@
 .card-choice-picker { min-width:44px; min-height:44px; }
 .card-choice { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:8px 12px; border:1px solid {{controlBorder}}; border-radius:14px; background:{{brandSoft}}; color:{{brand}}; font-size:1em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; }
 .card-choice::after { border:0; }
+.card-menu-controls { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:{{space.1.px}}; margin-top:{{space.1.px}}; }
+.card-menu-action { display:flex; align-items:center; justify-content:center; min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; max-width:100%; padding:{{space.1.px}} {{space.2.px}}; margin:0; box-sizing:border-box; border:1px solid {{controlBorder}}; border-radius:{{radius.1.px}}; color:{{brand}}; background:{{glassSurface}}; font-size:{{font.secondary.em}}; line-height:1.5; white-space:normal; overflow-wrap:anywhere; transition:background-color 100ms; }
+.card-menu-action::after { border:0; }
+.card-menu-action:active { background:{{brandSoft}}; }
+.card-menu-disabled { color:{{muted}}; background:transparent; }

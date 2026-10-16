@@ -62,7 +62,7 @@ function fixture() {
   const sandbox = {
     module: { exports: {} }, wx, setTimeout, clearTimeout, console,
     require: name => name === './api' ? api : name === './util' ? util : name === './meal-workspace'
-      ? { ...rules, createWorkspaceStore: () => rules.createWorkspaceStore({ api, identity: util.getCurrentUserIdentity, read: wx.getStorageSync, write: wx.setStorageSync }) }
+      ? { ...rules, createWorkspaceStore: options => rules.createWorkspaceStore({ ...options, api, identity: util.getCurrentUserIdentity, read: wx.getStorageSync, write: wx.setStorageSync }) }
       : require(path.resolve(__dirname, '../../utils', name)),
   }
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../utils/meal-workspace-page.js'), 'utf8'), sandbox)

@@ -3,7 +3,21 @@ Component({
  properties:{card:Object,busy:Boolean,active:Boolean},data:{view:{rows:[]},failedImages:{}},
  observers:{card(){this.refresh()}},lifetimes:{attached(){this.refresh()}},
  methods:{
-  refresh(){const view=presentCard(this.properties.card),failedImages={};for(const row of view.rows)if(this.data.failedImages[row.key]===row.mediaIdentity)failedImages[row.key]=row.mediaIdentity;this.setData({view,failedImages})},
+  refresh(){const view=presentCard(this.properties.card),menu=this.properties.card&&this.properties.card.menuActions,failedImages={};view.menuActions=menu||null;view.rows=view.rows.map(row=>({...row,...(menu&&menu.rows||[]).find(action=>action.dishId===row.dishId)}));for(const row of view.rows)if(this.data.failedImages[row.key]===row.mediaIdentity)failedImages[row.key]=row.mediaIdentity;this.setData({view,failedImages})},
+  emitDishAction(dishId,action,expectedRef,cardId){
+   this.refresh();const card=this.properties.card,menu=this.data.view.menuActions,row=(menu&&menu.rows||[]).find(r=>r.dishId===dishId)
+   if(!menu||!menu.enabled||!row||this.properties.busy||cardId!==card.id||!expectedRef||['workspaceId','workspaceRevision','planVersion','date','mealType'].some(key=>menu.expectedRef[key]!==expectedRef[key]))return
+   if(action==='replace'&&!row.canReplace||action==='lighter'&&row.locked||action==='keep'&&row.locked||action==='release'&&!row.locked)return
+   this.triggerEvent('dishaction',{cardId,dishId,action,expectedRef:{...expectedRef}})
+  },
+  onDishReplace(event){this.refresh();const menu=this.data.view.menuActions;if(menu)this.emitDishAction(Number(event.currentTarget.dataset.dishId),'replace',menu.expectedRef,this.properties.card.id)},
+  onDishMore(event){
+   this.refresh();const menu=this.data.view.menuActions,dishId=Number(event.currentTarget.dataset.dishId),row=(menu&&menu.rows||[]).find(r=>r.dishId===dishId)
+   if(!menu||!menu.enabled||!row||this.properties.busy)return
+   const expectedRef={...menu.expectedRef},cardId=this.properties.card.id,actions=[row.locked?'release':'keep',...(!row.locked?['lighter']:[])]
+   wx.showActionSheet({itemList:[row.locked?'取消保留':'保留这道菜',...(!row.locked?['换清淡点（编辑后发送）']:[])],success:result=>{if(actions[result.tapIndex])this.emitDishAction(dishId,actions[result.tapIndex],expectedRef,cardId)}})
+  },
+  onCurrentMenu(){this.triggerEvent('dishaction',{cardId:this.properties.card.id,dishId:null,action:'current',expectedRef:this.data.view.menuActions&&this.data.view.menuActions.expectedRef})},
   onImageError(event){const {key,source,identity}=event.currentTarget.dataset,row=this.data.view.rows.find(r=>r.key===key);if(row&&row.image===source&&(identity==null||identity===row.mediaIdentity))this.setData({['failedImages.'+key]:row.mediaIdentity})},
   onDish(event){const row=this.data.view.rows.find(r=>r.key===event.currentTarget.dataset.key);if(row&&row.url)wx.navigateTo({url:row.url})},
   onFact(event){const fact=this.data.view.facts.find(r=>r.key===event.currentTarget.dataset.key);if(fact&&fact.url)wx.navigateTo({url:fact.url})},
