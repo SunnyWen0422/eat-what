@@ -7,13 +7,18 @@
 
 /* Recommendations use F; committing cards keep a distinct solid action area. */
 .assistant-card { background:rgba(255,255,255,0.66); border:1px solid rgba(255,255,255,0.74); border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
-.card-dish { padding:10px; background:rgba(255,255,255,0.66); border:1px solid rgba(255,255,255,0.74); border-radius:16px; box-sizing:border-box; }
+.card-row { margin-top:12px; padding-top:12px; border-top:1px solid #E6EAE1; }
+.card-dish { min-height:44px; padding:0; background:transparent; border:0; border-radius:10px; box-sizing:border-box; white-space:normal; }
 .card-picture { width:56px; height:56px; border-radius:14px; }
+.card-name-text { font-weight:600; }
+.card-dish:active { background:#EDF3ED; }
+.card-dish.card-dish-disabled { background:transparent; color:#25332B; }
+.card-check-row + .card-check-row { border-top:1px solid #E6EAE1; }
 .card-confirmation { background:rgba(255,255,255,0.88); border-color:#7C8E80; }
 .card-confirmation .card-title { color:#28634E; }.card-action { margin-top:16px; }
 .assistant-card .card-dish { width:100%; margin:0; font-weight:400; }
 
 .card-choices { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 .card-choice-picker { min-width:44px; min-height:44px; }
-.card-choice { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:8px 12px; border:1px solid #7C8E80; border-radius:14px; background:#FFFFFF; color:#28634E; font-size:1em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; }
+.card-choice { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:8px 12px; border:1px solid #7C8E80; border-radius:14px; background:#EDF3ED; color:#28634E; font-size:1em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; }
 .card-choice::after { border:0; }

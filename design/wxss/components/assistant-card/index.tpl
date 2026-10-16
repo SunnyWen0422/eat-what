@@ -6,13 +6,18 @@
 
 /* Recommendations use F; committing cards keep a distinct solid action area. */
 .assistant-card { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
-.card-dish { padding:10px; background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; box-sizing:border-box; }
+.card-row { margin-top:{{space.2.px}}; padding-top:{{space.2.px}}; border-top:1px solid {{divider}}; }
+.card-dish { min-height:{{controls.touchSize.px}}; padding:0; background:transparent; border:0; border-radius:{{radius.1.px}}; box-sizing:border-box; white-space:normal; }
 .card-picture { width:56px; height:56px; border-radius:14px; }
+.card-name-text { font-weight:600; }
+.card-dish:active { background:{{brandSoft}}; }
+.card-dish.card-dish-disabled { background:transparent; color:{{text}}; }
+.card-check-row + .card-check-row { border-top:1px solid {{divider}}; }
 .card-confirmation { background:{{glassChrome}}; border-color:{{controlBorder}}; }
 .card-confirmation .card-title { color:{{brand}}; }.card-action { margin-top:16px; }
 .assistant-card .card-dish { width:100%; margin:0; font-weight:400; }
 
 .card-choices { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
 .card-choice-picker { min-width:44px; min-height:44px; }
-.card-choice { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:8px 12px; border:1px solid {{controlBorder}}; border-radius:14px; background:{{card}}; color:{{brand}}; font-size:1em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; }
+.card-choice { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:8px 12px; border:1px solid {{controlBorder}}; border-radius:14px; background:{{brandSoft}}; color:{{brand}}; font-size:1em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; }
 .card-choice::after { border:0; }

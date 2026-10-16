@@ -12,7 +12,9 @@
 .dish-row .dish-replace { flex:0 1 auto; width:auto; min-width:44px; min-height:44px; margin:0 0 0 auto; padding:{{space.1.px}}; border:1px solid {{controlBorder}}; border-radius:{{radius.1.px}}; background:{{glassChrome}}; color:{{brand}}; font-family:inherit; font-size:{{font.secondary.em}}; font-weight:400; line-height:1.5; overflow-wrap:anywhere; box-sizing:border-box; }
 .dish-replace.is-disabled { color:{{muted}}; background:transparent; }
 .dish-main::after, .dish-replace::after { border:0; }
-.dish-row:active { background:{{brandSoft}}; }
+.dish-main, .dish-replace, .dish-more { transition:background-color {{motion.press.ms}} ease-out; }
+.dish-row .dish-main:active, .dish-row .dish-replace:active, .dish-row .dish-more:active { background:{{brandSoft}}; }
+.dish-row .dish-replace.is-disabled, .dish-row .dish-more.is-disabled { color:{{muted}}; background:transparent; }
 @keyframes dish-appear { from { opacity:0; } to { opacity:1; } }
 
 .dish-row .dish-more { flex:0 0 44px; width:44px; min-height:44px; margin:0; padding:8px; background:transparent; display:flex; align-items:center; justify-content:center; }
