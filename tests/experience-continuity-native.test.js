@@ -51,3 +51,18 @@ test('fixture guard denies transport and suppresses lifecycle while retaining ha
   context.Page({onLoad(){calls++},handler(){return 7}});registered.onLoad.call({route:'test'});wx.request({url:'http://127.0.0.1:9/api/a'})
   assert.equal(calls,0);assert.equal(registered.handler(),7)
 })
+test('cached service Page registrations receive the requested font factor on every real load', () => {
+  let registered, loads=0
+  const wx={cloud:{},request(){},getAppBaseInfo:()=>({fontSizeScaleFactor:1})}
+  const context={wx,Page:def=>{registered=def},module:{exports:{}},Promise}
+  vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api'}),context)
+  context.Page({data:{fontScale:1},onLoad(){loads++}})
+  registered.setData=value=>Object.assign(registered.data,value)
+  for(const factor of [1,1.3,2]){context.module.exports.fontScale=factor;registered.onLoad();assert.equal(registered.data.fontScale,factor)}
+  assert.equal(loads,3)
+})
+test('guard installation fails closed when native request replacement is rejected', () => {
+  const wx={cloud:{},getAppBaseInfo:()=>({})}
+  Object.defineProperty(wx,'request',{value(){throw Error('real transport reached')},writable:false})
+  assert.throws(()=>vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api'}),{wx,Page(){},module:{exports:{}},Promise}),/GUARD_INSTALL/)
+})

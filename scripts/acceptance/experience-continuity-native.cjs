@@ -38,13 +38,14 @@ function matrix(routes) {
 function guardSource({mode,runId,api}) {
  return `// Export-only boundary; never used by canonical app.\nconst state=${JSON.stringify({mode,runId,api,lifecycleEnabled:mode==='service',label:'E18 '+mode+' · 合成账号',denied:{},storage:{},lifecycle:[],requests:[],fontScale:1})};
 const deny=name=>function(o={}){state.denied[name]=(state.denied[name]||0)+1;const e={errMsg:name+':fail E18_BOUNDARY_BLOCKED'};Promise.resolve().then(()=>{if(o.fail)o.fail(e);if(o.complete)o.complete(e)});return {abort(){},close(){},onOpen(){},onMessage(){},onError(){},onClose(){},onHeadersReceived(){},onChunkReceived(){}}};
-const request=wx.request;wx.request=function(o={}){const allowed=state.lifecycleEnabled&&typeof o.url==='string'&&(o.url===state.api||o.url.indexOf(state.api+'/')===0);if(!allowed)return deny('request')(o);state.requests.push({path:o.url.slice(state.api.length).split('?')[0],method:o.method||'GET'});return request.call(wx,o)};
-for(const name of ['login','checkSession','uploadFile','downloadFile','connectSocket','sendSocketMessage','getUserInfo','getUserProfile','getPhoneNumber','requestPayment','openEmbeddedMiniProgram','navigateToMiniProgram','openOfficialAccountArticle','createLivePusherContext'])wx[name]=deny(name);
-if(wx.cloud)for(const name of ['init','callFunction','uploadFile','downloadFile','getTempFileURL','connectContainer','callContainer','database'])wx.cloud[name]=deny('cloud.'+name);
-wx.getStorageSync=k=>state.storage[k]==null?'':state.storage[k];wx.setStorageSync=(k,v)=>{state.storage[k]=v};wx.removeStorageSync=k=>{delete state.storage[k]};wx.clearStorageSync=()=>{state.storage={}};wx.getStorageInfoSync=()=>({keys:Object.keys(state.storage),currentSize:0,limitSize:10240});
-for(const name of ['getStorage','setStorage','removeStorage','clearStorage','getStorageInfo'])wx[name]=function(o={}){let r={errMsg:name+':ok'};if(name==='getStorage')r.data=wx.getStorageSync(o.key);if(name==='setStorage')wx.setStorageSync(o.key,o.data);if(name==='removeStorage')wx.removeStorageSync(o.key);if(name==='clearStorage')wx.clearStorageSync();if(name==='getStorageInfo')Object.assign(r,wx.getStorageInfoSync());Promise.resolve().then(()=>{if(o.success)o.success(r);if(o.complete)o.complete(r)})};
-const base=wx.getAppBaseInfo;wx.getAppBaseInfo=function(){return Object.assign({},base?base.call(wx):{},{fontSizeScaleFactor:state.fontScale})};
-const originalPage=Page;Page=function(def){for(const name of ['onLoad','onShow','onReady','onHide','onUnload'])if(typeof def[name]==='function'){const fn=def[name];def[name]=function(...args){state.lifecycle.push({route:this.route,name});if(state.lifecycleEnabled)return fn.apply(this,args)}}return originalPage(def)};module.exports=state;\n`
+const install=(target,name,fn)=>{target[name]=fn;if(target[name]!==fn)throw Error('E18_GUARD_INSTALL_FAILED:'+name)};
+const request=wx.request;install(wx,'request',function(o={}){const allowed=state.lifecycleEnabled&&typeof o.url==='string'&&(o.url===state.api||o.url.indexOf(state.api+'/')===0);if(!allowed)return deny('request')(o);state.requests.push({path:o.url.slice(state.api.length).split('?')[0],method:o.method||'GET'});return request.call(wx,o)});
+for(const name of ['login','checkSession','uploadFile','downloadFile','connectSocket','sendSocketMessage','getUserInfo','getUserProfile','getPhoneNumber','requestPayment','openEmbeddedMiniProgram','navigateToMiniProgram','openOfficialAccountArticle','createLivePusherContext'])install(wx,name,deny(name));
+if(wx.cloud)for(const name of ['init','callFunction','uploadFile','downloadFile','getTempFileURL','connectContainer','callContainer','database'])install(wx.cloud,name,deny('cloud.'+name));
+const memory={getStorageSync:k=>state.storage[k]==null?'':state.storage[k],setStorageSync:(k,v)=>{state.storage[k]=v},removeStorageSync:k=>{delete state.storage[k]},clearStorageSync:()=>{state.storage={}},getStorageInfoSync:()=>({keys:Object.keys(state.storage),currentSize:0,limitSize:10240})};for(const name of Object.keys(memory))install(wx,name,memory[name]);
+for(const name of ['getStorage','setStorage','removeStorage','clearStorage','getStorageInfo'])install(wx,name,function(o={}){let r={errMsg:name+':ok'};if(name==='getStorage')r.data=wx.getStorageSync(o.key);if(name==='setStorage')wx.setStorageSync(o.key,o.data);if(name==='removeStorage')wx.removeStorageSync(o.key);if(name==='clearStorage')wx.clearStorageSync();if(name==='getStorageInfo')Object.assign(r,wx.getStorageInfoSync());Promise.resolve().then(()=>{if(o.success)o.success(r);if(o.complete)o.complete(r)})});
+const base=wx.getAppBaseInfo;install(wx,'getAppBaseInfo',function(){return Object.assign({},base?base.call(wx):{},{fontSizeScaleFactor:state.fontScale})});
+const originalPage=Page;Page=function(def){for(const name of ['onLoad','onShow','onReady','onHide','onUnload'])if(typeof def[name]==='function'||name==='onLoad'){const fn=def[name];def[name]=function(...args){state.lifecycle.push({route:this.route,name});if(state.lifecycleEnabled){if(name==='onLoad'&&this.setData)this.setData({fontScale:state.fontScale});if(fn)return fn.apply(this,args)}}}return originalPage(def)};module.exports=state;\n`
 }
 function assess({measurements,errors=[]}) {
  if(!measurements.length)return {status:'blocked',reason:'No measurable native content; no layout conclusion'}
@@ -108,15 +109,25 @@ async function launch(o,manifest) {
  if(id.runId!==manifest.runId||id.mode!==o.mode){mini.disconnect();throw Error('Connected native app identity mismatch')}
  return mini
 }
-async function geometry(page,width) {
- const measurements=[],errors=[]
- const add=async(e,selector,hit=false,primary=false)=>{try{const size=await bounded(e.size()),offset=await bounded(e.offset());if(size.width<=0||size.height<=0)return;measurements.push({selector,...size,...offset,right:offset.left+size.width,hit,primary,clipped:offset.left<-.5||offset.left+size.width>width+.5})}catch(e){errors.push({selector,error:e.message.slice(0,200)})}}
- for(const selector of ['.ew-page','.ew-heading','.ew-title','.cooking-step','#cooking-step-heading','.dish-switch-scroll','.ew-tabs','.ew-link','.cooking-bottom','.action-bar','.detail-bottom','.preview-bottom','.mobile-scroll-content','.workspace-primary-control','.apply-btn','.ew-hit-target','button','input','textarea'])for(const el of (await bounded(page.$$(selector))).slice(0,70))await add(el,selector,['.workspace-primary-control','.apply-btn','.ew-hit-target','button','input','textarea'].includes(selector),['.workspace-primary-control','.apply-btn'].includes(selector))
- for(const tag of ['ui-button','ui-sheet','ui-card','compact-dish-row','compact-ingredient-row','ui-chip','ui-icon-button'])for(const host of (await bounded(page.$$(tag))).slice(0,20))for(const selector of tag==='ui-button'?['.button']:tag==='ui-sheet'?['.ew-sheet','.sheet-body','.sheet-footer']:tag==='ui-card'?['#cooking-step-heading','.cooking-step']:tag==='compact-dish-row'?['.dish-row','.dish-main','.dish-replace','.dish-more']:tag==='compact-ingredient-row'?['.ingredient-row','.ingredient-check','.ingredient-quantity','.ingredient-sources']:['.ew-hit-target'])for(const el of (await bounded(host.$$(selector))).slice(0,20))await add(el,tag+' '+selector,['.button','.dish-main','.dish-replace','.dish-more','.ingredient-check','.ingredient-quantity','.ingredient-sources','.ew-hit-target'].includes(selector),tag==='ui-button')
+async function geometry(mini,page,width) {
+ const selectors=['.ew-page','.ew-heading','.ew-title','.cooking-step','#cooking-step-heading','.dish-switch-scroll','.ew-tabs','.ew-link','.cooking-bottom','.action-bar','.detail-bottom','.preview-bottom','.mobile-scroll-content','.workspace-primary-control','.apply-btn','.ew-hit-target','button','input','textarea',
+  'ui-button >>> .button','ui-button >>> .button.primary','ui-sheet >>> .ew-sheet','ui-sheet >>> .sheet-body','ui-sheet >>> .sheet-footer','ui-card >>> #cooking-step-heading','ui-card >>> .cooking-step','compact-dish-row >>> .dish-row','compact-dish-row >>> .dish-main','compact-dish-row >>> .dish-replace','compact-dish-row >>> .dish-more','compact-ingredient-row >>> .ingredient-row','compact-ingredient-row >>> .ingredient-check','compact-ingredient-row >>> .ingredient-quantity','compact-ingredient-row >>> .ingredient-sources','ui-chip >>> .ew-hit-target','ui-icon-button >>> .ew-hit-target']
+ const groups=await bounded(mini.evaluate((selectors)=>new Promise(resolve=>{const q=wx.createSelectorQuery();for(const s of selectors)q.selectAll(s).boundingClientRect();q.exec(resolve)}),selectors))
+ const measurements=[]
+ for(let i=0;i<selectors.length;i++)for(const r of groups[i]||[])if(r.width>0&&r.height>0){const selector=selectors[i],primary=selector==='ui-button >>> .button.primary'||['.workspace-primary-control','.apply-btn'].includes(selector),hit=primary||/button|input|textarea|hit-target|dish-main|dish-replace|dish-more|ingredient-check|ingredient-quantity|ingredient-sources/.test(selector);measurements.push({...r,selector,hit,primary,clipped:r.left<-.5||r.right>width+.5})}
+ // Native selector queries do not consistently pierce isolated components.
+ // Keep the SDK's component-scoped hit rectangles, batch independent reads.
+ const specs={'ui-button':['.button'], 'compact-dish-row':['.dish-main','.dish-replace','.dish-more'], 'compact-ingredient-row':['.ingredient-check','.ingredient-quantity','.ingredient-sources'], 'ui-icon-button':['.ew-hit-target'], 'ui-chip':['.ew-hit-target'], 'ui-sheet':['.ew-sheet','.sheet-body','.sheet-footer']}
+ const errors=[],sets=await Promise.all(Object.keys(specs).map(async tag=>({tag,hosts:await bounded(page.$$(tag))})))
+ const queries=sets.flatMap(({tag,hosts})=>hosts.slice(0,20).flatMap(host=>specs[tag].map(async selector=>({selector:tag+' '+selector,elements:await bounded(host.$$(selector)),hit:tag!=='ui-sheet',primary:tag==='ui-button'&&(await bounded(host.data('variant')))==='primary'}))))
+ const found=await Promise.allSettled(queries)
+ const boxes=found.flatMap(row=>row.status==='fulfilled'?row.value.elements.map(async element=>{const [size,offset]=await Promise.all([bounded(element.size()),bounded(element.offset())]);return {...size,...offset,selector:row.value.selector,hit:row.value.hit,primary:row.value.primary}}):[])
+ for(const row of found)if(row.status==='rejected')errors.push(String(row.reason.message).slice(0,200))
+ for(const row of await Promise.allSettled(boxes))if(row.status==='fulfilled'){const r=row.value;if(r.width>0&&r.height>0)measurements.push({...r,right:r.left+r.width,clipped:r.left<-.5||r.left+r.width>width+.5})}else errors.push(String(row.reason.message).slice(0,200))
  return {measurements,errors}
 }
 async function capture(o,manifest,session) {
- const report={mode:o.mode,lifecycleEnabled:o.mode==='service',sourceSha:manifest.sourceSha,appFingerprint:manifest.appFingerprint,authentication:manifest.authentication,requestedViewport:{width:o.width},actualViewport:null,fontScale:o.scales,device:null,evidence:[],matrix:matrix(read(path.join(manifest.project,'app.json')).pages),cases:[],exceptions:[],status:'not-run',physical:{android:'not-run',ios:'blocked: no iOS device available'},limits:['Measurements are not a complete layout/reader verdict','Font scale is an export-only platform base-info adapter; OS font setting/reader requires physical test','No production/upload/release; original WeChat SSO unverified']}
+ const report={mode:o.mode,lifecycleEnabled:o.mode==='service',sourceSha:manifest.sourceSha,appFingerprint:manifest.appFingerprint,authentication:manifest.authentication,requestedViewport:{width:o.width,widths:o.widths},actualViewport:null,fontScale:o.scales,device:null,evidence:[],matrix:matrix(read(path.join(manifest.project,'app.json')).pages),cases:[],exceptions:[],status:'not-run',physical:{android:'not-run',ios:'blocked: no iOS device available'},limits:['Measurements are not a complete layout/reader verdict','Font scale is an export-only base-info + onLoad data adapter for cached Page modules; original lifecycle still executes; this does NOT prove product response to OS font changes or reader','No production/upload/release; original WeChat SSO unverified']}
  const save=()=>write(path.join(o.out,'native-results.json'),report);save()
  let mini
  try {
@@ -144,7 +155,7 @@ async function capture(o,manifest,session) {
     const name=row.route.split('/')[1],query=o.mode==='service'?(session.queries[name]||''):''
     const page=await bounded(mini.reLaunch('/'+row.route+query));await sleep(200)
     if(o.mode==='fixture')await bounded(page.setData(fixtureData(name,scale)))
-    item.actualViewport=await bounded(mini.systemInfo());item.geometry=await geometry(page,item.actualViewport.windowWidth);Object.assign(item,assess(item.geometry))
+    item.actualViewport=await bounded(mini.systemInfo());item.geometry=await geometry(mini,page,item.actualViewport.windowWidth);Object.assign(item,assess(item.geometry))
     const file=path.join(o.out,name+'-'+row.role+'-w'+item.actualViewport.windowWidth+'-f'+scale+'.png');await bounded(mini.screenshot({path:file}));item.evidence.push(file)
     // Bottom reachability evidence is separate from screenshot quantity.
     const scroll=await bounded(page.$('scroll-view.mobile-scroll'))
@@ -155,6 +166,7 @@ async function capture(o,manifest,session) {
      item.interaction=await exercise(mini,page,name,o.out,item.actualViewport.windowWidth)
     }
     item.fontScaleObserved=await bounded(page.data('fontScale'))
+    if(item.fontScaleObserved!==scale){item.status='failed';item.fontScaleMismatch={requested:scale,observed:item.fontScaleObserved};throw Error('Actual page font factor differs from requested; remaining scale claims rejected')}
     item.lifecycle=await bounded(mini.evaluate(()=>getApp().nativeAcceptance.lifecycle.slice(-12)))
     row.states[row.role==='ordinary'&&name.startsWith('admin')?'permission':'normal'].evidence.push(...item.evidence)
     row.states[row.role==='ordinary'&&name.startsWith('admin')?'permission':'normal'].status='not-run'
@@ -162,7 +174,7 @@ async function capture(o,manifest,session) {
     report.evidence.push(...item.evidence)
    }catch(e){item.status='blocked';item.error=String(e.message).slice(0,800)}
    report.cases.push(item);save();console.log(JSON.stringify({route:item.route,role:item.role,fontScale:scale,status:item.status,actualWidth:item.actualViewport?.windowWidth}))
-   if(item.error?.includes('timed out'))throw Error(item.error)
+   if(item.error&&/timed out|font factor/.test(item.error))throw Error(item.error)
   }}
   report.guard=await bounded(mini.evaluate(()=>({denied:getApp().nativeAcceptance.denied,requests:getApp().nativeAcceptance.requests,lifecycle:getApp().nativeAcceptance.lifecycle,mode:getApp().nativeAcceptance.mode})))
   report.status=report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':'captured-requires-inspection'
