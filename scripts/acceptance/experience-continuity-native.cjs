@@ -209,8 +209,15 @@ async function exercise(mini,page,name,out,width) {
    await call('onInput',{currentTarget:{dataset:{field:'name'}},detail:{value:'E18 未保存副本'}})
    await call('cancelEdit');await sleep(200)
    result.modalScreenshot=path.join(out,'copy-cancel-modal-w'+width+'.png');await bounded(mini.screenshot({path:result.modalScreenshot}))
-   await bounded(mini.native().confirmModal(),10000);await sleep(300)
+   await bounded(mini.native().confirmModal(),10000)
+   const settle=Date.now()+2500;while(await bounded(page.data('editing'))&&Date.now()<settle)await sleep(200)
+   if(await bounded(page.data('editing'))){
+    result.confirmation='Official SDK confirm did not close editor; manual native confirmation window (60s)'
+    console.log(JSON.stringify({status:'awaiting-native-discard-click',width,timeoutSeconds:60}))
+    const until=Date.now()+60000;while(await bounded(page.data('editing'))&&Date.now()<until)await sleep(500)
+   }else result.confirmation='Official SDK confirm observed'
    result.editorClosed=!await bounded(page.data('editing'));result.status=result.editorClosed?'observed-requires-db-count':'failed'
+   result.afterScreenshot=path.join(out,'copy-after-cancel-w'+width+'.png');await bounded(mini.screenshot({path:result.afterScreenshot}))
   }else if(name==='meal-cooking'){
    result.name='cooking heading, ingredient return and footer reachability'
    const index=await bounded(page.data('stepIndex'));await call('onNextStep');await sleep(300)
