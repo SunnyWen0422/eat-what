@@ -16,20 +16,21 @@ final class AssistantFactReplyFormatter {
     static final class AuthorizedReadFact {
         final String name;
         final List<Map<String,Object>> items;
-        final boolean partial,unknown;
-        private AuthorizedReadFact(ReadResult read,boolean paged){
+        final boolean partial,unknown,contextSnapshot;
+        private AuthorizedReadFact(ReadResult read,boolean paged,boolean contextSnapshot){
             name=read.getName();items=Collections.unmodifiableList(rows(snapshot(read.getItems())));
+            this.contextSnapshot=contextSnapshot;
             partial=paged||read.isTruncated()||read.getNextCursor()!=null;
             unknown=read.getUnknownFields()!=null&&!read.getUnknownFields().isEmpty();
         }
         static AuthorizedReadFact fromRead(ReadResult read,ToolRead call){
             if(read==null||call==null||!Objects.equals(read.getName(),call.getName())||!Objects.equals(read.getCallId(),call.getCallId()))throw new IllegalArgumentException("查询结果不匹配");
-            return new AuthorizedReadFact(read,call.getArguments()!=null&&call.getArguments().get("cursor")!=null);
+            return new AuthorizedReadFact(read,call.getArguments()!=null&&call.getArguments().get("cursor")!=null,false);
         }
         /** ContextService has already checked user, workspace and version; not a model fact source. */
         static AuthorizedReadFact fromContext(ReadResult read){
             if(read==null||!Arrays.asList("read_current_meal","read_actual_diet_review").contains(read.getName()))throw new IllegalArgumentException("上下文来源无效");
-            return new AuthorizedReadFact(read,false);
+            return new AuthorizedReadFact(read,false,true);
         }
         private static Object snapshot(Object value){
             if(value instanceof Map){Map<String,Object> copy=new LinkedHashMap<>();for(Map.Entry<?,?> entry:((Map<?,?>)value).entrySet())if(entry.getKey() instanceof String)copy.put((String)entry.getKey(),snapshot(entry.getValue()));return Collections.unmodifiableMap(copy);}
@@ -38,9 +39,13 @@ final class AssistantFactReplyFormatter {
         }
     }
     private static final class Group {
-        final String name;final Map<String,Map<String,Object>> items=new LinkedHashMap<>();boolean partial,unknown;
+        final String name;final Map<String,Map<String,Object>> items=new LinkedHashMap<>();boolean partial,unknown,hasExecutorRead;
         Group(String name){this.name=name;}
         void add(AuthorizedReadFact fact){
+            // Context was captured before the tool read and may have been budget-clipped.
+            // Even an empty or partial executor result supersedes same-kind context facts.
+            if(fact.contextSnapshot&&hasExecutorRead)return;
+            if(!fact.contextSnapshot&&!hasExecutorRead){items.clear();partial=false;unknown=false;hasExecutorRead=true;}
             partial|=fact.partial;unknown|=fact.unknown;
             for(Map<String,Object> row:fact.items){
                 String key=identity(row);if(items.containsKey(key)){items.put(key,row);continue;}

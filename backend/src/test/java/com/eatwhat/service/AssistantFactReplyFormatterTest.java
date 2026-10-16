@@ -33,6 +33,32 @@ class AssistantFactReplyFormatterTest {
   String text=reply(fact("read_actual_diet_review",false,map("date","2026-10-10","actual",Collections.emptyList(),"summary",map("mealCount",0))));
   assertTrue(text.contains("没有记录不能判断是否进餐"));assertFalse(text.contains("没吃"));assertFalse(text.contains("没有进餐"));
  }
+ private Map<String,Object> actualDay(String... meals){
+  List<Map<String,Object>> actual=new ArrayList<>();for(String meal:meals)actual.add(map("date","2026-10-10","mealType",meal,"status","eaten","dishes",Collections.emptyList()));
+  return map("date","2026-10-10","actual",actual);
+ }
+ private AuthorizedReadFact actualContext(boolean partial,String... meals){
+  ReadResult read=new ReadResult();read.setName("read_actual_diet_review");read.setCallId("context");read.setTruncated(partial);read.getItems().add(actualDay(meals));return AuthorizedReadFact.fromContext(read);
+ }
+ @Test void full_executor_actual_read_wins_over_same_day_clipped_older_context_in_either_order(){
+  AuthorizedReadFact executed=fact("read_actual_diet_review",false,actualDay("lunch","dinner")),older=actualContext(true,"dinner");
+  for(List<AuthorizedReadFact> order:Arrays.asList(Arrays.asList(executed,older),Arrays.asList(older,executed))){
+   String text=formatter.format(order,new ModelContext());assertTrue(text.contains("2餐明确记录"),text);assertFalse(text.contains("部分"),text);
+  }
+ }
+ @Test void explicit_empty_actual_read_cannot_borrow_older_context_in_either_order(){
+  AuthorizedReadFact empty=fact("read_actual_diet_review",false),older=actualContext(true,"dinner");
+  for(List<AuthorizedReadFact> order:Arrays.asList(Arrays.asList(empty,older),Arrays.asList(older,empty))){
+   String text=formatter.format(order,new ModelContext());assertTrue(text.contains("未查到明确记录"),text);assertTrue(text.contains("不能判断是否进餐"),text);assertFalse(text.contains("部分"),text);
+  }
+ }
+ @Test void partial_executor_actual_read_keeps_its_own_partial_marker_without_borrowing_context(){
+  String text=reply(fact("read_actual_diet_review",true,actualDay("dinner")),actualContext(false,"lunch","dinner"));
+  assertTrue(text.contains("1餐明确记录"),text);assertTrue(text.contains("部分"),text);assertFalse(text.contains("2餐"),text);
+ }
+ @Test void context_only_actual_fallback_retains_the_snapshot_partial_marker(){
+  String text=reply(actualContext(true,"dinner"));assertTrue(text.contains("1餐明确记录"));assertTrue(text.contains("部分"));
+ }
  @Test void calendar_plans_and_explicit_actual_meals_are_separate(){
   String text=reply(fact("read_calendar",false,map("date","2026-10-10","plans",Arrays.asList(map("mealType","dinner")),"actual",Arrays.asList(map("status","eaten","mealType","lunch"),map("status","skipped")))));
   assertTrue(text.contains("1餐计划"));assertTrue(text.contains("1餐实吃"));assertTrue(text.contains("不代表已经吃过"));

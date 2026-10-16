@@ -92,6 +92,33 @@ class AssistantV4TurnServiceTest {
   when(context.build(any(),any(),any())).thenReturn(ctx);StepOutput out=finalOutput();out.setFactSource("recent_actual");when(model.step(any())).thenReturn(out);
   runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);assertTrue(view.getReply().contains("2餐明确记录"));assertEquals(2,((List<?>)view.getCards().get(0).getData().get("meals")).size());assertFalse(view.getReply().contains("已保存"));
  }
+ @Test void complete_actual_executor_result_is_not_replaced_by_clipped_same_day_context(){
+  TurnView view=actualExecutorWithContext(2,false,1,true);
+  assertTrue(view.getReply().contains("2餐明确记录"),view.getReply());assertFalse(view.getReply().contains("部分"));assertEquals(1,view.getCards().size());
+  assertEquals(2,((List<?>)view.getCards().get(0).getData().get("meals")).size());assertEquals(false,view.getCards().get(0).getData().get("truncated"));
+ }
+ @Test void empty_actual_executor_result_is_not_filled_from_old_actual_context(){
+  TurnView view=actualExecutorWithContext(0,false,1,true);
+  assertTrue(view.getReply().contains("未查到明确记录"),view.getReply());assertTrue(view.getReply().contains("不能判断是否进餐"));assertFalse(view.getReply().contains("部分"));
+  assertEquals(1,view.getCards().size());assertTrue(((List<?>)view.getCards().get(0).getData().get("meals")).isEmpty());
+ }
+ @Test void partial_actual_executor_result_remains_partial_without_old_context_inflation(){
+  TurnView view=actualExecutorWithContext(1,true,2,false);
+  assertTrue(view.getReply().contains("1餐明确记录"),view.getReply());assertTrue(view.getReply().contains("部分"));assertEquals(1,view.getCards().size());
+  assertEquals(1,((List<?>)view.getCards().get(0).getData().get("meals")).size());assertEquals(true,view.getCards().get(0).getData().get("truncated"));
+ }
+ TurnView actualExecutorWithContext(int executorMeals,boolean executorPartial,int contextMeals,boolean contextPartial){
+  ModelContext ctx=new ModelContext();ctx.getEvidence().put("truncated",contextPartial);
+  for(int index=0;index<contextMeals;index++)ctx.getRecentActual().add(AssistantV4ContextService.map("date","2026-10-10","mealType",index==0?"dinner":"lunch","status","eaten","dishes",Collections.emptyList()));
+  when(context.build(any(),any(),any())).thenReturn(ctx);
+  registry.registerRead("read_actual_diet_review",(u,c,s)->{ReadResult result=new ReadResult();result.setName(c.getName());result.setCallId(c.getCallId());result.setTruncated(executorPartial);
+   List<Map<String,Object>> actual=new ArrayList<>();for(int index=0;index<executorMeals;index++)actual.add(AssistantV4ContextService.map("date","2026-10-10","mealType",index==0?"dinner":"lunch","status","eaten","dishes",Collections.emptyList()));
+   result.getItems().add(AssistantV4ContextService.map("date","2026-10-10","actual",actual));return result;});
+  when(model.step(any())).thenAnswer(invocation->{if(store.turnRecord(1L,id).getProviderCallsUsed()>1){StepOutput done=finalOutput();done.setFactSource("recent_actual");return done;}
+   StepOutput out=tools(invocation.getArgument(0),"actual-executor");out.getReadCalls().get(0).setName("read_actual_diet_review");
+   ((Map<String,Object>)((Map<?,?>)((List<?>)out.getProviderContinuation().getAssistantMessage().get("tool_calls")).get(0)).get("function")).put("name","read_actual_diet_review");return out;});
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);assertEquals("completed",view.getStatus());assertFalse(view.getReply().contains("已保存"));assertNull(view.getPendingAction());assertTrue(view.getCards().stream().allMatch(card->card.getReceiptRef()==null));verify(model,times(2)).step(any());return view;
+ }
  void assertRecentActualProjection(boolean currentMeal,boolean actualExists,boolean truncated){
   ModelContext ctx=new ModelContext();ctx.getActiveMeal().put("currentDishes",currentMeal?Collections.singletonList(AssistantV4ContextService.map("id",1L,"name","未来计划青菜")):Collections.emptyList());
   ctx.getEvidence().put("recentActualRange",AssistantV4ContextService.map("startDate","2026-10-05","endDate","2026-10-11"));ctx.getEvidence().put("truncated",truncated);

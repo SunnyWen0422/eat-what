@@ -91,7 +91,9 @@ public class AssistantV4TurnService {
                 }
                 if(!"final".equals(output.getType()))throw new IllegalArgumentException("无法理解本次请求");
                 if(output.getActionProposal()==null||output.getActionProposal().getSteps().isEmpty()){
-                    if("recent_actual".equals(output.getFactSource())){ReadResult recent=recentActualRead(context);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(recent));facts.addAll(recentActualCards(user,context,recent));}
+                    // A selected context source is a fallback, never an older replacement for
+                    // an actual executor read (including its explicit empty/partial result).
+                    if("recent_actual".equals(output.getFactSource())&&authorizedFacts.stream().noneMatch(fact->!fact.contextSnapshot&&"read_actual_diet_review".equals(fact.name))){ReadResult recent=recentActualRead(context);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(recent));facts.addAll(recentActualCards(user,context,recent));}
                     // An explicit empty read is a result. Never replace it with an unrelated plan.
                     if(authorizedFacts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(current));facts.addAll(factCards(user,current));}
                     TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
