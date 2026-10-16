@@ -42,14 +42,21 @@ public class MealWorkspaceTaskRunner {
     }
     void execute(WorkspaceTask task) {
         task.setLeaseToken(UUID.randomUUID().toString());
-        try{if(db.claim(task.getId(),task.getLeaseToken())!=1)return;}
+        final boolean recovered;
+        try{
+            // Classify the winning guarded UPDATE, never the stale pending() snapshot.
+            // At most one queued attempt and one expired-running attempt; no retry loop.
+            if(db.claimQueued(task.getId(),task.getLeaseToken())==1)recovered=false;
+            else if(db.claimExpired(task.getId(),task.getLeaseToken())==1)recovered=true;
+            else return;
+        }
         catch(org.springframework.dao.TransientDataAccessException contention){
             // No provider or domain action has started. Keep the same durable task
             // for the bounded poller/lease recovery instead of killing a worker.
             LOG.info("workspace_claim_deferred kind={}",contention.getClass().getSimpleName());return;
         }
-        long observedStart=clock.millis();String observedOutcome="running".equals(task.getStatus())?"recover":"success";
-        if(!"running".equals(task.getStatus())&&task.getCreatedAt()!=null)ExperienceMetrics.observe(metrics,"assistant_queue","success",observedStart-task.getCreatedAt().getTime(),1);
+        long observedStart=clock.millis();String observedOutcome=recovered?"recover":"success";
+        if(!recovered&&task.getCreatedAt()!=null)ExperienceMetrics.observe(metrics,"assistant_queue","success",observedStart-task.getCreatedAt().getTime(),1);
         long started=System.nanoTime();
         MealWorkspace w=null;WorkspaceRequest r=null;
         try {

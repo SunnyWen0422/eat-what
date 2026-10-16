@@ -13,7 +13,7 @@ class MealWorkspaceFallbackTest {
     @Test void invalidSuggestedTargetRequiresInputAndCannotFallBackIntoOriginalMeal() throws Exception {
         MealWorkspace w=workspace();w.getDraft().setRequirementsFingerprint(MealWorkspaceRules.requirementsFingerprint(w.getContext()));
         MealWorkspacePlanner planner=mock(MealWorkspacePlanner.class);MealWorkspaceService service=mock(MealWorkspaceService.class);
-        MealWorkspaceMapper db=mock(MealWorkspaceMapper.class);when(db.claim(eq("bad-target"),anyString())).thenReturn(1);
+        MealWorkspaceMapper db=mock(MealWorkspaceMapper.class);when(db.claimQueued(eq("bad-target"),anyString())).thenReturn(1);
         MealWorkspaceAgentGateway agent=mock(MealWorkspaceAgentGateway.class);
         Map<String,Object> response=new HashMap<>();response.put("needsInput",true);
         Map<String,String> target=new HashMap<>();target.put("date","2026-99-99");target.put("mealType","dinner");response.put("suggestedTarget",target);

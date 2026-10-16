@@ -24,8 +24,12 @@ public interface MealWorkspaceMapper {
     WorkspaceTask taskById(@Param("id") String id,@Param("ws") String ws,@Param("user") Long user);
     @Select("SELECT "+TASK+" FROM workspace_task WHERE status='queued' OR (status='running' AND updated_at < DATE_SUB(NOW(),INTERVAL 30 SECOND)) ORDER BY created_at LIMIT 8")
     List<WorkspaceTask> pending();
-    @Update("UPDATE workspace_task SET status='running',lease_token=#{lease},updated_at=NOW() WHERE id=#{id} AND (status='queued' OR (status='running' AND updated_at < DATE_SUB(NOW(),INTERVAL 30 SECOND)))")
-    int claim(@Param("id") String id,@Param("lease") String lease);
+    @Update("UPDATE workspace_task SET status='running',lease_token=#{lease},updated_at=NOW() WHERE id=#{id} AND status='queued'")
+    int claimQueued(@Param("id") String id,@Param("lease") String lease);
+    @Update("UPDATE workspace_task SET status='running',lease_token=#{lease},updated_at=NOW() WHERE id=#{id} AND status='running' AND updated_at < DATE_SUB(NOW(),INTERVAL 30 SECOND)")
+    int claimExpired(@Param("id") String id,@Param("lease") String lease);
+    /** Compatibility for direct callers that only need the affected-row count. */
+    default int claim(String id,String lease){return claimQueued(id,lease)==1||claimExpired(id,lease)==1?1:0;}
     @Update("UPDATE workspace_task SET status=#{status},result_json=#{result},updated_at=NOW() WHERE id=#{id} AND status='running' AND lease_token=#{lease}")
     int finish(@Param("id") String id,@Param("lease") String lease,@Param("status") String status,@Param("result") String result);
     // The workspace's persisted taskId is authoritative. An empty ownership

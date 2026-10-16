@@ -57,6 +57,39 @@ class ExperienceStageInstrumentationTest {
         assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","task_execution").timer().count());
         assertEquals(200,registry.get("eatwhat.experience.duration").tag("stage","task_execution").timer().totalTime(java.util.concurrent.TimeUnit.MILLISECONDS));
     }
+    @Test void stale_queued_snapshot_recovers_expired_lease_without_another_queue_sample() throws Exception {
+        AtomicLong now=new AtomicLong(1800000000000L);java.util.concurrent.atomic.AtomicReference<String> persistedStatus=new java.util.concurrent.atomic.AtomicReference<>("queued");
+        java.util.concurrent.atomic.AtomicReference<String> leaseOwner=new java.util.concurrent.atomic.AtomicReference<>();java.util.concurrent.atomic.AtomicBoolean expired=new java.util.concurrent.atomic.AtomicBoolean();
+        // Two pollers read queued snapshots. A claims; B waits while A's lease expires.
+        com.eatwhat.mapper.MealWorkspaceMapper db=mock(com.eatwhat.mapper.MealWorkspaceMapper.class,call->{
+            String method=call.getMethod().getName();
+            if(Arrays.asList("claim","claimQueued","claimExpired").contains(method)){
+                boolean queued="queued".equals(persistedStatus.get()),recover="running".equals(persistedStatus.get())&&expired.get();
+                boolean wins="claim".equals(method)?queued||recover:"claimQueued".equals(method)?queued:recover;
+                if(!wins)return 0;persistedStatus.set("running");expired.set(false);leaseOwner.set(call.getArgument(1));return 1;
+            }
+            return org.mockito.Answers.RETURNS_DEFAULTS.answer(call);
+        });
+        MealWorkspaceService service=mock(MealWorkspaceService.class);MealWorkspacePlanner planner=mock(MealWorkspacePlanner.class);
+        com.fasterxml.jackson.databind.ObjectMapper json=new com.fasterxml.jackson.databind.ObjectMapper();WorkspaceRequest request=new WorkspaceRequest();request.setCommand("select");
+        Map<String,Object> input=new HashMap<>();input.put("workspace",new MealWorkspace());input.put("request",request);
+        com.eatwhat.entity.WorkspaceTask a=new com.eatwhat.entity.WorkspaceTask(),b=new com.eatwhat.entity.WorkspaceTask();
+        for(com.eatwhat.entity.WorkspaceTask task:Arrays.asList(a,b)){task.setId("same-task");task.setUserId(1L);task.setStatus("queued");task.setCreatedAt(new Date(now.get()-600));task.setInputJson(json.writeValueAsString(input));}
+        Clock clock=new Clock(){public ZoneId getZone(){return ZoneOffset.UTC;}public Clock withZone(ZoneId z){return this;}public Instant instant(){return Instant.ofEpochMilli(now.get());}};
+        SimpleMeterRegistry registry=new SimpleMeterRegistry();ExperienceMetrics metrics=new ExperienceMetrics(registry);
+        MealWorkspaceTaskRunner first=new MealWorkspaceTaskRunner(db,service,planner,mock(MealWorkspaceAgentGateway.class),json,true),second=new MealWorkspaceTaskRunner(db,service,planner,mock(MealWorkspaceAgentGateway.class),json,true);
+        for(MealWorkspaceTaskRunner runner:Arrays.asList(first,second)){ReflectionTestUtils.setField(runner,"clock",clock);ReflectionTestUtils.setField(runner,"metrics",metrics);}
+        java.util.concurrent.atomic.AtomicInteger planning=new java.util.concurrent.atomic.AtomicInteger(),writes=new java.util.concurrent.atomic.AtomicInteger();
+        when(planner.generate(anyLong(),any(),anyString(),any(),any())).thenAnswer(i->{if(planning.incrementAndGet()==1){now.addAndGet(31000);expired.set(true);second.execute(b);}else now.addAndGet(150);return new PlanDraft();});
+        when(service.finish(any(),any(),any(),anyString(),eq("draft"))).thenAnswer(i->{com.eatwhat.entity.WorkspaceTask task=i.getArgument(0);if(Objects.equals(leaseOwner.get(),task.getLeaseToken())){task.setStatus("draft");persistedStatus.set("draft");writes.incrementAndGet();}else task.setStatus("discarded");return new MealWorkspace();});
+        try{first.execute(a);second.execute(b);}finally{first.close();second.close();}
+        assertEquals(2,planning.get());assertEquals(1,writes.get(),"superseded lease cannot publish over recovered owner");assertEquals("discarded",a.getStatus());assertEquals("draft",b.getStatus());
+        assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","assistant_queue").timer().count(),"stale queued snapshot must not repeat initial queue sample");
+        assertEquals(600,registry.get("eatwhat.experience.duration").tag("stage","assistant_queue").timer().totalTime(java.util.concurrent.TimeUnit.MILLISECONDS));
+        assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","task_execution").tag("outcome","recover").timer().count());
+        assertEquals(150,registry.get("eatwhat.experience.duration").tag("stage","task_execution").tag("outcome","recover").timer().totalTime(java.util.concurrent.TimeUnit.MILLISECONDS));
+        assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","task_execution").tag("outcome","cancel").timer().count());
+    }
     @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"queued","running"})
     void workspace_queue_uses_durable_created_time_and_records_once_after_claim(String status) throws Exception {
         com.eatwhat.mapper.MealWorkspaceMapper db=mock(com.eatwhat.mapper.MealWorkspaceMapper.class);
@@ -65,7 +98,8 @@ class ExperienceStageInstrumentationTest {
         com.fasterxml.jackson.databind.ObjectMapper json=new com.fasterxml.jackson.databind.ObjectMapper();MealWorkspace w=new MealWorkspace();WorkspaceRequest r=new WorkspaceRequest();r.setCommand("select");
         com.eatwhat.entity.WorkspaceTask task=new com.eatwhat.entity.WorkspaceTask();task.setId("durable");task.setUserId(1L);task.setStatus(status);task.setCreatedAt(new Date(now.get()-600));
         Map<String,Object> input=new HashMap<>();input.put("workspace",w);input.put("request",r);task.setInputJson(json.writeValueAsString(input));
-        when(db.claim(eq(task.getId()),anyString())).thenReturn(1,0);
+        if("queued".equals(status))when(db.claimQueued(eq(task.getId()),anyString())).thenReturn(1,0);
+        else when(db.claimExpired(eq(task.getId()),anyString())).thenReturn(1,0);
         when(planner.generate(anyLong(),any(),anyString(),any(),any())).thenAnswer(i->{now.addAndGet(150);return new PlanDraft();});
         SimpleMeterRegistry registry=new SimpleMeterRegistry();MealWorkspaceTaskRunner runner=new MealWorkspaceTaskRunner(db,service,planner,mock(MealWorkspaceAgentGateway.class),json,true);
         ReflectionTestUtils.setField(runner,"clock",clock);ReflectionTestUtils.setField(runner,"metrics",new ExperienceMetrics(registry));

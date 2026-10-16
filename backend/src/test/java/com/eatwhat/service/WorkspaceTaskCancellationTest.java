@@ -50,9 +50,25 @@ class WorkspaceTaskCancellationTest {
         MealWorkspaceMapper db=mock(MealWorkspaceMapper.class);MealWorkspaceService service=mock(MealWorkspaceService.class);
         MealWorkspacePlanner planner=mock(MealWorkspacePlanner.class);MealWorkspaceAgentGateway gateway=mock(MealWorkspaceAgentGateway.class);
         WorkspaceTask task=new WorkspaceTask();task.setId("same-original-task");task.setUserId(7L);task.setWorkspaceId("owned-workspace");
-        when(db.claim(eq(task.getId()),anyString())).thenThrow(new DeadlockLoserDataAccessException("synthetic row lock",null));
+        when(db.claimQueued(eq(task.getId()),anyString())).thenThrow(new DeadlockLoserDataAccessException("synthetic row lock",null));
         MealWorkspaceTaskRunner runner=new MealWorkspaceTaskRunner(db,service,planner,gateway,new ObjectMapper(),true);
         try{assertDoesNotThrow(()->runner.execute(task));verifyNoInteractions(service,planner,gateway);verify(db,never()).finish(any(),any(),any(),any());}
         finally{runner.close();}
+    }
+    @Test void initial_and_recovery_claims_use_distinct_atomic_guards_without_relaxing_lease_timeout(){
+        Configuration config=new Configuration();config.addMapper(MealWorkspaceMapper.class);Map<String,Object> args=new HashMap<>();args.put("id","same-task");args.put("lease","new-owner");
+        String queued=config.getMappedStatement(MealWorkspaceMapper.class.getName()+".claimQueued").getBoundSql(args).getSql().toLowerCase(Locale.ROOT).replaceAll("\\s+"," ");
+        String recovered=config.getMappedStatement(MealWorkspaceMapper.class.getName()+".claimExpired").getBoundSql(args).getSql().toLowerCase(Locale.ROOT).replaceAll("\\s+"," ");
+        assertTrue(queued.endsWith("where id=? and status='queued'"));assertFalse(queued.contains(" or "));
+        assertTrue(recovered.endsWith("where id=? and status='running' and updated_at < date_sub(now(),interval 30 second)"));assertFalse(recovered.contains("queued"));
+        for(String sql:Arrays.asList(queued,recovered))assertTrue(sql.contains("set status='running',lease_token=?,updated_at=now()"));
+    }
+    @Test void count_only_claim_compatibility_stays_bounded_and_short_circuits_after_a_win(){
+        Configuration config=new Configuration();config.addMapper(MealWorkspaceMapper.class);org.apache.ibatis.session.SqlSession session=mock(org.apache.ibatis.session.SqlSession.class);
+        when(session.getConfiguration()).thenReturn(config);String prefix=MealWorkspaceMapper.class.getName()+".";
+        MealWorkspaceMapper db=config.getMapper(MealWorkspaceMapper.class,session);when(session.update(eq(prefix+"claimQueued"),any())).thenReturn(1);
+        assertEquals(1,db.claim("task","lease"));verify(session,never()).update(eq(prefix+"claimExpired"),any());
+        clearInvocations(session);when(session.update(eq(prefix+"claimQueued"),any())).thenReturn(0);when(session.update(eq(prefix+"claimExpired"),any())).thenReturn(1);
+        assertEquals(1,db.claim("task","lease"));verify(session,times(1)).update(eq(prefix+"claimQueued"),any());verify(session,times(1)).update(eq(prefix+"claimExpired"),any());
     }
 }
