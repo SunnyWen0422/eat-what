@@ -71,6 +71,49 @@ test('unknown replacement recovers original command',async t=>{
  await f.page.onConversationWorkspaceRecover();assert.deepEqual(queries,[{id:original.id,requestId:original.body.requestId}]);assert.equal(f.calls.length,1);assert.equal(f.sends(),0)
  assert.deepEqual(f.state.messages,[]);assert.equal(f.page.data.conversationWorkspaceFeedback,'已换为豆腐')
 })
+async function conflict(f){
+ const command=f.api.commandMealWorkspace;let rejected=0
+ f.api.commandMealWorkspace=async(id,body)=>{if(!rejected++){f.calls.push({type:'command',id,body:plain(body)});throw {statusCode:409}}return command(id,body)}
+ await f.action();return f
+}
+test('409 offers current-authority recovery and consistently disables sending',async t=>{
+ const f=await conflict(await setup(t));assert.equal(f.page.store.state().syncStatus,'conflict');assert.equal(f.page.store.state().pending,null)
+ assert.equal(f.page.data.conversationWorkspaceRecoverable,true);assert.equal(f.page.data.conversationWorkspaceBlocked,true);assert.equal(f.page.workspaceBlocksConversation(),true)
+})
+test('409 recovery reads current authority, preserves input and never replays the rejected command',async t=>{
+ const f=await conflict(await setup(t));f.state.input='还没发送的想法';f.page.store.edit({...f.page.store.state().context,requirements:'本餐未同步条件'});f.page.renderWorkspace()
+ const old=f.row(),latest={...old,revision:4,context:{...old.context,requirements:'另一处条件'},draft:{...old.draft,planVersion:3}}
+ f.rows.set(latest.id,latest);let reads=0;const get=f.api.getMealWorkspace;f.api.getMealWorkspace=async(...args)=>{reads++;return get(...args)}
+ await f.page.onConversationWorkspaceRecover();assert.equal(reads,1);assert.equal(f.calls.length,1);assert.equal(f.page.store.state().workspace.revision,4);assert.equal(f.page.data.conversationWorkspaceBlocked,false)
+ assert.equal(f.state.input,'还没发送的想法');assert.equal(f.page._preservedContext.requirements,'本餐未同步条件');assert.equal(f.page.data.conflictDraftAvailable,true)
+ assert.equal(f.page.data.conversationCurrentMenu.menuActions.enabled,true)
+ await f.action();assert.equal(f.calls.length,2);assert.notEqual(f.calls[1].body.requestId,f.calls[0].body.requestId);assert.equal(f.calls[1].body.expectedWorkspaceRevision,4);assert.equal(f.sends(),0)
+})
+test('conflict recovery exposes guarded restoration of unsaved meal conditions',async t=>{
+ const f=await conflict(await setup(t));f.page.store.edit({...f.page.store.state().context,requirements:'尚未保存的条件'});f.page.renderWorkspace()
+ await f.page.onConversationWorkspaceRecover();assert.equal(f.page.data.conflictDraftAvailable,true)
+ f.state.confirmationPending=true;f.page.onConversationRestoreDraft();assert.equal(f.page.store.state().context.requirements,'')
+ f.state.confirmationPending=false;f.page.onConversationRestoreDraft();assert.equal(f.page.store.state().context.requirements,'尚未保存的条件');assert.equal(f.calls.length,1)
+})
+test('repeated conflict recovery reads once and late target reentry cannot restore old conditions',async t=>{
+ const f=await conflict(await setup(t)),hold=deferred(),started=deferred(),get=f.api.getMealWorkspace;let reads=0
+ f.page.store.edit({...f.page.store.state().context,requirements:'旧餐输入'});f.page.renderWorkspace()
+ f.api.getMealWorkspace=async(...args)=>{reads++;started.resolve();await hold.promise;return get(...args)}
+ const run=f.page.onConversationWorkspaceRecover();assert.equal(f.page.data.busy,true);await started.promise;await f.page.onConversationWorkspaceRecover();assert.equal(reads,1)
+ f.api.getMealWorkspace=get;await f.page.initializeWorkspace({...target,mealType:'lunch'});hold.resolve();await run
+ f.page.onConversationRestoreDraft();assert.equal(f.page.data.context.mealType,'lunch');assert.equal(f.page.store.state().context.requirements,'');assert.equal(f.page.data.busy,false);assert.equal(f.calls.length,1)
+})
+test('failed conflict reread remains recoverable without losing the preserved input or replaying',async t=>{
+ const f=await conflict(await setup(t)),get=f.api.getMealWorkspace;f.state.input='保留聊天草稿';f.page.store.edit({...f.page.store.state().context,requirements:'保留餐次条件'});f.page.renderWorkspace()
+ f.api.getMealWorkspace=async()=>{throw Error('offline')};await f.page.onConversationWorkspaceRecover();assert.equal(f.page.store.state().syncStatus,'offline');assert.equal(f.page.data.conversationWorkspaceRecoverable,true)
+ f.api.getMealWorkspace=get;await f.page.onConversationWorkspaceRecover();assert.equal(f.page.store.state().syncStatus,'synced');assert.equal(f.page._preservedContext.requirements,'保留餐次条件');assert.equal(f.state.input,'保留聊天草稿');assert.equal(f.calls.length,1)
+})
+test('late conflict recovery cannot overwrite or restore another account context',async t=>{
+ const f=await conflict(await setup(t)),hold=deferred(),started=deferred(),get=f.api.getMealWorkspace
+ f.api.getMealWorkspace=async(...args)=>{started.resolve();await hold.promise;return get(...args)}
+ const run=f.page.onConversationWorkspaceRecover();await started.promise;f.switchAccount();f.api.getMealWorkspace=get;await f.page.initializeWorkspace(target)
+ hold.resolve();await run;f.page.onConversationRestoreDraft();assert.equal(f.page.store.state().workspace.id,'B:2026-10-06:dinner');assert.equal(f.page.data.busy,false);assert.equal(f.page.data.conflictDraftAvailable,false);assert.equal(f.calls.length,1)
+})
 test('historical cards require exact current references and are never rewritten',async t=>{
  const f=await setup(t),w=f.page.store.state().workspace,card={id:'old',type:'menu',workspaceRef:ref(w),data:{...target,dishes:w.draft.dishes}}
  f.state.messages=[{id:'m',cards:[card]}];const before=plain(card)

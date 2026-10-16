@@ -15,7 +15,7 @@ module.exports=function assistantPage(fallback, options={}) {
    const conversationState={...(state||{}),actionsEnabled:!!state&&this.data.conversationActionsEnabled!==false},workspaceState={...local,busy:!!this.data.busy}
    const decorate=card=>({...card,menuActions:presentMenuActions({card,workspace:w,conversationState,workspaceState})})
    const live=context&&Array.isArray(dishes)&&dishes.length?decorate({id:'current-menu',type:'menu',title:'当前本餐菜单',workspaceRef:workspaceReference(w),data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}):null
-   this.setData({conversationMenuCount:(dishes||[]).length,conversationSuggestions:require('./assistant-presentation').buildAssistantSuggestions({hasMenu:!!(dishes&&dishes.length),available:true}),conversationCurrentMenu:live,conversationMessages:(this.data.conversationMessages||[]).map(message=>({...message,cards:(message.cards||[]).map(decorate)})),conversationWorkspaceRecoverable:!!local.pending,conversationWorkspaceBlocked:!!local.pending||!!this.data.busy||w&&w.status==='generating',conversationWorkspaceFeedback:this.data.errorMessage || this.data.actionFeedback&&this.data.actionFeedback.message || ''})
+   this.setData({conversationMenuCount:(dishes||[]).length,conversationSuggestions:require('./assistant-presentation').buildAssistantSuggestions({hasMenu:!!(dishes&&dishes.length),available:true}),conversationCurrentMenu:live,conversationMessages:(this.data.conversationMessages||[]).map(message=>({...message,cards:(message.cards||[]).map(decorate)})),conversationWorkspaceRecoverable:!!local.pending||['conflict','offline'].includes(local.syncStatus),conversationWorkspaceRecoveryLabel:local.pending?'核对刚才的菜单操作':'查看最新本餐菜单',conversationWorkspaceBlocked:this.workspaceBlocksConversation(),conversationWorkspaceFeedback:this.data.errorMessage || this.data.actionFeedback&&this.data.actionFeedback.message || ''})
   },
   async onLoad(params={}) {
    this._assistantAlive=true;this._assistantParams=params
@@ -140,7 +140,20 @@ module.exports=function assistantPage(fallback, options={}) {
    try{return await this.runCommand(action,{dishId},{...expectedRef})}
    finally{if(this._directDishBinding===binding){this._directDishBinding=null;if(this.current()&&binding.store===this.store&&conversation===this.conversation){this.refreshConversationMenus();this.setData({conversationMenuExpanded:true})}}}
   },
-  onConversationWorkspaceRecover(){if(this.current()&&!this.data.busy&&this.store&&this.store.state().pending&&!conversationBlocksMenu(this.conversation&&this.conversation.state()))return this.onRetryWorkspace()},
+  async onConversationWorkspaceRecover(){
+   if(!this.current()||this.data.busy||!this.store||conversationBlocksMenu(this.conversation&&this.conversation.state()))return
+   const local=this.store.state()
+   if(local.pending)return this.onRetryWorkspace()
+   if(!['conflict','offline'].includes(local.syncStatus))return
+   const binding={store:this.store,scope:this._scope,conversation:this.conversation};this._conversationRecoveryBinding=binding
+   await this.onLoadLatest()
+   if(this.current()&&binding.store===this.store&&binding.scope===this._scope&&binding.conversation===this.conversation){this.setData({conversationMenuExpanded:true});this.refreshConversationMenus()}
+  },
+  onConversationRestoreDraft(){
+   const binding=this._conversationRecoveryBinding,context=this._preservedContext
+   if(!this.current()||!this.data.conflictDraftAvailable||!context||!binding||binding.store!==this.store||binding.scope!==this._scope||binding.conversation!==this.conversation||this.workspaceBlocksConversation()||conversationBlocksMenu(this.conversation&&this.conversation.state())||context.date!==this.data.context.date||context.mealType!==this.data.context.mealType)return
+   this._conversationRecoveryBinding=null;return this.onRestoreLocalDraft()
+  },
   onConversationSuggestion(event){
    if(!this.data.assistantConnected || (this.data.conversationMessages || []).length)return
    const item=require('./assistant-presentation').buildAssistantSuggestions({available:true,hasMenu:!!this.data.conversationCurrentMenu}).find(s=>s.id===event.currentTarget.dataset.id)
