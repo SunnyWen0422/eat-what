@@ -1,5 +1,24 @@
 const test=require('node:test'),assert=require('node:assert/strict')
 const fs=require('node:fs')
+test('aggregate overflow remains uncertain without losing source quantities or manual confirmation',()=>{
+ const {buildShoppingView}=require('../utils/shopping-view')
+ const safe=(id,quantityValue,sourceQuantityText)=>({id,displayName:'猪肉',normalizedVariant:'里脊切丝',quantityValue,quantityText:sourceQuantityText,sourceQuantityText,calculationStatus:'CALCULATED',servingsVerified:true,parseStatus:'PARSED',unitFamily:'mass',unitCode:'g',warnings:[]})
+ const list={dishes:[
+  {selectionKey:'first',sourceDate:'2026-10-16',sourceMealType:'dinner',items:[safe(1,Number.MAX_VALUE,'第一餐原量MAX克')]},
+  {selectionKey:'second',sourceDate:'2026-10-17',sourceMealType:'lunch',items:[safe(2,Number.MAX_VALUE,'第二餐原量MAX克'),safe(3,1,'第三行原量1克'),{...safe(4,Number.MAX_VALUE,'我确认半袋'),userOverride:true}]},
+ ]}
+ const before=structuredClone(list),view=buildShoppingView(list),row=view.rows.find(row=>row.sourceCount===3)
+ assert.equal(row.quantityValue,null);assert.equal(row.quantityLabel,'用量待确认');assert.equal(row.quantityUncertain,true)
+ assert.deepEqual(row.itemIds,[1,2,3]);assert.equal(new Set(row.sources.map(source=>source.sourceKey)).size,3)
+ assert.deepEqual(row.sources.map(source=>source.sourceQuantityText),['第一餐原量MAX克','第二餐原量MAX克','第三行原量1克'])
+ assert.deepEqual(row.sources.map(source=>source.sourceDate),['2026-10-16','2026-10-17','2026-10-17'])
+ const originals=view.groups.flatMap(group=>group.items)
+ assert.deepEqual(originals.map(item=>item.quantityValue),[Number.MAX_VALUE,Number.MAX_VALUE,1,Number.MAX_VALUE])
+ assert.ok(originals.every(item=>item.normalizedVariant==='里脊切丝'))
+ const manual=view.rows.find(row=>row.itemIds.includes(4))
+ assert.equal(manual.sourceCount,1);assert.equal(manual.quantityUncertain,false);assert.equal(manual.quantityLabel,'我确认半袋')
+ assert.deepEqual(list,before)
+})
 test('missing trusted quantity metadata remains uncertain while explicit manual quantity is respected',()=>{
  const {buildShoppingView}=require('../utils/shopping-view')
  const rows=buildShoppingView({dishes:[{items:[{id:1,displayName:'盐',calculationStatus:'CALCULATED',quantityText:'20g',servingsVerified:true},{id:2,displayName:'油',userOverride:true,quantityText:'我确认少许'}]}]}).rows

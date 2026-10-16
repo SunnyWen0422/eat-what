@@ -55,7 +55,7 @@ function buildShoppingView(list = {}, status = 'pending') {
         row.sourceCount = row.sources.length
         row.sourceLabel = row.sources.map(entry => entry.sourceLabel).join('；')
         row.warnings = [...new Set([...(row.warnings || []), ...(item.warnings || [])])]
-        row.quantityUncertain = row.quantityUncertain || value.quantityUncertain
+        row.quantityUncertain = row.quantityValue == null || row.quantityUncertain || value.quantityUncertain
       }
     }
     if (items.length) groups.push({ ...dish, ...source, sourceLabel: sourceLabel(source), items })
