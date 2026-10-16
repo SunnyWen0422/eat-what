@@ -864,14 +864,14 @@
         "T24"
       ],
       "conditionalDependency": "T23/T24的外部设备或参与者未具备时可以生成候选，但必须将对应发布门标blocked，不能标全量发布就绪。",
-      "status": "in_progress",
+      "status": "complete",
       "requirements": [
         "K26",
         "K27",
         "K29",
         "K32"
       ],
-      "evidenceNote": "Refreshing matched DRAFT after Han filter and current-task gap fixes; app dc401e5/Java528, IT13, DB21/22(R01notrun), offline42, live2HTTP/total16, native7/8 and300s load13762/0 verified. New package verification pending; prior candidate5468cb2 retained. Production read-only observation does not authorize rollout."
+      "evidenceNote": "Followup DRAFT probe6c67a8c verified434 files, matching config-freeJava8/Python/mini/web/public6665, all hashes and immutable paired receipt. Appdc401e5,Java528,IT13,DB21/22(R01notrun),offline42,native7/8,real2HTTP/cumulative16/20,load13762/0 in300s. Scope/provenance and failures retained; no push/deploy. Final same-runtime package resealed after documentation-only closeout; devices/modal/new30min/capacity/users/production preflight remain open."
     }
   ],
   "routes": [
