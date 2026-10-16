@@ -10,6 +10,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantV4TurnServiceTest {
+ @Test void uninterpreted_temporary_text_gets_an_actionable_question_without_retry_or_execution(){
+  java.util.concurrent.atomic.AtomicInteger calls=new java.util.concurrent.atomic.AtomicInteger();
+  registry.registerDraft("draft_update",(u,s,c)->{calls.incrementAndGet();throw new IllegalArgumentException("请先将文字限制明确为筛选条件");});
+  when(model.step(any())).thenReturn(action("draft_update",AssistantV4ContextService.map("operation","adjust","contextPatch",Collections.singletonMap("requirements","少油"),"keepDishIds",Collections.singletonList(1L))));
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);
+  assertEquals("needs_input",view.getStatus());assertFalse(view.isRetryable());assertEquals(0,calls.get());
+  assertTrue(view.getReply().contains("修改本餐要求"));assertTrue(view.getReply().contains("未修改"));
+  assertFalse(view.getReply().contains("筛选条件明确"));assertNull(view.getPendingAction());assertNull(view.getContinuation());
+ }
+ @Test void supported_temporary_structured_filter_still_uses_the_authorized_executor_and_receipt(){
+  java.util.concurrent.atomic.AtomicInteger calls=new java.util.concurrent.atomic.AtomicInteger();
+  registry.registerDraft("draft_update",(u,s,c)->{calls.incrementAndGet();TurnResult r=new TurnResult();r.setStatus("completed");Card card=new Card();card.setType("menu");card.setReceiptRef("workspace:owned:request");r.getCards().add(card);return r;});
+  when(model.step(any())).thenReturn(action("draft_update",AssistantV4ContextService.map("operation","adjust","contextPatch",Collections.singletonMap("criteria",Collections.singletonMap("excludedIngredients",Collections.singletonList("花生"))),"selectedDishIds",Collections.singletonList(1L))));
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);
+  assertEquals("completed",view.getStatus());assertEquals(1,calls.get());assertTrue(view.getCards().get(0).getReceiptRef().startsWith("workspace:"));
+ }
  @Test void model_budget_is_capped_and_shrinks_with_remaining_turn_deadline(){
   java.util.concurrent.atomic.AtomicLong now=new java.util.concurrent.atomic.AtomicLong(1800000000000L);
   Clock clock=new Clock(){public ZoneId getZone(){return ZoneOffset.UTC;}public Clock withZone(ZoneId zone){return this;}public Instant instant(){return Instant.ofEpochMilli(now.get());}};

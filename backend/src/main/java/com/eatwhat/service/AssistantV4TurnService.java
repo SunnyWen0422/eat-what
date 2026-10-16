@@ -102,13 +102,32 @@ public class AssistantV4TurnService {
                     if(authorizedFacts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(current));facts.addAll(factCards(user,current));}
                     TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
-                validateActions(output.getActionProposal(),scope);WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
+                validateActions(output.getActionProposal(),scope);
+                // Raw wording is not a proven executable constraint. Keep the
+                // workspace guard unchanged and give a deterministic next step
+                // before checkpointing any action that cannot be applied.
+                if(changesUninterpretedRequirements(output.getActionProposal(),context)){
+                    TurnResult r=result("needs_input","这类文字要求暂不能自动应用。请打开上方“查看来源与菜单”中的“修改本餐要求”核对，或在本餐筛选中选择可用条件；菜单和长期偏好均未修改。",false);
+                    r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
+                }
+                WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
                 if(executeStep(user,lease,scope,true,c))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
         }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);}}
     }
     private String failRunning(Long user,TurnRecord lease){try{TurnRecord current=store.turnRecord(user,lease.getId());if(!"running".equals(current.getStatus()))return "cancelled".equals(current.getStatus())?"cancel":"error";if(current.getLeaseUntil()<=clock.millis()){store.recoverExpired(user,lease.getId());return "timeout";}TurnResult r=result("failed","本次处理未完成，请重新发送；已有内容仍保留",true);r.setContinuation(store.continuation(user,lease.getId()));r.setWorkspaceRef(store.findTurn(user,lease.getId()).getWorkspaceRef());finish(user,lease,r);}catch(RuntimeException stale){/* Cancellation/deletion wins over a late result. */}return "error";}
+    private boolean changesUninterpretedRequirements(ActionProposal proposal,ModelContext context){
+        Object current=context.getConstraints().get("requirements");String before=current instanceof String?((String)current).trim():"";
+        for(ActionIntent action:proposal.getSteps())if("draft_update".equals(action.getKind())){
+            Object patch=action.getArguments().get("contextPatch");
+            if(patch instanceof Map&&((Map<?,?>)patch).containsKey("requirements")){
+                Object value=((Map<?,?>)patch).get("requirements");
+                if(value instanceof String&&!before.equals(((String)value).trim()))return true;
+            }
+        }
+        return false;
+    }
     private void finish(Long user,TurnRecord lease,TurnResult result){store.completeTurn(user,lease.getId(),"running",lease.getLeaseToken(),result);}
     private void active(Long user,TurnRecord lease){store.withActiveLease(user,lease.getId(),lease.getLeaseToken(),()->Boolean.TRUE);}
     /** Resume durable validated intent after a committed receipt; never requests the model again. */

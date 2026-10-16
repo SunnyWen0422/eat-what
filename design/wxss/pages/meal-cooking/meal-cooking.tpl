@@ -2,9 +2,9 @@
 @import "../../styles/workspace.wxss";
 .cooking-page{background:{{background}}}
 .ew-heading{margin-bottom:{{space.1.px}}}
-.ew-tabs{overflow-x:auto;flex-wrap:nowrap;margin:{{space.4.px}} 0}
+.cooking-page .ew-tabs{overflow-x:auto;flex-wrap:nowrap;margin:0}
 .ew-tabs button{flex:0 0 auto;max-width:240px;white-space:normal}
-.dish-switch-scroll{width:100%;min-width:0}
+.dish-switch-scroll{width:100%;min-width:0;margin:{{space.4.px}} 0}
 .cooking-step-heading text{display:block;margin-bottom:{{space.2.px}};overflow-wrap:anywhere}
 .cooking-step{font-size:{{font.card.em}};line-height:1.65;margin:{{space.4.px}} 0;min-height:180px;white-space:pre-wrap;overflow-wrap:anywhere;color:{{text}}}
 .cooking-ingredients text{display:block;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:{{space.2.px}}}
