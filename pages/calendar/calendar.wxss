@@ -42,3 +42,8 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 .calendar-card button.day { width:100%; max-width:100%; margin:0; padding:8px 0; font-size:1em; font-family:inherit; line-height:1.5; white-space:normal; }
 .calendar-card button.day::after { border:0; }
+
+/* Text marks coexist and stay distinct without color. */
+.day-mark { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2px; min-height:20px; font-size:0.75em; line-height:1.5; }
+.day-plan,.day-actual { display:inline-block; min-width:1em; }
+.day-actual { font-weight:600; }

@@ -151,3 +151,15 @@ test('primary actual action opens the original meal editor read-only and cancel 
 test('procurement action ignores a late tap after account switch',async()=>{
  const f=harness();await f.page.loadMealRecords();f.switchAccount();f.page.onAddMealToShoppingList(event);assert.equal(f.writes.length,0)
 })
+
+
+test('actual correction retains focused meal and readable independent plan',async()=>{
+ const options={},f=harness(eaten,options);f.page.onLoad({date,mealType:'dinner'});await f.page.loadMealRecords();f.page.onOriginalPlan(event)
+ options.getOverview=()=>({plans:[plan],consumptions:[f.writes.some(w=>w.kind==='actual')?{...eaten,revision:5,actualDishes:[{name:'更正后的外食'}]}:eaten]})
+ await f.page.onPrimaryMeal(event);f.page.onActualText({detail:{value:'更正后的外食'}});await f.page.onConfirmActual()
+ assert.equal(f.page.data.selectedDate,date);assert.equal(f.page.data.focusedMeal,'dinner');assert.equal(f.page.data.dateHeading,'10月9日 晚餐');assert.equal(f.page.data.originalMeal,'dinner')
+ assert.equal(f.page.data.meals.length,1);assert.equal(f.page.data.meals[0].presentation.dishes[0].name,'更正后的外食')
+ assert.equal(f.page.data.meals[0].statusLabel,'已安排 · 已记录吃过');assert.equal(f.page.data.meals[0].plan.recipeName,'后来安排')
+ assert.equal(f.writes[0].body.expectedRevision,4);assert.equal(f.writes[0].body.expectedPlanRevision,3)
+ const source=fs.readFileSync('pages/calendar-detail/calendar-detail.wxml','utf8');assert.doesNotMatch(source,/当前查看餐次/)
+})

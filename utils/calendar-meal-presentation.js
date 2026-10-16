@@ -12,10 +12,11 @@ function calendarMealPresentation({plan,actual,date,today}) {
     if(actual&&actual.status!=='unrecorded')actions.push('clearActual')
   }
   const primary=eaten||skipped?{kind:'correctActual',label:'更正实际记录'}:plan?date<=today?{kind:'recordEaten',label:'记录这餐'}:{kind:'prepare',label:'准备食材'}:{kind:'arrange',label:'安排这一餐'}
-  return {mode,primary,dishes:eaten?(actual.actualDishes||[]):plan?(plan.dishDetails||[]):[],actions,originalPlan:eaten?(actual.plannedSnapshot||null):null}
+  const statusLabel=[plan?'已安排':'',eaten?'已记录吃过':skipped?'已记录这餐没吃':plan?'没有实际记录':'没有记录'].filter(Boolean).join(' · ')
+  return {mode,statusLabel,primary,dishes:eaten?(actual.actualDishes||[]):plan?(plan.dishDetails||[]):[],actions,originalPlan:eaten?(actual.plannedSnapshot||null):null}
 }
-function calendarDayLabel({date,selected,hasPlan,eaten,skipped}) {
+function calendarDayLabel({date,selected,hasPlan,hasActual,eaten,skipped}) {
   const [year,month,day]=date.split('-').map(Number)
-  return [`${year}年${month}月${day}日`,selected?'已选中':'',hasPlan?'有安排':'',eaten?'已记录实际用餐':skipped?'已记录这餐没吃':'未记录实际用餐'].filter(Boolean).join('，')
+  return [`${year}年${month}月${day}日`,selected?'已选中':'',hasPlan?'有安排':'',hasActual||eaten||skipped?'部分餐次已记录实际情况':'未记录实际用餐',eaten?'有餐次吃过':'',skipped?'已记录这餐没吃':''].filter(Boolean).join('，')
 }
 module.exports={calendarMealPresentation,calendarDayLabel}

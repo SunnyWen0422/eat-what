@@ -16,9 +16,10 @@ Page({
     for (let date = range.startDate; date <= range.endDate; date = flow.shiftDay(date, 1)) {
       const d = flow.parseDay(date)
       const day={key:date,fullDate:date,day:d.getDate(),weekLabel:['日','一','二','三','四','五','六'][d.getDay()],selected:date===current,isToday:date===flow.today(),hasPlan:plans.some(p=>String(p.recordDateString||p.recordDate).slice(0,10)===date),eaten:actual.some(p=>p.mealDate===date&&p.status==='eaten'),skipped:actual.some(p=>p.mealDate===date&&p.status==='skipped')}
+      day.hasActual=day.eaten||day.skipped
       day.accessibleLabel=calendarDayLabel({...day,date});days.push(day)
     }
-    this.setData({ days, rangeLabel: `${range.startDate} — ${range.endDate}`, mealCards: flow.mealViews(this.data.overview, current).map(meal=>({...meal,presentation:calendarMealPresentation({...meal,date:current,today:flow.today()}),dishSummary:calendarMealPresentation({...meal,date:current,today:flow.today()}).dishes.map(d=>d.name).join('、'),statusLabel:meal.status==='eaten'?'已吃':meal.status==='skipped'?'这餐没吃':meal.plan?'已安排 · 未记录':'未记录'})) })
+    this.setData({ days, rangeLabel: `${range.startDate} — ${range.endDate}`, mealCards: flow.mealViews(this.data.overview, current).map(meal=>({...meal,presentation:calendarMealPresentation({...meal,date:current,today:flow.today()}),dishSummary:calendarMealPresentation({...meal,date:current,today:flow.today()}).dishes.map(d=>d.name).join('、'),statusLabel:calendarMealPresentation({...meal,date:current,today:flow.today()}).statusLabel})) })
   },
   async loadRecipeRecords() {
     const epoch = this._epoch = (this._epoch || 0) + 1, identity = getUserStorageKey('mealView'), range = this.period()

@@ -60,7 +60,7 @@ Page({
     this.setData({ loading: true, errorMessage: '' })
     try {
       const overview = await api.getMealOverview(this.data.selectedDate, this.data.selectedDate)
-      if (current()) this.setData({ meals: flow.mealViews(overview, this.data.selectedDate).filter(meal=>!this.data.focusedMeal || meal.mealType===this.data.focusedMeal).map(meal=>({...meal,displayPeople:meal.status==='eaten'?(meal.actual?.targetPeople || meal.actual?.plannedSnapshot?.targetPeople || null):(meal.plan?.targetPeople || null),presentation:calendarMealPresentation({...meal,date:this.data.selectedDate,today:flow.today()}),statusLabel:meal.status==='eaten'?'已吃':meal.status==='skipped'?'这餐没吃':meal.plan?'已安排':'未记录'})), overview, canRecord:this.data.selectedDate<=flow.today() })
+      if (current()) this.setData({ meals: flow.mealViews(overview, this.data.selectedDate).filter(meal=>!this.data.focusedMeal || meal.mealType===this.data.focusedMeal).map(meal=>({...meal,displayPeople:meal.status==='eaten'?(meal.actual?.targetPeople || meal.actual?.plannedSnapshot?.targetPeople || null):(meal.plan?.targetPeople || null),presentation:calendarMealPresentation({...meal,date:this.data.selectedDate,today:flow.today()}),statusLabel:calendarMealPresentation({...meal,date:this.data.selectedDate,today:flow.today()}).statusLabel})), overview, canRecord:this.data.selectedDate<=flow.today() })
     } catch (error) { if (current()) this.setData({ errorMessage: flow.errorMessage(error, '读取失败，请重试。实际用餐记录没有被修改。') }) }
     finally { if (current()) this.setData({ loading: false }) }
   },

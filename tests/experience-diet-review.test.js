@@ -19,9 +19,9 @@ function fixture() {
     planExecution:{plannedMealsDue:1,unconfirmedMeals:1},
     completeness:{observedDays:7,observedThroughDate:'2026-10-07',daysWithoutActualRecord:3,explicitSkippedMeals:1,nutritionAvailable:false}}}
 }
-function pageHarness() {
+function pageHarness(api={}) {
   let page,scope='A';const urls=[]
-  vm.runInNewContext(fs.readFileSync('pages/statistics/statistics.js','utf8'),{Page:value=>{page=value},wx:{navigateTo:({url})=>urls.push(url)},require:name=>name.endsWith('/api')?{}:name.endsWith('/util')?{getUserStorageKey:key=>scope+':'+key}:require(path.resolve('pages/statistics',name))})
+  vm.runInNewContext(fs.readFileSync('pages/statistics/statistics.js','utf8'),{Page:value=>{page=value},wx:{navigateTo:({url})=>urls.push(url)},require:name=>name.endsWith('/api')?api:name.endsWith('/util')?{getUserStorageKey:key=>scope+':'+key}:require(path.resolve('pages/statistics',name))})
   page.setData=patch=>Object.assign(page.data,patch)
   return {page,urls,switchAccount:()=>{scope='B'}}
 }
@@ -90,4 +90,18 @@ test('secondary details are opt-in and clearing report clears new presentation s
   page.clearReport()
   assert.equal(page.data.showReviewDetails,false);assert.equal(page.data.showProvenance,false)
   assert.equal(page.data.coverageNotice,'');assert.equal(page.data.recordUrl,'');assert.equal(page.data.review,null)
+})
+
+
+test('review correction preserves period',async()=>{
+ let corrected=false;const calls=[],{page}=pageHarness({getDietReview:async(startDate,endDate)=>{
+  calls.push({startDate,endDate});const report=fixture();Object.assign(report.metadata,{startDate,endDate});if(corrected)report.blocks.actualDetails.records[0].actualDishes=[{name:'实际更正的鱼'}];return report
+ }})
+ page.onLoad({period:'month',anchor:'2026-10-02'});page.onShow();await new Promise(r=>setImmediate(r));page.onToggleReviewDetails();page.onToggleProvenance()
+ // A correction happens on the pushed detail page; returning triggers the actual Page onShow.
+ corrected=true;page.onShow();await new Promise(r=>setImmediate(r))
+ assert.equal(page.data.periodMode,'month');assert.equal(page.data.selectedDate,'2026-10-02')
+ assert.deepEqual(calls,[{startDate:'2026-10-01',endDate:'2026-10-31'},{startDate:'2026-10-01',endDate:'2026-10-31'}])
+ assert.equal(page.data.showReviewDetails,true);assert.equal(page.data.showProvenance,true)
+ assert.match(page.data.recordRows.find(r=>r.mealDate==='2026-10-01').names,/实际更正的鱼/)
 })
