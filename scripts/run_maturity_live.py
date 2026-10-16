@@ -10,7 +10,7 @@ from pathlib import Path
 import time,uuid
 from assistant_v4_provider_budget import ProviderBudget,BudgetExhausted
 from assistant_v4_live_acceptance import LiveExecution,approved_provider_fields,turn_diagnostic
-from maturity_runtime import owned_runtime,new_output,digest
+from maturity_runtime import owned_runtime,new_output,digest,preflight
 from assistant_v4_acceptance import require
 
 
@@ -33,6 +33,15 @@ def require_plan_source(binding,target,revision):
     for ref in (binding.get('sourceRef',{}),source.get('sourceRef',{})):
         require(all(ref.get(k)==v for k,v in expected.items()) and ref.get('workspaceId') is None,'Shopping preview is for the wrong source meal')
     require(source.get('date')==target and source.get('mealType')=='dinner' and source.get('planRevision')==revision,'Resolved shopping source revision or target differs')
+
+
+def require_temporary_requirement(turn, before, after, preferences_before, preferences_after):
+    require(before==after,'Unsupported raw requirement changed the meal')
+    require(preferences_before==preferences_after,'Temporary meal text changed long-term preferences')
+    require(turn['status']=='needs_input' and not turn.get('retryable') and not turn.get('pendingAction'),
+            'Unsupported temporary wording needs an actionable question, not blind retry')
+    require('修改本餐要求' in turn.get('reply','') and '未修改' in turn.get('reply',''),
+            'Unsupported temporary wording lacks a supported next step')
 
 
 class Execution(LiveExecution):
@@ -166,13 +175,21 @@ class Cases:
         require_handoff(turn,before);require(self.current()==before,'Preference handoff modified current meal')
         return {'versionedPreferenceHandoff':True,'noAutomaticPreferenceWrite':True,'pageSaveStillRequired':True}
 
+    def temporary(self):
+        before=self.current();preferences=self.a.http('/users/preferences',user=self.user)
+        turn=self.turn('只给当前这一餐添加临时补充要求“少油”，其他人数和已有搭配保持。不要改长期偏好，不保存到日历，不加入采购。')
+        after=self.current()
+        require_temporary_requirement(turn,before,after,preferences,self.a.http('/users/preferences',user=self.user))
+        return {'unsupportedWordingClarified':True,'noBlindRetry':True,'longTermPreferencesUnchanged':True,'calendarAndShoppingUnchanged':True,'sameMeal':True}
+
 
 def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
     require(approved_live,'Explicit approved-live invocation required')
-    require(case_ids is None or set(case_ids)<={'discovery','adjust','clarify','save','shopping','actual','handoff'},'Unknown live cases')
+    require(case_ids is None or set(case_ids)<={'discovery','adjust','clarify','save','shopping','actual','handoff','temporary'},'Unknown live cases')
     date.fromisoformat(authorization_date)
     execution=Execution(approved_provider_fields(Path(__file__).resolve().parents[1]/'recommend-service/.env'),budget,authorization_date)
     require(config.get('providerMode')=='live' and Path(config['modelBudgetLedger']).resolve()==execution.ledger.path,'Live mode and atomic ledger must match')
+    preflight(config,out,execution=execution)
     out=new_output(out);out.mkdir(parents=True)
     report={'sourceSha':config['sourceSha'],'jarSha256':config['jarSha256'],'datasetHash':config['datasetHash'],'providerMode':'live','productionTouched':False,'cases':[],
             'authorizationDate':authorization_date,'authorizationLimit':20,'actualAppBuildSource':json.loads(Path(config['buildManifest']).read_text(encoding='utf-8'))['sourceSha'],
@@ -182,10 +199,10 @@ def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
         require(runtime.dataset['rows']==6665,'Use pinned real public snapshot for live tasks')
         cases=Cases(runtime,execution);cases.setup(shopping_only=case_ids==['shopping'])
         report['setupMode']='direct API confirmed plan for targeted shopping' if case_ids==['shopping'] else 'rule draft and synthetic personal facts; model saves the plan'
-        for group,name in [('discovery','discovery'),('adjust','adjust'),('calendar','clarify'),('calendar','save'),('shopping','shopping'),('review_handoff','actual'),('review_handoff','handoff')]:
+        for group,name in [('temporary','temporary'),('discovery','discovery'),('adjust','adjust'),('calendar','clarify'),('calendar','save'),('shopping','shopping'),('review_handoff','actual'),('review_handoff','handoff')]:
             if case_ids is not None and name not in case_ids:continue
             start=time.perf_counter();used=execution.budget_used()
-            try:detail=getattr(cases,name)();row={'id':name,'group':group,'passed':True,'businessOutcome':'clarified' if name=='clarify' else 'passed','detail':detail}
+            try:detail=getattr(cases,name)();row={'id':name,'group':group,'passed':True,'businessOutcome':'clarified' if name in ('clarify','temporary') else 'passed','detail':detail}
             except Exception as error:row={'id':name,'group':group,'passed':False,'failureType':type(error).__name__,'failure':str(error)[:300],'notEvaluated':isinstance(error,BudgetExhausted) or str(error).startswith('Blocked dependency:')}
             row.update(seconds=round(time.perf_counter()-start,3),providerHttpAttempts=execution.budget_used()-used);report['cases'].append(row)
             execution.finish_report(report,runtime.model);(out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(row,ensure_ascii=False),flush=True)

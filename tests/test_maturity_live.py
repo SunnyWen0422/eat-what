@@ -4,6 +4,21 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 
 class MaturityLiveAssertionsTest(unittest.TestCase):
+    def test_temporary_requirement_never_changes_long_term_preferences_or_meal_identity(self):
+        from run_maturity_live import require_temporary_requirement
+        before={'id':'owned','context':{'people':2,'requirements':''}}
+        after=copy.deepcopy(before)
+        turn={'status':'needs_input','retryable':False,'reply':'请修改本餐要求；菜单和长期偏好未修改。'}
+        require_temporary_requirement(turn,before,after,{'avoid':['花生']},{'avoid':['花生']})
+        for field in ('preference','identity','people','text','retry'):
+            bad=copy.deepcopy(after);prefs={'avoid':['花生']};bad_turn=copy.deepcopy(turn)
+            if field=='preference':prefs['avoid'].append('香菜')
+            elif field=='identity':bad['id']='foreign'
+            elif field=='people':bad['context']['people']=4
+            elif field=='retry':bad_turn['retryable']=True
+            else:bad['context']['requirements']='少油'
+            with self.assertRaises(AssertionError):require_temporary_requirement(bad_turn,before,bad,{'avoid':['花生']},prefs)
+
     def test_shopping_ref_accepts_normalized_null_workspace_but_rejects_wrong_target_or_revision(self):
         from run_maturity_live import require_plan_source
         ref={'kind':'plan','date':'2026-10-17','mealType':'dinner','workspaceId':None}
