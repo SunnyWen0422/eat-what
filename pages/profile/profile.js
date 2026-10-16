@@ -125,7 +125,7 @@ Page({
       if (!remote || !Array.isArray(remote.dishes)) throw new Error('invalid shopping summary')
       this.setData({ shoppingSummary: { pendingCount: pendingItemCount(remote), syncLabel: '刚刚已同步', refreshing: false } })
     } catch (_) {
-      if (isCurrent()) this.setData({ shoppingSummary: { ...localShoppingSummary(), syncLabel: '暂未连接 · 显示本地清单', refreshing: false } })
+      if (isCurrent()) this.setData({ shoppingSummary: { ...localShoppingSummary(), syncLabel: '暂未连接 · 显示本地清单', refreshing: false, syncIssue: true } })
     } finally {
       clearTimeout(timeout)
     }

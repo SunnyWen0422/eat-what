@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm')
 const prefs=require('../utils/preference-store')
 function settings(){let page,owner='A',writes=0,fail=false
- const modules={'../../utils/util':{getUserStorageKey:k=>owner+':'+k},'../../utils/preference-store':{...prefs,createPreferenceStore:()=>page.store},'../../utils/recommendation-options':{loadRecommendationOptions:async()=>({options:{groups:{}}})},'../../utils/experience-preferences':()=>({get:()=>({reducedMotion:false}),readFailed:()=>false}),'../../utils/font-scale':Object.assign(()=>1,{base:16})}
+ const modules={'../../utils/preference-save-presentation':require('../utils/preference-save-presentation'),'../../utils/util':{getUserStorageKey:k=>owner+':'+k},'../../utils/preference-store':{...prefs,createPreferenceStore:()=>page.store},'../../utils/recommendation-options':{loadRecommendationOptions:async()=>({options:{groups:{}}})},'../../utils/experience-preferences':()=>({get:()=>({reducedMotion:false}),readFailed:()=>false}),'../../utils/font-scale':Object.assign(()=>1,{base:16})}
  vm.runInNewContext(fs.readFileSync('pages/settings/settings.js','utf8'),{Page:v=>page=v,require:n=>modules[n],wx:{showToast(){}},console})
  page.data=structuredClone(page.data);page.setData=function(values){for(const [key,value]of Object.entries(values)){const bits=key.split('.');if(bits.length===2)this.data[bits[0]][bits[1]]=value;else this.data[key]=value}}
  page._scope='A:preferencesPage';page.data.loading=false;page.store={save:async value=>{writes++;if(fail)throw Error('private raw storage error');return {preferences:value,synced:true}}}

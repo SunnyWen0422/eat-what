@@ -443,9 +443,11 @@ Page(withAdminIdentity({
     const dishId = event.currentTarget.dataset.id
     const userId = this.data.selectedUser && this.data.selectedUser.id
     if (!dishId || !userId || this.data.deletingDishId) return
+    const dish = this.data.userDishes.find(item => String(item.id) === String(dishId))
+    if (!dish) return
     wx.showModal({
       title: '删除菜品',
-      content: '确认删除这道用户菜品？',
+      content: `${dish.name} · ID ${dishId}\n所属用户 ID ${userId}。删除后无法恢复，确认继续？`,
       confirmColor: '#C83F49',
       success: async result => {
         if (!result.confirm || !this.isAdminOperationCurrent(operation)) return

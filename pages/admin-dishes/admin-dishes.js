@@ -68,7 +68,7 @@ Page(withAdminIdentity({
     const dish = this.data.dishes.find(item => String(item.id) === String(id))
     if (!dish) return
     const next = Number(dish.isPublished) === 0 ? 1 : 0
-    wx.showModal({ title: next ? '发布菜品' : '下架菜品', content: next ? '发布后用户可以看到并获得推荐。' : '下架后将立即从用户查询和推荐中隐藏。', success: result => { if (result.confirm && this.isAdminOperationCurrent(operation)) return this.updatePublished(id, next) } })
+    wx.showModal({ title: next ? '发布菜品' : '下架菜品', content: `${dish.name} · ID ${id}\n${next ? '发布后用户可以看到并获得推荐。' : '下架后将立即从用户查询和推荐中隐藏。'}`, success: result => { if (result.confirm && this.isAdminOperationCurrent(operation)) return this.updatePublished(id, next) } })
   },
   async updatePublished(id, published) {
     const operation = this.beginAdminOperation()

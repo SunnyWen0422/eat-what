@@ -46,7 +46,7 @@ Page(withAdminIdentity({
     const user = this.data.users.find(item => String(item.id) === String(id))
     if (!user) return
     const next = Number(user.status) === 0 ? 1 : 0
-    wx.showModal({ title: next ? '启用用户' : '停用用户', content: next ? '确认恢复该用户的使用权限？' : '停用后该用户将无法继续使用服务。', success: result => { if (result.confirm && this.isAdminOperationCurrent(operation)) return this.updateStatus(id, next) } })
+    wx.showModal({ title: next ? '启用用户' : '停用用户', content: `${user.displayName || user.nickname || '用户'} · ID ${id}\n${next ? '确认恢复该用户的使用权限？' : '停用后该用户将无法继续使用服务。'}`, success: result => { if (result.confirm && this.isAdminOperationCurrent(operation)) return this.updateStatus(id, next) } })
   },
   async updateStatus(id, status) {
     const operation = this.beginAdminOperation()

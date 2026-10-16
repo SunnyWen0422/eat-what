@@ -23,8 +23,9 @@ Page(withAdminIdentity({
   toggleStatus() {
     const operation = this.beginAdminOperation()
     if (!this.data.user) return
+    const userId = this.data.userId, user = this.data.user
     const next = Number(this.data.user.status) === 0 ? 1 : 0
-    wx.showModal({ title: next ? '启用用户' : '停用用户', content: next ? '确认恢复该用户？' : '停用后该用户将无法继续使用服务。', success: result => { if (result.confirm && this.isAdminOperationCurrent(operation)) return this.updateStatus(next) } })
+    wx.showModal({ title: next ? '启用用户' : '停用用户', content: `${user.nickname || user.phone || '用户'} · ID ${userId}\n${next ? '确认恢复该用户？' : '停用后该用户将无法继续使用服务。'}`, success: result => { if (result.confirm && this.isAdminOperationCurrent(operation) && userId === this.data.userId) return this.updateStatus(next) } })
   },
   async updateStatus(status) {
     const operation = this.beginAdminOperation()
@@ -66,7 +67,9 @@ Page(withAdminIdentity({
   deleteDish(e) {
     const operation = this.beginAdminOperation()
     const id = e.currentTarget.dataset.id
-    wx.showModal({ title: '删除自定义菜品', content: '删除后无法恢复，确认继续？', confirmColor: '#b13b36', success: result => { if (result.confirm && this.isAdminOperationCurrent(operation)) return this.remove(id) } })
+    const dish = this.data.dishes.find(item => String(item.id) === String(id)), userId = this.data.userId
+    if (!dish) return
+    wx.showModal({ title: '删除自定义菜品', content: `${dish.name} · ID ${id}\n所属用户 ID ${userId}。删除后无法恢复，确认继续？`, confirmColor: '#b13b36', success: result => { if (result.confirm && this.isAdminOperationCurrent(operation) && userId === this.data.userId) return this.remove(id) } })
   },
   async remove(id) {
     const operation = this.beginAdminOperation()

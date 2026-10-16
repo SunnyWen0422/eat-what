@@ -17,6 +17,7 @@
   </block>
   <view wx:elif="{{mode === 'form'}}" class="form">
     <text class="form-title">{{editingId ? '编辑自定义菜品' : '添加自定义菜品'}}</text>
+    <text class="meta">所属用户：{{user.nickname || user.phone || '用户'}} · ID {{userId}}{{editingId ? ' · 菜品 ID ' + editingId : ''}}</text>
     <text class="label">菜名</text><input aria-label="菜品名称" placeholder-class="ew-placeholder" value="{{form.name}}" data-field="name" bindinput="onInput" maxlength="255" placeholder="请输入菜品名称"/>
     <text class="label">分类</text><view class="types"><button class="ew-hit-target {{form.type === item ? 'selected' : ''}}" wx:for="{{types}}" wx:key="*this" data-type="{{item}}" bindtap="onType">{{item}}</button></view>
     <text class="label">食材与用量</text><textarea aria-label="食材与用量" placeholder-class="ew-placeholder" value="{{form.cl}}" data-field="cl" bindinput="onInput" maxlength="10000" auto-height placeholder="每种食材一行，写明用量"/>

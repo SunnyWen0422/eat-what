@@ -56,11 +56,11 @@ function resolveAssistantReturn({origin,pageStack=[],currentScope,now=Date.now()
  const params=value.kind==='assistant'?{sessionId:value.sessionId,workspaceId:value.workspaceId,date:value.date,mealType:value.mealType}:value.kind==='calendar'?{date:value.date,mealType:value.mealType}:value.kind==='dish'?{id:value.dishId}:{}
  return{label,mode:value.kind==='home'?'switchTab':'navigateTo',routeKey:value.kind,params}
 }
-function navigateReturn(result,platform=wx){
- if(result.mode==='back')return platform.navigateBack({delta:result.delta})
+function navigateReturn(result,platform=wx,fail){
+ if(result.mode==='back')return platform.navigateBack({delta:result.delta,fail})
  const route=ROUTES[result.routeKey];if(!route)return
- if(result.mode==='switchTab')return platform.switchTab({url:route})
- if(result.mode==='navigateTo'){const query=Object.entries(result.params||{}).map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&');return platform.navigateTo({url:route+(query?'?'+query:'')})}
+ if(result.mode==='switchTab')return platform.switchTab({url:route,fail})
+ if(result.mode==='navigateTo'){const query=Object.entries(result.params||{}).map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&');return platform.navigateTo({url:route+(query?'?'+query:''),fail})}
 }
 function pageStack(){return typeof getCurrentPages==='function'?getCurrentPages():[]}
 function bindAssistantOrigin(page,origin,environment={}){
@@ -87,7 +87,17 @@ function returnFromPage(page,environment={},fallbackHome=false){
  const result=resolve()
  if(result.mode==='none'){page._assistantOrigin=null;origin=null;page.setData({assistantReturnVisible:false,assistantReturnLabel:'回到今天'});if(!fallbackHome)return}
  if(returnBlocked(page)){platform.showModal({title:'请先核对当前操作',content:'还有未完成的保存或结果待核对，请在当前页面核对原请求后返回。',showCancel:false});return}
- const go=()=>{if(page._unloaded||page._assistantAlive===false||page._visible===false||page._recipeVisible===false||page._assistantVisible===false||scope!==currentOriginScope(environment)||origin!==page._assistantOrigin||returnBlocked(page))return;const latest=resolve();if(latest.mode!=='none')return navigateReturn(latest,platform);if(fallbackHome)platform.switchTab({url:ROUTES.home})}
+ const go=()=>{
+  if(page._unloaded||page._assistantAlive===false||page._visible===false||page._recipeVisible===false||page._assistantVisible===false||scope!==currentOriginScope(environment)||origin!==page._assistantOrigin||returnBlocked(page))return
+  const latest=resolve()
+  if(latest.mode==='none'&&!fallbackHome)return
+  // The existing custom confirmation has already approved this departure.
+  // Suspend the native alert once; a failed navigation restores the page's guard.
+  const fail=()=>{if(!page._unloaded&&scope===currentOriginScope(environment)&&typeof page.syncEditLeaveAlert==='function')page.syncEditLeaveAlert()}
+  if(typeof platform.disableAlertBeforeUnload==='function')platform.disableAlertBeforeUnload()
+  if(latest.mode!=='none')return navigateReturn(latest,platform,fail)
+  platform.switchTab({url:ROUTES.home,fail})
+ }
  if(returnDirty(page)){
   const before=JSON.stringify(page.data)
   platform.showModal({title:'离开当前编辑？',content:'输入尚未保存。返回后不会替你保存或执行操作。',confirmText:'离开编辑',cancelText:'保留编辑',success:r=>{if(r.confirm&&before===JSON.stringify(page.data))go()}})

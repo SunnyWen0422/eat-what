@@ -1,6 +1,7 @@
 <button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
 <view class="ew-page settings-page" style="font-size:{{fontBase * fontScale}}px">
   <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">减少页面过渡动画，只在这台设备生效。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
+  <view wx:if="{{assistantPreferenceProposal}}" class="ew-notice ew-reading"><view class="section-title">助手带来的偏好建议</view><text>{{assistantPreferenceProposal}}</text><view>请核对并在下方调整。这里只修改当前账号的长期偏好，点击“保存偏好”后生效。</view></view>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><ui-state wx:if="{{preferencesReadFailed}}" kind="error" title="偏好暂未读到" action-label="重新读取" bind:action="onLoad" /><view wx:if="{{statusText}}" class="sync-row">
     <text class="sync-dot {{synced ? 'online' : 'offline'}}"></text>
     <text>{{statusText}}</text>
@@ -40,9 +41,10 @@
   <view class="section">
     <view class="section-title">忌口食材</view>
     <view class="ingredient-row">
-      <input placeholder-class="ew-placeholder" class="ingredient-input" aria-label="添加长期忌口食材" value="{{ingredientDraft}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
+      <input placeholder-class="ew-placeholder" class="ingredient-input" aria-label="添加长期忌口食材" value="{{ingredientDraft}}" focus="{{ingredientFocus}}" disabled="{{saving || loading}}" placeholder="例如：花生、香菜" maxlength="20" bindinput="onIngredientInput" bindconfirm="onAddIngredient" />
       <button class="ew-hit-target add-btn" bindtap="onAddIngredient">添加</button>
     </view>
+    <view wx:if="{{ingredientError}}" class="ew-error" aria-live="polite">{{ingredientError}}</view>
     <view class="chip-grid top-gap" wx:if="{{preferences.excludedIngredients.length}}">
       <view aria-role="button" class="ew-hit-target ingredient-chip" wx:for="{{preferences.excludedIngredients}}" wx:key="*this" aria-label="移除长期忌口{{item}}" data-value="{{item}}" bindtap="onRemoveIngredient">{{item}} ×</view>
     </view>

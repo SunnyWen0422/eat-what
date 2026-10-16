@@ -31,5 +31,5 @@ for(const outcome of ['success','offline','account-switch'])test('explicit prefe
  if(outcome==='account-switch')scope='B'
  finish({preferences:page.data.preferences,synced:outcome!=='offline'});await pending
  if(outcome==='account-switch'){assert.equal(toasts.length,0);assert.notEqual(page.data.statusText,'已同步到账号')}
- else {assert.equal(page.data.dirty,outcome==='offline');assert.equal(page.data.preferences.maxCookMinutes,15);assert.equal(toasts[0].icon,outcome==='offline'?'none':'success')}
+ else {assert.equal(page.data.dirty,false);assert.equal(page.data.synced,outcome!=='offline');assert.equal(page.data.preferences.maxCookMinutes,15);assert.equal(toasts[0].icon,outcome==='offline'?'none':'success');if(outcome==='offline')assert.match(page.data.statusText,/本机草稿.*账号尚未保存/)}
 })

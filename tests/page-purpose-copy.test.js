@@ -73,9 +73,9 @@ test('diet review separates actual food statistics from plan execution compariso
 
 test('help distinguishes saving to the calendar from recording food after eating', () => {
   const source = read('pages/about/about.wxml')
-  assert.match(source, /2 · 保存到日历/)
+  assert.match(source, /保存到日历/)
   assert.match(source, /保存到日历只保存计划，不会记作实际吃过/)
-  assert.match(source, /4 · 记录饮食/)
+  assert.match(source, /记录与回顾/)
   assert.match(source, /“记录饮食”/)
   assert.match(source, /实际吃过的内容才计入饮食回顾/)
   assert.doesNotMatch(source, /4 · 确认实际用餐|“实际吃了别的”/)

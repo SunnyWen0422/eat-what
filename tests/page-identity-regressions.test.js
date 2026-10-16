@@ -164,9 +164,9 @@ for (const fixture of admins.filter(item => ['admin', 'admin-users', 'admin-dish
 for (const fixture of [
   { route: 'admin-users', method: 'toggleStatus', data: { users: [{ id: 1, status: 1 }] }, write: 'updateAdminUserStatus' },
   { route: 'admin-user-detail', method: 'toggleStatus', data: { userId: 1, user: { id: 1, status: 1 } }, write: 'updateAdminUserStatus' },
-  { route: 'admin-user-detail', method: 'deleteDish', data: { userId: 1 }, write: 'deleteAdminUserDish' },
+  { route: 'admin-user-detail', method: 'deleteDish', data: { userId: 1, dishes: [{ id: 1, name: '当前菜品' }] }, write: 'deleteAdminUserDish' },
   { route: 'admin-dishes', method: 'togglePublished', data: { dishes: [{ id: 1, isPublished: 1 }] }, write: 'updateAdminDishStatus' },
-  { route: 'admin', method: 'onDeleteDish', data: { selectedUser: { id: 1 } }, write: 'deleteAdminUserDish' },
+  { route: 'admin', method: 'onDeleteDish', data: { selectedUser: { id: 1 }, userDishes: [{ id: 1, name: '当前菜品' }] }, write: 'deleteAdminUserDish' },
 ]) test(`F02 ${fixture.route} ${fixture.method} discards confirmation from the previous account`, async () => {
   let writes = 0
   const { page, account, dialogs } = load(`pages/${fixture.route}/${fixture.route}`, { [fixture.write]: async () => { writes++; return {} } })
