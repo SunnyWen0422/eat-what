@@ -534,3 +534,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-page button.browse-active-chip { margin:0; padding:{{space.2.px}} {{space.3.px}}; min-height:{{controls.touchSize.px}}; max-width:100%; border-radius:{{radius.2.px}}; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
 .ew-page button.browse-active-chip::after { border:0; }
 .browse-active-filters > .ew-link { margin:0; padding:{{space.2.px}}; white-space:normal; line-height:1.5; font-size:{{font.secondary.em}}; }
+
+.recipe-page-header { flex-wrap:wrap; }
+.ew-page .recipe-page-header .catalog-help { flex:0 0 auto; max-width:100%; width:auto; white-space:nowrap; }

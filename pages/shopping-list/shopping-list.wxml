@@ -1,5 +1,5 @@
 <button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
-<view class="ew-page ew-screen shopping-page" style="font-size:{{fontBase * fontScale}}px">
+<view class="ew-page ew-screen shopping-page {{fontScale > 1.5 ? 'shopping-large' : ''}}" style="font-size:{{fontBase * fontScale}}px">
   <view class="ew-between"><view><view class="ew-heading">购物清单</view><view wx:if="{{offline}}" class="ew-subtitle">上次清单</view></view><button class="ew-hit-target ew-link compact" loading="{{refreshing}}" disabled="{{busy}}" bindtap="loadList">刷新</button></view>
   <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view>
   <button wx:if="{{sourceMeals.length}}" class="ew-hit-target ew-link shopping-context" disabled="{{busy}}" bindtap="onOpenSourceMeal">{{pagePresentation.contextLabel}}</button>
@@ -27,7 +27,7 @@
   </view>
   <ui-state wx:if="{{!loading && !offline && !errorMessage && !drafts.length && pendingCount === 0 && checkedCount > 0 && statusFilter === 'pending'}}" kind="empty" density="inline" title="清单里的食材都买齐了" description="回到今天，核对这餐的安排并开始做饭。" action-label="回到今天" bind:action="onBackToToday" /><ui-state wx:elif="{{!loading && !dishes.length}}" kind="empty" density="{{pendingCount + checkedCount > 0 ? 'inline' : 'page'}}" illustration="{{pendingCount + checkedCount > 0 ? '' : 'empty-shopping'}}" title="{{statusFilter === 'pending' ? '当前没有待买食材' : '当前没有已买食材'}}" description="从菜谱或计划准备食材，也可以手动添加。" action-label="从日历准备食材" bind:action="onAddFromCalendar" />
   <ui-sheet visible="{{sourceMealsVisible}}" title="选择对应餐次" bind:close="onCloseSourceMeals"><button wx:for="{{sourceMeals}}" wx:key="label" class="ew-hit-target ew-link" data-key="{{item.date}}:{{item.mealType}}" bindtap="onOpenSourceMeal">{{item.label}}</button></ui-sheet>
-  <button class="ew-hit-target ew-link" aria-expanded="{{detailsExpanded}}" bindtap="onPriceDetails">{{detailsExpanded ? '收起费用' : '参考价与实际支出'}}</button>
+  <button id="shopping-price-details" class="ew-hit-target ew-link" aria-expanded="{{detailsExpanded}}" bindtap="onPriceDetails">{{detailsExpanded ? '收起费用' : '参考价与实际支出'}}</button>
   <view wx:if="{{detailsExpanded}}" class="shopping-costs">
     <ui-state wx:if="{{priceLoading}}" kind="loading" density="inline" title="正在读取费用" />
     <text wx:if="{{priceNotice}}" class="ew-muted">{{priceNotice}}</text>

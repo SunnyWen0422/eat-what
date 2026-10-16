@@ -83,3 +83,10 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-page .shopping-context { display:block; margin:4px 0 8px; padding:4px 0; text-align:left; font-size:0.875em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
 .shopping-page button.quantity-warning { display:block; margin:0; padding:0 8px; text-align:left; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
 .shopping-page button.quantity-warning::after { border:0; }
+
+/* Native font-2 evidence: keep labels whole and reserve the stacked footer. */
+.shopping-page button.compact { max-width:none; white-space:nowrap; }
+.shopping-large > .ew-between > view { flex:1 0 100%; }
+.shopping-large .shopping-bottom { flex-direction:column; align-items:stretch; }
+.shopping-page.shopping-large .shopping-bottom > ui-button { flex:none; width:100%; }
+.shopping-page.shopping-large { padding-bottom:calc(3em + 96px + env(safe-area-inset-bottom)); }

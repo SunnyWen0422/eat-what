@@ -175,7 +175,7 @@ async function capture(o,manifest,session) {
     else await bounded(mini.pageScrollTo(999999))
     if(name==='shopping-list'){
      await sleep(250)
-     item.bottomMetrics=await bounded(mini.evaluate(()=>new Promise(resolve=>{const q=wx.createSelectorQuery();q.selectViewport().scrollOffset();q.select('.shopping-page').boundingClientRect();q.selectAll('.shopping-page > button').boundingClientRect();q.select('.shopping-bottom').boundingClientRect();q.exec(v=>resolve({scroll:v[0],page:v[1],lastContentButton:v[2]?.slice(-1)[0],footer:v[3]}))})))
+     item.bottomMetrics=await bounded(mini.evaluate(()=>new Promise(resolve=>{const q=wx.createSelectorQuery();q.selectViewport().scrollOffset();q.select('.shopping-page').boundingClientRect();q.select('#shopping-price-details').boundingClientRect();q.select('.shopping-bottom').boundingClientRect();q.exec(v=>resolve({scroll:v[0],page:v[1],lastContentButton:v[2],footer:v[3]}))})))
      const root=await bounded(page.$('.shopping-page'));item.bottomMetrics.paddingBottom=await bounded(root.style('padding-bottom'))
      const b=item.bottomMetrics;item.bottomMetrics.lastButtonAboveFooter=!!(b.lastContentButton&&b.footer&&b.lastContentButton.bottom<=b.footer.top+1)
     }
