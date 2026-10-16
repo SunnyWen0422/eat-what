@@ -19,7 +19,8 @@ from assistant_v4_provider_budget import ProviderBudget, BudgetExhausted
 
 FIELDS={'DEEPSEEK_API_KEY','DEEPSEEK_BASE_URL','DEEPSEEK_MODEL'}
 UNAVAILABLE='本次智能理解暂不可用，请明确需求或稍后重试。'
-READS={'search_dishes','search_by_ingredients','get_dish_details','get_dish_methods','read_current_meal','read_calendar','read_shopping','read_actual_diet_review'}
+READS={'search_dishes','search_by_ingredients','get_dish_details','get_dish_methods','read_current_meal','read_calendar','read_shopping','read_actual_diet_review',
+       'get_recommendation_options','read_favorites','read_saved_menus'}
 
 def selected_cases(value):
     result=value.split(',') if value else None

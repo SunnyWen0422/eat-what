@@ -16,6 +16,14 @@ SCRATCH=ROOT/'.test-artifacts/assistant-live-guards'
 SCRATCH.mkdir(parents=True,exist_ok=True)
 
 class LiveEntryGuardsTest(unittest.TestCase):
+    def test_live_diagnostics_accept_new_read_tools_without_storing_private_values(self):
+        for name in ('get_recommendation_options','read_favorites','read_saved_menus'):
+            message={'role':'assistant','content':None,'tool_calls':[{'id':'PRIVATE_CALL','type':'function','function':{'name':name,'arguments':'{}'}}]}
+            result=live.message_diagnostic(message)
+            self.assertTrue(result['assistantCallsValidation']['passed'])
+            self.assertIn(name,result['toolNames'])
+            self.assertNotIn('PRIVATE_CALL',json.dumps(result))
+
     def shopping_fixture(self):
         receipt={'status':'completed','steps':[{'tool':'save_meal_to_target','result':{
             'executed':True,'targetDate':'2026-10-12','targetMealType':'dinner','targetPlanRevision':3}}]}

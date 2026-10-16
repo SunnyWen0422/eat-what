@@ -5,8 +5,11 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import sys
+from types import SimpleNamespace
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'scripts'))
 
 
 class MaturityAcceptanceGuardsTest(unittest.TestCase):
@@ -37,6 +40,25 @@ class MaturityAcceptanceGuardsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             build=Path(directory)/'build.json';build.write_text('{"jarSha256":"wrong","backendFingerprint":"wrong"}')
             with self.assertRaises(ValueError):m.validate_build(self.value(),build,Path(directory)/'missing.jar')
+
+    def test_live_requires_explicit_matching_unexhausted_atomic_ledger_without_weakening_mock_entry(self):
+        m=self.service()
+        from assistant_v4_provider_budget import ProviderBudget
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'budget.json'
+            data={'authorizationDate':'2026-10-16','limit':20,'used':0,'scope':'new V4 assistant synthetic local integration tests','providerRequestsCountedPerHttpAttempt':True}
+            path.write_text(json.dumps(data),encoding='utf-8')
+            ledger=ProviderBudget(path,authorization_date='2026-10-16')
+            execution=SimpleNamespace(provider_mode='live',ledger=ledger)
+            config=dict(self.value(),providerMode='live',modelBudgetLedger=str(path))
+            self.assertIs(execution,m.validate_execution(config,execution))
+            with self.assertRaises(ValueError):m.validate_config(config)
+            with self.assertRaises(ValueError):m.validate_execution(config,None)
+            for bad in (dict(config,modelBudgetLedger=str(Path(directory)/'other.json')),dict(config,loopbackApi='https://chishenme.icu/api'),self.value()):
+                with self.assertRaises(ValueError):m.validate_execution(bad,execution)
+            data['used']=20;path.write_text(json.dumps(data),encoding='utf-8')
+            with self.assertRaises(ValueError):m.validate_execution(config,execution)
+            self.assertEqual(20,json.loads(path.read_text())['used'])
 
     def test_output_never_reuses_existing_or_repository_directory(self):
         m=self.service()

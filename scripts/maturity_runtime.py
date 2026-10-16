@@ -28,6 +28,23 @@ OPTIONAL={'jar','buildManifest','mysqld','java','catalog','qualityBundle','rows'
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def validate_execution(value,execution=None):
+    if execution is None:
+        validate_config(value);return None
+    # The default entry never accepts a live flag. A live coordinator supplies
+    # the same atomic ledger that guards each external HTTP attempt.
+    if value.get('providerMode')!='live' or getattr(execution,'provider_mode',None)!='live':raise ValueError('Explicit live execution required')
+    validate_config(dict(value,providerMode='mock',modelBudgetLedger=None))
+    from assistant_v4_provider_budget import ProviderBudget,BudgetExhausted
+    ledger=getattr(execution,'ledger',None)
+    if not isinstance(ledger,ProviderBudget) or not value.get('modelBudgetLedger'):raise ValueError('Atomic live ledger required')
+    if Path(value['modelBudgetLedger']).resolve()!=ledger.path or ledger.path.is_symlink() or ledger.path.is_relative_to(ROOT):raise ValueError('Live ledger scope differs')
+    try:record=ledger.validate()
+    except (OSError,ValueError,BudgetExhausted):raise ValueError('Live budget unavailable') from None
+    if record['used']>=record['limit']:raise ValueError('Live budget exhausted')
+    return execution
+
+
 def backend_fingerprint(root=ROOT):
     root=Path(root);files=[root/'backend/pom.xml']
     files+=sorted((p for p in (root/'backend/src/main').rglob('*') if p.is_file() and not re.fullmatch(r'application(?:-.*)?\.(?:yml|yaml|properties)',p.name)),key=lambda p:p.relative_to(root).as_posix())
@@ -124,9 +141,10 @@ def install_catalog(connection,config):
 
 
 @contextmanager
-def owned_runtime(config,out,baseline=False):
+def owned_runtime(config,out,baseline=False,execution=None):
     """Bootstrap schema + fixture + Java/Python in one owning process tree."""
-    validate_config(config);out=new_output(out)
+    validate_execution(config,execution);out=new_output(out)
+    if baseline and execution is not None:raise ValueError('Live baseline execution forbidden')
     if subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()!=config['sourceSha']:raise ValueError('Source HEAD changed')
     jar=Path(config['jar']).resolve();validate_build(config,config['buildManifest'],jar,baseline)
     mysqld=Path(config['mysqld']).absolute();java=Path(config['java']).absolute()
@@ -142,7 +160,7 @@ def owned_runtime(config,out,baseline=False):
     processes=[];connection=None;server=None;thread=None;provider_context=None
     password=secrets.token_urlsafe(32);token=secrets.token_urlsafe(40);service_token=secrets.token_urlsafe(40)
     db_port=port();database=config['privateDb'];jdbc=f'jdbc:mysql://127.0.0.1:{db_port}/{database}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8'
-    state={'api':config['loopbackApi'],'database':database,'dbPort':db_port,'password':password,'tokenSecret':token,'root':str(ROOT),'purpose':config['purpose']}
+    state={'api':config['loopbackApi'],'database':database,'dbPort':db_port,'password':password,'tokenSecret':token,'root':str(ROOT),'purpose':config['purpose'],'providerMode':config['providerMode']}
     try:
         subprocess.run([str(mysqld),'--no-defaults','--initialize-insecure','--datadir='+str(mysql_data),'--log-error='+str(data/'mysql.log')],check=True,creationflags=FLAGS)
         mysql=subprocess.Popen([str(mysqld),'--no-defaults','--datadir='+str(mysql_data),'--bind-address=127.0.0.1','--port='+str(db_port),'--log-error='+str(data/'mysql.log'),'--mysqlx=OFF','--default-time-zone=+08:00'],creationflags=FLAGS);processes.append(mysql)
@@ -185,7 +203,7 @@ def owned_runtime(config,out,baseline=False):
         # Include one deliberately future ID: the public API must still reject
         # an owned recipe even if that ID was accidentally put in its allowlist.
         state['publicFixtureIds']=public_ids;state['futurePrivateFixtureId']=future_private_id
-        acceptance=load('maturity_assistant','scripts/assistant_v4_acceptance.py');model=acceptance.MockCompletion()
+        acceptance=load('maturity_assistant','scripts/assistant_v4_acceptance.py');model=acceptance.MockCompletion() if execution is None else execution.create_model()
         provider_context=acceptance.local_provider(model);provider_url=provider_context.__enter__()
         import uvicorn,threading
         app=acceptance.synthetic_python_app(provider_url,service_token)
