@@ -76,6 +76,80 @@ describe('workspace navigation and action hierarchy', () => {
     expect(commit).toHaveBeenCalledTimes(2); expect(commit.mock.calls[1]).toEqual(commit.mock.calls[0]);
     const result = await repo.read(); if (result.ok) { expect(result.value.meta.revision).toBe(1); expect(result.value.draft?.dishes).toHaveLength(1); }
   });
+  it.each(['failed', 'unknown committed'] as const)('independent readback recovery retains the %s App command and requestId', async outcome => {
+    const repo = await setup(); const original = repo.commit.bind(repo);
+    let first = true;
+    const commit = vi.spyOn(repo, 'commit').mockImplementation(async (...args) => {
+      if (args[0].type === 'saveDraft' && first) {
+        first = false;
+        if (outcome === 'failed') return { ok: false, error: { code: 'QUOTA', message: 'full' } };
+        await original(...args); throw new Error('acknowledgement lost after commit');
+      }
+      return original(...args);
+    });
+    await tab('菜谱'); fireEvent.click(screen.getByRole('button', { name: '手选 清炒青菜' }));
+    await screen.findByRole('button', { name: '重试保存当前编辑' });
+    expect(screen.queryByText('草稿已保存')).toBeNull();
+    await tab('我的'); fireEvent.click(screen.getByRole('button', { name: '新建自定义菜谱' }));
+    fireEvent.change(screen.getByLabelText('自定义菜名'), { target: { value: '独立保存的菜' } });
+    if (outcome === 'unknown committed') {
+      // The independent editor explicitly reviews the committed draft's newer revision.
+      fireEvent.click(screen.getByRole('button', { name: '保存自定义菜谱' }));
+      await screen.findByText('另一个页面有更新，输入已保留。');
+      fireEvent.click(screen.getByRole('button', { name: '查看此表单的最新记录' }));
+      fireEvent.click(await screen.findByRole('button', { name: '保留此表单编辑并继续' }));
+    }
+    const stale = await repo.read(); let began!: () => void;
+    const reading = new Promise<void>(resolve => { began = resolve; });
+    let finish: ((result: Awaited<ReturnType<Repository['read']>>) => void) | undefined;
+    if (outcome === 'failed') vi.spyOn(repo, 'read').mockRejectedValueOnce(new Error('independent readback rejected'));
+    else vi.spyOn(repo, 'read').mockImplementationOnce(() => { vi.useFakeTimers(); began(); return new Promise(resolve => { finish = resolve; }); });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: '保存自定义菜谱' }));
+      if (outcome === 'unknown committed') {
+        await act(async () => { await reading; });
+        await act(async () => { await vi.advanceTimersByTimeAsync(15001); }); vi.useRealTimers();
+      }
+      const reread = await screen.findByRole('button', { name: '重新读取已保存记录' });
+      expect(reread).toHaveProperty('disabled', false);
+      expect(screen.getByText('自定义菜谱已保存')).not.toBeNull();
+      expect(screen.queryByRole('dialog', { name: '新建自定义菜谱' })).toBeNull();
+      fireEvent.click(reread);
+      await waitFor(() => expect(screen.queryByRole('button', { name: '重新读取已保存记录' })).toBeNull());
+      const retry = screen.getByRole('button', { name: '重试保存当前编辑' });
+      expect(retry).toHaveProperty('disabled', false);
+      expect(commit.mock.calls.filter(([command]) => command.type === 'saveCustomRecipe' && command.recipe.name === '独立保存的菜')).toHaveLength(outcome === 'failed' ? 1 : 2);
+      if (finish) await act(async () => { finish!(stale); });
+      expect(screen.getByRole('button', { name: '手选 独立保存的菜' })).not.toBeNull();
+      expect(screen.queryByText('草稿已保存')).toBeNull();
+      fireEvent.click(retry); await screen.findByText('草稿已保存');
+      const drafts = commit.mock.calls.filter(([command]) => command.type === 'saveDraft');
+      expect(drafts).toHaveLength(2); expect(drafts[1]![0]).toEqual(drafts[0]![0]); expect(drafts[1]![2]).toBe(drafts[0]![2]);
+      const result = await repo.read(); expect(result.ok).toBe(true);
+      if (result.ok) { expect(result.value.customRecipes).toHaveLength(1); expect(result.value.draft?.dishes).toHaveLength(1); expect(result.value.meta.revision).toBe(2); }
+    } finally { vi.useRealTimers(); }
+  });
+  it('a late presentation recovery cannot clear a newer unconfirmed App request', async () => {
+    const repo = await setup(); await select(); const originalRead = repo.read.bind(repo);
+    const read = vi.spyOn(repo, 'read').mockRejectedValueOnce(new Error('plan readback rejected'));
+    fireEvent.click(screen.getByRole('button', { name: '保存到日历' }));
+    fireEvent.click(screen.getByRole('button', { name: /^保存计划$/ }));
+    const reread = await screen.findByRole('button', { name: '重新读取已保存记录' });
+    const oldData = await originalRead(); let finish!: (result: Awaited<ReturnType<Repository['read']>>) => void;
+    read.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    fireEvent.click(reread); // This recovery remains pending while the second one succeeds.
+    fireEvent.click(reread);
+    await waitFor(() => expect(screen.queryByRole('button', { name: '重新读取已保存记录' })).toBeNull());
+    const commit = vi.spyOn(repo, 'commit').mockRejectedValueOnce(new Error('new settings result unknown'));
+    fireEvent.change(screen.getByLabelText('用餐人数'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: '应用人数和菜数' }));
+    await screen.findByRole('button', { name: '重试保存当前编辑' });
+    await act(async () => { finish(oldData); });
+    const retry = screen.getByRole('button', { name: '重试保存当前编辑' }); expect(retry).toHaveProperty('disabled', false);
+    fireEvent.click(retry); await screen.findByText('设置和草稿已保存');
+    expect(commit).toHaveBeenCalledTimes(2); expect(commit.mock.calls[1]![0]).toEqual(commit.mock.calls[0]![0]); expect(commit.mock.calls[1]![2]).toBe(commit.mock.calls[0]![2]);
+    const latest = await originalRead(); if (latest.ok) { expect(latest.value.plans).toHaveLength(1); expect(latest.value.preferences.servings).toBe(3); }
+  });
   it('a timed out readback releases busy and late data cannot replace recovered records', async () => {
     const repo = await setup(); await select(); const before = await repo.read();
     const commit = vi.spyOn(repo, 'commit');

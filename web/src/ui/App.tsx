@@ -92,6 +92,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
       : connectionStatus?.readable&&['QUOTA','ABORTED'].includes(connectionStatus.reason??'')?'回收站到期清理未完成，当前只读。原记录仍可查看且未删除，重新打开可重试清理。'
       : '本地存储不可写，本次内容不会保存。可以临时手选菜谱。' : null;
   const requestRef = useRef<{ key: string; id: string } | null>(null);
+  const presentationRecoveryRef = useRef<{ appRequest: { key: string; id: string } | null } | null>(null);
 
   useEffect(() => {
     function followRoute() { rememberPosition(); const next = routeTab(); setTab(next); setReplacement(null); setShoppingSeed(null); }
@@ -229,9 +230,10 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     setNotice(command.type === 'savePlan' ? '正在保存计划…' : command.type === 'saveSettings' ? '正在保存设置…' : command.type === 'savePreferences' ? '正在保存忌口…' : '正在保存草稿…');
     const key = JSON.stringify(command);
     if (requestRef.current?.key !== key) requestRef.current = { key, id: globalThis.crypto.randomUUID() };
+    const request = requestRef.current;
     let committed = false;
     try {
-      const result = await repository.commit(command, expectedRevision, requestRef.current!.id);
+      const result = await repository.commit(command, expectedRevision, request.id);
       committed = result.ok;
       if (result.ok) {
         // This local edit incorporated only its own completed receipt, not later writes by another tab.
@@ -243,6 +245,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
           rememberRevision(read.value.meta.revision);
         }
         if(data.meta.revision===0)setBackupHint(true);
+        presentationRecoveryRef.current = read.ok ? null : { appRequest: request };
         setPresentationFailure(!read.ok);
         setNotice(success);
         setError(false);
@@ -263,7 +266,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
       }
       return result.ok;
     } catch {
-      if (committed) { setPresentationFailure(true); setNotice(success); }
+      if (committed) { presentationRecoveryRef.current = { appRequest: request }; setPresentationFailure(true); setNotice(success); }
       else { setNotice('保存结果未确认，输入已保留。请用原请求重试核对，避免重复新建。'); setError(true); }
       return committed;
     } finally {
@@ -393,6 +396,21 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     finally { clearTimeout(timeout); }
     if(result.ok){setData(result.value);setMetadataKnown(true);rememberRevision(result.value.meta.revision);if(latestRevisionRef.current>editingRevisionRef.current)markConflict();}return result;
   }
+  async function recoverPresentation() {
+    const recovery = presentationRecoveryRef.current;
+    if (!recovery) return;
+    const read = await readLatest();
+    // A late reread only resolves the presentation failure that requested it.
+    if (!read.ok || presentationRecoveryRef.current !== recovery) return;
+    presentationRecoveryRef.current = null;
+    setPresentationFailure(false);
+    const owner = recovery.appRequest;
+    if (owner && requestRef.current?.id === owner.id && requestRef.current.key === owner.key
+      && failedSaveRef.current && JSON.stringify(failedSaveRef.current.command) === owner.key) {
+      requestRef.current = null;
+      failedSaveRef.current = null;
+    }
+  }
   async function commitLocal(command:Command,expectedRevision:number,requestId:string):Promise<Result<CommitReceipt>> {
     if(!repository||!writable||pendingRef.current)return {ok:false,error:{code:'UNAVAILABLE',message:'Local saving unavailable'}};
     pendingRef.current=true;setPending(true);
@@ -414,7 +432,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
         }else if(command.type!=='markBackupRequested'&&editingRevisionRef.current===expectedRevision)editingRevisionRef.current=result.value.globalRevision;
         else if(command.type==='markBackupRequested'&&!draftDirtyRef.current&&!preferencesDirtyRef.current&&!failedSaveRef.current&&editingRevisionRef.current===expectedRevision)editingRevisionRef.current=result.value.globalRevision;
         rememberRevision(result.value.globalRevision);
-        const read=await readLatest();if(read.ok){setData(read.value);setMetadataKnown(true);rememberRevision(read.value.meta.revision);}setPresentationFailure(!read.ok);
+        const read=await readLatest();if(read.ok){setData(read.value);setMetadataKnown(true);rememberRevision(read.value.meta.revision);}presentationRecoveryRef.current=read.ok?null:{appRequest:null};setPresentationFailure(!read.ok);
         if(data.meta.revision===0&&command.type!=='markBackupRequested')setBackupHint(true);
         setNotice(command.type==='markBackupRequested'?'下载请求时间已记录':command.type==='replaceAll'?(result.value.replayed?'恢复请求已执行，后续记录仍保留':'个人备份已恢复'):command.type==='saveActual'?'实际记录已保存':command.type==='saveCustomRecipe'?'自定义菜谱已保存':command.type==='saveFavorite'?'已收藏':command.type==='saveTemplate'?'菜单模板已保存':command.type==='saveShoppingList'?(command.expectedObjectRevision===null?'采购清单已保存':'采购编辑已保存'):command.type==='deleteObject'?'已移入回收站，保留 30 天':command.type==='restoreTrash'?'已恢复':command.type==='clearAll'?(result.value.replayed&&read.ok&&read.value.meta.revision>result.value.globalRevision?'清空请求已执行，之后新增的记录仍保留。':'本应用个人数据已清空'):command.type==='savePlan'?'计划编辑已保存':'本地记录已保存');
         // A successful independent object write cannot erase a retained draft/settings retry.
@@ -455,7 +473,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
         </div>}
       </div>;
   const recoveryFeedback = <>{conflictFeedback}
-{presentationFailure&&<div className="notice error"><p>保存事务已完成，但读取更新失败。不要重复新建记录，请重新读取已保存内容。</p><button disabled={pending} onClick={()=>void readLatest().then(r=>{if(r.ok){setPresentationFailure(false);requestRef.current=null;failedSaveRef.current=null;}})}>重新读取已保存记录</button></div>}
+{presentationFailure&&<div className="notice error"><p>保存事务已完成，但读取更新失败。不要重复新建记录，请重新读取已保存内容。</p><button disabled={pending} onClick={()=>void recoverPresentation()}>重新读取已保存记录</button></div>}
       {error && failedSaveRef.current && <button disabled={pending || !writable} onClick={() => { const retry = failedSaveRef.current; if (retry) void save(retry.command, retry.success, true); }}>重试保存当前编辑</button>}
       {!conflict && !failedSaveRef.current && (draftDirtyRef.current || preferencesDirtyRef.current) && <button disabled={pending || !writable} onClick={saveCurrentEdits}>保存当前编辑</button>}
   </>;
