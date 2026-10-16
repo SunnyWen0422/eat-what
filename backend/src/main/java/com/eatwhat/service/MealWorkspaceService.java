@@ -80,19 +80,19 @@ public class MealWorkspaceService {
             if("context".equals(operation)) {
                 MealContext c=MealWorkspaceRules.normalize(json.convertValue(request.getContext(),MealContext.class));
                 if(!Objects.equals(c.getDate(),w.getContext().getDate())||!Objects.equals(c.getMealType(),w.getContext().getMealType()))throw new IllegalArgumentException("请切换目标工作区后修改条件");
-                db.cancel(id,user);w.setTaskId(null);w.getDraft().setRequirementsFingerprint(null);w.setContext(c);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":"needs_regeneration");w.setMessage("本餐条件已保存，重新安排后生效");
+                db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.getDraft().setRequirementsFingerprint(null);w.setContext(c);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":"needs_regeneration");w.setMessage("本餐条件已保存，重新安排后生效");
             } else {
                 if(!Objects.equals(w.getDraft().getPlanVersion(),request.getPlanVersion()))throw conflict("方案版本已更新");
                 if("confirm".equals(operation)) confirm(user,w,request);
-                else if("cancel".equals(command)) {db.cancel(id,user);w.setTaskId(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("已停止，原方案已保留");}
+                else if("cancel".equals(command)) {db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("已停止，原方案已保留");}
                 else if(Arrays.asList("keep","release","undo").contains(command)) {
-                    db.cancel(id,user);w.setTaskId(null);
+                    db.cancel(id,user,w.getTaskId());w.setTaskId(null);
                     if("undo".equals(command))undoDraft(user,w,request.getReleaseLegacyLocks());
                     else w.setDraft(MealWorkspaceRules.command(w.getDraft(),command,request.getDishId(),null,request.getReleaseLegacyLocks()));
                     w.setStatus(MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("条件已变化时需要重新安排");
                 } else if(Arrays.asList("generate","regenerate","replace","select").contains(command)) {
                     w.setDraft(MealWorkspaceRules.prepareInteraction(w.getDraft(),command,request.getReleaseLegacyLocks()));
-                    db.cancel(id,user);WorkspaceTask task=new WorkspaceTask();task.setId(UUID.randomUUID().toString());task.setWorkspaceId(id);task.setUserId(user);task.setBaseRevision(before+1);
+                    db.cancel(id,user,w.getTaskId());WorkspaceTask task=new WorkspaceTask();task.setId(UUID.randomUUID().toString());task.setWorkspaceId(id);task.setUserId(user);task.setBaseRevision(before+1);
                     Map<String,Object> input=new LinkedHashMap<>();input.put("workspace",w);input.put("request",request);task.setInputJson(encode(input));db.task(task);
                     w.setTaskId(task.getId());w.setStatus("generating");w.setMessage("正在安排本餐");
                 } else throw new IllegalArgumentException("工作区操作无效");
@@ -210,7 +210,7 @@ public class MealWorkspaceService {
                 next.setHistory(history);next.setContextSnapshot(null);next.setPlanVersion(original.getPlanVersion()+1);next.setTotalCookMinutes(MealWorkspaceRules.totalMinutes(next.getDishes()));w.setDraft(next);
                 planner.lockAndValidateAssistant(user,w,ids);
             }
-            db.cancel(id,user);w.setTaskId(null);w.setSuggestedTarget(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("本餐已调整，可以撤销最近一次修改");
+            db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setSuggestedTarget(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("本餐已调整，可以撤销最近一次修改");
             long before=w.getRevision();w.setRevision(before+1);
             if(db.save(id,user,w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");
             receipt(user,requestId,hash,w);return w;
