@@ -83,6 +83,15 @@ Page({
   onSelectedDish(e){if(this.selectionOptions().current())wx.navigateTo({url:'/pages/dish-detail/dish-detail?id='+Number(e.currentTarget.dataset.id)})},
   onContinueSelecting(){if(this.selectionOptions().current())wx.switchTab({url:'/pages/customize/customize'})},
 
+  onFavoriteMore(e) {
+    const id = e.currentTarget.dataset.id, scope = this._viewScope, epoch = this._epoch
+    if (!id || this.data.removingId || this._unloaded || scope !== getUserStorageKey('favoriteView')) return
+    wx.showActionSheet({ itemList: ['取消收藏'], success: result => {
+      if (result.tapIndex !== 0 || this._unloaded || epoch !== this._epoch || scope !== this._viewScope || scope !== getUserStorageKey('favoriteView')) return
+      this.onRemoveFavorite({ currentTarget: { dataset: { id } } })
+    } })
+  },
+
   async onRemoveFavorite(e) {
     const dishId = e.currentTarget.dataset.id
     if (!dishId || this.data.removingId) return

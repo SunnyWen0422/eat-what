@@ -78,7 +78,7 @@ test('removed journal cannot turn a stale recovery entry into a new draft', asyn
   const f = fixture(); const key = seed(f); await f.page.onShow(); const e = recoveryEvent(f.page); f.memory.delete(key)
   await f.page.onRecoverCopy(e); assert.equal(f.page.data.editing, false); assert.deepEqual(plain(f.page.data.pendingCopies), [])
 })
-test('ordinary unsaved copy cancellation leaves no recovery entry or write', async () => {
+test('copy cancellation and unknown recovery stay independent: unsaved cancellation leaves no recovery entry or write', async () => {
   const f = fixture(); f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); f.page.cancelEdit(); await f.page.onShow()
   assert.deepEqual(plain(f.page.data.pendingCopies), []); assert.equal([...f.memory.keys()].some(x => x.includes('personalRecipeWrite:')), false)
 })

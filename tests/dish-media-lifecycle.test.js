@@ -24,3 +24,16 @@ test('assistant recommendation photos reset failure with a new recipe version',(
  row.properties.card={...card,data:{...card.data,contentVersion:'v2'}};row.refresh()
  assert.equal(row.data.failedImages['1'],undefined)
 })
+
+test('thumbnail failure stays local and resets when URL or recipe identity changes',()=>{
+ const props={dish:{id:1,contentVersion:'v1',image:'https://img.example/a'},reducedMotion:true}
+ const failed=component('components/compact-dish-row/index.js',structuredClone(props))
+ const other=component('components/compact-dish-row/index.js',structuredClone(props))
+ failed.updateDish();other.updateDish();const old=failed.data.dishView.identity
+ failed.onImageError({currentTarget:{dataset:{source:props.dish.image,identity:old}}})
+ assert.equal(failed.data.imageFailed,true);assert.equal(other.data.imageFailed,false)
+ for(const dish of [{...props.dish,image:'https://img.example/b'},{...props.dish,id:2}]){
+  failed.properties.dish=dish;failed.updateDish();assert.equal(failed.data.imageFailed,false)
+  failed.onImageError({currentTarget:{dataset:{source:props.dish.image,identity:old}}});assert.equal(failed.data.imageFailed,false)
+ }
+})

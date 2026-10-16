@@ -68,11 +68,12 @@
     </view>
 
     <!-- 烹饪步骤 -->
-    <view class="section" wx:if="{{dish.stepsList && dish.stepsList.length > 0}}">
-      <view class="section-title">
+    <view class="section">
+      <view class="section-title recipe-reading-heading">
         <text class="section-title-text">烹饪步骤</text>
+        <button class="ew-hit-target ew-link detail-cooking-link" bindtap="onOpenCooking">大字看做法</button>
       </view>
-      <view class="steps-list">
+      <view class="steps-list" wx:if="{{dish.stepsList && dish.stepsList.length > 0}}">
         <view class="step-item" wx:for="{{dish.stepsList}}" wx:key="index">
           <view class="step-number">{{index + 1}}</view>
           <view class="step-content">
@@ -95,7 +96,6 @@
 
     <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤</view>
     <button wx:if="{{assistantAvailable}}" class="ew-hit-target ew-link detail-cooking-link" disabled="{{selectionBusy || selectionLoading}}" bindtap="onAskDish">问问这道菜</button>
-    <button class="ew-hit-target ew-link detail-cooking-link" bindtap="onOpenCooking">大字看做法</button>
     <button wx:if="{{dish.methodsDisplay || dish.tipsDisplay || dish.cookTime || dish.cookMinutes || dish.tagsList.length > 3}}" class="ew-hit-target ew-link" aria-expanded="{{detailSupplementVisible}}" bindtap="onToggleSupplement">{{detailSupplementVisible ? '收起补充资料' : '补充做法与提示'}}</button>
     <view wx:if="{{detailSupplementVisible}}">    <!-- 烹饪方法 -->
     <view class="section" wx:if="{{dish.methodsDisplay}}">

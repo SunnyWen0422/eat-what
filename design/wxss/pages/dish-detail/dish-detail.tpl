@@ -401,3 +401,8 @@ button.share-btn { left:auto; bottom:auto; width:{{controls.touchSize.px}}; max-
 .container.is-large-text .dish-title-row .dish-name { flex-basis:100%; }
 .container.is-large-text .dish-title-actions { margin-left:auto; }
 .container.is-large-text .dish-attributes { grid-template-columns:repeat(2,minmax(0,1fr)); }
+
+/* Reading is available before the long body, with room to wrap at large text sizes. */
+.recipe-reading-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.recipe-reading-heading .section-title-text { margin:0; }
+.container .recipe-reading-heading .detail-cooking-link { flex:0 0 auto; }
