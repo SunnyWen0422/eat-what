@@ -29,16 +29,16 @@ public class MealWorkspaceTaskRunner {
     public MealWorkspaceTaskRunner(MealWorkspaceMapper db,MealWorkspaceService service,MealWorkspacePlanner planner,MealWorkspaceAgentGateway agent,ObjectMapper json,@Value("${meal-workspace.enabled:false}") boolean enabled) {
         this.db=db;this.service=service;this.planner=planner;this.agent=agent;this.json=json;this.enabled=enabled;
     }
-    /** Identity only; the worker reads the committed row on its own connection. */
+    /** A committed identity is a wakeup signal, never permission to jump the queue. */
     public static final class Ready {
         final String id,workspace;final Long user;
         Ready(String id,String workspace,Long user){this.id=id;this.workspace=workspace;this.user=user;}
     }
     @org.springframework.transaction.event.TransactionalEventListener(phase=org.springframework.transaction.event.TransactionPhase.AFTER_COMMIT)
     public void ready(Ready event){
-        if(!enabled)return;
-        try{submit(event.id,()->db.taskById(event.id,event.workspace,event.user));}
-        catch(RuntimeException unavailable){LOG.warn("workspace_dispatch_deferred kind={}",unavailable.getClass().getSimpleName());}
+        // Preserve the existing durable ordering when a previously rejected
+        // task is still waiting. New notifications must not bypass that work.
+        poll();
     }
     private boolean submit(String id,java.util.function.Supplier<WorkspaceTask> source){
         if(!submitted.add(id))return true;
