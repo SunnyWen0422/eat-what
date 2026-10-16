@@ -77,7 +77,10 @@ Page({
     this.loadCustomMetadata()
   },
 
-  async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this);
+  async onShow() {
+    // Tab pages are reused: only a fresh consumed handoff below may expose a
+    // conversation return on this visit. Keep editor and request state intact.
+    if(this._assistantOrigin)require('../../utils/assistant-origin').bindAssistantOrigin(this,null)
     this.setData({reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
     this._recipeVisible = true
     this._visible = true

@@ -137,3 +137,17 @@ test('return invalidates a live-page origin after account/API switch and ordinar
  for(const change of ['switch','apiSwitch']){const f=pageFixture('shopping-list'),api=f.load('assistant-origin');assert.equal(typeof api.bindAssistantOrigin,'function');api.bindAssistantOrigin(f.page,api.currentOriginStore().take(api.currentOriginStore().put(source())));f[change]();f.page.onAssistantReturn();assert.equal(f.navigation.length,0);assert.equal(f.page.data.assistantReturnVisible,false)}
  const f=pageFixture('shopping-list');f.page.onLoad({});assert.ok(!f.page.data.assistantReturnVisible)
 })
+test('ordinary Tab revisit clears prior origin and a new valid handoff rebinds without replacing pending editor data',async()=>{
+ const f=pageFixture('customize'),api=f.load('assistant-origin'),h=f.load('assistant-action-handoff')
+ api.bindAssistantOrigin(f.page,api.currentOriginStore().take(api.currentOriginStore().put(source())))
+ f.page.onAssistantReturn();assert.equal(f.navigation.length,1)
+ f.page.refreshSelectedMeal=async()=>{}
+ f.page.data.menuPending=true;f.page.data.menuFormVisible=true;f.page.data.menuName='待核对的原菜单'
+ const pending={requestId:'original-menu-request'};f.page._pendingPlanWrite=pending
+ await f.page.onShow()
+ assert.equal(f.page.data.assistantReturnVisible,false);assert.equal(f.page._assistantOrigin,null)
+ assert.equal(f.page.data.menuName,'待核对的原菜单');assert.equal(f.page.data.menuPending,true);assert.equal(f.page._pendingPlanWrite.requestId,'original-menu-request')
+ const token=h.currentStore().put({kind:'use_personal_menu',ref:{menuId:3},target,sourceVersion:'1'},{...source(),sessionId:'session-2'})
+ f.rows.set('A:assistantActionTab',{token});await f.page.onShow()
+ assert.equal(f.page.data.assistantReturnVisible,true);assert.equal(f.page._assistantOrigin.sessionId,'session-2');assert.equal(f.page.data.menuName,'待核对的原菜单');assert.equal(f.page.data.menuPending,true);assert.equal(f.page._pendingPlanWrite.requestId,'original-menu-request');assert.equal(f.writes.length,0)
+})
