@@ -73,7 +73,8 @@ function bindAssistantOrigin(page,origin,environment={}){
 function refreshAssistantOrigin(page,environment={}){if(page._assistantOrigin)bindAssistantOrigin(page,page._assistantOrigin,environment)}
 function returnBlocked(page){
  const d=page.data||{},state=page.store&&page.store.state&&page.store.state()
- return ['busy','saving','savingCustom','menuBusy','menuSaving','mutating','actualBusy','actualLoading','copyBusy','editPending','customPending','menuPending','actualUnknown','copyUnknown','copyPending','savingPlan'].some(k=>d[k])||!!(d.drafts&&d.drafts.length)||!!page._pendingMutation||!!(page._actualBinding&&page._actualBinding.pending)||!!(state&&(state.pending||state.dirty))
+ const selection=page._recipeSelection&&page._recipeSelection.view().state
+ return ['busy','selectionBusy','saving','savingCustom','menuBusy','menuSaving','mutating','actualBusy','actualLoading','copyBusy','editPending','customPending','menuPending','actualUnknown','copyUnknown','copyPending','savingPlan'].some(k=>d[k])||!!(d.drafts&&d.drafts.length)||!!page._pendingMutation||!!(page._actualBinding&&page._actualBinding.pending)||!!(state&&(state.pending||state.dirty))||!!(selection&&(selection.pending||selection.dirty))
 }
 function returnDirty(page){
  const d=page.data||{}

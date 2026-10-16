@@ -151,3 +151,26 @@ test('ordinary Tab revisit clears prior origin and a new valid handoff rebinds w
  f.rows.set('A:assistantActionTab',{token});await f.page.onShow()
  assert.equal(f.page.data.assistantReturnVisible,true);assert.equal(f.page._assistantOrigin.sessionId,'session-2');assert.equal(f.page.data.menuName,'待核对的原菜单');assert.equal(f.page.data.menuPending,true);assert.equal(f.page._pendingPlanWrite.requestId,'original-menu-request');assert.equal(f.writes.length,0)
 })
+for(const route of ['dish-detail','customize'])for(const condition of ['selectionBusy','pending','dirty'])test(`${route} return blocks ${condition} recipe selection and preserves its original recovery state`,()=>{
+ const f=pageFixture(route),api=f.load('assistant-origin')
+ api.bindAssistantOrigin(f.page,api.currentOriginStore().take(api.currentOriginStore().put(source())))
+ const request={type:'command',body:{requestId:'original-selection-request',dishIds:[7,8]}},state={pending:condition==='pending'?request:null,dirty:condition==='dirty',workspace:{id:'selection-workspace',draft:{dishes:[{id:7,name:'原选菜'}]}}}
+ let actions=0;const selection={view:()=>({state}),recover:()=>actions++,dispose:()=>actions++,append:()=>actions++,remove:()=>actions++}
+ f.page._recipeSelection=selection;f.page.data.selectionBusy=condition==='selectionBusy';f.page.data.selectionFeedback={requestId:'original-selection-request',state:'unknown',message:'请核对原请求'}
+ const before=plain(state),feedback=plain(f.page.data.selectionFeedback)
+ f.page.onAssistantReturn()
+ assert.equal(f.navigation.length,0);assert.equal(f.dialogs.length,1);assert.equal(f.dialogs[0].showCancel,false)
+ assert.equal(f.page._recipeSelection,selection);assert.deepEqual(state,before);assert.deepEqual(f.page.data.selectionFeedback,feedback);assert.equal(state.pending&&state.pending.body.requestId,condition==='pending'?'original-selection-request':null);assert.equal(actions,0);assert.equal(f.writes.length,0)
+})
+for(const route of ['dish-detail','customize'])test(`${route} return rechecks recipe selection becoming pending during leave approval`,()=>{
+ const f=pageFixture(route),api=f.load('assistant-origin')
+ api.bindAssistantOrigin(f.page,api.currentOriginStore().take(api.currentOriginStore().put(source())))
+ const state={pending:null,dirty:false},selection={view:()=>({state})};f.page._recipeSelection=selection
+ // The edited form opens the existing leave dialog; selection state changes
+ // privately afterward without changing the captured form-data snapshot.
+ f.page.data.formVisible=true;f.page.data.formName='保留输入';f.page.onAssistantReturn()
+ assert.equal(f.navigation.length,0);assert.equal(f.dialogs.length,1);assert.equal(typeof f.dialogs[0].success,'function')
+ const request={type:'command',body:{requestId:'delayed-original-selection-request',dishIds:[7]}};state.pending=request
+ f.dialogs[0].success({confirm:true})
+ assert.equal(f.navigation.length,0);assert.equal(f.page._recipeSelection,selection);assert.equal(state.pending,request);assert.equal(state.pending.body.requestId,'delayed-original-selection-request');assert.equal(f.page.data.formName,'保留输入');assert.equal(f.writes.length,0)
+})
