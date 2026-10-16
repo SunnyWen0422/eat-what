@@ -664,7 +664,10 @@ module.exports = function workspacePage(options = {}) {
     async openWorkspaceRoute(route){
       if(!this.current() || this.data.busy)return
       const scope=this._scope,store=this.store
-      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store)return;wx.navigateTo({url:`${route}${route.includes('?')?'&':'?'}date=${this.data.context.date}&mealType=${this.data.context.mealType}`})}
+      const reference=()=>{const w=store.state&&store.state().workspace;return JSON.stringify([this.data.context.date,this.data.context.mealType,w&&w.id,w&&w.draft&&w.draft.planVersion])},before=reference()
+      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store || reference()!==before)return
+        const origin=options.mode==='today'&&route.split('?')[0]==='/pages/chat/chat'?require('./assistant-origin').originQuery({kind:'home',date:this.data.context.date,mealType:this.data.context.mealType},{storage:wx,storageKey:getUserStorageKey}):''
+        wx.navigateTo({url:`${route}${route.includes('?')?'&':'?'}date=${this.data.context.date}&mealType=${this.data.context.mealType}${origin}`})}
       catch(error){if(this.current() && this.store===store)this.setData({errorMessage:userError(error,'本餐尚未保存，内容已保留')})}
     },
     onOpenLongTermPreferences(){return this.openWorkspaceRoute('/pages/settings/settings')},

@@ -6,7 +6,9 @@ test('new history is primary and browsing a saved conversation performs no busin
 })
 test('continue rereads original workspace and navigating cannot save or import a meal',async()=>{
  const session={sessionId:'s',workspaceRef:{workspaceId:'w'},target:{date:'2026-10-12',mealType:'lunch'},messages:[]};const f=fixture({getAssistantV4Sessions:async()=>({sessions:[session]}),getAssistantV4Session:async()=>session});
- await f.page.onShow();await f.page.onContinueV4({currentTarget:{dataset:{id:'s'}}});assert.match(f.navigation[0],/sessionId=s/);assert.match(f.navigation[0],/workspaceId=w/);assert.match(f.navigation[0],/date=2026-10-12/);assert.equal(f.memory.size,0)
+ await f.page.onShow();await f.page.onContinueV4({currentTarget:{dataset:{id:'s'}}});assert.match(f.navigation[0],/sessionId=s/);assert.match(f.navigation[0],/workspaceId=w/);assert.match(f.navigation[0],/date=2026-10-12/)
+ assert.match(f.navigation[0],/originToken=/);assert.equal(f.memory.size,1)
+ const [key,records]=[...f.memory][0];assert.match(key,/assistantOrigins:sourceTokens$/);assert.equal(records[0].origin.kind,'history');assert.equal(records[0].payload,undefined)
 })
 test('late V4 history is ignored after account switch',async()=>{let resolve;const f=fixture({getAssistantV4Sessions:()=>new Promise(r=>resolve=r)});const task=f.page.onShow();f.switch();resolve({sessions:[{sessionId:'private'}]});await task;assert.equal(f.page.data.v4Sessions.length,0)})
 const {createAssistantConversation}=require('../utils/assistant-conversation')

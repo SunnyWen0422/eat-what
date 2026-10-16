@@ -1,3 +1,4 @@
+<button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
 <view class="ew-page settings-page" style="font-size:{{fontBase * fontScale}}px">
   <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">减少页面过渡动画，只在这台设备生效。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><ui-state wx:if="{{preferencesReadFailed}}" kind="error" title="偏好暂未读到" action-label="重新读取" bind:action="onLoad" /><view wx:if="{{statusText}}" class="sync-row">

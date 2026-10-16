@@ -13,6 +13,9 @@ module.exports=function assistantPage(fallback, options={}) {
    this._assistantAlive=true;this._assistantParams=params
    const app=typeof getApp==='function'?getApp():null;if(app&&app.waitForLogin)await app.waitForLogin()
    if(!this._assistantAlive)return
+   const origins=require('./assistant-origin')
+   if(params.originToken)origins.bindAssistantOrigin(this,origins.currentOriginStore().take(params.originToken))
+   else {this._assistantOrigin=null;this.setData({assistantReturnVisible:false,assistantReturnLabel:'回到今天'})}
    const enabled=await (options.probe || probeAssistantCapability)()
    if(!this._assistantAlive)return
    this.setData({assistantConnected:enabled})
@@ -71,6 +74,7 @@ module.exports=function assistantPage(fallback, options={}) {
    this.applyAssistantEntry()
   },
   async onShow() {
+   if(this._assistantOrigin)require('./assistant-origin').refreshAssistantOrigin(this)
    this._assistantVisible=true
    if(!this.data.assistantConnected)return fallback.onShow && fallback.onShow.call(this)
    if(!this._assistantAlive || !this._scope)return
@@ -117,7 +121,7 @@ module.exports=function assistantPage(fallback, options={}) {
    const state=this.conversation.state(),turn=state.turn,w=this.store.state().workspace
    if(state.recoverable||state.confirmationPending||state.selectionPending||!turn||turn.status!=='needs_input')return
    const card=(turn.cards||[]).find(c=>c.id===event.detail.id)
-   if(!require('./assistant-action-handoff').openCard(card,w))this.setData({conversationError:'这项内容已变化，请重新查询后再打开'})
+   if(!require('./assistant-action-handoff').openCard(card,w,{kind:'assistant',sessionId:state.sessionId,workspaceId:w&&w.id,date:this.data.context.date,mealType:this.data.context.mealType}))this.setData({conversationError:'这项内容已变化，请重新查询后再打开'})
   },
   onConversationChoice(event){
    if(!this.conversation||this.data.conversationBusy||this.data.conversationActionsEnabled===false||!this.current())return
@@ -143,7 +147,7 @@ module.exports=function assistantPage(fallback, options={}) {
   },
   onConversationVoice(){wx.showModal({title:'语音输入',content:'抱歉，该功能暂不可用',showCancel:false})},
   onConversationKeyboard(event){this.setData({keyboardHeight:Math.max(0,Number(event.detail.height)||0)},()=>this.measureConversation())},
-  onConversationHome(){if(this.current())wx.switchTab({url:'/pages/index/index'})},
+  onConversationHome(){if(this.current())return require('./assistant-origin').returnFromPage(this,{},true)},
   onConversationOlder(){return this.conversation && this.conversation.loadOlder && this.conversation.loadOlder()},
  }
 }

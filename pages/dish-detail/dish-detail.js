@@ -3,6 +3,7 @@ const { getUserStorageKey } = require('../../utils/util')
 const { getDishById } = require('../../utils/api')
 
 Page({
+  onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     detailSupplementVisible:false, assistantAvailable:false, dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
     showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
@@ -12,7 +13,7 @@ Page({
   },
 
   onLoad(options) {
-    const handoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['view_favorite'],{storage:wx,storageKey:getUserStorageKey}):null
+    const handoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['view_favorite'],{storage:wx,storageKey:getUserStorageKey}):null
     if(handoff)options={...options,id:handoff.ref.dishId}
     this._dishId = options.id
     const people = Number(options.people || 2)
@@ -25,7 +26,7 @@ Page({
     }
   },
 
-  async onShow() {
+  async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this);
     this._recipeVisible = true
     this.probeDetailAssistant()
     // onShow must not await login: login can complete after this lifecycle ends.
@@ -56,7 +57,7 @@ Page({
     const dish=this.data.dish,target=this.data.selectedMeal && this.data.selectedMeal.target
     if(!dish || !target){wx.showToast({title:'请先核对当前餐次',icon:'none'});return}
     const token=require('../../utils/assistant-entry').currentEntryStore().put({dishId:Number(dish.id),dishName:dish.name,...target})
-    if(token)wx.navigateTo({url:`/pages/chat/chat?entryScene=chat&entryToken=${encodeURIComponent(token)}&date=${encodeURIComponent(target.date)}&mealType=${encodeURIComponent(target.mealType)}`})
+    if(token){const origin=require('../../utils/assistant-origin').originQuery({kind:'dish',dishId:Number(dish.id),...target});wx.navigateTo({url:`/pages/chat/chat?entryScene=chat&entryToken=${encodeURIComponent(token)}&date=${encodeURIComponent(target.date)}&mealType=${encodeURIComponent(target.mealType)}${origin}`})}
   },
   onHide() { this._recipeVisible=false;clearTimeout(this._recipePoll) },
   onReady() { this.measureDetailActions() },

@@ -1,3 +1,4 @@
+<button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
 <!--pages/customize/customize.wxml-->
 <view class="ew-page ew-dish-surface page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
 <scroll-view class="recipe-browse-scroll mobile-scroll" scroll-y enhanced bindscroll="onBrowseScroll" scroll-top="{{browseScrollTop}}" scroll-into-view="{{showCustomForm && customFocus ? 'custom-' + customFocus : ''}}" bindscrolltolower="onBrowseReachEnd">

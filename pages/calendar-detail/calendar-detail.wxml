@@ -1,3 +1,4 @@
+<button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
 <view class="ew-page ew-dish-surface ew-screen calendar-detail-page" style="font-size:{{fontBase * fontScale}}px">
   <text class="ew-heading">{{dateHeading}}</text>
   <ui-state wx:if="{{loading && !meals.length}}" kind="loading" title="正在读取这餐" />

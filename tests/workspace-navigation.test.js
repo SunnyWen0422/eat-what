@@ -13,3 +13,14 @@ test('failed draft save keeps the current page and tells the user what remains u
  const f=fixture();f.page.flushDraft=async()=>{throw Error('本餐尚未保存')}
  await f.page.onOpenMealResult();assert.equal(f.urls.length,0);assert.equal(f.page.data.errorMessage,'本餐尚未保存')
 })
+test('reference is checked after asynchronous draft flush',async()=>{
+ for(const method of ['onOpenMealResult','onOpenAssistantView'])for(const change of ['date','mealType','workspaceId','planVersion']){
+  const f=fixture();let done;const workspace={id:'original',draft:{planVersion:1}};f.page.store={state:()=>({workspace})};f.page.flushDraft=()=>new Promise(r=>done=r)
+  const opening=f.page[method]()
+  if(change==='date')f.page.data.context.date='2026-10-10'
+  if(change==='mealType')f.page.data.context.mealType='dinner'
+  if(change==='workspaceId')workspace.id='different'
+  if(change==='planVersion')workspace.draft.planVersion=2
+  done();await opening;assert.equal(f.urls.length,0,change)
+ }
+})

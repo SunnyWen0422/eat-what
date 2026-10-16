@@ -27,32 +27,37 @@ function routeForHandoff(value){
   default:return ''
  }
 }
-function createActionHandoffStore({storage,scopeKey,now=Date.now}){
+function createActionHandoffStore({storage,scopeKey,originScopeKey=scopeKey,now=Date.now}){
  let sequence=0
+ function takeWithOrigin(token){if(typeof token!=='string'||!token)return null;const key=scopeKey(),records=storage.getStorageSync(key);if(!Array.isArray(records))return null
+  const record=records.find(r=>r.token===token);if(!record)return null;storage.setStorageSync(key,records.filter(r=>r!==record))
+  const age=now()-record.created,payload=age>=0&&age<600000?validate(record.payload):null
+  return payload?{payload,origin:require('./assistant-origin').validateOrigin(record.origin,originScopeKey(),now())}:null}
  return{
-  put(value){const payload=validate(value);if(!payload)return '';const created=now(),key=scopeKey(),token=`${created}-${++sequence}-${Math.random().toString(36).slice(2)}`
+  put(value,origin){const payload=validate(value);if(!payload)return '';const created=now(),key=scopeKey(),token=`${created}-${++sequence}-${Math.random().toString(36).slice(2)}`
    const previous=storage.getStorageSync(key),records=Array.isArray(previous)?previous.filter(r=>r&&created-r.created>=0&&created-r.created<600000).slice(-19):[]
-   records.push({token,created,payload});storage.setStorageSync(key,records);return token},
-  take(token){if(typeof token!=='string'||!token)return null;const key=scopeKey(),records=storage.getStorageSync(key);if(!Array.isArray(records))return null
-   const record=records.find(r=>r.token===token);if(!record)return null;storage.setStorageSync(key,records.filter(r=>r!==record))
-   const age=now()-record.created;return age>=0&&age<600000?validate(record.payload):null}
+   const checked=origin?require('./assistant-origin').validateOrigin({...origin,scopeKey:originScopeKey(),created},originScopeKey(),created):null
+   records.push({token,created,payload,...(checked?{origin:checked}:{})});storage.setStorageSync(key,records);return token},
+  takeWithOrigin,
+  take(token){const incoming=takeWithOrigin(token);return incoming&&incoming.payload}
  }
 }
-function currentStore(environment={}){return createActionHandoffStore({storage:environment.storage||wx,scopeKey:()=>require('./config').getApiBaseUrl()+':'+(environment.storageKey||require('./util').getUserStorageKey)('assistantActionHandoffs')})}
-function incoming(options={},allowed=[],environment={}){
+function currentStore(environment={}){return createActionHandoffStore({storage:environment.storage||wx,scopeKey:()=>require('./config').getApiBaseUrl()+':'+(environment.storageKey||require('./util').getUserStorageKey)('assistantActionHandoffs'),originScopeKey:()=>require('./assistant-origin').currentOriginScope(environment)})}
+function incomingWithOrigin(options={},allowed=[],environment={}){
  const isTab=allowed.some(k=>['save_personal_menu','use_personal_menu'].includes(k));if(!options.handoffToken&&!isTab)return null
  const storage=environment.storage||wx,storageKey=environment.storageKey||require('./util').getUserStorageKey,key=storageKey('assistantActionTab'),tab=isTab?storage.getStorageSync(key):null,token=options.handoffToken||(tab&&tab.token)
  if(!token)return null
- const payload=currentStore(environment).take(token)
+ const received=currentStore(environment).takeWithOrigin(token)
  if(tab&&tab.token===token)storage.removeStorageSync(key)
- return payload&&allowed.includes(payload.kind)?payload:null
+ return received&&allowed.includes(received.payload.kind)?received:null
 }
-function openCard(card,workspace){
+function incoming(options={},allowed=[],environment={}){const received=incomingWithOrigin(options,allowed,environment);return received&&received.payload}
+function openCard(card,workspace,origin){
  if(!card||card.type!=='handoff'||!workspace||!card.workspaceRef||card.workspaceRef.workspaceId!==workspace.id||card.workspaceRef.workspaceRevision!==workspace.revision||card.workspaceRef.planVersion!==workspace.draft.planVersion||!card.expiresAt||card.expiresAt<=Date.now())return false
  const payload=validate(card.data),route=routeForHandoff(payload);if(!route)return false
- const token=currentStore().put(payload);if(!token)return false
+ const token=currentStore().put(payload,origin);if(!token)return false
  if(route==='/pages/customize/customize'){wx.setStorageSync(require('./util').getUserStorageKey('assistantActionTab'),{token});wx.switchTab({url:route})}
  else wx.navigateTo({url:route+(route.includes('?')?'&':'?')+'handoffToken='+encodeURIComponent(token)})
  return true
 }
-module.exports={createActionHandoffStore,routeForHandoff,validate,incoming,currentStore,openCard}
+module.exports={createActionHandoffStore,routeForHandoff,validate,incoming,incomingWithOrigin,currentStore,openCard}

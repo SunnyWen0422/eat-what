@@ -361,6 +361,8 @@ for(const mode of ['today','result','assistant'])for(const changed of ['account'
 for(const mode of ['today','result'])test(`${mode} continuation opens only the successfully applied original meal`,async t=>{
   const f=fixture(mode),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target)
   page.onOpenRequirements();page.onRequirementsDraftInput({detail:{value:'清淡一些'}});await page.onContinueMealConversation()
-  assert.deepEqual(f.navigation,['/pages/chat/chat?date=2026-10-06&mealType=dinner'])
+  assert.equal(f.navigation.length,1)
+  assert.match(f.navigation[0],/^\/pages\/chat\/chat\?date=2026-10-06&mealType=dinner(?:&originToken=.+)?$/)
+  if(mode==='today')assert.match(f.navigation[0],/originToken=/)
   assert.equal(page.data.context.requirements,'清淡一些');assert.equal(f.calls.length,1)
 })

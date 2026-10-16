@@ -7,6 +7,7 @@ const DAY_OPTIONS = [0, 3, 7, 14, 30]
 const DURATION_OPTIONS = [null, 10, 20, 30, 45, 60]
 
 Page({
+  onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     loading: true,
     saving: false,
@@ -41,10 +42,10 @@ Page({
     this.setData({peopleDraft:text,peopleError:valid?'':'常用人数应为 1 至 50',dirty:true,statusText:'有未保存的更改'})
     if(valid)this.setData({'preferences.defaultPeople':people})
   },
-  onShow() { if (this._scope && this._scope !== getUserStorageKey('preferencesPage')) this.onLoad() },
+  onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this); if (this._scope && this._scope !== getUserStorageKey('preferencesPage')) this.onLoad() },
   onUnload() { this._unloaded = true },
   async onLoad(options={}) {
-    const handoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['edit_preferences'],{storage:wx,storageKey:getUserStorageKey}):null
+    const handoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['edit_preferences'],{storage:wx,storageKey:getUserStorageKey}):null
     const scope = this._scope = getUserStorageKey('preferencesPage'),epoch=this._loadEpoch=(this._loadEpoch||0)+1
     this.experienceStore = experiencePreferences()
     this.setData({ reducedMotion: this.experienceStore.get().reducedMotion,

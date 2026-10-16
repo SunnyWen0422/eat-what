@@ -1,6 +1,6 @@
 <block wx:if="{{assistantConnected}}">
 <view class="connected-assistant ew-dish-surface" style="font-size:{{fontBase * fontScale}}px;padding-bottom:{{keyboardHeight}}px">
- <view class="connected-header"><view><text class="ew-heading">餐桌助手</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">回到今天</button></view>
+ <view class="connected-header"><view><text class="ew-heading">餐桌助手</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">{{assistantReturnLabel || '回到今天'}}</button></view>
  <scroll-view class="connected-messages" scroll-y enhanced bindscroll="onConversationScroll" bindscrolltolower="onConversationBottom" scroll-into-view="{{conversationScrollTarget}}">
   <button wx:if="{{conversationHasOlder}}" class="ew-hit-target ew-link" bindtap="onConversationOlder">查看更早的对话</button>
   <button class="ew-hit-target connected-context" bindtap="onToggleConversationMenu" aria-expanded="{{conversationMenuExpanded}}">{{context.date}} · {{mealName}} · {{context.people}}人<text wx:if="{{conversationMenuCount}}"> · {{conversationMenuCount}}道菜 {{conversationMenuExpanded ? '收起' : '查看'}}</text></button>

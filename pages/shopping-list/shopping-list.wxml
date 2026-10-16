@@ -1,3 +1,4 @@
+<button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
 <view class="ew-page ew-screen shopping-page" style="font-size:{{fontBase * fontScale}}px">
   <view class="ew-between"><view><view class="ew-heading">购物清单</view><view wx:if="{{offline}}" class="ew-subtitle">上次清单</view></view><button class="ew-hit-target ew-link compact" loading="{{refreshing}}" disabled="{{busy}}" bindtap="loadList">刷新</button></view>
   <view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}</view>

@@ -39,7 +39,8 @@ Page({
       const ref=latest.workspaceRef,target=latest.target
       if(latest.sessionId!==id||!ref||!selected.workspaceRef||ref.workspaceId!==selected.workspaceRef.workspaceId||!target)throw Error('原餐次暂不可用，请先浏览记录')
       const checked=require('../../utils/meal-save-target').validateMealTarget(target)
-      wx.navigateTo({url:`/pages/chat/chat?sessionId=${encodeURIComponent(id)}&workspaceId=${encodeURIComponent(ref.workspaceId)}&date=${checked.date}&mealType=${checked.mealType}`})
+      const origin=require('../../utils/assistant-origin').originQuery({kind:'history'},{storage:wx,storageKey:getUserStorageKey})
+      wx.navigateTo({url:`/pages/chat/chat?sessionId=${encodeURIComponent(id)}&workspaceId=${encodeURIComponent(ref.workspaceId)}&date=${checked.date}&mealType=${checked.mealType}${origin}`})
     }catch(error){if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'原餐次暂未读到，可以稍后继续。')})}
     finally{if(this.current(scope,epoch))this.setData({loading:false})}
   },

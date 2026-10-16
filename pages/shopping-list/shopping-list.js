@@ -12,9 +12,10 @@ const emptyFeedback = () => ({ requestId: '', state: '', message: '', undoAvaila
 const clone = value => JSON.parse(JSON.stringify(value))
 const operationSignature = (type, payload, itemId) => { const { requestId, expectedListVersion, ...body } = payload; return JSON.stringify([type, body, itemId]) }
 Page({
+  onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { sourceMeals:[],sourceMealsVisible:false,feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
-  onLoad(options={}){this._assistantHandoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['edit_shopping'],{storage:wx,storageKey:getUserStorageKey}):null},
-  async onShow() { await this.loadList();this.applyAssistantHandoff() },
+  onLoad(options={}){this._assistantHandoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['edit_shopping'],{storage:wx,storageKey:getUserStorageKey}):null},
+  async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this); await this.loadList();this.applyAssistantHandoff() },
   applyAssistantHandoff(){
     const p=this._assistantHandoff;if(!p)return;this._assistantHandoff=null
     if(!this.current(this._scope)||this.data.offline||this.data.busy||this.data.refreshing||this.data.formVisible||(this.data.drafts||[]).length)return this.setData({errorMessage:'请先核对当前清单或未完成的修改，再从助手重新打开'})

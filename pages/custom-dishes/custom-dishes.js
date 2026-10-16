@@ -3,16 +3,17 @@ const { getUserStorageKey } = require('../../utils/util')
 const flow = require('../../utils/meal-workflow')
 const { currentIdentity } = require('../../utils/account-identity')
 Page({
+  onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], pendingCopies: [], pendingCopyGeneration: 0, recoveryError: '', loading: true, errorMessage: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, form: {}, formError: '', editPending: false, editExtrasVisible: false, formFocus: '', editQualityNotice: '', personalSaveMessage: '', types: ['荤菜','素菜','汤品','主食','甜品','配餐'], typeIndex: 0 },
   onLoad(options = {}) {
-    const handoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['copy_recipe'],{storage:wx,storageKey:getUserStorageKey}):null
+    const handoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['copy_recipe'],{storage:wx,storageKey:getUserStorageKey}):null
     if(handoff)options={...options,copy:handoff.ref.dishId,version:handoff.sourceVersion||''}
     this._requestedEdit = options.edit
     const id = Number(options.copy)
     this._requestedCopy = Number.isSafeInteger(id) && id > 0 ? { id, version: String(options.version || '') } : null
     this._identity = currentIdentity(); this._viewScope = getUserStorageKey('customDishesCloud')
   },
-  onShow() {
+  onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this);
     this.ensureOwner()
     this.refreshPendingCopies()
     if (!this.data.editing) return this._requestedCopy ? this.loadCopyDraft() : this.loadCustomDishes()

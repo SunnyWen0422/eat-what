@@ -29,6 +29,7 @@ function emptyCustomForm() {
 }
 
 Page({
+  onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',recipeSource:'all',browseScrollTop:0,selectionMode:true,selectionTargetLabel:'',showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionLoading:false,selectionBusy:false,selectionBlocked:true,
     personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],activeMenu:null,showMenuTarget:false,menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, menuDate: '', menuMealIndex: 2, menuMealLabels: ['早餐','午餐','晚餐'], customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
@@ -76,7 +77,7 @@ Page({
     this.loadCustomMetadata()
   },
 
-  async onShow() {
+  async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this);
     this.setData({reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
     this._recipeVisible = true
     this._visible = true
@@ -106,7 +107,7 @@ Page({
     openForm()
   },
   async applyAssistantMenuHandoff(){
-    const handoff=require('../../utils/assistant-action-handoff'),p=handoff.incoming({},['save_personal_menu','use_personal_menu'],{storage:wx,storageKey:getUserStorageKey})
+    const p=require('../../utils/assistant-origin').receiveHandoff(this,{},['save_personal_menu','use_personal_menu'],{storage:wx,storageKey:getUserStorageKey})
     if(!p||!this.ensureBrowseOwner())return
     const identity=this._browseIdentity,epoch=this._privateEpoch||0
     const selection=this._recipeSelection&&this._recipeSelection.view(),state=selection&&selection.state

@@ -5,6 +5,7 @@ const flow = require('../../utils/meal-workflow')
 const {calendarMealPresentation}=require('../../utils/calendar-meal-presentation')
 const actual=require('../../utils/meal-actual-entry').createMealActualEntry({api,onSaved:async function(){await this.loadMealRecords();this.refreshFlags()}})
 Page({
+  onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   openMealActual(...args){return actual.openMealActual.call(this,...args)},
   onActualText(...args){return actual.onActualText.call(this,...args)},
   onActualMode(...args){return actual.onActualMode.call(this,...args)},
@@ -19,8 +20,8 @@ Page({
   submitMealActual(...args){return actual.submitMealActual.call(this,...args)},
   sendMealActual(...args){return actual.sendMealActual.call(this,...args)},
   data: { actualVisible:false,actualBusy:false,actualText:'',actualMode:'changed',copyUnknown:false,copyPendingMeal:'',copyMealType:'',copyMealOptions:['早餐','午餐','晚餐'],copyMealIndex:2,sheetMode:'',sheetMeal:null,fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), selectedDate: '', meals: [], loading: true, errorMessage: '', mutating: false, formVisible: false, formMode: '', formTitle: '', formMeal: '', formName: '', formPeople: '2', formActual: '', copyDate: '', formError: '', canRecord: true },
-  onLoad(options) { this._assistantHandoff=options.handoffToken?require('../../utils/assistant-action-handoff').incoming(options,['record_actual'],{storage:wx,storageKey:getUserStorageKey}):null; const day=options.date || flow.today();let highlightedMeal='';if(options.recoverActual==='1')try{this._actualRecoveryTarget=require('../../utils/meal-save-target').validateMealTarget(options)}catch(_){}try{highlightedMeal=require('../../utils/meal-save-target').validateMealTarget({date:options.date,mealType:options.mealType}).mealType}catch(error){};this.setData({highlightedMeal, dateHeading:`${Number(day.slice(5,7))}月${Number(day.slice(8,10))}日${flow.mealNames[options.mealType]?' '+flow.mealNames[options.mealType]:''}`,focusedMeal:flow.mealNames[options.mealType]?options.mealType:'', selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
-  async onShow() { await this.loadMealRecords();this.probeCalendarAssistant();return this.applyAssistantActualHandoff() },
+  onLoad(options) { this._assistantHandoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['record_actual'],{storage:wx,storageKey:getUserStorageKey}):null; const day=options.date || flow.today();let highlightedMeal='';if(options.recoverActual==='1')try{this._actualRecoveryTarget=require('../../utils/meal-save-target').validateMealTarget(options)}catch(_){}try{highlightedMeal=require('../../utils/meal-save-target').validateMealTarget({date:options.date,mealType:options.mealType}).mealType}catch(error){};this.setData({highlightedMeal, dateHeading:`${Number(day.slice(5,7))}月${Number(day.slice(8,10))}日${flow.mealNames[options.mealType]?' '+flow.mealNames[options.mealType]:''}`,focusedMeal:flow.mealNames[options.mealType]?options.mealType:'', selectedDate: options.date || flow.today(), copyDate: flow.shiftDay(options.date || flow.today(), 1), canRecord: (options.date || flow.today()) <= flow.today() }) },
+  async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this); await this.loadMealRecords();this.probeCalendarAssistant();return this.applyAssistantActualHandoff() },
   async applyAssistantActualHandoff(){
     const recovery=this._actualRecoveryTarget,p=this._assistantHandoff||(recovery?{target:recovery}:null);if(!p)return;this._assistantHandoff=null;this._actualRecoveryTarget=null
     if(recovery&&!wx.getStorageSync(getUserStorageKey('mealActual')+':pending:'+recovery.date+':'+recovery.mealType))return
@@ -40,7 +41,8 @@ Page({
   onCalendarAssistant(event) {
     const meal=event.currentTarget.dataset.meal
     if(!this.data.assistantAvailable || this._unloaded || this._viewScope!==getUserStorageKey('mealView') || !flow.mealNames[meal])return
-    this.closeMealSheet();wx.navigateTo({url:`/pages/chat/chat?date=${encodeURIComponent(this.data.selectedDate)}&mealType=${encodeURIComponent(meal)}&entryScene=calendar`})
+    const origin=require('../../utils/assistant-origin').originQuery({kind:'calendar',date:this.data.selectedDate,mealType:meal})
+    this.closeMealSheet();wx.navigateTo({url:`/pages/chat/chat?date=${encodeURIComponent(this.data.selectedDate)}&mealType=${encodeURIComponent(meal)}&entryScene=calendar${origin}`})
   },
   openMealSheet(type, mode) { const meal=this.meal(type);if(!meal || this.data.mutating || this.data.actualBusy || this._viewScope!==getUserStorageKey('mealView'))return;this.setData({sheetMode:mode,sheetMeal:meal}) },
   closeMealSheet() { if(!this.data.mutating)this.setData({sheetMode:'',sheetMeal:null}) },
