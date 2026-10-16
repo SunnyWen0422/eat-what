@@ -13,13 +13,17 @@ function validQuery(query: unknown): query is PublicDishQuery {
 }
 /** No configurable URL, auth data or personal filters. Calling the factory performs no I/O. */
 export function createSameOriginPublicCatalogTransport(fetcher: typeof fetch = globalThis.fetch): PublicCatalogTransport {
-  return async (query) => {
+  return async (query, options) => {
     if (!validQuery(query)) throw new Error('Invalid public directory query');
     const parameters = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
     if (query.type) parameters.set('type', query.type);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const cancel = () => controller.abort();
+    if (options?.signal?.aborted) controller.abort();
+    options?.signal?.addEventListener('abort', cancel, { once: true });
+    const timeout = setTimeout(cancel, 15000);
     try {
+      if (controller.signal.aborted) throw new Error('Public directory cancelled');
       const response = await fetcher(`${endpoint}?${parameters}`, {
         method: 'GET', credentials: 'omit', mode: 'same-origin', redirect: 'error', cache: 'no-store',
         headers: { Accept: 'application/json' }, signal: controller.signal,
@@ -41,6 +45,6 @@ export function createSameOriginPublicCatalogTransport(fetcher: typeof fetch = g
       } finally { reader.releaseLock(); }
       // Provider applies the field whitelist, page limits and domain validation after parsing.
       return JSON.parse(body) as unknown;
-    } finally { clearTimeout(timeout); }
+    } finally { clearTimeout(timeout); options?.signal?.removeEventListener('abort', cancel); }
   };
 }

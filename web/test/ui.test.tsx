@@ -30,6 +30,90 @@ async function tab(label: string) { fireEvent.click(screen.getByRole('button', {
 async function select() { await tab('菜谱'); fireEvent.click(await screen.findByRole('button', { name: '手选 清炒青菜' })); await screen.findByText('草稿已保存'); await tab('今天吃什么'); }
 
 describe('workspace navigation and action hierarchy', () => {
+  it('browser only boundary remains explicit at relevant entry', async () => {
+    await setup(); await tab('我的'); expect(screen.getByText('个人备份仅恢复到当前浏览器，不与微信账号同步。')).not.toBeNull();
+    expect(screen.getByRole('button', { name: '导出已保存个人备份' })).not.toBeNull();
+    expect(screen.queryByText('已经同步微信')).toBeNull();
+  });
+  it('return preserves filters and calendar target', async () => {
+    await setup(); await tab('菜谱');
+    fireEvent.change(screen.getByLabelText('搜索名称或食材'), { target: { value: '青菜' } });
+    fireEvent.change(screen.getByLabelText('菜谱分类'), { target: { value: 'vegetable' } });
+    fireEvent.click(screen.getByRole('button', { name: '查看详情 清炒青菜' }));
+    fireEvent.click(screen.getByRole('button', { name: '关闭菜谱详情' }));
+    fireEvent.click(screen.getByLabelText('仅看收藏'));
+    await tab('日历'); fireEvent.change(screen.getByLabelText('查看日期'), { target: { value: '2026-09-11' } });
+    fireEvent.click(screen.getByRole('button', { name: '月选日' }));
+    fireEvent.change(screen.getByLabelText('选择月份'), { target: { value: '2026-08' } });
+    await tab('菜谱');
+    expect(screen.getByLabelText('搜索名称或食材')).toHaveProperty('value', '青菜');
+    expect(screen.getByLabelText('菜谱分类')).toHaveProperty('value', 'vegetable');
+    expect(screen.getByLabelText('仅看收藏')).toHaveProperty('checked', true);
+    await tab('日历'); expect(screen.getByLabelText('查看日期')).toHaveProperty('value', '2026-09-11');
+    expect(screen.getByLabelText('选择月份')).toHaveProperty('value', '2026-08');
+  });
+  it('save readback rejection clears busy without duplicate write', async () => {
+    const repo = await setup(); await select();
+    const commit = vi.spyOn(repo, 'commit');
+    vi.spyOn(repo, 'read').mockRejectedValueOnce(new Error('read failed'));
+    fireEvent.click(screen.getByRole('button', { name: '保存到日历' }));
+    fireEvent.click(screen.getByRole('button', { name: /^保存计划$/ }));
+    await screen.findByRole('button', { name: '重新读取已保存记录' });
+    expect(screen.getByRole('button', { name: '重新读取已保存记录' })).toHaveProperty('disabled', false);
+    fireEvent.click(screen.getByRole('button', { name: '重新读取已保存记录' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: '重新读取已保存记录' })).toBeNull());
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(commit.mock.calls[0]![2]).toBeTruthy();
+    const result = await repo.read(); if (result.ok) expect(result.value.plans).toHaveLength(1);
+  });
+  it('uncertain save retries the original command and requestId', async () => {
+    const repo = await setup(); const original = repo.commit.bind(repo);
+    const commit = vi.spyOn(repo, 'commit').mockImplementationOnce(async (...args) => { await original(...args); throw new Error('receipt lost'); });
+    await tab('菜谱'); fireEvent.click(screen.getByRole('button', { name: '手选 清炒青菜' }));
+    const retry = await screen.findByRole('button', { name: '重试保存当前编辑' });
+    expect(retry).toHaveProperty('disabled', false); fireEvent.click(retry);
+    await screen.findByText('草稿已保存');
+    expect(commit).toHaveBeenCalledTimes(2); expect(commit.mock.calls[1]).toEqual(commit.mock.calls[0]);
+    const result = await repo.read(); if (result.ok) { expect(result.value.meta.revision).toBe(1); expect(result.value.draft?.dishes).toHaveLength(1); }
+  });
+  it('a timed out readback releases busy and late data cannot replace recovered records', async () => {
+    const repo = await setup(); await select(); const before = await repo.read();
+    const commit = vi.spyOn(repo, 'commit');
+    let began!: () => void; const reading = new Promise<void>(resolve => { began = resolve; });
+    let finish!: (result: Awaited<ReturnType<Repository['read']>>) => void;
+    vi.spyOn(repo, 'read').mockImplementationOnce(() => { vi.useFakeTimers(); began(); return new Promise(resolve => { finish = resolve; }); });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: '保存到日历' }));
+      fireEvent.click(screen.getByRole('button', { name: /^保存计划$/ }));
+      await act(async () => { await reading; });
+      await act(async () => { await vi.advanceTimersByTimeAsync(15001); });
+      const reread = screen.getByRole('button', { name: '重新读取已保存记录' }); expect(reread).toHaveProperty('disabled', false);
+      vi.useRealTimers(); fireEvent.click(reread);
+      await waitFor(() => expect(screen.queryByRole('button', { name: '重新读取已保存记录' })).toBeNull());
+      await act(async () => { finish(before); }); await tab('日历');
+      expect(screen.getByText('清炒青菜')).not.toBeNull(); expect(commit).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
+  });
+  it('refresh abort preserves last complete catalog and ignores obsolete generation', async () => {
+    const repo = await setup(); cleanup();
+    const first = async () => ({ ok: true as const, value: source });
+    const view = render(<App repository={repo} storageStatus={status} catalogLoader={first} />);
+    await tab('菜谱'); await screen.findByRole('button', { name: '手选 清炒青菜' });
+    let complete!: (result: Result<Catalog>) => void; let signal: AbortSignal | undefined;
+    const slow = (options?: import('../src/domain/types.ts').CatalogLoadOptions) => { signal = options?.signal; return new Promise<Result<Catalog>>(resolve => { complete = resolve; }); };
+    vi.useFakeTimers();
+    try {
+      view.rerender(<App repository={repo} storageStatus={status} catalogLoader={slow} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(20001); });
+      expect(signal?.aborted).toBe(true); expect(screen.getByRole('button', { name: '手选 清炒青菜' })).not.toBeNull();
+      expect(screen.getByText('刷新未完成，继续使用上次完整菜库。')).not.toBeNull();
+      const latest = async () => ({ ok: true as const, value: { ...source, recipes: [meat] } });
+      await act(async () => { view.rerender(<App repository={repo} storageStatus={status} catalogLoader={latest} />); });
+      await act(async () => { complete({ ok: true, value: source }); });
+      expect(screen.queryByRole('button', { name: '手选 清炒青菜' })).toBeNull();
+      expect(screen.getByRole('button', { name: '手选 红烧鸡肉' })).not.toBeNull();
+    } finally { vi.useRealTimers(); }
+  });
   it('uses exactly four navigation entries, explicit first-use privacy copy and accurate defaults', async () => {
     await setup();
     expect(within(screen.getByRole('navigation', { name: '主导航' })).getAllByRole('button').map(button => button.textContent)).toEqual(['今天吃什么', '菜谱', '日历', '我的']);
@@ -107,6 +191,24 @@ describe('local recipe discovery and truthful detail', () => {
 });
 
 describe('dialog keyboard and pending boundaries', () => {
+  it.each(['Escape', 'button'])('dirty form owns exactly one decision per close request (%s)', async kind => {
+    const repo = await setup(); await tab('我的'); fireEvent.click(screen.getByRole('button', { name: '新建自定义菜谱' }));
+    fireEvent.change(screen.getByLabelText('自定义菜名'), { target: { value: '未保存菜名' } });
+    const before = await repo.read(); const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const close = () => kind === 'Escape' ? fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' }) : fireEvent.click(screen.getByRole('button', { name: '取消自定义编辑' }));
+    close(); expect(confirm).toHaveBeenCalledTimes(1); expect(screen.getByLabelText('自定义菜名')).toHaveProperty('value', '未保存菜名');
+    close(); expect(confirm).toHaveBeenCalledTimes(2); expect(screen.queryByRole('dialog')).toBeNull(); expect(await repo.read()).toEqual(before);
+  });
+  it('independent editor uses the original request after a lost commit acknowledgement', async () => {
+    const repo = await setup(); await tab('我的'); fireEvent.click(screen.getByRole('button', { name: '新建自定义菜谱' }));
+    fireEvent.change(screen.getByLabelText('自定义菜名'), { target: { value: '原请求菜名' } });
+    const original = repo.commit.bind(repo);
+    const commit = vi.spyOn(repo, 'commit').mockImplementationOnce(async (...args) => { await original(...args); throw new Error('receipt lost'); });
+    fireEvent.click(screen.getByRole('button', { name: '保存自定义菜谱' })); await screen.findByText('保存结果未确认，请保留输入并用原请求重试。');
+    expect(screen.getByRole('button', { name: '保存自定义菜谱' })).toHaveProperty('disabled', false);
+    fireEvent.click(screen.getByRole('button', { name: '保存自定义菜谱' })); await screen.findByText('自定义菜谱已保存');
+    expect(commit.mock.calls[1]).toEqual(commit.mock.calls[0]); const result = await repo.read(); if (result.ok) expect(result.value.customRecipes).toHaveLength(1);
+  });
   it.each([false, true])('keeps pending inherited-disabled controls out of forward/reverse Tab order (reverse=$0) and recovers after failure', async reverse => {
     const repo = await setup(); await tab('我的'); const opener = screen.getByRole('button', { name: '新建自定义菜谱' }); const user = userEvent.setup();
     await user.click(opener); fireEvent.change(screen.getByLabelText('自定义菜名'), { target: { value: '失败后保留的菜名' } });
@@ -123,7 +225,8 @@ describe('dialog keyboard and pending boundaries', () => {
       expect(within(dialog).getByLabelText('自定义菜名')).toHaveProperty('value', '失败后保留的菜名'); expect(within(dialog).getByText(/存储空间不足/)).not.toBeNull();
       await user.tab(); expect(document.activeElement).toBe(within(dialog).getByLabelText('自定义菜名'));
       await user.tab({ shift: true }); expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: '取消自定义编辑' }));
-      await user.keyboard('{Escape}'); expect(screen.queryByRole('dialog')).toBeNull(); expect(document.activeElement).toBe(opener); expect(await repo.read()).toEqual(before);
+      const discard = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await user.keyboard('{Escape}'); expect(discard).toHaveBeenCalledTimes(1); expect(screen.queryByRole('dialog')).toBeNull(); expect(document.activeElement).toBe(opener); expect(await repo.read()).toEqual(before);
     } finally { if (finish) await act(async () => { finish!(); }); }
   });
   it('keeps explicit conflict review and exact failure retry reachable inside plan confirmation', async () => {

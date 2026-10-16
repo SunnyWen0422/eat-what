@@ -1,10 +1,48 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { canGenerate, createPublicCatalogProvider, loadCatalog, normalizePublicDish } from '../src/catalog/catalog.ts';
 import type { PublicDish, PublicDishPage, PublicDishQuery } from '../src/domain/types.ts';
 import { isRecipeSnapshot } from '../src/domain/validation.ts';
 import { recipe } from './fixtures.ts';
 
 const catalogOnlyKeys = ['meals', 'reviewStatus', 'generationEligible', 'reviewedAt', 'issues', 'stepStatus', 'servingsStatus', 'familyIdentity', 'mealEligibility'];
+
+it('refresh abort preserves last complete catalog: total deadline includes all pages', async () => {
+  vi.useFakeTimers();
+  try {
+    const old = await catalog();
+    const progress = vi.fn(); let signal: AbortSignal | undefined;
+    const rows = Array.from({ length: 101 }, (_, i) => dish(i + 1));
+    const next = loadCatalog({ list: async (query, options) => {
+      signal = options?.signal;
+      if (query.page === 1) {
+        await new Promise(resolve => setTimeout(resolve, 14000));
+        return { ok: true, value: { ...query, list: rows.slice(0, 100), total: 101 } };
+      }
+      return new Promise(() => {});
+    } }, { onProgress: progress });
+    await vi.advanceTimersByTimeAsync(20001);
+    expect((await next).ok).toBe(false);
+    expect(signal?.aborted).toBe(true);
+    expect(progress).toHaveBeenCalledWith({ loaded: 100, total: 101 });
+    expect(old.recipes).toHaveLength(3); expect(canGenerate(old, 'dinner', 'vegetable')).toBe(true);
+  } finally { vi.useRealTimers(); }
+});
+
+it('aborts a provider that ignores cancellation without publishing partial rows', async () => {
+  const controller = new AbortController();
+  const next = loadCatalog({ list: () => new Promise(() => {}) }, { signal: controller.signal });
+  controller.abort(); expect((await next).ok).toBe(false);
+});
+
+it('a single page has at most fifteen seconds and the public release remains capped at 500', async () => {
+  vi.useFakeTimers();
+  try {
+    const pending = loadCatalog({ list: () => new Promise(() => {}) });
+    await vi.advanceTimersByTimeAsync(15001); expect((await pending).ok).toBe(false);
+    const overLimit = await loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: 501, list: Array.from({ length: 100 }, (_, i) => dish(i + 1)) })));
+    expect(overLimit.ok).toBe(false); expect(Object.hasOwn(overLimit, 'value')).toBe(false);
+  } finally { vi.useRealTimers(); }
+});
 
 function dish(id = 1, overrides: Partial<PublicDish> = {}): PublicDish {
   return { id, name: `测试菜${id}`, type: 'veg', cl: '青菜', fl: null, step: '洗净并煮熟。', steps: null, tips: null, ingredientsAmounts: '青菜100g', contentVersion: `fixture-content-${id}`,

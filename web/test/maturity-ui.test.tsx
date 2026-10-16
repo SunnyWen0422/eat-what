@@ -27,5 +27,5 @@ it('recipe detail places the title before the food and returning retains filters
  const r=recipe(),catalog={origin:'online-provider',recipes:[r],version:null,aliases:{},recipeAliases:{},availability:{}} as Catalog;
  render(<Recipes catalog={{ok:true,value:catalog}} loading={false} onRetry={()=>{}} onSelect={()=>{}} onFavorite={()=>{}} favorites={[]} writable pending={false} preferences={personalData().preferences}/>);
  fireEvent.change(screen.getByLabelText('搜索名称或食材'),{target:{value:'青菜'}});fireEvent.click(screen.getByRole('button',{name:'查看详情 测试青菜'}));const dialog=screen.getByRole('dialog',{name:'测试青菜'}),title=within(dialog).getAllByRole('heading').find(n=>n.textContent==='测试青菜')!,image=dialog.querySelector('.recipe-hero')!;
- expect(title.compareDocumentPosition(image)&Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);expect(document.activeElement).toBe(dialog);fireEvent.click(screen.getByRole('button',{name:'关闭菜谱详情'}));expect(screen.getByLabelText('搜索名称或食材')).toHaveProperty('value','青菜');
+ expect(title.compareDocumentPosition(image)&Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);expect(document.activeElement).toBe(dialog);fireEvent.click(screen.getByRole('button',{name:'关闭菜谱详情'}));expect(screen.getByLabelText('搜索名称或食材')).toHaveProperty('value','青菜');expect(document.activeElement).toBe(screen.getByRole('button',{name:'查看详情 测试青菜'}));
 });

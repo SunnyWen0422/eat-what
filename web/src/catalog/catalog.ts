@@ -1,4 +1,4 @@
-import type { Catalog, CatalogRecipe, DishType, Ingredient, Meal, PublicCatalogProvider, PublicCatalogTransport, PublicDish, PublicDishPage, PublicDishQuality, PublicDishQuery, PublicIngredient, PublicReviewStatus, QualityStatus, Result } from '../domain/types.ts';
+import type { Catalog, CatalogLoadOptions, CatalogRecipe, DishType, Ingredient, Meal, PublicCatalogProvider, PublicCatalogTransport, PublicDish, PublicDishPage, PublicDishQuality, PublicDishQuery, PublicIngredient, PublicReviewStatus, QualityStatus, Result } from '../domain/types.ts';
 import { rememberRecipeImage, safeRecipeImage } from './media.ts';
 import { exactKeys, isObject, isText, LIMITS, validateJsonBoundary } from '../domain/validation.ts';
 
@@ -73,10 +73,10 @@ function parsePage(value: unknown, query: PublicDishQuery): PublicDishPage {
 }
 /** No concrete URL, fetch, credentials, auth bypass or default transport is provided here. */
 export function createPublicCatalogProvider(transport: PublicCatalogTransport): PublicCatalogProvider {
-  return { async list(query) {
+  return { async list(query, options) {
     if (!validQuery(query)) return { ok: false, error: { code: 'INVALID', message: 'Invalid public directory query', retryable: false } };
     let response: unknown;
-    try { response = await transport(Object.freeze({ ...query })); }
+    try { response = await transport(Object.freeze({ ...query }), options); }
     catch { return { ok: false, error: { code: 'UNAVAILABLE', message: 'Online recipe data is unavailable. Retry.', retryable: true } }; }
     try { return { ok: true, value: parsePage(response, query) }; }
     catch { return { ok: false, error: { code: 'CATALOG', message: 'Online recipe response could not be validated. Retry.', retryable: true } }; }
@@ -134,16 +134,37 @@ function availabilityFor(recipes: CatalogRecipe[]): Catalog['availability'] {
 function freeze(value: unknown): void {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) { Object.values(value).forEach(freeze); Object.freeze(value); }
 }
-export async function loadCatalog(provider?: PublicCatalogProvider): Promise<Result<Catalog>> {
+export async function loadCatalog(provider?: PublicCatalogProvider, options: CatalogLoadOptions = {}): Promise<Result<Catalog>> {
   if (!provider) return { ok: false, error: { code: 'UNAVAILABLE', message: 'Online recipe provider is not configured. Retry after setup.', retryable: true } };
+  const deadline = Date.now() + Math.min(20000, Math.max(1, options.deadlineMs ?? 20000));
   try {
     const rows: PublicDish[] = []; let total: number | null = null;
     for (let page = 1; ; page++) {
-      const query = { page, pageSize: 100 }; const result = await provider.list(query);
+      const query = { page, pageSize: 100 };
+      const remaining = deadline - Date.now();
+      if (remaining <= 0 || options.signal?.aborted) throw new Error('Catalog load cancelled');
+      const controller = new AbortController();
+      const cancel = () => controller.abort();
+      options.signal?.addEventListener('abort', cancel, { once: true });
+      const timeout = setTimeout(cancel, Math.min(15000, remaining));
+      let result: Result<PublicDishPage>;
+      let rejectAbort: (() => void) | undefined;
+      try {
+        const cancelled = new Promise<never>((_, reject) => {
+          rejectAbort = () => reject(new Error('Catalog load cancelled'));
+          controller.signal.addEventListener('abort', rejectAbort, { once: true });
+        });
+        result = await Promise.race([provider.list(query, { signal: controller.signal }), cancelled]);
+        if (controller.signal.aborted || options.signal?.aborted || Date.now() >= deadline) throw new Error('Catalog load cancelled');
+      } finally {
+        clearTimeout(timeout); options.signal?.removeEventListener('abort', cancel);
+        if (rejectAbort) controller.signal.removeEventListener('abort', rejectAbort);
+      }
       if (!result.ok) return { ok: false, error: { code: result.error.code === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'CATALOG', message: 'Online recipe data could not be loaded. Retry.', retryable: true } };
       const response = parsePage(result.value, query);
       if (total !== null) requireThat(total === response.total);
       total = response.total; rows.push(...response.list);
+      options.onProgress?.({ loaded: rows.length, total });
       requireThat(new Set(rows.map((row) => row.id)).size === rows.length);
       if (rows.length === total) break;
     }

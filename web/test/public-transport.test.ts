@@ -8,6 +8,16 @@ const response = (body: unknown = empty, status = 200, type = 'application/json'
 const cleanFetch = (value: Response) => vi.fn<typeof fetch>().mockResolvedValue(value);
 
 describe('same-origin deliberate public catalog transport', () => {
+  it('propagates caller abort and does not fetch for an already aborted request', async () => {
+    const controller = new AbortController();
+    const fetcher = vi.fn<typeof fetch>().mockImplementation((_url, options) => new Promise((_resolve, reject) => { options!.signal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true }); }));
+    const transport = createSameOriginPublicCatalogTransport(fetcher);
+    const pending = transport({ page: 1, pageSize: 100 }, { signal: controller.signal });
+    controller.abort(); await expect(pending).rejects.toThrow('aborted');
+    expect(fetcher.mock.calls[0]![1]?.signal?.aborted).toBe(true);
+    await expect(transport({ page: 1, pageSize: 100 }, { signal: controller.signal })).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('does not fetch until explicitly called and only sends whitelisted query fields', async () => {
     const fetcher = cleanFetch(response()); const transport = createSameOriginPublicCatalogTransport(fetcher);
     expect(fetcher).not.toHaveBeenCalled();

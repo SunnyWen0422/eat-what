@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page, type Locator } from '@playwright/test';
 export const publicRoute = '**/api/public/catalog/dishes?*';
 export const recipeName = '界面验证青菜';
 export const publicPage = { page: 1, pageSize: 100, total: 1, list: [{ id: 930001, name: recipeName, type: 'veg', cl: '原料原文，不推断用量', steps: '第一步\n第二步', contentVersion: 'e2e-ui-only', quality: null }] };
@@ -24,4 +24,15 @@ export async function longSourceBackup() {
   const backup = exportBackup(data, { appVersion: '0.1.0', catalogVersion: null, exportedAt: at, timeZone: 'UTC' as import('../src/domain/types.ts').TimeZone });
   if (!backup.ok) throw new Error(backup.error.message);
   return { name: saved.name, source: saved.source.url!, buffer: Buffer.from(await backup.value.arrayBuffer()) };
+}
+
+/** Open the same disclosure controls a user must open before a secondary action. */
+export async function revealControl(control: Locator) {
+  await control.waitFor({ state: 'attached' });
+  for (const details of await control.locator('xpath=ancestor::details').all())
+    if (await details.getAttribute('open') === null) await details.locator(':scope > summary').click();
+  return control;
+}
+export async function clickAction(page: Page, options: NonNullable<Parameters<Page['getByRole']>[1]>) {
+  await (await revealControl(page.getByRole('button', { ...options, includeHidden: true }))).click();
 }

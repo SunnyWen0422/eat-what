@@ -43,6 +43,12 @@ export function RecipeFacts({ snapshot }: { snapshot: RecipeSnapshot }) {
     <p>筛选无法保证过敏安全，请核对原料、调味料及交叉接触风险。</p></details></>;
 }
 
+/** The form owns one discard decision for both its cancel button and Escape. */
+export function useDirtyClose(value: unknown, onClose: () => void, busy = false) {
+  const original = useRef(JSON.stringify(value));
+  return () => { if (!busy && (original.current === JSON.stringify(value) || window.confirm('放弃尚未保存的修改？'))) onClose(); };
+}
+
 const dialogs: HTMLElement[] = [];
 const originalInert = new Map<HTMLElement, boolean>();
 function updateModalBackground() {
@@ -55,10 +61,10 @@ function updateModalBackground() {
 }
 const focusable = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href], summary, [tabindex="0"]';
 /** Presentation only: closing never commits and a pending transaction cannot be dismissed. */
-export function Dialog({ title, children, onClose, busy = false, initialFocus='first' }: { title: string; children: ReactNode; onClose: () => void; busy?: boolean; initialFocus?:'first'|'panel' }) {
+export function Dialog({ title, children, onClose, onRequestClose, busy = false, initialFocus='first' }: { title: string; children: ReactNode; onClose: () => void; onRequestClose?: () => void; busy?: boolean; initialFocus?:'first'|'panel' }) {
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
-  const close = useRef(onClose); close.current = onClose;
+  const close = useRef(onRequestClose ?? onClose); close.current = onRequestClose ?? onClose;
   const pending = useRef(busy); pending.current = busy;
   useEffect(() => {
     const node = panel.current!; const backdrop = node.parentElement!;

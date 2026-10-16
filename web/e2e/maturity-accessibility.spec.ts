@@ -3,7 +3,7 @@ import {publicPage} from './ui-fixtures.ts';
 test.use({serviceWorkers:'block'});
 test.beforeEach(async({context,page})=>{
  await context.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin==='http://127.0.0.1:4173'&&u.pathname==='/api/public/catalog/dishes')return route.fulfill({contentType:'application/json',body:JSON.stringify(publicPage)});if(u.origin==='http://127.0.0.1:4173'&&!u.pathname.startsWith('/api/'))return route.continue();return route.abort('blockedbyclient');});
- await context.routeWebSocket('**/*',socket=>socket.close());await page.goto('/');await expect(page.getByText('正在读取本地记录…')).toHaveCount(0);
+ await context.routeWebSocket('**/*',socket=>socket.close());await page.goto('/');await expect(page.getByRole('navigation',{name:'主导航'})).toBeVisible();await expect(page.getByText('正在读取本地记录…')).toHaveCount(0);
 });
 test('keyboard skip link, modal focus return and saved input survive navigation',async({page})=>{
  await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'跳到主要内容'})).toBeFocused();await page.keyboard.press('Enter');await expect(page.locator('#main-content')).toBeFocused();

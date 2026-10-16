@@ -1,14 +1,14 @@
 import { spawn, execFile } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
+import { promisify, stripVTControlCharacters } from 'node:util';
 
 const cwd = fileURLToPath(new URL('..', import.meta.url));
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, EATWHAT_CATALOG_PROXY: 'off' }, detached: process.platform !== 'win32' });
 process.stdout.write(`Isolated test server PID: ${server.pid ?? 'spawn failed'}\n`);
 let spawnError: Error | null = null;
 let ready = false; let startupOutput = '';
-server.stdout?.on('data', bytes => { startupOutput = (startupOutput + String(bytes)).slice(-8192); ready = startupOutput.includes('http://127.0.0.1:4173/'); });
+server.stdout?.on('data', bytes => { startupOutput = (startupOutput + String(bytes)).slice(-8192); ready = stripVTControlCharacters(startupOutput).includes('http://127.0.0.1:4173/'); });
 server.stderr?.resume();
 server.on('error', error => { spawnError = error; });
 try {

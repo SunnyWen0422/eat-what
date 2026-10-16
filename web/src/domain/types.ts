@@ -73,8 +73,9 @@ export interface PublicDish {
 export interface PublicDishQuery { page: number; pageSize: number; type?: PublicDishType }
 export interface PublicDishPage { list: PublicDish[]; total: number; page: number; pageSize: number }
 /** Transport has no implementation/URL until endpoint access and release scope are approved. */
-export type PublicCatalogTransport = (query: Readonly<PublicDishQuery>) => Promise<unknown>;
-export interface PublicCatalogProvider { list(query: PublicDishQuery): Promise<Result<PublicDishPage>> }
+export interface CatalogLoadOptions { signal?: AbortSignal; deadlineMs?: number; onProgress?: (progress: { loaded: number; total: number }) => void }
+export type PublicCatalogTransport = (query: Readonly<PublicDishQuery>, options?: { signal?: AbortSignal }) => Promise<unknown>;
+export interface PublicCatalogProvider { list(query: PublicDishQuery, options?: { signal?: AbortSignal }): Promise<Result<PublicDishPage>> }
 
 /** Actual persistence belongs to the history task; generation reads date and snapshots only. */
 export interface ActualMeal {

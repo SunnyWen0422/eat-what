@@ -1,3 +1,4 @@
+import type { WebViewState } from './App.tsx';
 import { RecipeImage } from './RecipeImage.tsx';
 import { useState } from 'react';
 import type { ActualMeal, LocalDate, Meal, Plan, PersonalStore } from '../domain/types.ts';
@@ -5,9 +6,12 @@ import { isLocalDate, localDate } from '../domain/dates.ts';
 import { civilDateOffset } from '../history/recap.ts';
 import { ActualEditor, DeleteEditor, PlanEditor, type LocalActions } from './PersonalActions.tsx';
 import { MEAL_LABELS } from './components.tsx';
-export function Calendar({actions,onShopping}:{actions:LocalActions;onShopping:(plan:Plan)=>void}){
+export function Calendar({actions,onShopping,viewState,onViewState}:{actions:LocalActions;onShopping:(plan:Plan)=>void;viewState?:WebViewState['calendar'];onViewState?:(state:WebViewState['calendar'])=>void}){
   const zone=Intl.DateTimeFormat().resolvedOptions().timeZone as Parameters<typeof localDate>[1];
-  const [date,setDate]=useState(()=>localDate(new Date(),zone)),[mode,setMode]=useState<'week'|'month'>('week'),[month,setMonth]=useState(date.slice(0,7));
+  const [localView,setLocalView]=useState<WebViewState['calendar']>(()=>({date:localDate(new Date(),zone),mode:'week',month:localDate(new Date(),zone).slice(0,7)}));
+  const {date,mode,month}=viewState??localView;
+  function update(patch:Partial<WebViewState['calendar']>){const next={...(viewState??localView),...patch};if(onViewState)onViewState(next);else setLocalView(next);}
+  const setDate=(date:LocalDate)=>update({date}),setMode=(mode:'week'|'month')=>update({mode}),setMonth=(month:string)=>update({month});
   const [actual,setActual]=useState<{plan?:Plan;actual?:ActualMeal}|null>(null),[plan,setPlan]=useState<Plan|null>(null),[deletion,setDeletion]=useState<{store:PersonalStore;id:string}|null>(null);
   const today=localDate(new Date(),zone);
   const weekday=new Date(`${date}T00:00:00.000Z`).getUTCDay();const start=civilDateOffset(date,-((weekday+6)%7));
@@ -16,9 +20,9 @@ export function Calendar({actions,onShopping}:{actions:LocalActions;onShopping:(
   function done(){setActual(null);setPlan(null);setDeletion(null);}
   return <section className="dish-surface calendar-page" aria-labelledby="calendar-title"><h2 id="calendar-title">日历</h2>
     <button aria-pressed={mode==='week'} onClick={()=>setMode('week')}>本周列表</button>{' '}<button aria-pressed={mode==='month'} onClick={()=>setMode('month')}>月选日</button>
-    <label>查看日期<input type="date" value={date} onChange={e=>{if(isLocalDate(e.target.value))setDate(e.target.value);}}/></label>
+    <label>查看日期<input data-view-anchor="calendar-date" type="date" value={date} onChange={e=>{if(isLocalDate(e.target.value))setDate(e.target.value);}}/></label>
     {mode==='week'?<div className="card"><h3>本周</h3><button onClick={()=>setDate(civilDateOffset(date,-7))}>上一周</button>{' '}<button onClick={()=>setDate(civilDateOffset(date,7))}>下一周</button><ul className="day-list">{week.map(day=><li key={day}><button aria-pressed={date===day} aria-label={`选择 ${day}，计划${actions.data.plans.filter(p=>p.date===day).length}餐，实际记录${actions.data.actualMeals.filter(a=>a.date===day).length}餐`} onClick={()=>setDate(day)}>{day} · 计划 {actions.data.plans.filter(p=>p.date===day).length} · 实际 {actions.data.actualMeals.filter(a=>a.date===day).length}</button></li>)}</ul></div>
-      :<div className="card"><label>选择月份<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label><div className="month-days">{monthDays.map(day=><button key={day} aria-label={`选择 ${day}，计划${actions.data.plans.filter(p=>p.date===day).length}餐，实际记录${actions.data.actualMeals.filter(a=>a.date===day).length}餐`} aria-pressed={date===day} onClick={()=>setDate(day)}>{Number(day.slice(8))}<span className="day-meta" aria-hidden="true">{actions.data.actualMeals.some(a=>a.date===day)?'✓':actions.data.plans.some(p=>p.date===day)?'•':''}</span></button>)}</div></div>}
+      :<div className="card"><label>选择月份<input data-view-anchor="calendar-month" type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label><div className="month-days">{monthDays.map(day=><button data-view-anchor={`calendar-day-${day}`} key={day} aria-label={`选择 ${day}，计划${actions.data.plans.filter(p=>p.date===day).length}餐，实际记录${actions.data.actualMeals.filter(a=>a.date===day).length}餐`} aria-pressed={date===day} onClick={()=>setDate(day)}>{Number(day.slice(8))}<span className="day-meta" aria-hidden="true">{actions.data.actualMeals.some(a=>a.date===day)?'✓':actions.data.plans.some(p=>p.date===day)?'•':''}</span></button>)}</div></div>}
     {actual&&<ActualEditor key={actual.actual?.id??`plan-${actual.plan?.id}`} actions={actions} {...actual} onDone={done}/>}
     {plan&&<PlanEditor key={plan.id} actions={actions} plan={plan} onDone={done}/>}
     {deletion&&<DeleteEditor key={deletion.id} actions={actions} {...deletion} onDone={done}/>}

@@ -1,7 +1,7 @@
 import { RecipeMediaContext } from './RecipeImage.tsx';
 import { canonicalShopping, sourceFromDraft, sourceFromPlan } from '../shopping/shopping.ts';
-import { useEffect, useRef, useState } from 'react';
-import type { Catalog, GenerateInput, GenerationResult, LocalDate, Meal, MealDraft, MenuTemplate, PersonalData, Plan, RecipeSnapshot, Result, ShoppingSource, Slot, TimeZone, UtcIso } from '../domain/types.ts';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { Catalog, CatalogLoadOptions, DishType, GenerateInput, GenerationResult, LocalDate, Meal, MealDraft, MenuTemplate, PersonalData, Plan, RecipeSnapshot, Result, ShoppingSource, Slot, TimeZone, UtcIso } from '../domain/types.ts';
 import { canGenerate } from '../catalog/catalog.ts';
 import { defaultSlots, generateMeal, replaceSlot } from '../menu/rules.ts';
 import { localDate } from '../domain/dates.ts';
@@ -17,9 +17,10 @@ import { My } from './My.tsx';
 import { ActualEditor, DeleteEditor, FavoriteEditor, TemplateEditor, type LocalActions } from './PersonalActions.tsx';
 import { Dialog, errorMessage, MEAL_LABELS, Notice } from './components.tsx';
 
-interface AppProps { repository: Repository | null; catalogLoader: () => Promise<Result<Catalog>>; storageStatus: StorageStatus }
+interface AppProps { repository: Repository | null; catalogLoader: (options?: CatalogLoadOptions) => Promise<Result<Catalog>>; storageStatus: StorageStatus }
 const tabs = ['今天吃什么', '菜谱', '日历', '我的'] as const;
 const ROUTES = { '今天吃什么': '#/today', '菜谱': '#/recipes', '日历': '#/calendar', '我的': '#/my' } as const;
+export interface WebViewState { recipes: { keyword: string; category: DishType | ''; favoritesOnly: boolean }; calendar: { date: LocalDate; mode: 'week' | 'month'; month: string } }
 function routeTab() { return tabs.find(label => ROUTES[label] === location.hash) ?? '今天吃什么'; }
 export function App({ repository, catalogLoader, storageStatus }: AppProps) {
   const [tab, setTab] = useState<typeof tabs[number]>(routeTab);
@@ -40,6 +41,30 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
   const [reviewedData, setReviewedData] = useState<PersonalData | null>(null);
   const [catalog, setCatalog] = useState<Result<Catalog> | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogRefreshError, setCatalogRefreshError] = useState(false);
+  const [catalogProgress, setCatalogProgress] = useState('');
+  const catalogTask = useRef<{ generation: number; controller: AbortController } | null>(null);
+  const [viewState, setViewState] = useState<WebViewState>(() => ({
+    recipes: { keyword: '', category: '', favoritesOnly: false },
+    calendar: { date: localDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone as TimeZone), mode: 'week', month: localDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone as TimeZone).slice(0, 7) },
+  }));
+  const positions = useRef(new Map<string, { y: number; anchor: string | null }>());
+  const currentTab = useRef(tab); currentTab.current = tab;
+  const focusAnchor = useRef<string | null>(null);
+  const positionedTab = useRef(tab);
+  function rememberPosition() { positions.current.set(currentTab.current, { y: window.scrollY, anchor: focusAnchor.current }); }
+  useLayoutEffect(() => {
+    if (positionedTab.current === tab) return;
+    positionedTab.current = tab;
+    const position = positions.current.get(tab);
+    const anchor = position?.anchor ? Array.from(document.querySelectorAll<HTMLElement>('[data-view-anchor]')).find(node => node.dataset.viewAnchor === position.anchor) : null;
+    const validAnchor = anchor && !anchor.matches(':disabled') && !anchor.closest('[hidden], [inert], details:not([open])') ? anchor : null;
+    const target = validAnchor ?? document.getElementById('main-content');
+    target?.focus({ preventScroll: true });
+    const y = validAnchor ? position!.y : 0;
+    if (window.scrollY !== y) window.scrollTo(0, y);
+    focusAnchor.current = validAnchor?.dataset.viewAnchor ?? null;
+  }, [tab]);
   const [ready, setReady] = useState(repository === null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState(false);
@@ -69,14 +94,14 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
   const requestRef = useRef<{ key: string; id: string } | null>(null);
 
   useEffect(() => {
-    function followRoute() { const next = routeTab(); setTab(next); setReplacement(null); setShoppingSeed(null); }
+    function followRoute() { rememberPosition(); const next = routeTab(); setTab(next); setReplacement(null); setShoppingSeed(null); }
     window.addEventListener('hashchange', followRoute); window.addEventListener('popstate', followRoute);
     return () => { window.removeEventListener('hashchange', followRoute); window.removeEventListener('popstate', followRoute); };
   }, []);
   function navigate(next: typeof tabs[number]) {
     if (next !== tab) { setReplacement(null); setShoppingSeed(null); }
+    if (next !== tab) rememberPosition();
     history.pushState(null, '', ROUTES[next]); setTab(next);
-    queueMicrotask(() => document.getElementById('main-content')?.focus());
   }
   function markConflict() {
     conflictRef.current = true;
@@ -87,16 +112,31 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     latestRevisionRef.current = Math.max(latestRevisionRef.current, revision);
   }
   async function loadOnline() {
-    setCatalogLoading(true);
+    catalogTask.current?.controller.abort();
+    const task = { generation: (catalogTask.current?.generation ?? 0) + 1, controller: new AbortController() };
+    catalogTask.current = task;
+    setCatalogLoading(true); setCatalogRefreshError(false); setCatalogProgress('');
+    let progress: { loaded: number; total: number } | null = null;
+    const slow = setTimeout(() => { if (catalogTask.current === task) setCatalogProgress(progress ? `已读取 ${progress.loaded}/${progress.total} 道菜…` : '正在读取在线菜谱…'); }, 800);
+    const timeout = setTimeout(() => task.controller.abort(), 20000);
+    let rejectAbort: (() => void) | undefined;
     try {
-      setCatalog(await catalogLoader());
+      const cancelled = new Promise<never>((_, reject) => { rejectAbort = () => reject(new Error('Catalog load cancelled')); task.controller.signal.addEventListener('abort', rejectAbort, { once: true }); });
+      const result = await Promise.race([catalogLoader({ signal: task.controller.signal, deadlineMs: 20000, onProgress: p => { progress = p; if (catalogTask.current === task) setCatalogProgress(current => current ? `已读取 ${p.loaded}/${p.total} 道菜…` : ''); } }), cancelled]);
+      if (catalogTask.current !== task || task.controller.signal.aborted) return;
+      setCatalog(current => result.ok || !current?.ok ? result : current);
+      setCatalogRefreshError(!result.ok);
     } catch {
-      setCatalog({ ok: false, error: { code: 'UNAVAILABLE', message: 'Online directory unavailable' } });
+      if (catalogTask.current !== task) return;
+      setCatalog(current => current?.ok ? current : { ok: false, error: { code: 'UNAVAILABLE', message: 'Online directory unavailable' } });
+      setCatalogRefreshError(true);
     } finally {
-      setCatalogLoading(false);
+      clearTimeout(timeout); clearTimeout(slow);
+      if (rejectAbort) task.controller.signal.removeEventListener('abort', rejectAbort);
+      if (catalogTask.current === task) { setCatalogLoading(false); setCatalogProgress(''); }
     }
   }
-  useEffect(() => { void loadOnline(); }, [catalogLoader]);
+  useEffect(() => { void loadOnline(); return () => { const task = catalogTask.current; catalogTask.current = null; task?.controller.abort(); }; }, [catalogLoader]);
   useEffect(() => {
     if (!repository) return;
     let alive = true;
@@ -115,7 +155,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
         setError(true);
       }
       setReady(true);
-    });
+    }).catch(() => { if (alive) { setNotice('本地记录读取未完成，请重新打开本地记录。'); setError(true); setReady(true); setConnectionStatus({ ...repository.status(), writable: false, reason: 'UNAVAILABLE' }); } });
     const unsubscribe = repository.subscribe((revision) => {
       if (!alive) return;
       setConnectionStatus(repository.status());
@@ -189,40 +229,47 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     setNotice(command.type === 'savePlan' ? '正在保存计划…' : command.type === 'saveSettings' ? '正在保存设置…' : command.type === 'savePreferences' ? '正在保存忌口…' : '正在保存草稿…');
     const key = JSON.stringify(command);
     if (requestRef.current?.key !== key) requestRef.current = { key, id: globalThis.crypto.randomUUID() };
-    const result = await repository.commit(command, expectedRevision, requestRef.current!.id);
-    if (result.ok) {
-      // This local edit incorporated only its own completed receipt, not later writes by another tab.
-      editingRevisionRef.current = Math.max(editingRevisionRef.current, result.value.globalRevision);
-      rememberRevision(result.value.globalRevision);
-      const read = await repository.read();
-      if (read.ok) {
-        setData(read.value);setMetadataKnown(true);
-        rememberRevision(read.value.meta.revision);
+    let committed = false;
+    try {
+      const result = await repository.commit(command, expectedRevision, requestRef.current!.id);
+      committed = result.ok;
+      if (result.ok) {
+        // This local edit incorporated only its own completed receipt, not later writes by another tab.
+        editingRevisionRef.current = Math.max(editingRevisionRef.current, result.value.globalRevision);
+        rememberRevision(result.value.globalRevision);
+        const read = await readLatest();
+        if (read.ok) {
+          setData(read.value);setMetadataKnown(true);
+          rememberRevision(read.value.meta.revision);
+        }
+        if(data.meta.revision===0)setBackupHint(true);
+        setPresentationFailure(!read.ok);
+        setNotice(success);
+        setError(false);
+        if (read.ok) { requestRef.current = null; failedSaveRef.current = null; }
+        if (command.type === 'saveSettings' || command.type === 'savePreferences') preferencesDirtyRef.current = false;
+        if (command.type === 'saveSettings' || command.type === 'saveDraft') draftDirtyRef.current = false;
+        // An exact replay can confirm our own previously uncertain write. It resolves
+        // that conflict only if no later foreign revision has been observed.
+        if (exactRetry && latestRevisionRef.current <= editingRevisionRef.current) {
+          conflictRef.current = false;
+          setConflict(false);
+          setReviewedData(null);
+        }
+      } else {
+        setNotice(result.error.code === 'CONFLICT' ? '' : errorMessage(result.error.code));
+        setError(true);
+        if (result.error.code === 'CONFLICT') markConflict();
       }
-      if(data.meta.revision===0)setBackupHint(true);
-      setPresentationFailure(!read.ok);
-      setNotice(success);
-      setError(false);
-      requestRef.current = null;
-      failedSaveRef.current = null;
-      if (command.type === 'saveSettings' || command.type === 'savePreferences') preferencesDirtyRef.current = false;
-      if (command.type === 'saveSettings' || command.type === 'saveDraft') draftDirtyRef.current = false;
-      // An exact replay can confirm our own previously uncertain write. It resolves
-      // that conflict only if no later foreign revision has been observed.
-      if (exactRetry && latestRevisionRef.current <= editingRevisionRef.current) {
-        conflictRef.current = false;
-        setConflict(false);
-        setReviewedData(null);
-      }
-    } else {
-      setNotice(result.error.code === 'CONFLICT' ? '' : errorMessage(result.error.code));
-      setError(true);
-      if (result.error.code === 'CONFLICT') markConflict();
+      return result.ok;
+    } catch {
+      if (committed) { setPresentationFailure(true); setNotice(success); }
+      else { setNotice('保存结果未确认，输入已保留。请用原请求重试核对，避免重复新建。'); setError(true); }
+      return committed;
+    } finally {
+      pendingRef.current = false; setPending(false);
+      if (latestRevisionRef.current > editingRevisionRef.current) markConflict();
     }
-    pendingRef.current = false;
-    setPending(false);
-    if (latestRevisionRef.current > editingRevisionRef.current) markConflict();
-    return result.ok;
   }
   function currentDraft(): MealDraft {
     return draft ?? { id: 'current', servings: preferences.servings, meal: preferences.meal, slots: preferences.slots, dishes: [], countsConfirmed: preferences.servings <= 8, updatedAt: new Date().toISOString() as UtcIso, revision: 0 };
@@ -339,38 +386,43 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
   }
   async function readLatest():Promise<Result<PersonalData>> {
     if(!repository)return {ok:false,error:{code:'UNAVAILABLE',message:'Local storage unavailable'}};
-    const result=await repository.read();if(result.ok){setData(result.value);setMetadataKnown(true);rememberRevision(result.value.meta.revision);if(latestRevisionRef.current>editingRevisionRef.current)markConflict();}return result;
+    let result: Result<PersonalData>;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try { result=await Promise.race([repository.read(), new Promise<never>((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Local read deadline')),15000);})]); }
+    catch { return {ok:false,error:{code:'UNAVAILABLE',message:'Local read not confirmed'}}; }
+    finally { clearTimeout(timeout); }
+    if(result.ok){setData(result.value);setMetadataKnown(true);rememberRevision(result.value.meta.revision);if(latestRevisionRef.current>editingRevisionRef.current)markConflict();}return result;
   }
   async function commitLocal(command:Command,expectedRevision:number,requestId:string):Promise<Result<CommitReceipt>> {
     if(!repository||!writable||pendingRef.current)return {ok:false,error:{code:'UNAVAILABLE',message:'Local saving unavailable'}};
     pendingRef.current=true;setPending(true);
     let result:Result<CommitReceipt>;
-    try{result=await repository.commit(command,expectedRevision,requestId);}
-    catch{result={ok:false,error:{code:'UNAVAILABLE',message:'Commit result not confirmed'}};}
-    if(result.ok){
-      if(command.type==='clearAll'){
-        // An exact replay acknowledges the old clear; it never clears later records or rebases newer edits backwards.
-        const clearCurrentEdits=!result.value.replayed||editingRevisionRef.current<=result.value.globalRevision;
-        editingRevisionRef.current=Math.max(editingRevisionRef.current,result.value.globalRevision);
-        if(clearCurrentEdits){setShoppingSeed({id:crypto.randomUUID(),sources:[]});setDraft(null);setPreferences(initialPersonalData().preferences);setGeneration(null);preferencesDirtyRef.current=false;draftDirtyRef.current=false;failedSaveRef.current=null;requestRef.current=null;conflictRef.current=false;setConflict(false);setReviewedData(null);setRecording(false);setTemplating(false);setConfirming(false);setReplacement(null);}
-      }else if(command.type==='replaceAll'){
-        if(!result.value.replayed){
-          editingRevisionRef.current=result.value.globalRevision;setShoppingSeed({id:crypto.randomUUID(),sources:[]});
-          setDraft(command.data.draft?{...command.data.draft,revision:result.value.globalRevision}:null);setPreferences({...command.data.preferences,revision:result.value.globalRevision});setGeneration(null);
-          preferencesDirtyRef.current=false;draftDirtyRef.current=false;failedSaveRef.current=null;requestRef.current=null;conflictRef.current=false;setConflict(false);setReviewedData(null);setRecording(false);setTemplating(false);setConfirming(false);setReplacement(null);
-        }
-      }else if(command.type!=='markBackupRequested'&&editingRevisionRef.current===expectedRevision)editingRevisionRef.current=result.value.globalRevision;
-      else if(command.type==='markBackupRequested'&&!draftDirtyRef.current&&!preferencesDirtyRef.current&&!failedSaveRef.current&&editingRevisionRef.current===expectedRevision)editingRevisionRef.current=result.value.globalRevision;
-      rememberRevision(result.value.globalRevision);
-      const read=await repository.read();if(read.ok){setData(read.value);setMetadataKnown(true);rememberRevision(read.value.meta.revision);}setPresentationFailure(!read.ok);
-      if(data.meta.revision===0&&command.type!=='markBackupRequested')setBackupHint(true);
-      setNotice(command.type==='markBackupRequested'?'下载请求时间已记录':command.type==='replaceAll'?(result.value.replayed?'恢复请求已执行，后续记录仍保留':'个人备份已恢复'):command.type==='saveActual'?'实际记录已保存':command.type==='saveCustomRecipe'?'自定义菜谱已保存':command.type==='saveFavorite'?'已收藏':command.type==='saveTemplate'?'菜单模板已保存':command.type==='saveShoppingList'?(command.expectedObjectRevision===null?'采购清单已保存':'采购编辑已保存'):command.type==='deleteObject'?'已移入回收站，保留 30 天':command.type==='restoreTrash'?'已恢复':command.type==='clearAll'?(result.value.replayed&&read.ok&&read.value.meta.revision>result.value.globalRevision?'清空请求已执行，之后新增的记录仍保留。':'本应用个人数据已清空'):command.type==='savePlan'?'计划编辑已保存':'本地记录已保存');
-      // A successful independent object write cannot erase a retained draft/settings retry.
-      if(!failedSaveRef.current)setError(false);
-    }
-    pendingRef.current=false;setPending(false);
-    if(latestRevisionRef.current>editingRevisionRef.current)markConflict();
-    return result;
+    try {
+      result=await repository.commit(command,expectedRevision,requestId);
+      if(result.ok){
+        if(command.type==='clearAll'){
+          // An exact replay acknowledges the old clear; it never clears later records or rebases newer edits backwards.
+          const clearCurrentEdits=!result.value.replayed||editingRevisionRef.current<=result.value.globalRevision;
+          editingRevisionRef.current=Math.max(editingRevisionRef.current,result.value.globalRevision);
+          if(clearCurrentEdits){setShoppingSeed({id:crypto.randomUUID(),sources:[]});setDraft(null);setPreferences(initialPersonalData().preferences);setGeneration(null);preferencesDirtyRef.current=false;draftDirtyRef.current=false;failedSaveRef.current=null;requestRef.current=null;conflictRef.current=false;setConflict(false);setReviewedData(null);setRecording(false);setTemplating(false);setConfirming(false);setReplacement(null);}
+        }else if(command.type==='replaceAll'){
+          if(!result.value.replayed){
+            editingRevisionRef.current=result.value.globalRevision;setShoppingSeed({id:crypto.randomUUID(),sources:[]});
+            setDraft(command.data.draft?{...command.data.draft,revision:result.value.globalRevision}:null);setPreferences({...command.data.preferences,revision:result.value.globalRevision});setGeneration(null);
+            preferencesDirtyRef.current=false;draftDirtyRef.current=false;failedSaveRef.current=null;requestRef.current=null;conflictRef.current=false;setConflict(false);setReviewedData(null);setRecording(false);setTemplating(false);setConfirming(false);setReplacement(null);
+          }
+        }else if(command.type!=='markBackupRequested'&&editingRevisionRef.current===expectedRevision)editingRevisionRef.current=result.value.globalRevision;
+        else if(command.type==='markBackupRequested'&&!draftDirtyRef.current&&!preferencesDirtyRef.current&&!failedSaveRef.current&&editingRevisionRef.current===expectedRevision)editingRevisionRef.current=result.value.globalRevision;
+        rememberRevision(result.value.globalRevision);
+        const read=await readLatest();if(read.ok){setData(read.value);setMetadataKnown(true);rememberRevision(read.value.meta.revision);}setPresentationFailure(!read.ok);
+        if(data.meta.revision===0&&command.type!=='markBackupRequested')setBackupHint(true);
+        setNotice(command.type==='markBackupRequested'?'下载请求时间已记录':command.type==='replaceAll'?(result.value.replayed?'恢复请求已执行，后续记录仍保留':'个人备份已恢复'):command.type==='saveActual'?'实际记录已保存':command.type==='saveCustomRecipe'?'自定义菜谱已保存':command.type==='saveFavorite'?'已收藏':command.type==='saveTemplate'?'菜单模板已保存':command.type==='saveShoppingList'?(command.expectedObjectRevision===null?'采购清单已保存':'采购编辑已保存'):command.type==='deleteObject'?'已移入回收站，保留 30 天':command.type==='restoreTrash'?'已恢复':command.type==='clearAll'?(result.value.replayed&&read.ok&&read.value.meta.revision>result.value.globalRevision?'清空请求已执行，之后新增的记录仍保留。':'本应用个人数据已清空'):command.type==='savePlan'?'计划编辑已保存':'本地记录已保存');
+        // A successful independent object write cannot erase a retained draft/settings retry.
+        if(!failedSaveRef.current)setError(false);
+      }
+      return result;
+    } finally { pendingRef.current=false;setPending(false);
+      if(latestRevisionRef.current>editingRevisionRef.current)markConflict(); }
   }
   function useTemplate(template:MenuTemplate){
     if(!ready||pendingRef.current)return;
@@ -385,7 +437,7 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     const same=!draftDirtyRef.current&&persisted&&canonicalShopping({snapshots:persisted.dishes.map(d=>d.recipe),servings:persisted.servings})===canonicalShopping({snapshots:shoppingDraft.snapshots,servings:shoppingDraft.servings});
     shoppingDraft.revision=same?persisted.revision:null;
   }
-  function openShopping(sources:ShoppingSource[]){setShoppingSeed({id:crypto.randomUUID(),sources});history.pushState(null, '', ROUTES['我的']);setTab('我的');}
+  function openShopping(sources:ShoppingSource[]){rememberPosition();setShoppingSeed({id:crypto.randomUUID(),sources});history.pushState(null, '', ROUTES['我的']);setTab('我的');}
   const localActions:LocalActions={data,catalog,writable,pending,commit:commitLocal,readLatest,onSelect:select,onUseTemplate:useTemplate};
   function favorite(recipe:RecipeSnapshot){
     const existing=data.favorites.find(f=>f.recipeId===recipe.recipeId);setFavoriting(existing?null:recipe);setUnfavoriting(existing?.id??null);
@@ -403,15 +455,17 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
         </div>}
       </div>;
   const recoveryFeedback = <>{conflictFeedback}
-{presentationFailure&&<div className="notice error"><p>保存事务已完成，但读取更新失败。不要重复新建记录，请重新读取已保存内容。</p><button disabled={pending} onClick={()=>void readLatest().then(r=>{if(r.ok)setPresentationFailure(false);})}>重新读取已保存记录</button></div>}
+{presentationFailure&&<div className="notice error"><p>保存事务已完成，但读取更新失败。不要重复新建记录，请重新读取已保存内容。</p><button disabled={pending} onClick={()=>void readLatest().then(r=>{if(r.ok){setPresentationFailure(false);requestRef.current=null;failedSaveRef.current=null;}})}>重新读取已保存记录</button></div>}
       {error && failedSaveRef.current && <button disabled={pending || !writable} onClick={() => { const retry = failedSaveRef.current; if (retry) void save(retry.command, retry.success, true); }}>重试保存当前编辑</button>}
       {!conflict && !failedSaveRef.current && (draftDirtyRef.current || preferencesDirtyRef.current) && <button disabled={pending || !writable} onClick={saveCurrentEdits}>保存当前编辑</button>}
   </>;
   return <RecipeMediaContext value={catalog?.ok ? catalog.value : null}><div className="app-shell">
-    <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>跳到主要内容</a>
+    <a className="skip-link" tabIndex={0} href="#main-content" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>跳到主要内容</a>
     <header className="app-header"><h1>吃什么</h1><span className="muted">记录保存在当前浏览器</span></header>
     <nav aria-label="主导航">{tabs.map(label => <button key={label} aria-current={tab === label ? 'page' : undefined} onClick={() => navigate(label)}>{label}</button>)}</nav>
-    <main id="main-content" tabIndex={-1}>
+    <main id="main-content" tabIndex={-1} onFocusCapture={event => { const node = (event.target as HTMLElement).closest<HTMLElement>('[data-view-anchor]'); if (node) focusAnchor.current = node.dataset.viewAnchor ?? null; }}>
+      {catalogProgress && <Notice text={catalogProgress} />}
+      {catalogRefreshError && (tab !== '菜谱' || catalog?.ok) && <div className="notice"><p>{catalog?.ok ? '刷新未完成，继续使用上次完整菜库。' : '菜库暂不可用，已有个人记录仍可查看。'}</p><button disabled={catalogLoading} onClick={() => void loadOnline()}>重试在线菜谱</button></div>}
       {!ready && <Notice text="正在读取本地记录…" />}
       {storageNotice && <><Notice text={storageNotice} error /><button onClick={() => window.location.reload()}>重新打开本地记录</button></>}
       {!(tab === '今天吃什么' && confirming) && recoveryFeedback}
@@ -424,8 +478,8 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
       {tab==='菜谱'&&unfavoriting&&<DeleteEditor actions={localActions} store='favorites' id={unfavoriting} onDone={()=>setUnfavoriting(null)}/>}
       {tab==='今天吃什么'&&replacement&&<Dialog title="替换已有计划" busy={pending} onClose={()=>{setReplacement(null);setConfirming(false);}}><h3>替换已有计划</h3>{notice&&<Notice text={notice} error={error}/>}{recoveryFeedback}<label>计划日期<input type="date" value={date} disabled readOnly/></label><label>计划餐次<select value={meal} disabled>{Object.entries(MEAL_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><p>此日期和餐次已有计划：{replacement.snapshots.map(s=>s.name).join('、')}。替换只修改计划，不改变实际记录。</p><button disabled={pending||!writable} onClick={()=>void savePlan(replacement)}>确认替换已有计划</button>{' '}<button disabled={pending} onClick={()=>{setReplacement(null);setConfirming(false);}}>取消替换计划</button></Dialog>}
       {tab === '今天吃什么' ? <Today key={settingsResetEpoch} draft={draft} settings={currentDraft()} preferences={preferences} generation={generation} ready={ready} catalogAvailable={catalog?.ok === true} catalogLoading={catalogLoading} notice={notice} noticeError={error} recovery={recoveryFeedback} onRetryCatalog={() => void loadOnline()} onSettings={editSettings} onExclusions={saveExclusions} onGenerate={() => automatic()} onReplace={(slotId) => automatic(slotId)} onLock={toggleLock} onRemove={removeDish} onCountsConfirm={() => editDraft({ ...currentDraft(), countsConfirmed: true }, '人数和组合确认已保存')} onDiscard={() => { setGeneration(null); editDraft({ ...currentDraft(), dishes: [] }, '已放弃菜单，设置已保留'); }} data={data} writable={writable && !conflict} pending={pending||replacement!==null} confirming={confirming && !replacement} onCancel={()=>setConfirming(false)} date={date} meal={meal} onDate={setDate} onMeal={setMeal} onConfirm={() => { setMeal(draft?.meal ?? 'dinner'); setConfirming(true); }} onSave={() => void savePlan()} onShopping={()=>{if(shoppingDraft)openShopping([shoppingDraft]);}} onRecord={()=>{setRecording(true);setTemplating(false);}} onTemplate={()=>{setTemplating(true);setRecording(false);}} />
-        : tab === '菜谱' ? <Recipes preferences={preferences} catalog={catalog} loading={catalogLoading} onRetry={() => void loadOnline()} onSelect={select} onFavorite={favorite} favorites={data.favorites} writable={writable} pending={pending || !ready} />
-        : tab === '日历' ? <Calendar actions={localActions} onShopping={plan=>openShopping([sourceFromPlan(plan)])}/>
+        : tab === '菜谱' ? <Recipes viewState={viewState.recipes} onViewState={recipes => setViewState(current => ({ ...current, recipes }))} preferences={preferences} catalog={catalog} loading={catalogLoading} onRetry={() => void loadOnline()} onSelect={select} onFavorite={favorite} favorites={data.favorites} writable={writable} pending={pending || !ready} />
+        : tab === '日历' ? <Calendar viewState={viewState.calendar} onViewState={calendar => setViewState(current => ({ ...current, calendar }))} actions={localActions} onShopping={plan=>openShopping([sourceFromPlan(plan)])}/>
         : <My actions={localActions} metadataKnown={metadataKnown} repository={repository} memoryData={{...data,preferences,draft}} shoppingSeed={shoppingSeed} draftSource={shoppingDraft} storageStatus={storageStatus} persisted={persisted} onPersistence={()=>{void requestPersistence().then(setPersisted);}}/>}
     </main>
   </div></RecipeMediaContext>;

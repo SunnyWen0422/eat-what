@@ -1,6 +1,5 @@
+import { clickAction, revealControl } from './ui-fixtures.ts';
 import { expect, test, type Page } from '@playwright/test';
-import { mkdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 // Deliberately test-only public DTOs. No production recipe fallback is installed.
 const pageFixture = { page: 1, pageSize: 100, total: 1, list: [{
@@ -9,20 +8,20 @@ const pageFixture = { page: 1, pageSize: 100, total: 1, list: [{
 const catalogURL = '**/api/public/catalog/dishes?*';
 async function directory(page: Page) { await page.route(catalogURL, (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(pageFixture) })); }
 async function choose(page: Page) {
-  await page.getByRole('button', { name: '菜谱', exact: true }).click();
-  await page.getByRole('button', { name: '手选 浏览器测试青菜', exact: true }).click();
+  await clickAction(page, { name: '菜谱', exact: true });
+  await clickAction(page, { name: '手选 浏览器测试青菜', exact: true });
   await expect(page.getByText('草稿已保存', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '今天吃什么', exact: true }).click();
+  await clickAction(page, { name: '今天吃什么', exact: true });
 }
-const screenshots = resolve('..', '.superpowers/sdd/2026-10-09-eatwhat-independent-web/screenshots');
+
 test('empty database → manual selection → explicit date/meal → saved plan survives reload; actual stays empty', async ({ page }) => {
   const requests: string[] = []; page.on('request', (request) => requests.push(request.url()));
   await directory(page); await page.goto('/');
-  await expect(page.getByText('计划为空', { exact: true })).toBeVisible(); await expect(page.getByText('实际饮食为空')).toBeVisible();
-  await choose(page); await page.getByRole('button', { name: '保存到日历' }).click();
+  await revealControl(page.getByText('计划为空', { exact: true }));await expect(page.getByText('计划为空', { exact: true })).toBeVisible(); await expect(page.getByText('实际饮食为空')).toBeVisible();
+  await choose(page); await clickAction(page, { name: '保存到日历' });
   await page.getByLabel('计划日期').fill('2026-10-09'); await page.getByLabel('计划餐次').selectOption('dinner');
-  await page.getByRole('button', { name: '保存计划', exact: true }).click(); await expect(page.getByText('计划已保存', { exact: true })).toBeVisible();
-  await page.reload(); await expect(page.getByText('2026-10-09 · 晚餐 · 2 人')).toBeVisible(); await expect(page.getByText('实际饮食为空')).toBeVisible();
+  await clickAction(page, { name: '保存计划', exact: true }); await expect(page.getByText('计划已保存', { exact: true })).toBeVisible();
+  await page.reload();await revealControl(page.getByText('2026-10-09 · 晚餐 · 2 人')); await expect(page.getByText('2026-10-09 · 晚餐 · 2 人')).toBeVisible(); await expect(page.getByText('实际饮食为空')).toBeVisible();
   const records = await page.evaluate(async () => {
     const request = indexedDB.open('eatwhat-web'); const db = await new Promise<IDBDatabase>((ok, no) => { request.onsuccess = () => ok(request.result); request.onerror = () => no(request.error); });
     const tx = db.transaction(['plans', 'actualMeals']); const planRequest = tx.objectStore('plans').getAll(); const actualRequest = tx.objectStore('actualMeals').getAll();
@@ -31,30 +30,30 @@ test('empty database → manual selection → explicit date/meal → saved plan 
   expect(records.plans).toHaveLength(1); expect(records.actual).toEqual([]); expect(records.plans[0].snapshots[0]).not.toHaveProperty('reviewStatus');
   expect(requests.filter((url) => new URL(url).pathname.startsWith('/api/')).every((url) => new URL(url).pathname === '/api/public/catalog/dishes')).toBe(true);
   expect(requests.every((url) => new URL(url).origin === 'http://127.0.0.1:4173')).toBe(true);
-  await mkdir(screenshots, { recursive: true }); await page.screenshot({ path: resolve(screenshots, 'task-2-plan-reloaded.png'), fullPage: true });
+   await page.screenshot({ path: test.info().outputPath('task-2-plan-reloaded.png'), fullPage: true });
   await page.setViewportSize({ width: 320, height: 900 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: resolve(screenshots, 'task-2-mobile-320.png'), fullPage: true });
+  await page.screenshot({ path: test.info().outputPath('task-2-mobile-320.png'), fullPage: true });
   await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: resolve(screenshots, 'task-2-mobile-200-percent.png'), fullPage: true });
+  await page.screenshot({ path: test.info().outputPath('task-2-mobile-200-percent.png'), fullPage: true });
 });
 
 test('a second tab changes revision; stale confirmation is blocked until an explicit decision', async ({ page, context }) => {
-  await directory(page); await page.goto('/'); await choose(page); await page.getByRole('button', { name: '保存到日历' }).click(); await page.getByLabel('计划日期').fill('2026-10-11');
+  await directory(page); await page.goto('/'); await choose(page); await clickAction(page, { name: '保存到日历' }); await page.getByLabel('计划日期').fill('2026-10-11');
   const second = await context.newPage(); await directory(second); await second.goto('/'); await choose(second);
   await page.bringToFront();
   await expect(page.getByRole('button', { name: '查看最新内容' })).toBeVisible();
   await expect(page.getByRole('button', { name: '保存计划', exact: true })).toBeDisabled(); await expect(page.getByLabel('计划日期')).toHaveValue('2026-10-11');
   await expect(page.getByText('浏览器测试青菜', { exact: true })).toBeVisible(); await expect(page.getByText('计划已保存', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '查看最新内容' }).click(); await page.getByRole('button', { name: '保留当前编辑并继续' }).click(); await page.getByRole('button', { name: '保存计划', exact: true }).click();
+  await clickAction(page, { name: '查看最新内容' }); await clickAction(page, { name: '保留当前编辑并继续' }); await clickAction(page, { name: '保存计划', exact: true });
   await expect(page.getByText('计划已保存', { exact: true })).toBeVisible();
 });
 
 test('disabled online endpoint shows retry while existing local records stay accessible', async ({ page }) => {
-  await directory(page); await page.goto('/'); await choose(page); await page.getByRole('button', { name: '保存到日历' }).click(); await page.getByRole('button', { name: '保存计划', exact: true }).click();
+  await directory(page); await page.goto('/'); await choose(page); await clickAction(page, { name: '保存到日历' }); await clickAction(page, { name: '保存计划', exact: true });await expect(page.getByText('计划已保存',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.unroute(catalogURL); await page.route(catalogURL, (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })); await page.reload();
-  await expect(page.getByText('浏览器测试青菜', { exact: true })).toHaveCount(2); await page.getByRole('button', { name: '菜谱', exact: true }).click();
+  await page.getByText('查看已保存记录',{exact:true}).click();await expect(page.getByText('浏览器测试青菜', { exact: true })).toHaveCount(2); await clickAction(page, { name: '菜谱', exact: true });
   await expect(page.getByRole('button', { name: '重试在线菜谱' })).toBeVisible();
 });
 
@@ -110,45 +109,45 @@ test('real two-digit numeric entry remains editable until explicit apply and sur
   await count.fill(''); await count.pressSequentially('12'); await expect(count).toHaveValue('12');
   await expect(page.getByRole('button', { name: '生成本餐菜单', exact: true })).toBeDisabled();
   expect((await readDraft(page)).draft).toBeUndefined();
-  await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click();
+  await clickAction(page, { name: '应用人数和菜数', exact: true });
   await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
   expect((await readDraft(page)).draft).toMatchObject({ servings: 12, countsConfirmed: false });
   expect((await readDraft(page)).draft.slots).toHaveLength(12);
   await page.reload(); await expect(people).toHaveValue('12'); await expect(count).toHaveValue('12');
   await count.fill('21'); await expect(page.getByRole('button', { name: '应用人数和菜数', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: '撤销人数和菜数修改', exact: true }).click(); await expect(count).toHaveValue('12');
+  await clickAction(page, { name: '撤销人数和菜数修改', exact: true }); await expect(count).toHaveValue('12');
 });
 
 test('trusted online directory → local generate/lock/replace → settings survive reload without another generation', async ({ page }) => {
   let directoryReads = 0;
   await page.route(catalogURL, (route) => { directoryReads++; return route.fulfill({ contentType: 'application/json', body: JSON.stringify(generationPageFixture) }); });
   await page.goto('/'); await expect(page.getByText('正在读取本地记录…')).toHaveCount(0);
-  await page.getByLabel('用餐人数', { exact: true }).fill('4'); await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click(); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
+  await page.getByLabel('用餐人数', { exact: true }).fill('4'); await clickAction(page, { name: '应用人数和菜数', exact: true }); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
   const beforeGenerateReads = directoryReads;
-  await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('菜单已生成并保存', { exact: true })).toBeVisible();
+  await clickAction(page, { name: '生成本餐菜单', exact: true }); await expect(page.getByText('菜单已生成并保存', { exact: true })).toBeVisible();
   const first = await readDraft(page); expect(first.draft.dishes).toHaveLength(3);
   const retained = first.draft.dishes[2];
-  await page.getByRole('button', { name: `保留 ${retained.recipe.name}`, exact: true }).click(); await expect(page.getByText('保留状态已保存', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: `换一道 ${first.draft.dishes[0].recipe.name}`, exact: true }).click(); await expect(page.getByText('换菜已保存', { exact: true })).toBeVisible();
+  await clickAction(page, { name: `保留 ${retained.recipe.name}`, exact: true }); await expect(page.getByText('保留状态已保存', { exact: true })).toBeVisible();
+  await clickAction(page, { name: `换一道 ${first.draft.dishes[0].recipe.name}`, exact: true }); await expect(page.getByText('换菜已保存', { exact: true })).toBeVisible();
   const changed = await readDraft(page); expect(changed.draft.dishes[0].recipe.familyId).not.toBe(first.draft.dishes[0].recipe.familyId); expect(changed.draft.dishes[2]).toEqual({ ...retained, locked: true });
   expect(directoryReads).toBe(beforeGenerateReads);
-  await page.reload(); await expect(page.getByLabel('用餐人数', { exact: true })).toHaveValue('4'); expect(await readDraft(page)).toEqual(changed);
-  await page.getByRole('button', { name: '放弃当前菜单', exact: true }).click(); expect(await readDraft(page)).toEqual(changed);
-  await page.getByRole('button', { name: '继续编辑', exact: true }).click(); expect(await readDraft(page)).toEqual(changed);
+  await page.reload();await revealControl(page.getByLabel('用餐人数', { exact: true })); await expect(page.getByLabel('用餐人数', { exact: true })).toHaveValue('4'); expect(await readDraft(page)).toEqual(changed);
+  await clickAction(page, { name: '放弃当前菜单', exact: true }); expect(await readDraft(page)).toEqual(changed);
+  await clickAction(page, { name: '继续编辑', exact: true }); expect(await readDraft(page)).toEqual(changed);
   await page.setViewportSize({ width: 320, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await mkdir(screenshots, { recursive: true }); await page.screenshot({ path: resolve(screenshots, 'task-3-local-menu-320.png'), fullPage: true });
+   await page.screenshot({ path: test.info().outputPath('task-3-local-menu-320.png'), fullPage: true });
   await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: resolve(screenshots, 'task-3-local-menu-200-percent.png'), fullPage: true });
+  await page.screenshot({ path: test.info().outputPath('task-3-local-menu-200-percent.png'), fullPage: true });
 });
 
 test('group confirmation is saved and invalidated by combination edits; unresolved exclusion is never claimed effective', async ({ page }) => {
   await page.route(catalogURL, (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(generationPageFixture) }));
   await page.goto('/'); await expect(page.getByText('正在读取本地记录…')).toHaveCount(0);
-  await page.getByLabel('用餐人数', { exact: true }).fill('9'); await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click(); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('超过 8 人，请先确认菜数和类型组合。', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '确认人数和组合', exact: true }).click(); await expect(page.getByText('人数和组合确认已保存', { exact: true })).toBeVisible();
-  await page.getByLabel('菜数', { exact: true }).fill('3'); await page.getByRole('button', { name: '应用人数和菜数', exact: true }).click(); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible(); expect((await readDraft(page)).draft.countsConfirmed).toBe(false);
-  await page.getByRole('button', { name: '确认人数和组合', exact: true }).click(); await expect(page.getByText('人数和组合确认已保存', { exact: true })).toBeVisible();
-  await page.getByLabel('硬忌口，每行一项').fill('芝麻'); await page.getByRole('button', { name: '保存忌口', exact: true }).click(); await expect(page.getByText('忌口已保存', { exact: true })).toBeVisible();
-  const before = await readDraft(page); await page.getByRole('button', { name: '生成本餐菜单', exact: true }).click(); await expect(page.getByText('忌口尚未识别，未生效：芝麻。请补全、移除或手选。', { exact: true })).toBeVisible(); expect(await readDraft(page)).toEqual(before);
+  await page.getByLabel('用餐人数', { exact: true }).fill('9'); await clickAction(page, { name: '应用人数和菜数', exact: true }); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible();
+  await clickAction(page, { name: '生成本餐菜单', exact: true }); await expect(page.getByText('超过 8 人，请先确认菜数和类型组合。', { exact: true })).toBeVisible();
+  await clickAction(page, { name: '确认人数和组合', exact: true }); await expect(page.getByText('人数和组合确认已保存', { exact: true })).toBeVisible();
+  await revealControl(page.getByLabel('菜数', { exact: true }));await page.getByLabel('菜数', { exact: true }).fill('3'); await clickAction(page, { name: '应用人数和菜数', exact: true }); await expect(page.getByText('设置和草稿已保存', { exact: true })).toBeVisible(); expect((await readDraft(page)).draft.countsConfirmed).toBe(false);
+  await clickAction(page, { name: '确认人数和组合', exact: true }); await expect(page.getByText('人数和组合确认已保存', { exact: true })).toBeVisible();
+  await page.getByLabel('硬忌口，每行一项').fill('芝麻'); await clickAction(page, { name: '保存忌口', exact: true }); await expect(page.getByText('忌口已保存', { exact: true })).toBeVisible();
+  const before = await readDraft(page); await clickAction(page, { name: '生成本餐菜单', exact: true }); await expect(page.getByText('忌口尚未识别，未生效：芝麻。请补全、移除或手选。', { exact: true })).toBeVisible(); expect(await readDraft(page)).toEqual(before);
 });
