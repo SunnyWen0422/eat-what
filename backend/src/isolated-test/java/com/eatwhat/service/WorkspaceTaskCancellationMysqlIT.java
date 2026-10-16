@@ -25,10 +25,51 @@ class WorkspaceTaskCancellationMysqlIT {
         ds=new UnpooledDataSource("com.mysql.cj.jdbc.Driver",url,"root",System.getenv("EATWHAT_TASK_CANCEL_PASSWORD"));
         try(Connection setup=ds.getConnection();Statement sql=setup.createStatement()){
             sql.execute("DROP TABLE IF EXISTS workspace_task");
-            sql.execute("CREATE TABLE workspace_task(id VARCHAR(36) PRIMARY KEY,workspace_id VARCHAR(36) NOT NULL,user_id BIGINT NOT NULL,status VARCHAR(32) NOT NULL,input_json JSON NOT NULL,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY ix_task_poll(status,updated_at),KEY ix_task_owner(user_id,workspace_id)) ENGINE=InnoDB");
+            sql.execute("CREATE TABLE workspace_task(id VARCHAR(36) PRIMARY KEY,workspace_id VARCHAR(36) NOT NULL,user_id BIGINT NOT NULL,status VARCHAR(32) NOT NULL,input_json JSON NOT NULL,lease_token VARCHAR(36),result_json JSON,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY ix_task_poll(status,updated_at),KEY ix_task_owner(user_id,workspace_id)) ENGINE=InnoDB");
         }
         Configuration config=new Configuration(new Environment("owned-task-cancel",new JdbcTransactionFactory(),ds));config.addMapper(MealWorkspaceMapper.class);
         factory=new SqlSessionFactoryBuilder().build(config);
+    }
+    private void task(String status,boolean expired)throws Exception{
+        try(Connection connection=ds.getConnection();PreparedStatement insert=connection.prepareStatement("INSERT INTO workspace_task(id,workspace_id,user_id,status,input_json,lease_token,updated_at) VALUES('claim','owned',7,?,'{}','old',DATE_SUB(NOW(),INTERVAL ? SECOND))")){
+            insert.setString(1,status);insert.setInt(2,expired?31:0);insert.executeUpdate();
+        }
+    }
+    private void raceClaims(boolean expired)throws Exception{
+        task(expired?"running":"queued",expired);
+        CyclicBarrier start=new CyclicBarrier(2);ExecutorService pool=Executors.newFixedThreadPool(2);
+        List<Future<Integer>> claims=new ArrayList<>();
+        try{
+            for(String lease:Arrays.asList("owner-a","owner-b"))claims.add(pool.submit(()->{
+                try(SqlSession session=factory.openSession(true)){
+                    start.await(5,TimeUnit.SECONDS);MealWorkspaceMapper mapper=session.getMapper(MealWorkspaceMapper.class);
+                    return expired?mapper.claimExpired("claim",lease):mapper.claimQueued("claim",lease);
+                }
+            }));
+            assertEquals(1,claims.get(0).get(10,TimeUnit.SECONDS)+claims.get(1).get(10,TimeUnit.SECONDS),"Exactly one concurrent lease may win");
+        }finally{pool.shutdownNow();assertTrue(pool.awaitTermination(10,TimeUnit.SECONDS));}
+        try(SqlSession check=factory.openSession(true)){
+            MealWorkspaceMapper mapper=check.getMapper(MealWorkspaceMapper.class);
+            assertEquals(0,mapper.claimQueued("claim","late"));assertEquals(0,mapper.claimExpired("claim","late"));
+            assertEquals(0,mapper.finish("claim","old","draft","{}"),"Superseded lease cannot publish");
+        }
+    }
+    @Test void competingQueuedClaimsHaveOneWinner()throws Exception{raceClaims(false);}
+    @Test void competingExpiredRunningClaimsHaveOneWinner()throws Exception{raceClaims(true);}
+    @Test void staleQueuedSnapshotMustRecoverAsExpiredAndOldOwnerCannotFinish()throws Exception{
+        task("queued",false);
+        try(SqlSession session=factory.openSession(true)){
+            MealWorkspaceMapper mapper=session.getMapper(MealWorkspaceMapper.class);
+            assertEquals(0,mapper.claimExpired("claim","wrong-classification"));
+            assertEquals(1,mapper.claimQueued("claim","initial"));
+            assertEquals(0,mapper.claimExpired("claim","too-early"));
+            try(Statement age=session.getConnection().createStatement()){age.execute("UPDATE workspace_task SET updated_at=DATE_SUB(NOW(),INTERVAL 31 SECOND) WHERE id='claim'");}
+            assertEquals(0,mapper.claimQueued("claim","stale-snapshot"),"Recovery must not emit another queued claim");
+            assertEquals(1,mapper.claimExpired("claim","recovered"));
+            assertEquals(0,mapper.finish("claim","initial","draft","{}"));
+            assertEquals(1,mapper.finish("claim","recovered","draft","{}"));
+            assertEquals(0,mapper.claimExpired("claim","terminal"));assertEquals(0,mapper.claimQueued("claim","terminal"));
+        }
     }
     @Test void cancellationDoesNotLockOtherWorkspacesAfterCompletedHistoryGrows()throws Exception{
         try(Connection setup=ds.getConnection();Statement sql=setup.createStatement()){

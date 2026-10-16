@@ -1,0 +1,736 @@
+{
+  "schemaVersion": 1,
+  "kind": "requirements_not_results",
+  "journeys": [
+    {
+      "id": "J01",
+      "name": "first generate and save",
+      "steps": [
+        "Generate first meal",
+        "Confirm once",
+        "Return to saved target"
+      ],
+      "assertions": [
+        "One saved target plan; no inferred actual meal"
+      ],
+      "serviceChecks": [
+        "generate_keep_replace",
+        "save_target_replay"
+      ],
+      "pageTests": [
+        "tests/meal-journey-recovery.test.js",
+        "tests/meal-next-step.test.js"
+      ],
+      "requirements": [
+        "K11",
+        "K16",
+        "K22"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J02",
+      "name": "cross-day replacement",
+      "steps": [
+        "Save to another day/lunch",
+        "Replace one dish",
+        "Preserve explicit kept dish"
+      ],
+      "assertions": [
+        "Exact destination survives; kept dish unchanged"
+      ],
+      "serviceChecks": [
+        "generate_keep_replace",
+        "save_target_replay"
+      ],
+      "pageTests": [
+        "tests/meal-journey-recovery.test.js",
+        "tests/frontend-workflow-regressions.test.js"
+      ],
+      "requirements": [
+        "K11",
+        "K22"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J03",
+      "name": "filter select and return",
+      "steps": [
+        "Filter catalog",
+        "Select dish",
+        "Return to source page"
+      ],
+      "assertions": [
+        "Filters and handoff identity preserved"
+      ],
+      "serviceChecks": [],
+      "pageTests": [
+        "tests/browse-filter-presentation.test.js",
+        "tests/catalog-focus.test.js",
+        "tests/dish-workspace-handoff.test.js"
+      ],
+      "requirements": [
+        "K11",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J04",
+      "name": "copy cancel and unknown",
+      "steps": [
+        "Cancel copy editor",
+        "Save edited copy",
+        "Lose response and recover original request"
+      ],
+      "assertions": [
+        "Cancel creates nothing; original copy identity returned once"
+      ],
+      "serviceChecks": [
+        "copy_recovery"
+      ],
+      "pageTests": [
+        "tests/personal-copy-recovery.test.js"
+      ],
+      "requirements": [
+        "K15",
+        "K22",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J05",
+      "name": "shopping partial selection and undo",
+      "steps": [
+        "Select ingredient subset",
+        "Undo removal",
+        "Confirm selected sources"
+      ],
+      "assertions": [
+        "Unselected items never claimed added; exact source meal retained"
+      ],
+      "serviceChecks": [
+        "procurement_expense"
+      ],
+      "pageTests": [
+        "tests/experience-shopping-preview.test.js",
+        "tests/experience-shopping-list.test.js"
+      ],
+      "requirements": [
+        "K17",
+        "K22",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J06",
+      "name": "cooking interruption and continuation",
+      "steps": [
+        "Open recipe steps",
+        "Interrupt/reenter",
+        "Resume bounded cooking state"
+      ],
+      "assertions": [
+        "Reading does not imply eaten; step position preserved within scope"
+      ],
+      "serviceChecks": [],
+      "pageTests": [
+        "tests/cooking-continuity.test.js",
+        "tests/meal-cooking.test.js"
+      ],
+      "requirements": [
+        "K16",
+        "K28",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J07",
+      "name": "assistant partial completion and handoff return",
+      "steps": [
+        "Save first calendar step",
+        "Fail stale shopping step",
+        "Return and reread original turn"
+      ],
+      "assertions": [
+        "Saved meal remains; incomplete procurement never shown complete"
+      ],
+      "serviceChecks": [
+        "partial_completion"
+      ],
+      "pageTests": [
+        "tests/assistant-workflow-presentation.test.js",
+        "tests/assistant-action-handoff.test.js"
+      ],
+      "requirements": [
+        "K21",
+        "K22",
+        "K28",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J08",
+      "name": "explicit long-term preference save",
+      "steps": [
+        "Edit preference",
+        "Cancel or confirm explicitly",
+        "Return to originating scope"
+      ],
+      "assertions": [
+        "Temporary meal condition does not overwrite saved long-term preference"
+      ],
+      "serviceChecks": [],
+      "pageTests": [
+        "tests/preference-scope.test.js",
+        "tests/preference-save-presentation.test.js",
+        "tests/meal-feedback-preference-scope.test.js"
+      ],
+      "requirements": [
+        "K22",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J09",
+      "name": "weak network recovery",
+      "steps": [
+        "Persist unknown original request",
+        "Reenter after failure",
+        "Retry same request after restart"
+      ],
+      "assertions": [
+        "Stable requestId and version; no duplicate persistent objects"
+      ],
+      "serviceChecks": [
+        "original_request"
+      ],
+      "pageTests": [
+        "tests/calendar-actual-recovery.test.js",
+        "tests/meal-journey-recovery.test.js",
+        "tests/personal-copy-recovery.test.js"
+      ],
+      "requirements": [
+        "K15",
+        "K22",
+        "K28",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J10",
+      "name": "account and API switch",
+      "steps": [
+        "Switch account or API",
+        "Receive delayed result",
+        "Return to original source"
+      ],
+      "assertions": [
+        "No cross-scope request replay or late-response pollution"
+      ],
+      "serviceChecks": [
+        "save_target_replay",
+        "assistant_personal"
+      ],
+      "pageTests": [
+        "tests/catalog-environment-cache.test.js",
+        "tests/meal-actual-identity.test.js",
+        "tests/shopping-capability-race.test.js",
+        "tests/assistant-action-handoff.test.js"
+      ],
+      "requirements": [
+        "K21",
+        "K22",
+        "K30"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J11",
+      "name": "web browser restart and restoration",
+      "steps": [
+        "Persist browser personal recipe",
+        "Close browser process",
+        "Restart same profile",
+        "Restore validated backup"
+      ],
+      "assertions": [
+        "Real IndexedDB survives browser restart; backup cancellation and aborted restore retain old data"
+      ],
+      "serviceChecks": [],
+      "pageTests": [],
+      "requirements": [
+        "K27",
+        "K32"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "J12",
+      "name": "mixed calendar and deleted plan actual",
+      "steps": [
+        "Read mixed planned/actual slots",
+        "Delete saved plan",
+        "Reenter existing actual snapshot"
+      ],
+      "assertions": [
+        "Deleting plan never erases actual meal snapshot or fabricates eaten status"
+      ],
+      "serviceChecks": [
+        "actual_correct",
+        "deleted_plan_actual"
+      ],
+      "pageTests": [
+        "tests/experience-calendar.test.js",
+        "tests/calendar-actual-recovery.test.js"
+      ],
+      "requirements": [
+        "K16",
+        "K22"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    }
+  ],
+  "faults": [
+    {
+      "id": "F-calendar-precommit-failure",
+      "path": "calendar",
+      "fault": "precommit-failure",
+      "steps": [
+        "Prepare owned calendar request",
+        "Inject precommit-failure",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-calendar-lost-response",
+      "path": "calendar",
+      "fault": "lost-response",
+      "steps": [
+        "Prepare owned calendar request",
+        "Inject lost-response",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-calendar-restart",
+      "path": "calendar",
+      "fault": "restart",
+      "steps": [
+        "Prepare owned calendar request",
+        "Inject restart",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-calendar-duplicate-confirmation",
+      "path": "calendar",
+      "fault": "duplicate-confirmation",
+      "steps": [
+        "Prepare owned calendar request",
+        "Inject duplicate-confirmation",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-calendar-version-conflict",
+      "path": "calendar",
+      "fault": "version-conflict",
+      "steps": [
+        "Prepare owned calendar request",
+        "Inject version-conflict",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-shopping-precommit-failure",
+      "path": "shopping",
+      "fault": "precommit-failure",
+      "steps": [
+        "Prepare owned shopping request",
+        "Inject precommit-failure",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-shopping-lost-response",
+      "path": "shopping",
+      "fault": "lost-response",
+      "steps": [
+        "Prepare owned shopping request",
+        "Inject lost-response",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-shopping-restart",
+      "path": "shopping",
+      "fault": "restart",
+      "steps": [
+        "Prepare owned shopping request",
+        "Inject restart",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-shopping-duplicate-confirmation",
+      "path": "shopping",
+      "fault": "duplicate-confirmation",
+      "steps": [
+        "Prepare owned shopping request",
+        "Inject duplicate-confirmation",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-shopping-version-conflict",
+      "path": "shopping",
+      "fault": "version-conflict",
+      "steps": [
+        "Prepare owned shopping request",
+        "Inject version-conflict",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-actual-precommit-failure",
+      "path": "actual",
+      "fault": "precommit-failure",
+      "steps": [
+        "Prepare owned actual request",
+        "Inject precommit-failure",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-actual-lost-response",
+      "path": "actual",
+      "fault": "lost-response",
+      "steps": [
+        "Prepare owned actual request",
+        "Inject lost-response",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-actual-restart",
+      "path": "actual",
+      "fault": "restart",
+      "steps": [
+        "Prepare owned actual request",
+        "Inject restart",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-actual-duplicate-confirmation",
+      "path": "actual",
+      "fault": "duplicate-confirmation",
+      "steps": [
+        "Prepare owned actual request",
+        "Inject duplicate-confirmation",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-actual-version-conflict",
+      "path": "actual",
+      "fault": "version-conflict",
+      "steps": [
+        "Prepare owned actual request",
+        "Inject version-conflict",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-copy-precommit-failure",
+      "path": "copy",
+      "fault": "precommit-failure",
+      "steps": [
+        "Prepare owned copy request",
+        "Inject precommit-failure",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-copy-lost-response",
+      "path": "copy",
+      "fault": "lost-response",
+      "steps": [
+        "Prepare owned copy request",
+        "Inject lost-response",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-copy-restart",
+      "path": "copy",
+      "fault": "restart",
+      "steps": [
+        "Prepare owned copy request",
+        "Inject restart",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-copy-duplicate-confirmation",
+      "path": "copy",
+      "fault": "duplicate-confirmation",
+      "steps": [
+        "Prepare owned copy request",
+        "Inject duplicate-confirmation",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    },
+    {
+      "id": "F-copy-version-conflict",
+      "path": "copy",
+      "fault": "version-conflict",
+      "steps": [
+        "Prepare owned copy request",
+        "Inject version-conflict",
+        "Inspect persisted objects and original receipt"
+      ],
+      "assertions": [
+        "Retain original requestId for recovery",
+        "No duplicate persistent objects",
+        "Preserve real source meal and completed portions"
+      ],
+      "sourceFingerprint": null,
+      "status": "not-run",
+      "evidence": [],
+      "limits": []
+    }
+  ],
+  "retainedContracts": [
+    "K11",
+    "K15",
+    "K16",
+    "K17",
+    "K21",
+    "K22",
+    "K27",
+    "K28",
+    "K30",
+    "K32"
+  ],
+  "namedContracts": [
+    "production-like config is rejected before any write",
+    "lost response does not duplicate a persistent operation",
+    "handoff return preserves partial completion"
+  ]
+}
