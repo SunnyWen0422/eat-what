@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class MealWorkspaceService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+
     private final MealWorkspaceMapper db;
     private final MealConsumptionMapper locks;
     private final RecipeRecordMapper plans;
@@ -70,6 +72,10 @@ public class MealWorkspaceService {
         });
     }
     public MealWorkspace mutate(Long user,String id,String operation,WorkspaceRequest request) {
+        if("confirm".equals(operation))return ExperienceMetrics.confirmation(metrics,()->mutateInternal(user,id,operation,request),w->w.getDraft().getDishes().size());
+        return mutateInternal(user,id,operation,request);
+    }
+    private MealWorkspace mutateInternal(Long user,String id,String operation,WorkspaceRequest request) {
         validateRequest(request);
         return tx.execute(status->{
             lock(user);String hash=hash(operation,id,request);MealWorkspace replay=replay(user,request.getRequestId(),hash);if(replay!=null)return replay;
@@ -230,18 +236,22 @@ public class MealWorkspaceService {
         return finish(task,interpreted,draft,message,status,null);
     }
     public MealWorkspace finish(WorkspaceTask task,MealContext interpreted,PlanDraft draft,String message,String status,Map<String,String> target) {
-        return tx.execute(t->{
+        final String[] completion={"discarded"};
+        MealWorkspace result=tx.execute(t->{
             lock(task.getUserId());MealWorkspace w=read(db.find(task.getWorkspaceId(),task.getUserId()));
             if(w==null||!Objects.equals(w.getTaskId(),task.getId())||!Objects.equals(w.getRevision(),task.getBaseRevision())||!"generating".equals(w.getStatus())) {
                 db.finish(task.getId(),task.getLeaseToken(),"discarded","{}");return w;
             }
             if(db.finish(task.getId(),task.getLeaseToken(),status,"{}")!=1)return w;
+            completion[0]=status;
             if(draft!=null) {
                 if(!w.getDraft().getDishes().isEmpty())db.event("adjusted:"+task.getId(),task.getUserId(),w.getId(),draft.getPlanVersion(),"replaced",draft.getSource());
                 w.setDraft(draft);if(interpreted!=null)w.setContext(interpreted);db.event("generated:"+task.getId(),task.getUserId(),w.getId(),draft.getPlanVersion(),"generated",draft.getSource());}
             w.setStatus(status);w.setMessage(message);w.setSuggestedTarget(target);w.setTaskId(null);long before=w.getRevision();w.setRevision(before+1);
             if(db.save(w.getId(),task.getUserId(),w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");return w;
         });
+        // Publish only the committed attempt outcome to its worker; no extra database read.
+        task.setStatus(completion[0]);return result;
     }
     public WorkspaceTask task(Long user,String ws,String id) {if(db.find(ws,user)==null)throw new IllegalArgumentException("工作区不可访问");WorkspaceTask task=db.taskById(id,ws,user);if(task==null)throw new IllegalArgumentException("任务不存在");task.setInputJson(null);task.setResultJson(null);task.setLeaseToken(null);return task;}
     public MealWorkspace request(Long user,String ws,String key) {RequestIdValidator.requireValid(key);if(db.find(ws,user)==null)throw new IllegalArgumentException("工作区不可访问");Map<String,Object> r=db.request(user,key);if(r==null)return null;MealWorkspace w=decode(String.valueOf(r.get("responseJson")),MealWorkspace.class);if(!ws.equals(w.getId()))throw new IllegalArgumentException("请求不属于本餐");return w;}

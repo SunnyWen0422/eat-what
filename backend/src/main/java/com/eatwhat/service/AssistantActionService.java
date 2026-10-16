@@ -22,6 +22,8 @@ import java.util.Objects;
 /** Executes the server-approved legacy calendar snapshot, with a durable Java receipt. */
 @Service
 public class AssistantActionService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+
     private final RecipeRecordService recipeRecordService;
     private final MealConsumptionMapper receipts;
     private final ObjectMapper objectMapper;
@@ -37,6 +39,9 @@ public class AssistantActionService {
     /** The user lock, all meal writes, and their receipt commit or roll back together. */
     @Transactional
     public Map<String, Object> execute(Long userId, Map<String, Object> approvedAction) {
+        return ExperienceMetrics.confirmation(metrics,()->executeApproved(userId,approvedAction),r->((Number)r.get("saved_count")).longValue()+((Number)r.get("retained_count")).longValue());
+    }
+    private Map<String,Object> executeApproved(Long userId,Map<String,Object> approvedAction) {
         if (userId == null) throw new IllegalArgumentException("用户未登录");
         if (approvedAction == null) throw new IllegalArgumentException("确认动作不能为空");
         String actionType = requiredText(approvedAction.get("type"), "操作类型不能为空");

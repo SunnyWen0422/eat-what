@@ -2,6 +2,8 @@ package com.eatwhat.entity;
 import lombok.Data;
 @Data
 public class WorkspaceTask {
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.Date createdAt;
     private String id;
     private String workspaceId;
     private Long userId;

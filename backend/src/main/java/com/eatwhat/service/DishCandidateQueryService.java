@@ -18,6 +18,8 @@ import java.util.HashMap;
 
 @Service
 public class DishCandidateQueryService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+
     private DishQualityService quality;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
 
@@ -35,10 +37,10 @@ public class DishCandidateQueryService {
         String safeKeyword = blankToNull(keyword);
         long offset = ((long) page - 1) * pageSize;
         if (safe(value.getExcludeTagCodes()).isEmpty() && safe(value.getExcludedIngredients()).isEmpty()) {
-            int total = dishMapper.countFilteredDishes(userId, safeType, safeKeyword,
+            int total = observedCountFilteredDishes(userId, safeType, safeKeyword,
                     safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes());
             List<Dish> rows = offset >= total ? Collections.emptyList() :
-                    dishMapper.selectFilteredDishesPage(userId, safeType, safeKeyword,
+                    observedSelectFilteredDishesPage(userId, safeType, safeKeyword,
                             safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes(), pageSize, offset);
             return new DishPageDTO(rows, total, page, pageSize);
         }
@@ -47,7 +49,7 @@ public class DishCandidateQueryService {
         Long beforeId = null;
         List<Long> selected = new ArrayList<>();
         for (;;) {
-            List<Dish> batch = dishMapper.selectFilteredCandidateFacts(userId, blankToNull(type), blankToNull(keyword),
+            List<Dish> batch = observedSelectFilteredCandidateFacts(userId, blankToNull(type), blankToNull(keyword),
                     safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes(), beforeId, 256);
             if (batch == null || batch.isEmpty()) break;
             for (Dish dish : batch) {
@@ -61,7 +63,7 @@ public class DishCandidateQueryService {
         List<Dish> result = new ArrayList<>();
         if (!selected.isEmpty()) {
             Map<Long,Dish> details = new HashMap<>();
-            for (Dish dish : dishMapper.selectFilteredPageDetails(selected, userId)) details.put(dish.getId(), dish);
+            for (Dish dish : observedSelectFilteredPageDetails(selected, userId)) details.put(dish.getId(), dish);
             for (Long id : selected) {
                 Dish dish = details.get(id);
                 if (dish == null) throw new IllegalStateException("菜谱目录已变化，请重新读取");
@@ -95,7 +97,7 @@ public class DishCandidateQueryService {
         List<Dish> result = new ArrayList<>();
         Set<Long> seen=new HashSet<>();Long beforeId=null;
         for(;;){
-            List<Dish> batch=dishMapper.selectRecommendationCandidateFacts(userId,blankToNull(type),blankToNull(keyword),
+            List<Dish> batch=observedSelectRecommendationCandidateFacts(userId,blankToNull(type),blankToNull(keyword),
                     safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),beforeId,256);
             if(batch==null||batch.isEmpty())break;
             if(batch.size()>256)throw new IllegalStateException("候选读取超出范围");
@@ -117,11 +119,29 @@ public class DishCandidateQueryService {
         for(int from=0;from<facts.size();from+=256){
             List<Dish> part=facts.subList(from,Math.min(facts.size(),from+256));
             List<Long> ids=new ArrayList<>();for(Dish d:part)ids.add(d.getId());
-            Map<Long,Dish> byId=new HashMap<>();List<Dish> rows=dishMapper.selectFilteredPageDetails(ids,user);
+            Map<Long,Dish> byId=new HashMap<>();List<Dish> rows=observedSelectFilteredPageDetails(ids,user);
             if(rows!=null)for(Dish d:rows)if(d.getUserId()==null||d.getUserId().equals(user))byId.put(d.getId(),d);
             for(Dish fact:part){Dish detail=byId.get(fact.getId());if(detail==null||!sameSelectionFacts(fact,detail))throw new MealConsumptionService.VersionConflict("候选菜品已变化，请重新查询");result.add(detail);}
         }
         return result;
+    }
+
+    private int observedCountFilteredDishes(Long user,String type,String keyword,List<String> cuisines,List<String> tags,Integer max){
+        long start=System.nanoTime();String outcome="error";
+        try{int total=dishMapper.countFilteredDishes(user,type,keyword,cuisines,tags,max);outcome="success";return total;}
+        finally{ExperienceMetrics.observe(metrics,"candidate_scan",outcome,java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start),0);}
+    }
+    private List<Dish> observedSelectRecommendationCandidateFacts(Long user,String type,String keyword,List<String> cuisines,List<String> tags,Integer max,Long before,int limit){
+        return ExperienceMetrics.rows(metrics,"candidate_scan",()->dishMapper.selectRecommendationCandidateFacts(user,type,keyword,cuisines,tags,max,before,limit));
+    }
+    private List<Dish> observedSelectFilteredCandidateFacts(Long user,String type,String keyword,List<String> cuisines,List<String> tags,Integer max,Long before,int limit){
+        return ExperienceMetrics.rows(metrics,"candidate_scan",()->dishMapper.selectFilteredCandidateFacts(user,type,keyword,cuisines,tags,max,before,limit));
+    }
+    private List<Dish> observedSelectFilteredDishesPage(Long user,String type,String keyword,List<String> cuisines,List<String> tags,Integer max,int limit,long offset){
+        return ExperienceMetrics.rows(metrics,"candidate_details",()->dishMapper.selectFilteredDishesPage(user,type,keyword,cuisines,tags,max,limit,offset));
+    }
+    private List<Dish> observedSelectFilteredPageDetails(List<Long> ids,Long user){
+        return ExperienceMetrics.rows(metrics,"candidate_details",()->dishMapper.selectFilteredPageDetails(ids,user));
     }
     private boolean sameSelectionFacts(Dish a,Dish b){
         return java.util.Objects.equals(a.getName(),b.getName())&&java.util.Objects.equals(a.getType(),b.getType())

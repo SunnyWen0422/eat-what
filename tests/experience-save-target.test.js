@@ -43,6 +43,16 @@ function fixture(initial = source) {
   return { page, store, row, rows, plans, calls, reads, api, navigation, switchAccount: () => { account = 'B' }, midnight: () => { now = new Date('2026-10-09T16:01:00Z') } }
 }
 const dateEvent = date => ({ detail: { value: date } })
+test('local wait timing separates tap state feedback and result from backend and native display', async t => {
+  const f=fixture(), page=f.page; t.after(()=>page.onUnload()); await page.initializeWorkspace(source);page.onConfirmPlan()
+  const gate=deferred(), original=f.api.confirmMealWorkspace;f.api.confirmMealWorkspace=async(...args)=>{await gate.promise;return original(...args)}
+  const {performance}=require('node:perf_hooks');const started=performance.now();let feedback=null
+  const apply=page.setData;page.setData=patch=>{apply(patch);if(patch.busy===true&&feedback===null)feedback=performance.now()}
+  const pending=page.onApproveReplacement();assert.equal(page.data.busy,true);assert.notEqual(feedback,null);assert.equal(f.calls.length,0)
+  await new Promise(resolve=>setTimeout(resolve,20));gate.resolve();await pending;const ready=performance.now()
+  assert.equal(page.data.saveState,'saved');assert.ok(ready>=feedback&&feedback>=started)
+  t.diagnostic(JSON.stringify({scope:'Node VM, real page/store, mocked HTTP; setData state only',tapToStateFeedbackMs:feedback-started,tapToResultAvailableMs:ready-started,tapToVisibleFeedbackMs:null,nativeDisplay:'not-run',backendStage:'not-measured',mockGateMinimumMs:20}))
+})
 // Break: returning references to a mutable draft/context or accepting an impossible day.
 test('save snapshot is a deeply immutable source copy with real full-year dates', async () => {
   assert.equal(typeof save.freezeSaveSnapshot, 'function'); assert.equal(typeof save.saveTargetView, 'function')

@@ -5,7 +5,7 @@ import java.util.*;
 @Mapper
 public interface MealWorkspaceMapper {
     String ROW = "id,user_id AS userId,revision,CAST(state_json AS CHAR) AS stateJson";
-    String TASK = "id,workspace_id AS workspaceId,user_id AS userId,base_revision AS baseRevision,status,CAST(input_json AS CHAR) AS inputJson,CAST(result_json AS CHAR) AS resultJson,lease_token AS leaseToken";
+    String TASK = "id,workspace_id AS workspaceId,user_id AS userId,base_revision AS baseRevision,status,CAST(input_json AS CHAR) AS inputJson,CAST(result_json AS CHAR) AS resultJson,lease_token AS leaseToken,created_at AS createdAt";
     @Select("SELECT "+ROW+" FROM meal_workspace WHERE user_id=#{user} AND meal_date=#{date} AND meal_type=#{meal}")
     WorkspaceRow slot(@Param("user") Long user,@Param("date") String date,@Param("meal") String meal);
     @Select("SELECT "+ROW+" FROM meal_workspace WHERE id=#{id} AND user_id=#{user}")

@@ -16,6 +16,8 @@ import java.util.function.Supplier;
 /** Bounded orchestration. Only server reads confer provenance, and only adapters confer success. */
 @Service
 public class AssistantV4TurnService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+
     // Must match server-authored questions in assistant_v4_schema.py / assistant_v4_step.py.
     private static final String SAFE_QUESTION="请说明要查询或调整的菜品、餐次。";
     private static final String UNAVAILABLE="本次智能理解暂不可用，请明确需求或稍后重试。";
@@ -47,11 +49,13 @@ public class AssistantV4TurnService {
     }
     public void runTurn(Long user,String turnId){
         TurnRecord lease;try{lease=store.acquireTurn(user,turnId);}catch(RuntimeException alreadyClaimed){return;}
+        long observedStart=clock.millis();String observedOutcome="success";
+        ExperienceMetrics.observe(metrics,"assistant_queue","success",observedStart-lease.getCreatedAt(),1);
         boolean acquired=false;
         try {
             TurnRequest request=store.turnRequest(user,turnId);
             AiProtectionService.Decision decision=protection.acquire(user,"assistant-v4",request.getMessage().getBytes(StandardCharsets.UTF_8).length);
-            if(!decision.isAllowed()){finish(user,lease,result("failed","请求较多，请稍后重试",true));return;}acquired=true;
+            if(!decision.isAllowed()){observedOutcome="error";finish(user,lease,result("failed","请求较多，请稍后重试",true));return;}acquired=true;
             TurnScope scope=scope(user,lease,request);ModelContext context=contexts.build(user,request,store.sessionState(user,lease.getSessionId()));
             Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
@@ -102,9 +106,9 @@ public class AssistantV4TurnService {
                 if(executeStep(user,lease,scope,true,c))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
-        }catch(RuntimeException ex){failRunning(user,lease);}finally{if(acquired)protection.release();}
+        }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);}}
     }
-    private void failRunning(Long user,TurnRecord lease){try{TurnRecord current=store.turnRecord(user,lease.getId());if(!"running".equals(current.getStatus()))return;if(current.getLeaseUntil()<=clock.millis()){store.recoverExpired(user,lease.getId());return;}TurnResult r=result("failed","本次处理未完成，请重新发送；已有内容仍保留",true);r.setContinuation(store.continuation(user,lease.getId()));r.setWorkspaceRef(store.findTurn(user,lease.getId()).getWorkspaceRef());finish(user,lease,r);}catch(RuntimeException stale){/* Cancellation/deletion wins over a late result. */}}
+    private String failRunning(Long user,TurnRecord lease){try{TurnRecord current=store.turnRecord(user,lease.getId());if(!"running".equals(current.getStatus()))return "cancelled".equals(current.getStatus())?"cancel":"error";if(current.getLeaseUntil()<=clock.millis()){store.recoverExpired(user,lease.getId());return "timeout";}TurnResult r=result("failed","本次处理未完成，请重新发送；已有内容仍保留",true);r.setContinuation(store.continuation(user,lease.getId()));r.setWorkspaceRef(store.findTurn(user,lease.getId()).getWorkspaceRef());finish(user,lease,r);}catch(RuntimeException stale){/* Cancellation/deletion wins over a late result. */}return "error";}
     private void finish(Long user,TurnRecord lease,TurnResult result){store.completeTurn(user,lease.getId(),"running",lease.getLeaseToken(),result);}
     private void active(Long user,TurnRecord lease){store.withActiveLease(user,lease.getId(),lease.getLeaseToken(),()->Boolean.TRUE);}
     /** Resume durable validated intent after a committed receipt; never requests the model again. */

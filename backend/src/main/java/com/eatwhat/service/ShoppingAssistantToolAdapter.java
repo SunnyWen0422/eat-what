@@ -15,6 +15,7 @@ import java.util.*;
 
 @Service
 public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.ActionExecutor,ControlledToolHarnessService.Extension {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
  private final AssistantCapabilityService capabilities;
  private final ShoppingProcurementScopeService scopes;
  private final ShoppingPreviewService previews;
@@ -89,6 +90,9 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
   return store.withActiveParent(user,parent,stepId,()->{PendingAction pending=store.findTurn(user,parent).getPendingAction();if(pending==null||!task.id.equals(pending.getTaskId()))throw new MealConsumptionService.VersionConflict("采购预览已更新，请使用最新卡片");return add(user,task,step,index);});
  }
  private Map<String,Object> add(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index){
+  return ExperienceMetrics.confirmation(metrics,()->addConfirmed(user,task,step,index),r->((Number)r.get("addedItemCount")).longValue()+((Number)r.get("mergedItemCount")).longValue());
+ }
+ private Map<String,Object> addConfirmed(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index){
   scopes.lockForConfirmation(user,json.convertValue(step.binding.get("source"),ResolvedSource.class));
   if(!hash(bind(user,step.arguments)).equals(hash(step.binding)))throw new MealConsumptionService.VersionConflict("本餐、菜谱或清单已变化，请重新预览");
   ShoppingBatchAddRequest request=new ShoppingBatchAddRequest();request.setRequestId("harness-"+task.id+"-"+index);request.setPreviewId(task.id);request.setExpectedListVersion(((Number)step.binding.get("expectedListVersion")).longValue());request.setDishes(json.convertValue(step.binding.get("groups"),new TypeReference<List<ShoppingDishRequest>>(){}));request.setTargetPeople(request.getDishes().get(0).getTargetPeople());

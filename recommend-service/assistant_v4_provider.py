@@ -4,12 +4,31 @@ from __future__ import annotations
 import copy
 import asyncio
 import math
+import logging
+import time
 import httpx
 from assistant_v4_transport import (BoundedDNS, LimitedProviderStream, ProviderTransport,
                                     TransportUnavailable)
 
 
 ProviderUnavailable = TransportUnavailable
+_LOG = logging.getLogger(__name__)
+_OUTCOMES = frozenset(("success", "error", "timeout", "cancel", "recover"))
+
+
+def record_provider_stage(outcome, duration_seconds):
+    """Fixed Python supplier stage; separate from Java's complete gateway envelope."""
+    if outcome not in _OUTCOMES or not math.isfinite(duration_seconds) or duration_seconds < 0:
+        raise ValueError("invalid provider metric")
+    _LOG.info("experience_stage stage=provider_http outcome=%s duration_ms=%.3f count=1",
+              outcome, duration_seconds * 1000)
+
+
+def _observe_provider(outcome, started):
+    try:
+        record_provider_stage(outcome, max(0.0, time.monotonic() - started))
+    except Exception:
+        pass  # Even a failed logging handler cannot alter results/cancellation/cleanup.
 
 
 def provider_payload(model, messages, tools, final_round):
@@ -59,11 +78,22 @@ class AssistantV4Provider:
             # close its client on cancellation. asyncio.run may still wait for an OS DNS
             # executor thread to finish during cleanup; Java retains the outer hard deadline.
             return await asyncio.wait_for(request(), timeout=provider_seconds)
+        started, outcome = time.monotonic(), "error"
         try:
-            return asyncio.run(bounded_request())
+            result = asyncio.run(bounded_request())
+            outcome = "success"
+            return result
+        except (asyncio.TimeoutError, httpx.TimeoutException):
+            outcome = "timeout"
+            raise ProviderUnavailable("provider unavailable") from None
+        except asyncio.CancelledError:
+            outcome = "cancel"
+            raise
         except Exception:
             # No retry and no raw request, provider text, key or reasoning in errors/logs.
             raise ProviderUnavailable("provider unavailable") from None
+        finally:
+            _observe_provider(outcome, started)
 
 
 class ManagedV4Provider(AssistantV4Provider):
@@ -112,7 +142,18 @@ class ManagedV4Provider(AssistantV4Provider):
             message = response.json()["choices"][0]["message"]
             if not isinstance(message,dict): raise ValueError()
             return copy.deepcopy(message)
-        try: return await asyncio.wait_for(request(),timeout=seconds)
-        except asyncio.CancelledError: raise
+        started, outcome = time.monotonic(), "error"
+        try:
+            result = await asyncio.wait_for(request(),timeout=seconds)
+            outcome = "success"
+            return result
+        except (asyncio.TimeoutError, httpx.TimeoutException):
+            outcome = "timeout"
+            raise ProviderUnavailable("provider unavailable") from None
+        except asyncio.CancelledError:
+            outcome = "cancel"
+            raise
         except Exception: raise ProviderUnavailable("provider unavailable") from None
-        finally: self.active.discard(task)
+        finally:
+            self.active.discard(task)
+            _observe_provider(outcome, started)

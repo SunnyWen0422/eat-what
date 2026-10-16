@@ -18,6 +18,8 @@ import javax.annotation.PreDestroy;
 /** Single attempt transport; retries and provider state persistence are deliberately absent. */
 @Service
 public class AssistantV4ModelGateway {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+
     private final String url,token;
     private final ObjectMapper json;
     private final IntFunction<RestTemplate> transport;
@@ -55,12 +57,14 @@ public class AssistantV4ModelGateway {
         final int budgetMillis=(int)millis;final long deadlineNanos=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(millis);
         input.setTimeoutSeconds(millis/1000.0);input.setDeadlineEpochMillis(now+millis);
         HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("X-Service-Token",token);
+        long observedStart=System.nanoTime();String observedOutcome="error";
         Future<String> pending=null;
         try {pending=requests.submit(()->transport.apply(budgetMillis).postForObject(url,new HttpEntity<>(input,headers),String.class));String raw=pending.get(Math.max(1,deadlineNanos-System.nanoTime()),TimeUnit.NANOSECONDS);
-            if(raw==null||raw.length()>350000)throw new IllegalStateException();return json.readValue(raw,StepOutput.class);
-        }catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException("本次请求已停止");}
-        catch(Exception ignored){throw new IllegalStateException("智能理解暂不可用，请稍后重试");}
-        finally{if(pending!=null&&!pending.isDone())pending.cancel(true);}
+            if(raw==null||raw.length()>350000)throw new IllegalStateException();StepOutput output=json.readValue(raw,StepOutput.class);observedOutcome="success";return output;
+        }catch(InterruptedException interrupted){observedOutcome="cancel";Thread.currentThread().interrupt();throw new IllegalStateException("本次请求已停止");}
+        catch(TimeoutException expired){observedOutcome="timeout";throw new IllegalStateException("智能理解暂不可用，请稍后重试");}
+        catch(Exception ignored){observedOutcome=System.nanoTime()>=deadlineNanos?"timeout":ExperienceMetrics.failure(ignored);throw new IllegalStateException("智能理解暂不可用，请稍后重试");}
+        finally{if(pending!=null&&!pending.isDone())pending.cancel(true);ExperienceMetrics.observe(metrics,"model_http",observedOutcome,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-observedStart),1);}
     }
     @PreDestroy public void close(){requests.shutdownNow();}
 }

@@ -12,6 +12,8 @@ import java.util.*;
 import java.util.concurrent.*;
 @Service
 public class MealWorkspaceTaskRunner {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+
     private static final Logger LOG=LoggerFactory.getLogger(MealWorkspaceTaskRunner.class);
     private final MealWorkspaceMapper db;
     private final MealWorkspaceService service;
@@ -21,6 +23,7 @@ public class MealWorkspaceTaskRunner {
     private final boolean enabled;
     @org.springframework.beans.factory.annotation.Autowired
     private PersonalMenuService personalMenus;
+    private java.time.Clock clock=java.time.Clock.systemUTC();
     private final Set<String> submitted=ConcurrentHashMap.newKeySet();
     private final ThreadPoolExecutor executor=new ThreadPoolExecutor(2,2,0,TimeUnit.SECONDS,new ArrayBlockingQueue<>(8),new ThreadPoolExecutor.AbortPolicy());
     public MealWorkspaceTaskRunner(MealWorkspaceMapper db,MealWorkspaceService service,MealWorkspacePlanner planner,MealWorkspaceAgentGateway agent,ObjectMapper json,@Value("${meal-workspace.enabled:false}") boolean enabled) {
@@ -45,6 +48,8 @@ public class MealWorkspaceTaskRunner {
             // for the bounded poller/lease recovery instead of killing a worker.
             LOG.info("workspace_claim_deferred kind={}",contention.getClass().getSimpleName());return;
         }
+        long observedStart=clock.millis();String observedOutcome="running".equals(task.getStatus())?"recover":"success";
+        if(!"running".equals(task.getStatus())&&task.getCreatedAt()!=null)ExperienceMetrics.observe(metrics,"assistant_queue","success",observedStart-task.getCreatedAt().getTime(),1);
         long started=System.nanoTime();
         MealWorkspace w=null;WorkspaceRequest r=null;
         try {
@@ -61,7 +66,8 @@ public class MealWorkspaceTaskRunner {
                         MealWorkspaceRules.normalize(proposed);
                         target=new LinkedHashMap<>();target.put("date",proposed.getDate());target.put("mealType",proposed.getMealType());
                     }
-                    if(target==null&&tryRulesFallback(task,w,r))return;
+                    if(target==null&&tryRulesFallback(task,w,r)){observedOutcome="recover";return;}
+                    observedOutcome="error";
                     service.finish(task,null,null,"请确认目标餐次或补充明确限制后重试","needs_input",target);return;
                 }
                 interpreted=json.convertValue(w.getContext(),MealContext.class);
@@ -103,14 +109,15 @@ public class MealWorkspaceTaskRunner {
             }
             service.finish(task,interpreted,draft,"方案已准备好，请确认本餐安排","draft");
             LOG.info("workspace_task_finished taskId={} mode={} elapsedMs={}",task.getId(),draft.getSource(),(System.nanoTime()-started)/1000000);
-        } catch(MealConsumptionService.VersionConflict e) {service.finish(task,null,null,e.getMessage(),"needs_input");}
-        catch(org.springframework.web.server.ResponseStatusException e) {service.finish(task,null,null,e.getReason(),"needs_input");}
-        catch(IllegalArgumentException e) {service.finish(task,null,null,e.getMessage(),"needs_input");}
+        } catch(MealConsumptionService.VersionConflict e) {observedOutcome="error";service.finish(task,null,null,e.getMessage(),"needs_input");}
+        catch(org.springframework.web.server.ResponseStatusException e) {observedOutcome="error";service.finish(task,null,null,e.getReason(),"needs_input");}
+        catch(IllegalArgumentException e) {observedOutcome="error";service.finish(task,null,null,e.getMessage(),"needs_input");}
         catch(Exception e) {
+            observedOutcome=Thread.currentThread().isInterrupted()?"cancel":"error";
             LOG.warn("workspace_task_failed taskId={} kind={}",task.getId(),e.getClass().getSimpleName());
-            if(tryRulesFallback(task,w,r))return;
+            if(tryRulesFallback(task,w,r)){observedOutcome="recover";return;}
             service.finish(task,null,null,"本次安排未完成，原方案已保留。请明确本餐限制后重试","needs_input");
-        }
+        }finally{if("discarded".equals(task.getStatus())||"cancelled".equals(task.getStatus()))observedOutcome="cancel";ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);}
     }
     boolean tryRulesFallback(WorkspaceTask task,MealWorkspace w,WorkspaceRequest request) {
         // Reuse only previously interpreted restrictions; never discard unknown free-text limits.

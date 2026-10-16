@@ -46,6 +46,8 @@ class AssistantActionServiceTest {
         Map<String, Map<String, Object>> receiptsBefore;
         int failOnSave = -1;
         boolean failLog;
+        boolean failCommit;
+        ExperienceMetrics metrics;
         int rollbacks;
         Store() {
             when(logs.lockUser(anyLong())).thenAnswer(i -> {
@@ -66,6 +68,7 @@ class AssistantActionServiceTest {
         }
         AssistantActionService service() {
             AssistantActionService target = new AssistantActionService(records, logs, JSON);
+            if(metrics!=null)org.springframework.test.util.ReflectionTestUtils.setField(target,"metrics",metrics);
             ProxyFactory proxy = new ProxyFactory(target);
             TransactionInterceptor interceptor = new TransactionInterceptor();
             interceptor.setTransactionManager(this);
@@ -77,10 +80,29 @@ class AssistantActionServiceTest {
         protected void doBegin(Object transaction, TransactionDefinition definition) {
             savedBefore = new ArrayList<>(saved); receiptsBefore = new LinkedHashMap<>(receipts);
         }
-        protected void doCommit(DefaultTransactionStatus status) { }
+        protected void doCommit(DefaultTransactionStatus status) {
+            if(metrics!=null && metrics instanceof InspectingMetrics) assertEquals(0,((InspectingMetrics)metrics).registry.getMeters().size(),"no success until commit");
+            if(failCommit)throw new IllegalStateException("commit unavailable");
+        }
         protected void doRollback(DefaultTransactionStatus status) {
             saved.clear(); saved.addAll(savedBefore); receipts.clear(); receipts.putAll(receiptsBefore); rollbacks++;
         }
+    }
+    private static class InspectingMetrics extends ExperienceMetrics {
+        final io.micrometer.core.instrument.simple.SimpleMeterRegistry registry;
+        InspectingMetrics(){this(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());}
+        InspectingMetrics(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry){super(registry);this.registry=registry;}
+    }
+    @Test void confirmation_success_waits_for_real_transaction_commit() {
+        Store store=new Store();InspectingMetrics metrics=new InspectingMetrics();store.metrics=metrics;
+        assertEquals(true,store.service().execute(1L,action()).get("executed"));
+        assertEquals(1,metrics.registry.get("eatwhat.experience.duration").tag("outcome","success").timer().count());
+    }
+    @Test void failed_transaction_commit_never_records_confirmation_success() {
+        Store store=new Store();InspectingMetrics metrics=new InspectingMetrics();store.metrics=metrics;store.failCommit=true;
+        assertThrows(IllegalStateException.class,()->store.service().execute(1L,action()));
+        assertNull(metrics.registry.find("eatwhat.experience.duration").tag("outcome","success").timer());
+        assertEquals(1,metrics.registry.get("eatwhat.experience.duration").tag("outcome","error").timer().count());
     }
 
     @Test void calendarKeepsVerifiedHouseholdSizeAndExistingPreservation() {
