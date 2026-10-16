@@ -173,6 +173,12 @@ async function capture(o,manifest,session) {
     const scroll=await bounded(page.$('scroll-view.mobile-scroll'))
     if(scroll){await bounded(scroll.scrollTo(0,999999));await sleep(100);item.scroll={height:await bounded(scroll.scrollHeight()),viewport:await bounded(scroll.size())}}
     else await bounded(mini.pageScrollTo(999999))
+    if(name==='shopping-list'){
+     await sleep(250)
+     item.bottomMetrics=await bounded(mini.evaluate(()=>new Promise(resolve=>{const q=wx.createSelectorQuery();q.selectViewport().scrollOffset();q.select('.shopping-page').boundingClientRect();q.selectAll('.shopping-page > button').boundingClientRect();q.select('.shopping-bottom').boundingClientRect();q.exec(v=>resolve({scroll:v[0],page:v[1],lastContentButton:v[2]?.slice(-1)[0],footer:v[3]}))})))
+     const root=await bounded(page.$('.shopping-page'));item.bottomMetrics.paddingBottom=await bounded(root.style('padding-bottom'))
+     const b=item.bottomMetrics;item.bottomMetrics.lastButtonAboveFooter=!!(b.lastContentButton&&b.footer&&b.lastContentButton.bottom<=b.footer.top+1)
+    }
     const bottom=file.replace('.png','-bottom.png');await bounded(mini.screenshot({path:bottom}));item.evidence.push(bottom)
     if(o.mode==='service'&&scale===2){
      item.interaction=await exercise(mini,page,name,o.out,item.actualViewport.windowWidth)
