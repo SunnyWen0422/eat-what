@@ -24,6 +24,43 @@ test('recipe lines render structured source content without object serialization
  assert.equal(quality.recipeDurationLabel({cookMinutes:20,quality:{timeStatus:'UNKNOWN'}}),'')
  assert.equal(quality.recipeDurationLabel({cookMinutes:20,quality:{timeStatus:'ESTIMATED'}}),'预计 20 分钟')
 })
+
+test('zero results do not clear hard constraints', async()=>{
+ const calls=[],f=pageFixture({getDishes:async args=>{calls.push(args);return {list:[],total:0}},saveUserPreferences:()=>assert.fail('browse recovery must not save preferences')})
+ f.page.recommendationGroups={cuisine:[{code:'C1',label:'菜系一'},{code:'C2',label:'菜系二'}]}
+ f.page.data.browseCriteria={cuisineCodes:['C1','C2'],tagCodes:['LIGHT'],methodCodes:[],maxCookMinutes:30,excludedIngredients:['花生']}
+ f.page.data.searchKeyword='鸡蛋';f.page.data.selectedIds=[7];f.page._browseScrollTop=312
+ await f.page.onRemoveBrowseFilter({currentTarget:{dataset:{key:'cuisineCodes:C1'}}})
+ assert.deepEqual(Array.from(f.page.data.browseCriteria.cuisineCodes),['C2']);assert.equal(f.page.data.searchKeyword,'鸡蛋')
+ assert.deepEqual(Array.from(f.page.data.selectedIds),[7]);assert.deepEqual(Array.from(f.page.data.browseCriteria.excludedIngredients),['花生'])
+ assert.equal(calls[0].keyword,'鸡蛋');assert.equal(calls[0].tagCodes[0],'LIGHT')
+ assert.equal(f.page._browseScrollTop,312)
+ assert.equal(f.page.data.activeBrowseFilterChips.length,2);assert.equal(f.page.data.browseFilterMoreCount,1)
+ await f.page.onClearBrowseFilters();assert.equal(f.page.data.browseCriteria.excludedIngredients[0],'花生')
+})
+
+test('clearing search preserves filters and selection; recovery markup offers individual conditions',async()=>{
+ const f=pageFixture({getDishes:async()=>({list:[],total:0})})
+ f.page.data.searchKeyword='鸡蛋';f.page.data.browseCriteria.tagCodes=['LIGHT'];f.page.data.selectedIds=[7]
+ await f.page.onResetRecipeSearch()
+ assert.equal(f.page.data.searchKeyword,'');assert.equal(f.page.data.browseCriteria.tagCodes[0],'LIGHT');assert.equal(f.page.data.selectedIds[0],7)
+ const source=fs.readFileSync('pages/customize/customize.wxml','utf8')
+ assert.match(source,/wx:for="{{activeBrowseFilterChips}}"[^>]*data-key="{{item.key}}"[^>]*bindtap="onRemoveBrowseFilter"/)
+ assert.doesNotMatch(source,/清空搜索与筛选/)
+ assert.match(source,/selectedTotal \|\| selectionFeedback.state === 'unknown' \|\| selectionBusy/)
+ assert.match(source,/bindtap="onViewMeal">查看本餐/)
+})
+
+test('late search cannot replace new results',async()=>{
+ const pending={},f=pageFixture({getDishes:args=>new Promise(resolve=>pending[args.keyword]=resolve)})
+ f.page.data.selectedIds=[7];f.page.onSearchInput({detail:{value:'A'}});[...f.timers.values()].at(-1)()
+ f.page.onSearchInput({detail:{value:'B'}});[...f.timers.values()].at(-1)()
+ pending.B({list:[{id:7,name:'B'}],total:40});await new Promise(resolve=>setImmediate(resolve))
+ f.page.onBrowseScroll({detail:{scrollTop:312}});f.page.onHide();await f.page.onShow()
+ pending.A({list:[{id:8,name:'A'}],total:1});await new Promise(resolve=>setImmediate(resolve))
+ assert.equal(f.page.data.currentDishes[0].name,'B');assert.equal(f.page.data.currentDishes[0].isSelected,true)
+ assert.equal(f.page.data.searchKeyword,'B');assert.equal(f.page.data.browseScrollTop,312);assert.equal(f.page.currentPage,1);assert.equal(f.page.data.hasMore,true)
+})
 test('failed pagination retains current readable rows and retry requests the same page',async()=>{
  let fail=true;const calls=[],f=pageFixture({getDishes:async args=>{calls.push(args.page);if(args.page===2&&fail)throw Error('offline');return{list:[{id:args.page,name:'菜'+args.page}],total:100}}})
  await f.page.loadPage('meat',1);await f.page.loadPage('meat',2);assert.equal(f.page.data.currentDishes[0].id,1);assert.equal(f.page.data.browseErrorPage,2)

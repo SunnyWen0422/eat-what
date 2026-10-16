@@ -445,7 +445,7 @@ test('selected meal sheet leads to the meal while an empty selection leads to pi
   const custom = read('pages/customize/customize.wxml')
   assert.match(custom, /class="ew-hit-target selected-wrap"[^>]*bindtap="onShowSelected"/)
   assert.match(custom, /class="selected-num"/)
-  assert.doesNotMatch(custom, /class="bottom-bar"[\s\S]*?<button[^>]*bindtap="onViewMeal"/)
+  assert.match(custom, /<button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && selectedMeal && selectedTotal}}"[^>]*disabled="{{selectionBusy \|\| selectionLoading \|\| selectionBlocked}}"[^>]*bindtap="onViewMeal">查看本餐/)
 })
 test('help describes replace and undo without offering keep', () => {
   const source = read('pages/about/about.wxml')

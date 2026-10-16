@@ -530,3 +530,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .search-wrap { margin:4px 0; }
 .page .bottom-bar { padding:6px 16px; gap:4px; }
 .page .bottom-bar .selected-wrap { min-height:44px; }
+.browse-active-filters { display:flex; align-items:center; flex-wrap:wrap; gap:{{space.2.px}}; padding:{{space.2.px}} 0; }
+.ew-page button.browse-active-chip { margin:0; padding:{{space.2.px}} {{space.3.px}}; min-height:{{controls.touchSize.px}}; max-width:100%; border-radius:{{radius.2.px}}; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.ew-page button.browse-active-chip::after { border:0; }
+.browse-active-filters > .ew-link { margin:0; padding:{{space.2.px}}; white-space:normal; line-height:1.5; font-size:{{font.secondary.em}}; }

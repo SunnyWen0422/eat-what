@@ -90,6 +90,18 @@ test('list return retains search filters scroll and derives newly selected dishe
   assert.equal(page.data.searchKeyword, '青菜'); assert.deepEqual(plain(page.data.browseCriteria.tagCodes), ['LIGHT']); assert.equal(page.data.browseScrollTop, 312)
   assert.deepEqual(plain(page.data.selectedMeal.dishIds), [1, 2, 3]); assert.equal(page.data.selectedTotal, 3)
 })
+test('browse return uses the validated selected target without writes and honors recovery and editor guards', async () => {
+  const f=fixture(),page=f.page('pages/customize/customize')
+  await page.onShow();page.data.searchKeyword='青菜';page.data.browseCriteria.tagCodes=['LIGHT'];page.currentPage=3;page.onBrowseScroll({detail:{scrollTop:312}})
+  for(const field of ['selectionBusy','selectionLoading','selectionBlocked','menuBusy','menuFormVisible','menuEditingId','menuPending']) {
+    page.data[field]=true;page.onViewMeal();assert.equal(f.navigation.length,0,field);page.data[field]=false
+  }
+  f.memory.set('A:activeMealTarget',{date:'2026-10-13',mealType:'lunch'})
+  page.onViewMeal();assert.match(f.navigation[0], /date=2026-10-12&mealType=dinner$/)
+  assert.equal(f.writes.length,0);assert.deepEqual(plain(page.data.selectedMeal.dishIds),[1,2])
+  assert.equal(page.data.searchKeyword,'青菜');assert.equal(page.data.browseCriteria.tagCodes[0],'LIGHT');assert.equal(page.currentPage,3);assert.equal(page._browseScrollTop,312)
+})
+
 test('cancelled remove never changes a draft or writes calendar; confirmed remove keeps the remaining dishes', async () => {
   const f = fixture({ autoConfirm: false }), page = f.page('pages/customize/customize')
   await page.onShow(); const removing = page.onRemoveSelected({ currentTarget: { dataset: { id: 2 } } }); await settle(); f.dialogs.at(-1).success({ confirm: false }); await removing

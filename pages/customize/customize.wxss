@@ -531,3 +531,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .search-wrap { margin:4px 0; }
 .page .bottom-bar { padding:6px 16px; gap:4px; }
 .page .bottom-bar .selected-wrap { min-height:44px; }
+.browse-active-filters { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:12px 0; }
+.ew-page button.browse-active-chip { margin:0; padding:12px 16px; min-height:44px; max-width:100%; border-radius:14px; background:#EDF3ED; color:#28634E; font-size:0.8125em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.ew-page button.browse-active-chip::after { border:0; }
+.browse-active-filters > .ew-link { margin:0; padding:12px; white-space:normal; line-height:1.5; font-size:0.8125em; }

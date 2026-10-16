@@ -3,6 +3,7 @@ const api = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
 const { currentIdentity } = require('../../utils/account-identity')
+const { activeBrowseFilters, removeBrowseFilter } = require('../../utils/browse-filter-presentation')
 
 const BROWSE_GROUPS = [
   { key: 'cuisine', label: '菜系', field: 'cuisineCodes' },
@@ -58,6 +59,7 @@ Page({
     browseDurationOptions: BROWSE_DURATIONS,
     browseFilterCount: 0,
     browseFilterSummary: '',
+    activeBrowseFilterChips: [], browseFilterMoreCount: 0,
     // 定制菜品表单
     showCustomForm: false,
     cuisineOptions: [],
@@ -204,23 +206,22 @@ Page({
   },
 
   renderBrowseFilters() {
-    if (!this.recommendationGroups) return
     const criteria = this.data.browseCriteria || emptyBrowseCriteria()
     const browseFilterGroups = BROWSE_GROUPS.map(group => ({
       ...group,
-      items: (this.recommendationGroups[group.key] || []).map(item => ({
+      items: ((this.recommendationGroups || {})[group.key] || []).map(item => ({
         ...item,
         selected: (criteria[group.field] || []).includes(item.code),
       })),
     }))
-    const selectedLabels = browseFilterGroups
-      .flatMap(group => group.items.filter(item => item.selected).map(item => item.label))
-    const browseFilterCount = selectedLabels.length + (criteria.maxCookMinutes ? 1 : 0)
-    if (criteria.maxCookMinutes) selectedLabels.push(`${criteria.maxCookMinutes}分钟内`)
+    const active = activeBrowseFilters(criteria, this.recommendationGroups || {})
+    const selectedLabels = active.map(item => item.label)
+    const browseFilterCount = active.length
     this.setData({
       browseFilterGroups,
       browseFilterCount,
       browseFilterSummary: selectedLabels.join('、'),
+      activeBrowseFilterChips: active.slice(0, 2), browseFilterMoreCount: Math.max(0, active.length - 2),
     })
   },
 
@@ -257,14 +258,23 @@ Page({
   },
 
   onClearBrowseFilters() {
-    this.setData({ browseCriteria: emptyBrowseCriteria() })
+    if (!this.ensureBrowseOwner()) return
+    this.setData({ browseCriteria: { ...this.data.browseCriteria, ...emptyBrowseCriteria() } })
     this.renderBrowseFilters()
     this.currentPage = 1
     return this.loadPage(this.data.activeTab, 1)
   },
+  onRemoveBrowseFilter(e) {
+    if (!this.ensureBrowseOwner()) return
+    const key = e.currentTarget.dataset.key
+    if (!activeBrowseFilters(this.data.browseCriteria, this.recommendationGroups || {}).some(item => item.key === key)) return
+    this.setData({ browseCriteria: removeBrowseFilter(this.data.browseCriteria, key) })
+    this.renderBrowseFilters()
+    return this.loadPage(this.data.activeTab, 1, { preserveScroll: true })
+  },
   onResetRecipeSearch(){
     if(!this.ensureBrowseOwner())return
-    clearTimeout(this.searchTimer);this.setData({searchKeyword:'',browseCriteria:emptyBrowseCriteria()});this.renderBrowseFilters()
+    clearTimeout(this.searchTimer);this.setData({searchKeyword:''})
     return this.loadPage(this.data.activeTab,1)
   },
 
@@ -290,7 +300,7 @@ Page({
   },
 
   // 加载某一页数据
-  async loadPage(type, page) {
+  async loadPage(type, page, { preserveScroll = false } = {}) {
     if (!this.ensureBrowseOwner()) return
     const identity = this._browseIdentity
     const epoch = this._pageEpoch = (this._pageEpoch || 0) + 1, scope = getUserStorageKey('customBrowse')
@@ -299,7 +309,7 @@ Page({
 
     // 正常分页模式
     if (page === 1) {
-      this.resetBrowseScroll()
+      if (!preserveScroll) this.resetBrowseScroll()
       this.setData({ loading: true })
     } else {
       this.setData({ loadingMore: true })
@@ -606,7 +616,10 @@ Page({
   selectionOptions() { return { api, wx, storageKey:getUserStorageKey, current:()=>this.ensureBrowseOwner(), errorKey:'saveError' } },
   refreshSelectedMeal() { return require('../../utils/dish-workspace-handoff').refreshSelectionPage(this,this.selectionOptions()) },
   onRetrySelection() { return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'recover',null,this.selectionOptions()) },
-  onViewMeal() { if(this.ensureBrowseOwner())return require('../../utils/dish-workspace-handoff').openSelectedMeal(this,wx) },
+  onViewMeal() {
+    if (!this.ensureBrowseOwner() || this.data.selectionBusy || this.data.selectionLoading || this.data.selectionBlocked || this.data.menuBusy || this.data.menuFormVisible || this.data.menuEditingId || this.data.menuPending) return
+    return require('../../utils/dish-workspace-handoff').openSelectedMeal(this,wx)
+  },
   onBrowseScroll(e) { this._browseScrollTop=Math.max(0,Number(e.detail.scrollTop)||0) },
   resetBrowseScroll(){const before=this._browseScrollTop||0;this._browseScrollTop=0;this.setData({browseScrollTop:before},()=>this.setData({browseScrollTop:0}))},
   onBrowseReachEnd() { if (!this.data.showCustomForm) return this.onScrollToLower() },
