@@ -3,10 +3,13 @@ import copy
 import importlib
 import json
 from pathlib import Path
+import socket
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -46,6 +49,58 @@ class ExperienceAcceptanceGuards(unittest.TestCase):
                 path = Path(tmp)/'bad.json';path.write_text(json.dumps(bad))
                 with self.assertRaises(ValueError):self.runner.load_cases(path)
 
+    def runtime_fixture(self, directory):
+        config=dict(self.config)
+        jar=directory/'candidate.jar'
+        with zipfile.ZipFile(jar,'w') as archive:
+            archive.writestr('META-INF/MANIFEST.MF','Main-Class: org.springframework.boot.loader.JarLauncher\nStart-Class: com.eatwhat.EatWhatApplication\n')
+            archive.writestr('BOOT-INF/classes/com/eatwhat/EatWhatApplication.class',b'fixture')
+        config.update(jar=str(jar),jarSha256=self.runner.digest(jar))
+        build=directory/'build.json'
+        build.write_text(json.dumps({'jarSha256':config['jarSha256'],'backendFingerprint':config['buildSourceFingerprint']}))
+        catalog=directory/'catalog.jsonl';catalog.write_text('fixed public data fixture')
+        java=directory/'java.exe';java.write_bytes(b'executable fixture')
+        mysql=directory/'mysqld.exe';mysql.write_bytes(b'executable fixture')
+        config.update(buildManifest=str(build),catalog=str(catalog),datasetHash=self.runner.digest(catalog),java=str(java),mysqld=str(mysql))
+        return config
+
+    def assert_preflight_rejection(self, config, out, stage, *, head=None, source=None):
+        import maturity_runtime as runtime
+        def readonly_git(command,**kwargs):
+            self.assertEqual('git',command[0],'Owned initialization must not run')
+            return SimpleNamespace(returncode=0)
+        with patch.object(runtime.subprocess,'check_output',return_value=head or config['sourceSha']), \
+             patch.object(runtime.subprocess,'run',side_effect=readonly_git) as commands, \
+             patch.object(runtime.subprocess,'Popen') as process, \
+             patch.object(runtime,'backend_fingerprint',return_value=source or config['buildSourceFingerprint']):
+            with self.assertRaises((ValueError,OSError,RuntimeError)):
+                self.runner.run(config,ROOT/'scripts/acceptance/experience-continuity-cases.json',out,stage)
+            process.assert_not_called()
+            self.assertTrue(all(c.args[0][0]=='git' for c in commands.call_args_list))
+            self.assertFalse(out.exists(),'Complete inherited rejection must precede the outer output directory')
+
+    def test_valid_shape_bad_head_artifact_source_data_or_executable_leaves_no_output_in_both_stages(self):
+        for stage in ('journey','database'):
+            for fault in ('head','artifact','source','data','executable'):
+                with self.subTest(stage=stage,fault=fault),tempfile.TemporaryDirectory() as tmp:
+                    directory=Path(tmp);config=self.runtime_fixture(directory)
+                    if fault=='artifact':Path(config['jar']).write_bytes(b'changed artifact')
+                    if fault=='data':Path(config['catalog']).write_text('changed data')
+                    if fault=='executable':config['java']=str(directory/'missing-java.exe')
+                    self.assert_preflight_rejection(config,directory/'untouched',stage,
+                        head='e'*40 if fault=='head' else None,source='f'*64 if fault=='source' else None)
+
+    def test_occupied_foreign_runtime_port_leaves_no_output_or_owned_process_in_both_stages(self):
+        for port in (18780,18781):
+            with socket.socket() as foreign:
+                if hasattr(socket,'SO_EXCLUSIVEADDRUSE'):foreign.setsockopt(socket.SOL_SOCKET,socket.SO_EXCLUSIVEADDRUSE,1)
+                try:foreign.bind(('127.0.0.1',port))
+                except OSError:pass  # An already occupied foreign port must also reject.
+                for stage in ('journey','database'):
+                    with self.subTest(port=port,stage=stage),tempfile.TemporaryDirectory() as tmp:
+                        directory=Path(tmp);config=self.runtime_fixture(directory)
+                        self.assert_preflight_rejection(config,directory/'untouched',stage)
+
     def test_result_never_promotes_missing_evidence_or_native_proof(self):
         case={'id':'J11','steps':['restart'],'assertions':['persist'], 'limits':[]}
         fp={'sourceSha':'a'*40}
@@ -72,7 +127,7 @@ class ExperienceAcceptanceGuards(unittest.TestCase):
     def test_database_adapter_preserves_missing_rehearsal_as_not_run(self):
         old={'passed':21,'total':22,'limits':['no native proof'],'datasets':[{'rows':0,'cases':[
             {'id':'IT01','passed':True},{'id':'R01','passed':False,'notRun':True}]}]}
-        with tempfile.TemporaryDirectory() as tmp, patch.object(self.runner,'run_database',return_value=old):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(self.runner,'run_database',return_value=old),patch.object(self.runner,'preflight'):
             receipt=self.runner.run(self.config,ROOT/'scripts/acceptance/experience-continuity-cases.json',Path(tmp)/'new','database')
         self.assertEqual('failed',receipt['status'])
         self.assertEqual('not-run',receipt['cases'][1]['status'])

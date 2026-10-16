@@ -140,9 +140,12 @@ def install_catalog(connection,config):
             'sourceRows':6665,'privateHistoryImported':False,'quality':'unreviewed; no invented evidence'}
 
 
-@contextmanager
-def owned_runtime(config,out,baseline=False,execution=None):
-    """Bootstrap schema + fixture + Java/Python in one owning process tree."""
+def preflight(config,out,baseline=False,execution=None):
+    """Read-only full launch checks; coordinators call before creating receipts.
+
+    owned_runtime repeats these checks at its own boundary. An earlier successful
+    coordinator check never authorizes changed inputs or a newly occupied port.
+    """
     validate_execution(config,execution);out=new_output(out)
     if baseline and execution is not None:raise ValueError('Live baseline execution forbidden')
     if subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()!=config['sourceSha']:raise ValueError('Source HEAD changed')
@@ -151,6 +154,14 @@ def owned_runtime(config,out,baseline=False,execution=None):
     if not mysqld.is_file() or not java.is_file() or mysqld.is_symlink() or java.is_symlink():raise ValueError('Explicit installed runtime executables required')
     if config.get('rows',6665)>0 and digest(config['catalog'])!=config['datasetHash']:raise ValueError('Dataset hash changed')
     available(18780);available(18781)
+    return SimpleNamespace(output=out,jar=jar,mysqld=mysqld,java=java)
+
+
+@contextmanager
+def owned_runtime(config,out,baseline=False,execution=None):
+    """Bootstrap schema + fixture + Java/Python in one owning process tree."""
+    prepared=preflight(config,out,baseline,execution)
+    out=prepared.output;jar=prepared.jar;mysqld=prepared.mysqld;java=prepared.java
     out.mkdir(parents=True);data=out/'private';data.mkdir();mysql_data=data/'mysql';mysql_data.mkdir()
     pinned=data/('eatwhat-backend-'+config['jarSha256']+'.jar')
     with jar.open('rb') as source,pinned.open('xb') as target:

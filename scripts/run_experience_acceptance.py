@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import uuid
 
-from maturity_runtime import ROOT, available, digest, new_output, owned_runtime, validate_config
+from maturity_runtime import ROOT, available, digest, new_output, owned_runtime, preflight, validate_config
 from run_maturity_acceptance import Journeys, require, run as run_database
 
 STATUSES = {'passed', 'failed', 'blocked', 'not-run', 'not-applicable'}
@@ -286,6 +286,9 @@ def run(config, cases_path, out, stage, config_hash=None, node='node', **databas
     # Validation precedes output creation and every process/write.
     validate_config(config); cases = load_cases(cases_path); root = new_output(out)
     if stage not in ('database', 'journey'): raise ValueError('Unknown experience stage')
+    # Reuse the full read-only runtime boundary for both stages, not only shape
+    # validation. The owned context repeats it immediately before launch.
+    preflight(config,root)
     fp = fingerprints(config, config_hash or hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest())
     fp.update(casesSha256=digest(cases_path),runnerSha256=digest(__file__),
         browserScenarioSha256=digest(ROOT/'web/e2e/experience-continuity.spec.ts'),

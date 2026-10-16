@@ -1,6 +1,11 @@
 package com.eatwhat.service;
 
 import com.eatwhat.mapper.MealWorkspaceMapper;
+import com.eatwhat.entity.WorkspaceTask;
+import com.eatwhat.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.apache.ibatis.datasource.unpooled.UnpooledDataSource;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.*;
@@ -12,6 +17,8 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 /** A foreign task is deliberately locked in a different connection. Cancellation
  * of this owner's workspace must complete without waiting on the foreign task. */
@@ -25,7 +32,7 @@ class WorkspaceTaskCancellationMysqlIT {
         ds=new UnpooledDataSource("com.mysql.cj.jdbc.Driver",url,"root",System.getenv("EATWHAT_TASK_CANCEL_PASSWORD"));
         try(Connection setup=ds.getConnection();Statement sql=setup.createStatement()){
             sql.execute("DROP TABLE IF EXISTS workspace_task");
-            sql.execute("CREATE TABLE workspace_task(id VARCHAR(36) PRIMARY KEY,workspace_id VARCHAR(36) NOT NULL,user_id BIGINT NOT NULL,status VARCHAR(32) NOT NULL,input_json JSON NOT NULL,lease_token VARCHAR(36),result_json JSON,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY ix_task_poll(status,updated_at),KEY ix_task_owner(user_id,workspace_id)) ENGINE=InnoDB");
+            sql.execute("CREATE TABLE workspace_task(id VARCHAR(36) PRIMARY KEY,workspace_id VARCHAR(36) NOT NULL,user_id BIGINT NOT NULL,base_revision BIGINT NOT NULL DEFAULT 0,status VARCHAR(32) NOT NULL,input_json JSON NOT NULL,lease_token VARCHAR(36),result_json JSON,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY ix_task_poll(status,updated_at),KEY ix_task_owner(user_id,workspace_id)) ENGINE=InnoDB");
         }
         Configuration config=new Configuration(new Environment("owned-task-cancel",new JdbcTransactionFactory(),ds));config.addMapper(MealWorkspaceMapper.class);
         factory=new SqlSessionFactoryBuilder().build(config);
@@ -58,16 +65,50 @@ class WorkspaceTaskCancellationMysqlIT {
     @Test void competingExpiredRunningClaimsHaveOneWinner()throws Exception{raceClaims(true);}
     @Test void staleQueuedSnapshotMustRecoverAsExpiredAndOldOwnerCannotFinish()throws Exception{
         task("queued",false);
-        try(SqlSession session=factory.openSession(true)){
+        try(SqlSession session=factory.openSession(true);SqlSession recoveredSession=factory.openSession(true)){
             MealWorkspaceMapper mapper=session.getMapper(MealWorkspaceMapper.class);
-            assertEquals(0,mapper.claimExpired("claim","wrong-classification"));
-            assertEquals(1,mapper.claimQueued("claim","initial"));
-            assertEquals(0,mapper.claimExpired("claim","too-early"));
-            try(Statement age=session.getConnection().createStatement()){age.execute("UPDATE workspace_task SET updated_at=DATE_SUB(NOW(),INTERVAL 31 SECOND) WHERE id='claim'");}
-            assertEquals(0,mapper.claimQueued("claim","stale-snapshot"),"Recovery must not emit another queued claim");
-            assertEquals(1,mapper.claimExpired("claim","recovered"));
-            assertEquals(0,mapper.finish("claim","initial","draft","{}"));
-            assertEquals(1,mapper.finish("claim","recovered","draft","{}"));
+            MealWorkspaceMapper recoveredMapper=recoveredSession.getMapper(MealWorkspaceMapper.class);
+            ObjectMapper json=new ObjectMapper();MealWorkspace workspace=new MealWorkspace();workspace.setContext(new MealContext());
+            WorkspaceRequest request=new WorkspaceRequest();request.setCommand("select");
+            Map<String,Object> input=new HashMap<>();input.put("workspace",workspace);input.put("request",request);
+            try(PreparedStatement update=session.getConnection().prepareStatement("UPDATE workspace_task SET input_json=?,created_at=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE id='claim'")){
+                update.setString(1,json.writeValueAsString(input));update.executeUpdate();
+            }
+            // Both pollers captured queued DTOs before either winner claimed in MySQL.
+            WorkspaceTask initial=mapper.taskById("claim","owned",7L),stale=recoveredMapper.taskById("claim","owned",7L);
+            assertNotSame(initial,stale,"Independent pollers must not share a MyBatis session-cached DTO");
+            assertEquals("queued",initial.getStatus());assertEquals("queued",stale.getStatus());
+            MealWorkspaceService service=mock(MealWorkspaceService.class);MealWorkspacePlanner planner=mock(MealWorkspacePlanner.class);
+            MealWorkspaceAgentGateway agent=mock(MealWorkspaceAgentGateway.class);
+            SimpleMeterRegistry registry=new SimpleMeterRegistry();ExperienceMetrics metrics=new ExperienceMetrics(registry);
+            MealWorkspaceTaskRunner first=new MealWorkspaceTaskRunner(mapper,service,planner,agent,json,true),second=new MealWorkspaceTaskRunner(recoveredMapper,service,planner,agent,json,true);
+            for(MealWorkspaceTaskRunner runner:Arrays.asList(first,second))ReflectionTestUtils.setField(runner,"metrics",metrics);
+            java.util.concurrent.atomic.AtomicInteger planning=new java.util.concurrent.atomic.AtomicInteger(),writes=new java.util.concurrent.atomic.AtomicInteger();
+            when(planner.generate(anyLong(),any(),eq("select"),nullable(Long.class),nullable(List.class))).thenAnswer(call->{
+                if(planning.incrementAndGet()==1){
+                    assertEquals("running",mapper.taskById("claim","owned",7L).getStatus());
+                    assertEquals(0,mapper.claimExpired("claim","too-early"));
+                    try(Statement age=session.getConnection().createStatement()){age.execute("UPDATE workspace_task SET updated_at=DATE_SUB(NOW(),INTERVAL 31 SECOND) WHERE id='claim'");}
+                    second.execute(stale); // Actual classifier + actual claim SQL, still a queued DTO.
+                }
+                PlanDraft draft=new PlanDraft();draft.setSource("rules");return draft;
+            });
+            when(service.finish(any(),any(),any(),anyString(),eq("draft"))).thenAnswer(call->{
+                WorkspaceTask current=call.getArgument(0);
+                int changed=mapper.finish(current.getId(),current.getLeaseToken(),"draft","{}");
+                current.setStatus(changed==1?"draft":"discarded");writes.addAndGet(changed);return new MealWorkspace();
+            });
+            try{first.execute(initial);}finally{first.close();second.close();}
+            assertEquals(2,planning.get());assertEquals(1,writes.get());
+            assertEquals("discarded",initial.getStatus());assertEquals("draft",stale.getStatus());
+            assertNotEquals(initial.getLeaseToken(),stale.getLeaseToken());
+            WorkspaceTask persisted=mapper.taskById("claim","owned",7L);
+            assertEquals("draft",persisted.getStatus());assertEquals(stale.getLeaseToken(),persisted.getLeaseToken());
+            assertEquals(0,mapper.finish("claim",initial.getLeaseToken(),"draft","{}"),"Old runner's completion is fenced by real SQL");
+            assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","assistant_queue").timer().count(),"Recovered queued DTO must not emit a second initial queue sample");
+            assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","task_execution").tag("outcome","recover").timer().count());
+            assertEquals(1,registry.get("eatwhat.experience.duration").tag("stage","task_execution").tag("outcome","cancel").timer().count());
+            verifyNoInteractions(agent);
             assertEquals(0,mapper.claimExpired("claim","terminal"));assertEquals(0,mapper.claimQueued("claim","terminal"));
         }
     }

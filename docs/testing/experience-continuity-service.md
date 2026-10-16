@@ -1,6 +1,6 @@
 # E17：跨流程故障与真实数据服务验收
 
-2026-10-17，本地验收完成：**J01–J12 的分层合同12/12、四写路径故障20/20、既有数据库场景22/22**。这些数字分别属于服务HTTP/真实MySQL、页面代码隔离边界和桌面浏览器证据；**微信原生/物理设备为 not-run**。本任务只增加验收入口、合同、测试和文档，没有修改产品实现、迁移、数据质量、依赖或线上配置，没有推送、部署或外部模型请求。
+2026-10-17，提交 `792b72e` 的原验收记录：**J01–J12 的分层合同12/12、四写路径故障20/20、既有数据库场景22/22**。这些数字分别属于服务HTTP/真实MySQL、页面代码隔离边界和桌面浏览器证据；**微信原生/物理设备为 not-run**。审阅后两项验收缺口及其定向修复证据见下文“审阅修复”；原报告和指纹保留当时适用范围。本任务只增加验收入口、合同、测试和文档，没有修改产品实现、迁移、数据质量、依赖或线上配置，没有推送、部署或外部模型请求。
 
 ## 安全入口与可复现命令
 
@@ -53,7 +53,7 @@ python scripts/run_maturity_acceptance.py --config $ExperienceConfig --stage dat
 
 数据库机器报告 `worker-task17-database/report.json` 实际 **22/22**；`synthetic/transaction-java/surefire-reports/`分别记录3/8/5项IT。旧R01缺失时的21/22历史没有被覆盖或重新解释。
 
-## 源码和证据绑定
+## 原验收源码和证据绑定（792b72e）
 
 服务配置校验的HEAD为 `dc91331b86d15424ad19cf8712150babbace7752`，运行包来源为E16已验证产品实现；本任务新增验收源码按下列文件摘要绑定，不能把旧HEAD当成本任务新增测试已存在的证明。本次提交保存这些验收文件，后续E20仍需按最终候选重新绑定。
 
@@ -75,3 +75,24 @@ Guard测试6/6，既有maturity guard8/8、release-input5/5、网页readback/恢
 E17机器责任为K11/K15/K16/K17/K21/K22/K27/K28/K30/K32。上述旅程/四路径/恢复覆盖对应目标、来源、幂等、分层记录、能力与归属。F03由真实部分成功+JVM重启和既有 `partial terminal task offers editable remaining request`页面测试共同覆盖；F04对应真实断连/重启，以及现有网页readback/原请求恢复测试。其余K01–K32及A/F设计未被放宽。
 
 所有本次owned服务均由创建者停止，`cleanup.json`记录残留进程/服务线程为0。没有执行真实模型、物理Android/微信原生、真实用户、生产与新静态候选发布验收；分别留给E18/E19/E20，不能以本页通过数代替。按本次控制器边界只做适用检查，整版最终聚合验收留给E20。
+
+## 审阅修复：完整预检和实际runner的过时DTO分类
+
+原入口只在外层输出目录创建前检查配置形状；现在从 `maturity_runtime` 原样提取完整只读 `preflight`，让E17的journey/database两stage在创建目录前检查HEAD、构建receipt/JAR/源码、可执行文件、数据摘要和固定端口。`owned_runtime` 在自身启动边界仍重新执行完整预检，复制JAR后的摘要和导入数据时的复查也保留；没有因早期检查成功而取消TOCTOU防护。
+
+新增负向回归覆盖两stage的有效形状但错误HEAD/包/源码/数据/Java文件，以及18780/18781被占用：原版**14个子场景RED**，修复后guard **8/8 GREEN**，检查没有输出目录或owned初始化/进程创建。共享maturity guard **8/8**。日志为仓库外 `worker-task17-fix1-guards-{red,green}.log` 和 `worker-task17-fix1-maturity-guards.log`。
+
+原16项IT中的旧过时queued测试只手选mapper方法，不能证明runner的分类；其余原证据不因此扩展。修订后保留原2项取消和2项真实并发claim，改用两个独立真实MyBatis SqlSession取得不同的queued DTO，再通过实际 `MealWorkspaceTaskRunner` 执行：第一个runner已claim且真实库租约老化后，第二个仍持queued DTO的runner只能经真实expired-running SQL获胜；初始queue计时样本恰1、recover样本恰1、旧lease完成被真实SQL拒绝。只有planner/provider和业务finish外壳是替身，claim/lease/finish SQL均真实。
+
+新owned运行的该IT类 **5/5、0失败/错误/跳过**，以及完整预检→E17 database适配器→owned运行的公开6,665目录烟测通过。机器报告 `worker-task17-fix1-green2-smoke/report.json` 仅包含这两项 scoped case；不是重跑原22项、12旅程、20故障或浏览器。初次夹具在同一SqlSession中读到同一个缓存DTO，造成1项失败；已用独立SqlSession和 `assertNotSame` 修正，原失败日志保留，不将其称为产品分类缺陷。原业务runner代码保持不变。
+
+|当前修复对象|SHA256|
+|---|---|
+|maturity_runtime.py|`a83fa3e5e6bbc093756f3f39af7d9af8bfb9be156b08459db972d69b9b7f7bed`|
+|run_experience_acceptance.py|`e2b8caea04fdf10021cc63fcd1076d7ba8abc03ff38d0985973589bf369fd86d`|
+|guard测试|`2917526920f47ad9823e06d14dd34b4f0fc282e2a471dccda738f209743dcd65`|
+|实际runner/MySQL IT|`1f3d7b30cdb20f21169a3ec557edb27fd392decfd9916c40ff792c5d5b05461f`|
+|新定向烟测报告|`0354475c2a12d771815b5274a993cf419f3b0578a10843ab7226f2633e5becdc`|
+|新5项MySQL receipt|`9d875900d9d4e6b4bfa33001efedddae500c14c9ab5e8cb65fff6acb42483578`|
+
+新配置绑定HEAD `792b72e`，配置摘要 `7ca424761f66a022343c7bd921acd222b9424eedf7bb488cc5f017cbc3efee30`。产品源码指纹、原JAR、公开数据和R01原备份/配对receipt摘要仍与上表相同。所有新owned进程/线程残留为0。新工具字节合法改变，旧E16/E17库存、性能报告和首轮清单不回写；应按Git历史和对应字节理解历史证据。没有重跑性能、未变化的前端/网页全套、原生、模型、生产或发布检查。
