@@ -32,10 +32,16 @@ function createAssistantConversation(options = {}) {
  function adopt(turn) {
   if(!current())return
   view.turn=clone(turn);view.busy=['queued','running'].includes(turn.status);view.recoverable=view.busy||!!canResume(turn)
-  const message={id:turn.turnId,turnId:turn.turnId,role:'assistant',text:turn.reply || '',cards:clone(turn.cards || [])}
+  const message={id:turn.turnId,turnId:turn.turnId,role:'assistant',text:turn.reply || '',cards:clone(turn.cards || []),workflow:require('./assistant-workflow-presentation').presentWorkflow({turn}).rows}
   const index=view.messages.findIndex(m=>m.id===turn.turnId || (m.role==='assistant'&&m.turnId===turn.turnId))
   if(index>=0)view.messages[index]=message;else view.messages.push(message)
-  if(['failed','cancelled','partially_completed'].includes(turn.status)){view.input=record.pending && record.pending.body.message || view.input;view.error=turn.status==='cancelled'?'已停止这次请求，输入仍保留':turn.status==='partially_completed'?'已完成的安排仍保留。请调整输入，重新说明尚未完成的部分':'这次未完成，输入已保留，可以调整后再发';view.recoverable=false}
+  if(['failed','cancelled','partially_completed'].includes(turn.status)){
+   // A partial turn is terminal. Its compound request must not become a resend.
+   // Preserve anything the user has typed since sending or restoring the request.
+   if(turn.status==='partially_completed'){if(record.pending&&view.input===record.pending.body.message)view.input=''}
+   else view.input=record.pending && record.pending.body.message || view.input
+   view.error=turn.status==='cancelled'?'已停止这次请求，输入仍保留':turn.status==='partially_completed'?'这次请求已结束，请查看各项结果。剩余事项需重新核对来源和目标，再由你发送':'这次未完成，输入已保留，可以调整后再发';view.recoverable=false
+  }
   else view.error=''
   if(!view.busy && turn.status!=='awaiting_confirmation'){record.pending=null;record.renewal=null;view.recoverable=false}
   record.lastTurn=clone(turn)

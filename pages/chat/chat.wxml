@@ -18,6 +18,7 @@
   <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="ew-title">说说你这一餐的想法</text><view class="connected-shortcuts"><button wx:for="{{conversationSuggestions}}" wx:key="id" class="ew-hit-target connected-shortcut" data-id="{{item.id}}" disabled="{{conversationBusy || conversationRecoverable}}" bindtap="onConversationSuggestion">{{item.label}}</button></view></view>
   <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">
    <text wx:if="{{item.text}}" class="connected-bubble" user-select>{{item.text}}</text>
+   <view wx:if="{{item.workflow.length}}" aria-role="status"><view wx:for="{{item.workflow}}" wx:for-item="step" wx:key="id" class="ew-muted">{{step.label}}</view></view>
    <assistant-card wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" bind:choice="onConversationChoice" bind:handoff="onConversationHandoff" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
   </view>
   <view wx:if="{{conversationBusy}}" class="connected-progress" aria-role="status"><text>{{conversationProgressLabel}}</text><button class="ew-hit-target ew-link" bindtap="onConversationStop">停止</button></view>
@@ -30,7 +31,8 @@
   <text wx:if="{{conversationWorkspaceFeedback}}" class="ew-muted" aria-role="status">{{conversationWorkspaceFeedback}}</text>
   <button wx:if="{{conversationWorkspaceRecoverable}}" class="ew-hit-target ew-link" disabled="{{conversationBusy || busy || conversationRecoverable}}" bindtap="onConversationWorkspaceRecover">{{conversationWorkspaceRecoveryLabel}}</button>
   <button wx:if="{{conflictDraftAvailable}}" class="ew-hit-target ew-link" disabled="{{conversationBusy || conversationWorkspaceBlocked || conversationRecoverable}}" bindtap="onConversationRestoreDraft">重新应用保留的本餐条件</button>
-  <button wx:if="{{conversationRecoverable}}" class="ew-hit-target ew-link" disabled="{{conversationBusy}}" bindtap="onConversationRecover">恢复刚才的请求</button>
+  <button wx:if="{{conversationWorkflowAction === 'recover'}}" class="ew-hit-target ew-link" disabled="{{conversationBusy}}" bindtap="onConversationRecover">{{conversationWorkflowLabel}}</button>
+  <button wx:if="{{conversationWorkflowAction === 'remaining'}}" class="ew-hit-target ew-link" disabled="{{conversationBusy || conversationWorkspaceBlocked || conversationActionsEnabled === false}}" bindtap="onConversationWorkflow">{{conversationWorkflowLabel}}</button>
   <button wx:if="{{conversationCanStop && !conversationBusy}}" class="ew-hit-target ew-link" bindtap="onConversationStop">{{conversationStopLabel}}</button>
   <view class="connected-input-row"><textarea placeholder-class="ew-placeholder" class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="说说想法" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{conversationBusy || conversationWorkspaceBlocked || !conversationInput || conversationRecoverable || conversationActionsEnabled === false}}" bindtap="onConversationSend">发送</button></view>
  </view>

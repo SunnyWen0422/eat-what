@@ -33,3 +33,10 @@ test('missing or mismatched historical workspace never creates a replacement ses
  const f=conversationFixture(),c=f.make();await c.load({workspaceId:'other',sessionId:'s1'});assert.equal(f.creates(),0);assert.equal(f.memory.size,0)
  f.api.getAssistantV4Session=async()=>{throw{statusCode:404}};await c.load({workspaceId:'w',sessionId:'deleted'});assert.equal(f.creates(),0)
 })
+
+test('history rendering cannot execute or overfetch',async()=>{
+ const events=[],latest={turnId:'latest',status:'partially_completed',continuation:{steps:[{kind:'calendar_save',status:'completed',receiptRef:'real-save'},{kind:'shopping_preview',status:'failed'}]}}
+ const messages=Array.from({length:35},(_,i)=>({id:String(i),turnId:i===34?'latest':String(i),role:'assistant',text:'记录',cards:[{id:'receipt-'+i,type:'receipt',receiptRef:'real-'+i}]}))
+ const f=fixture({getAssistantV4Sessions:async()=>{events.push('sessions');return{sessions:[{sessionId:'s'}]}},getAssistantV4Session:async()=>{events.push('session');return{sessionId:'s',messages,latestTurn:latest}},getAssistantV4Turn:async()=>events.push('recover'),sendAssistantV4Turn:async()=>events.push('send'),confirmControlledTask:async()=>events.push('confirm'),resumeAssistantV4Turn:async()=>events.push('resume')})
+ await f.page.onShow();await f.page.onOpenV4Session({currentTarget:{dataset:{id:'s'}}});assert.deepEqual(events,['sessions','session']);assert.equal(f.page.data.v4Messages.length,35);assert.equal(f.page.data.v4Messages[34].workflow[0].receiptRef,'real-save');assert.equal(f.page.data.v4Messages[34].workflow[1].status,'unfinished');assert.equal(f.page.data.v4Messages[0].workflow.length,0);assert.equal(f.navigation.length,0)
+})

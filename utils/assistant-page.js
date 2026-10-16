@@ -1,6 +1,7 @@
 const {createAssistantConversation,probeAssistantCapability}=require('./assistant-conversation')
 const {safeText,presentMenuActions,conversationBlocksMenu}=require('./assistant-cards')
 const {workspaceReference,matchesWorkspaceReference}=require('./meal-workspace')
+const {presentWorkflow,buildRemainingTaskPrefill}=require('./assistant-workflow-presentation')
 // Keep the existing page's handlers and lifecycle intact when the service is unavailable.
 module.exports=function assistantPage(fallback, options={}) {
  return {...fallback,data:{...fallback.data,assistantConnected:false,conversationMenuExpanded:false,conversationSuggestions:[],conversationMenuCount:0,conversationCurrentMenu:null,conversationMessages:[],conversationInput:'',conversationError:'',conversationBusy:false,conversationRecoverable:false,keyboardHeight:0},
@@ -60,11 +61,11 @@ module.exports=function assistantPage(fallback, options={}) {
    if(entry.date!==this.data.context.date || entry.mealType!==this.data.context.mealType)return
    this.offerConversationInput(`请介绍菜品 ID ${entry.dishId}「${entry.dishName}」的做法`)
   },
-  offerConversationInput(text, expectedRef=null) {
+  offerConversationInput(text, expectedRef=null, expectedTurnId=null) {
    const conversation=this.conversation,scope=this._scope
    if(!conversation || !this.current())return
    const state=conversation.state(),before=state.input || ''
-   const blocked=s=>conversationBlocksMenu(s) || expectedRef && (this.workspaceBlocksConversation() || !matchesWorkspaceReference(expectedRef,this.store&&this.store.state().workspace,this.store&&this.store.state().context))
+   const blocked=s=>conversationBlocksMenu(s) || expectedTurnId&&(!s.turn||s.turn.turnId!==expectedTurnId||s.turn.status!=='partially_completed'||this.data.conversationActionsEnabled===false) || expectedRef && (this.workspaceBlocksConversation() || !matchesWorkspaceReference(expectedRef,this.store&&this.store.state().workspace,this.store&&this.store.state().context))
    if(blocked(state))return
    const apply=()=>{if(!this._assistantAlive || !this.current() || scope!==this._scope || conversation!==this.conversation)return;const latest=conversation.state();if(!blocked(latest)&&latest.input===state.input)conversation.setInput(text)}
    if(before.trim()&&before!==text)wx.showModal({title:'替换当前输入？',content:'当前尚未发送的文字会被替换。',success:result=>{if(result.confirm)apply()}})
@@ -75,7 +76,10 @@ module.exports=function assistantPage(fallback, options={}) {
    const turn=state.turn,cards=turn&&turn.cards||[],pending=turn&&turn.pendingAction
    const actionable=pending?cards.filter(c=>c.taskId===pending.taskId&&c.previewToken===pending.previewToken).slice(-1):turn&&turn.status==='needs_input'?cards.filter(c=>['clarification','handoff'].includes(c.type)).slice(-1):cards.filter(c=>c.type==='menu'&&c.data&&c.data.canUndo).slice(-1)
    const currentCards=new Set(actionable.map(c=>c.id)),enabled=this.data.conversationActionsEnabled!==false&&!state.busy&&!state.recoverable
-   const messages=state.messages.map(m=>({...m,text:safeText(m.text || m.content),cards:(m.cards || []).map(card=>({...card,active:enabled&&!!turn&&m.turnId===turn.turnId&&currentCards.has(card.id)&&!state.selectionPending&&!state.confirmationPending&&(!card.taskId||turn.status==='awaiting_confirmation'&&turn.pendingAction&&turn.pendingAction.taskId===card.taskId&&turn.pendingAction.previewToken===card.previewToken)}))}))
+   const workflow=presentWorkflow(state)
+   const messages=state.messages.map(m=>({...m,text:safeText(m.text || m.content),workflow:turn&&m.turnId===turn.turnId?workflow.rows:(m.workflow||[]),cards:(m.cards || []).map(card=>({...card,active:enabled&&!!turn&&m.turnId===turn.turnId&&currentCards.has(card.id)&&!state.selectionPending&&!state.confirmationPending&&(!card.taskId||turn.status==='awaiting_confirmation'&&turn.pendingAction&&turn.pendingAction.taskId===card.taskId&&turn.pendingAction.previewToken===card.previewToken)}))}))
+   const recover=state.recoverable||workflow.primaryAction==='recover'
+   this.setData({conversationWorkflow:workflow,conversationWorkflowAction:recover?'recover':workflow.primaryAction==='remaining'?'remaining':null,conversationWorkflowLabel:recover?(workflow.primaryAction==='recover'?workflow.primaryLabel:'核对原请求结果'):workflow.primaryLabel})
    this.setData({conversationMessages:messages,conversationInput:state.input,conversationError:state.error,conversationBusy:state.busy,conversationRecoverable:state.recoverable,conversationCanStop:!!turn&&['queued','running','awaiting_confirmation'].includes(turn.status),conversationStopLabel:turn&&turn.status==='awaiting_confirmation'?'取消预览':'停止这次请求',conversationHasOlder:!!state.nextCursor,conversationProgressLabel:turn&&turn.status==='queued'?'正在排队…':'正在处理这次请求…'})
    this.refreshConversationMenus(state)
    const last=state.messages[state.messages.length-1],stamp=last?JSON.stringify([last.id,last.text||last.content,last.cards,turn&&turn.status]):''
@@ -174,6 +178,13 @@ module.exports=function assistantPage(fallback, options={}) {
   onConversationInput(event){if(this.conversation)this.conversation.setInput(event.detail.value)},
   onConversationSend(){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false){this._conversationForceBottom=true;return this.conversation.send(this.data.conversationInput)}},
   onConversationRecover(){if(this.conversation)return this.conversation.recover();return this.openConnectedConversation()},
+  onConversationWorkflow(){
+   if(!this.current()||!this.conversation||this.data.conversationActionsEnabled===false||this.workspaceBlocksConversation())return
+   const state=this.conversation.state(),view=presentWorkflow(state)
+   if(state.busy||state.recoverable||state.confirmationPending||state.selectionPending||view.primaryAction!=='remaining')return
+   const text=buildRemainingTaskPrefill({turn:state.turn})
+   if(text)this.offerConversationInput(text,null,state.turn.turnId)
+  },
   onConversationStop(){if(this.conversation)return this.conversation.cancelTurn()},
   onConversationConfirm(event){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false)return this.conversation.confirm(event.detail.id)},
   onConversationHandoff(event){

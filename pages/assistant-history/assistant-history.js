@@ -27,7 +27,9 @@ Page({
     if(!this.data.v4Sessions.some(s=>s.sessionId===id))return
     this.setData({loading:true,errorMessage:'',v4SessionId:id,v4Messages:[]})
     try{const session=await api.getAssistantV4Session(id);if(!this.current(scope,epoch)||session.sessionId!==id)return
-      this.setData({v4Messages:(session.messages||[]).filter(m=>['user','assistant'].includes(m.role)).map(m=>({...m,text:require('../../utils/assistant-cards').safeText(m.text)}))})
+      // The session already includes its latest turn. Never fetch each old card.
+      const latest=session.latestTurn,rows=require('../../utils/assistant-workflow-presentation').presentWorkflow({turn:latest}).rows
+      this.setData({v4Messages:(session.messages||[]).filter(m=>['user','assistant'].includes(m.role)).map(m=>({...m,text:require('../../utils/assistant-cards').safeText(m.text),workflow:latest&&m.role==='assistant'&&m.turnId===latest.turnId?rows:[]}))})
     }catch(error){if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'这段对话暂未读到，请稍后再试。')})}
     finally{if(this.current(scope,epoch))this.setData({loading:false})}
   },
