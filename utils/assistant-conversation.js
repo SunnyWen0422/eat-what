@@ -163,6 +163,12 @@ function createAssistantConversation(options = {}) {
    if(turnId)return await poll(turnId)
    if(view.turn&&['queued','running'].includes(view.turn.status))return await poll(view.turn.turnId)
    if(record.pending){await dispatch();if(!current())return state();return await resumeCurrent()}
+   // A restored session may have a pending preview but no local send record.
+   // Read that original turn before considering its server-owned continuation.
+   if(view.turn&&view.turn.status==='awaiting_confirmation'){
+    const id=view.turn.turnId;await poll(id)
+    if(!current()||!view.turn||view.turn.turnId!==id)return state()
+   }
    return await resumeCurrent()
   }catch(error){return fail('结果暂未核对，原请求已保留，请稍后恢复')}
  })}

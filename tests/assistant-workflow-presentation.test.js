@@ -3,7 +3,7 @@ const workflow=()=>require('../utils/assistant-workflow-presentation')
 const partial=()=>({turnId:'t',status:'partially_completed',cards:[{id:'saved',type:'receipt',receiptRef:'calendar-real',data:{action:'calendar_save',date:'2026-10-18',mealType:'dinner'}}],continuation:{cursor:1,steps:[{kind:'calendar_save',status:'completed',receiptRef:'calendar-real'},{kind:'shopping_preview',status:'failed',requestId:'purchase-original'}]}})
 function fixture(initial){
  const memory=new Map(),events=[];let turn=initial,id=0
- const api={createAssistantV4Session:async()=>({sessionId:'s',latestTurn:turn}),getAssistantV4Session:async()=>({sessionId:'s',latestTurn:turn}),sendAssistantV4Turn:async(_s,body)=>{events.push(['send',body]);return{turnId:'t'}},getAssistantV4Turn:async id=>{events.push(['read',id]);return turn},resumeAssistantV4Turn:async()=>{events.push(['resume']);return turn},confirmControlledTask:async()=>{events.push(['confirm']);throw Error('lost')},getControlledTask:async id=>{events.push(['check',id]);return{status:'completed'}},cancelAssistantV4Turn:async()=>{events.push(['cancel']);turn={...turn,status:'cancelled',pendingAction:null};return turn}}
+ const api={createAssistantV4Session:async()=>({sessionId:'s',latestTurn:turn}),getAssistantV4Session:async()=>({sessionId:'s',workspaceRef:{workspaceId:'w'},latestTurn:turn}),sendAssistantV4Turn:async(_s,body)=>{events.push(['send',body]);return{turnId:'t'}},getAssistantV4Turn:async id=>{events.push(['read',id]);return turn},resumeAssistantV4Turn:async()=>{events.push(['resume']);return turn},confirmControlledTask:async()=>{events.push(['confirm']);throw Error('lost')},getControlledTask:async id=>{events.push(['check',id]);return{status:'completed'}},cancelAssistantV4Turn:async()=>{events.push(['cancel']);turn={...turn,status:'cancelled',pendingAction:null};return turn}}
  const conversation=require('../utils/assistant-conversation').createAssistantConversation({api,workspaceStore:{state:()=>({workspace:{id:'w',revision:1,draft:{planVersion:1}}})},identity:'synthetic',source:'isolated',uuid:()=>`uuid-${++id}`,read:k=>memory.get(k),write:(k,v)=>memory.set(k,v)})
  return{conversation,events,api,setTurn:v=>turn=v}
 }
@@ -51,4 +51,29 @@ test('unknown current step is not presented as an ordinary unconfirmed preview',
 test('an unknown new send takes priority over a prior partial outcome',async()=>{
  const f=fixture(partial());await f.conversation.load();f.api.sendAssistantV4Turn=async()=>{throw Error('lost')};await f.conversation.send('采购来源我想改一下')
  const page=pageFor(f.conversation);page.renderConversation(f.conversation.state());assert.equal(page.data.conversationWorkflowAction,'recover');assert.match(page.data.conversationWorkflowLabel,/原请求/);page.onConversationWorkflow();assert.equal(f.conversation.state().input,'采购来源我想改一下')
+})
+const previewTurn=(cards)=>({turnId:'restored',status:'awaiting_confirmation',cards,pendingAction:{taskId:'original-preview',previewToken:'original-token',expiresAt:1},continuation:{cursor:1,steps:[{kind:'calendar_save',status:'completed',receiptRef:'saved-real'},{kind:'shopping_preview',taskId:'original-preview',status:'awaiting_confirmation'}]}})
+const expiredPreview=()=>({id:'expired',type:'shopping_preview',taskId:'original-preview',previewToken:'original-token',expiresAt:1})
+async function restoredPreview(cards){const f=fixture(previewTurn(cards));await f.conversation.load({workspaceId:'w',sessionId:'s'});const page=pageFor(f.conversation);page.renderConversation(f.conversation.state());assert.equal(f.conversation.state().recoverable,false);assert.equal(page.data.conversationWorkflowAction,'recover');return{...f,page}}
+for(const kind of ['expired','missing'])test(`restored ${kind} preview recovery rereads the original turn without replay`,async()=>{
+ const f=await restoredPreview(kind==='expired'?[expiredPreview()]:[]),expiresAt=Date.now()+60000
+ const fresh={...previewTurn([{...expiredPreview(),expiresAt}]),pendingAction:{taskId:'original-preview',previewToken:'original-token',expiresAt}}
+ f.setTurn(fresh);await f.page.onConversationRecover();assert.deepEqual(f.events,[['read','restored']]);assert.equal(f.conversation.state().turn.cards[0].expiresAt,expiresAt);assert.equal(workflow().presentWorkflow(f.conversation.state()).primaryAction,'preview')
+})
+test('restored preview recovery resumes only server pending continuation after reread',async()=>{
+ const f=await restoredPreview([]),pending={...previewTurn([]),pendingAction:null};pending.continuation.steps[1].status='pending';f.setTurn(pending)
+ await f.page.onConversationRecover();assert.deepEqual(f.events,[['read','restored'],['resume']]);assert.equal(f.events.some(e=>['send','confirm'].includes(e[0])),false)
+})
+test('restored preview recovery keeps disabled capability read-only',async()=>{
+ const f=await restoredPreview([expiredPreview()]);f.conversation.setActionsEnabled(false);f.page.data.conversationActionsEnabled=false
+ const pending={...previewTurn([]),pendingAction:null};pending.continuation.steps[1].status='pending';f.setTurn(pending);await f.page.onConversationRecover();await f.conversation.confirm('expired');assert.deepEqual(f.events,[['read','restored']])
+})
+test('page recovery checks a newer unknown send before the restored preview',async()=>{
+ const f=await restoredPreview([expiredPreview()]),sent=[];f.api.sendAssistantV4Turn=async(_s,body)=>{sent.push(body);if(sent.length===1)throw Error('lost');return{turnId:'new-send'}}
+ await f.conversation.send('先核对采购来源');f.api.getAssistantV4Turn=async id=>{f.events.push(['read',id]);return{turnId:id,status:'completed',cards:[]}}
+ await f.page.onConversationRecover();assert.equal(sent.length,2);assert.deepEqual(sent[0],sent[1]);assert.deepEqual(f.events,[['read','new-send']])
+})
+test('late restored-preview reread cannot resume after conversation disposal',async()=>{
+ const f=await restoredPreview([]);let resolve;f.api.getAssistantV4Turn=id=>{f.events.push(['read',id]);return new Promise(r=>resolve=r)}
+ const recovery=f.page.onConversationRecover();await new Promise(setImmediate);assert.equal(typeof resolve,'function');f.conversation.dispose();const pending={...previewTurn([]),pendingAction:null};pending.continuation.steps[1].status='pending';resolve(pending);await recovery;assert.deepEqual(f.events,[['read','restored']]);assert.equal(f.conversation.state().turn,null)
 })
