@@ -1,4 +1,47 @@
 const { compositionRows, compositionSummary, missingCounts, normalizeDishType, validateCounts } = require('./meal-composition')
+const { validateMealTarget } = require('./meal-save-target')
+
+function checkedTarget(value) {
+  try { return validateMealTarget(value) } catch (_) { return null }
+}
+
+function targetLabel(target) {
+  const [year, month, day] = target.date.split('-').map(Number)
+  return `${year}年${month}月${day}日${{ breakfast:'早餐', lunch:'午餐', dinner:'晚餐' }[target.mealType]}`
+}
+
+// Display only: the journey owns precedence and actions; the receipt owns its target.
+function continuityPresentation(value, journey, workspaceNotice) {
+  const context = value.context || {}, target = checkedTarget(context), savedTarget = checkedTarget(value.savedTarget)
+  const contextLabel = target ? targetLabel(target) + (Number.isInteger(context.people) && context.people > 0 ? ` · ${context.people}人` : '') : '当前餐'
+  const recovery = journey.recovery, state = recovery && recovery.state
+  const hasMenu = !!(value.draft && value.draft.dishes && value.draft.dishes.length)
+  const saved = savedTarget && ['saved', 'changed'].includes(value.saveState)
+  let menuState = hasMenu ? 'draft' : 'empty', resultNotice = null
+  if (state === 'unknown') menuState = 'recover'
+  else if (state === 'conflict') menuState = 'conflict'
+  else if (state === 'busy') menuState = 'working'
+  else if (state === 'unapplied') menuState = 'changed'
+  else if (state === 'confirmation') menuState = 'draft'
+  else if (value.saveState === 'changed' || value.status === 'plan_changed') menuState = 'changed'
+  else if (saved && value.saveState === 'saved') menuState = 'saved'
+
+  if (recovery) {
+    const text = { unknown:'本次结果待核对，原菜单仍保留', conflict:'这餐已有更新，请先读取最新安排', busy:'正在处理本餐', unapplied:'条件已修改，按新条件换一套后生效', confirmation:'本餐安排待确认' }[state] || recovery.label
+    resultNotice = {
+      kind: state === 'busy' ? 'loading' : state === 'confirmation' ? 'info' : 'warning',
+      text: text + (saved ? `；此前已保存到${targetLabel(savedTarget)}，本次操作尚未确认保存` : ''),
+      target: journey.primary.target, action: journey.primary.action,
+    }
+  } else if (workspaceNotice) {
+    resultNotice = { kind:workspaceNotice.kind, text:workspaceNotice.text, target, action:journey.primary.action }
+  } else if (saved) {
+    resultNotice = { kind:menuState === 'saved' ? 'success' : 'info',
+      text:menuState === 'saved' ? `已保存到${targetLabel(savedTarget)}` : `此前已保存到${targetLabel(savedTarget)}；当前菜单有修改，尚未保存`,
+      target:savedTarget, action:'onViewSavedMeal' }
+  }
+  return { contextLabel, menuState, resultNotice }
+}
 
 function contextPresentation(context) {
   return {
@@ -35,7 +78,7 @@ function deriveWorkspacePresentation(value) {
   else if(feedback&&feedback.state==='unknown')workspaceNotice={kind:'warning',text:'刚才的操作仍待核对，原菜单已保留'}
   const showActionFeedback=!!(!workspaceNotice&&feedback&&feedback.state==='success'&&feedback.kind==='undo')
   const showMenuUndo=!!((value.draft&&value.draft.history||[]).length&&!showActionFeedback)
-  return { workspaceNotice,showActionFeedback,showMenuUndo,journeyRecovery:journey.recovery, hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating' || !!journey.recovery&&['unknown','conflict','busy'].includes(journey.recovery.state), showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
+  return { ...continuityPresentation(value, journey, workspaceNotice), workspaceNotice,showActionFeedback,showMenuUndo,journeyRecovery:journey.recovery, hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating' || !!journey.recovery&&['unknown','conflict','busy'].includes(journey.recovery.state), showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
 }
 
 function hardExclusionSummary(preferences, options) {
