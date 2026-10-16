@@ -28,6 +28,13 @@ def require_handoff(turn,workspace):
     require(ref.get('workspaceId')==workspace['id'] and ref.get('workspaceRevision')==workspace['revision'] and ref.get('planVersion')==workspace['draft']['planVersion'],'Handoff points to another workspace revision')
 
 
+def require_plan_source(binding,target,revision):
+    expected={'kind':'plan','date':target,'mealType':'dinner'};source=binding.get('source',{})
+    for ref in (binding.get('sourceRef',{}),source.get('sourceRef',{})):
+        require(all(ref.get(k)==v for k,v in expected.items()) and ref.get('workspaceId') is None,'Shopping preview is for the wrong source meal')
+    require(source.get('date')==target and source.get('mealType')=='dinner' and source.get('planRevision')==revision,'Resolved shopping source revision or target differs')
+
+
 class Execution(LiveExecution):
     def __init__(self,fields,budget,authorization_date):
         self.fields=fields;self.ledger=ProviderBudget(budget,authorization_date=authorization_date)
@@ -45,7 +52,7 @@ class Cases:
         return {'counts':self.a.counts(self.user),'prefs':self.a.http('/users/preferences',user=self.user),
                 'menus':self.a.http('/menus',user=self.user),'favorites':self.a.http('/favorite-dishes',user=self.user)}
 
-    def setup(self):
+    def setup(self,shopping_only=False):
         a=self.a;context={'date':str(date.today()-timedelta(days=1)),'mealType':'lunch','people':2,'compositionMode':'manual','counts':{'meat':1,'veg':1,'soup':1},'requirements':'','ownedIngredients':[]}
         self.w=a.http('/meal-workspaces',{'requestId':str(uuid.uuid4()),'expectedWorkspaceRevision':0,'context':context},self.user)
         a.http('/meal-workspaces/'+self.w['id']+'/commands',{'requestId':str(uuid.uuid4()),'command':'generate','expectedWorkspaceRevision':self.w['revision'],'planVersion':self.w['draft']['planVersion']},self.user)
@@ -65,6 +72,13 @@ class Cases:
             a.http('/meal-consumptions/'+self.actual_day+'/dinner',{'requestId':str(uuid.uuid4()),'expectedRevision':0,'expectedPlanRevision':None,'status':'eaten','usePlan':False,'dishes':[{'name':name,'type':row[1]}]},user,'PUT')
         self.session=a.http('/assistant/v4/sessions',{'requestId':str(uuid.uuid4()),'workspaceId':self.w['id']},self.user)['sessionId']
         self.signature()
+        if shopping_only:
+            self.w=self.current()
+            a.http('/meal-workspaces/'+self.w['id']+'/confirm',{'requestId':str(uuid.uuid4()),'expectedWorkspaceRevision':self.w['revision'],'planVersion':self.w['draft']['planVersion'],'expectedPlanRevision':0,'targetDate':self.target,'targetMealType':'dinner'},self.user)
+            from urllib.parse import urlencode
+            plan=a.http('/meal-workspaces/current?'+urlencode({'date':self.target,'mealType':'dinner'}),user=self.user)['plan']
+            require(plan and plan['dishIds']==ids,'Direct-API shopping prerequisite differs from saved plan')
+            self.plan_revision=plan['revision'];self.saved={'fixture':'direct API confirmed plan'}
 
     def turn(self,message,choice=None):
         if self.execution.budget_used()>=20:raise BudgetExhausted('No supplier budget remains')
@@ -116,6 +130,7 @@ class Cases:
         require(step['tool']=='save_meal_to_target' and binding['targetDate']==self.target and binding['targetMealType']=='dinner','Calendar preview selected the wrong target')
         before=self.a.counts(self.user);self.saved=self.a.confirm(self.user,turn)
         require(self.saved['status']=='completed','Calendar confirmation failed')
+        self.plan_revision=self.saved['steps'][0]['result']['targetPlanRevision']
         require(self.a.sql('SELECT COUNT(*) FROM recipe_records WHERE user_id=%s AND record_date=%s AND meal_type=%s',(self.user,self.target,'dinner'))[0][0]==1,'Correct calendar row missing or duplicated')
         after=self.a.counts(self.user);require(after['meal_consumption']==before['meal_consumption'],'Saving a plan fabricated actual eating')
         require(self.a.confirm(self.user,turn)==self.saved and self.a.counts(self.user)==after,'Calendar confirmation replay wrote twice')
@@ -125,8 +140,9 @@ class Cases:
         if not self.saved:raise RuntimeError('Blocked dependency: calendar was not confirmed')
         turn=self.turn('为刚才保存的'+self.target+'晚餐准备采购预览，使用日历中这一餐，未知价格和用量不要猜。')
         require(turn['status']=='awaiting_confirmation','Shopping preview absent')
-        task=self.a.task(self.user,turn);step=task['steps'][0];bound=step['binding'];expected={'kind':'plan','date':self.target,'mealType':'dinner'}
-        require(step['tool']=='add_meal_shopping' and bound['sourceRef']==expected,'Shopping preview is for the wrong source meal')
+        task=self.a.task(self.user,turn);step=task['steps'][0];bound=step['binding']
+        require(step['tool']=='add_meal_shopping','Shopping selected the wrong tool')
+        require_plan_source(bound,self.target,self.plan_revision)
         groups=bound['groups'];require(groups and all(g['sourceDate']==self.target and g['sourceMealType']=='dinner' for g in groups),'Shopping submitted a wrong meal')
         expected_lines={(g['selectionKey'],i['sourceLineNo']) for g in groups for i in g['items']};require(expected_lines,'Shopping has no submitted ingredients')
         before=self.a.counts(self.user);receipt=self.a.confirm(self.user,turn);require(receipt['status']=='completed','Shopping confirmation failed')
@@ -151,8 +167,9 @@ class Cases:
         return {'versionedPreferenceHandoff':True,'noAutomaticPreferenceWrite':True,'pageSaveStillRequired':True}
 
 
-def run(config,out,budget,authorization_date,approved_live=False):
+def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
     require(approved_live,'Explicit approved-live invocation required')
+    require(case_ids is None or set(case_ids)<={'discovery','adjust','clarify','save','shopping','actual','handoff'},'Unknown live cases')
     date.fromisoformat(authorization_date)
     execution=Execution(approved_provider_fields(Path(__file__).resolve().parents[1]/'recommend-service/.env'),budget,authorization_date)
     require(config.get('providerMode')=='live' and Path(config['modelBudgetLedger']).resolve()==execution.ledger.path,'Live mode and atomic ledger must match')
@@ -163,8 +180,10 @@ def run(config,out,budget,authorization_date,approved_live=False):
             'limits':['Public recipe snapshot and synthetic test identities only','Real Java/FastAPI/owned MySQL; local completion forwarder reaches real supplier','The external forwarder uses sync HTTPX; this does not prove production async DNS/TLS timing','Page handoff is verified as authorized data; native page gestures and physical devices are separate','Finite task samples do not estimate population success rate']}
     with owned_runtime(config,out/'owned-runtime',execution=execution) as runtime:
         require(runtime.dataset['rows']==6665,'Use pinned real public snapshot for live tasks')
-        cases=Cases(runtime,execution);cases.setup()
+        cases=Cases(runtime,execution);cases.setup(shopping_only=case_ids==['shopping'])
+        report['setupMode']='direct API confirmed plan for targeted shopping' if case_ids==['shopping'] else 'rule draft and synthetic personal facts; model saves the plan'
         for group,name in [('discovery','discovery'),('adjust','adjust'),('calendar','clarify'),('calendar','save'),('shopping','shopping'),('review_handoff','actual'),('review_handoff','handoff')]:
+            if case_ids is not None and name not in case_ids:continue
             start=time.perf_counter();used=execution.budget_used()
             try:detail=getattr(cases,name)();row={'id':name,'group':group,'passed':True,'businessOutcome':'clarified' if name=='clarify' else 'passed','detail':detail}
             except Exception as error:row={'id':name,'group':group,'passed':False,'failureType':type(error).__name__,'failure':str(error)[:300],'notEvaluated':isinstance(error,BudgetExhausted) or str(error).startswith('Blocked dependency:')}
@@ -178,6 +197,6 @@ def run(config,out,budget,authorization_date,approved_live=False):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--out',required=True);p.add_argument('--budget',required=True);p.add_argument('--authorization-date',required=True);p.add_argument('--approved-live',action='store_true');args=p.parse_args()
-    report=run(json.loads(Path(args.config).read_text(encoding='utf-8')),args.out,args.budget,args.authorization_date,args.approved_live)
+    p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--out',required=True);p.add_argument('--budget',required=True);p.add_argument('--authorization-date',required=True);p.add_argument('--approved-live',action='store_true');p.add_argument('--cases');args=p.parse_args()
+    report=run(json.loads(Path(args.config).read_text(encoding='utf-8')),args.out,args.budget,args.authorization_date,args.approved_live,args.cases.split(',') if args.cases else None)
     raise SystemExit(0 if report['passed']==report['total'] else 2)

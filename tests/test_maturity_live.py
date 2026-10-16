@@ -4,6 +4,21 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 
 class MaturityLiveAssertionsTest(unittest.TestCase):
+    def test_shopping_ref_accepts_normalized_null_workspace_but_rejects_wrong_target_or_revision(self):
+        from run_maturity_live import require_plan_source
+        ref={'kind':'plan','date':'2026-10-17','mealType':'dinner','workspaceId':None}
+        binding={'sourceRef':ref,'source':{'sourceRef':dict(ref),'date':'2026-10-17','mealType':'dinner','planRevision':3}}
+        require_plan_source(binding,'2026-10-17',3)
+        for changed in ('date','meal','kind','workspace','revision','resolved_date'):
+            bad=copy.deepcopy(binding)
+            if changed=='date':bad['sourceRef']['date']='2026-10-18'
+            elif changed=='meal':bad['sourceRef']['mealType']='lunch'
+            elif changed=='kind':bad['sourceRef']['kind']='draft'
+            elif changed=='workspace':bad['sourceRef']['workspaceId']='another'
+            elif changed=='revision':bad['source']['planRevision']=4
+            else:bad['source']['date']='2026-10-18'
+            with self.assertRaises(AssertionError):require_plan_source(bad,'2026-10-17',3)
+
     def test_replacement_requires_real_change_and_retained_first_and_third(self):
         from run_maturity_live import require_replacement
         before={'dishes':[{'id':1},{'id':2},{'id':3}]}
