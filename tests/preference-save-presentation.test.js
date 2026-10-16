@@ -21,6 +21,10 @@ function fixture(route = 'settings') {
     getUserPreferences: async () => ({ preferences: {} }),
     updateUserPreferences: async value => { writes.push(plain(value)); return { preferences: value } },
     updateUserInfo: async value => { writes.push(plain(value)); return { success: true, user: { ...user(), ...value } } },
+    getAdminUser: async id => ({ user: { id, nickname: '目标用户' }, customDishes: [] }),
+    updateAdminUserStatus: async (...args) => { writes.push({ method: 'updateAdminUserStatus', args: plain(args) }); return { user: { id: args[0], status: args[1] } } },
+    deleteAdminUserDish: async (...args) => { writes.push({ method: 'deleteAdminUserDish', args: plain(args) }); return {} },
+    updateAdminDishStatus: async (...args) => { writes.push({ method: 'updateAdminDishStatus', args: plain(args) }); return { id: args[0], isPublished: args[1] } },
   }
   function load(file) {
     if (cache[file]) return cache[file]
@@ -132,15 +136,42 @@ test('same-account preference reread retains the assistant proposal and failed r
   f.navigation[0].fail(); assert.match(f.alerts.at(-1), /尚未保存/)
 })
 
-for (const route of ['admin-users', 'admin-user-detail', 'admin-dishes', 'admin']) test(`${route} dangerous confirmation identifies the current object and cancelled action writes nothing`, () => {
+function adminConfirmation(route, detailAction = 'deleteDish') {
   const f = fixture(route), target = { id: 7, name: '目标菜品', isPublished: 1 }, user = { id: 31, nickname: '目标用户', displayName: '目标用户', status: 1 }
   Object.assign(f.page.data, { users: [user], user, userId: 31, dishes: [target], userDishes: [target], selectedUser: user })
   const event = { currentTarget: { dataset: { id: 7 } } }
   if (route === 'admin-users') f.page.toggleStatus({ currentTarget: { dataset: { id: 31 } } })
-  else if (route === 'admin-user-detail') f.page.deleteDish(event)
+  else if (route === 'admin-user-detail') f.page[detailAction](event)
   else if (route === 'admin-dishes') f.page.togglePublished(event)
   else f.page.onDeleteDish(event)
+  return f
+}
+
+const adminWrites = [
+  { route: 'admin-users', method: 'updateAdminUserStatus', args: [31, 0] },
+  { route: 'admin-user-detail', method: 'deleteAdminUserDish', args: [31, 7] },
+  { route: 'admin-dishes', method: 'updateAdminDishStatus', args: [7, 0] },
+  { route: 'admin', method: 'deleteAdminUserDish', args: [31, 7] },
+]
+
+for (const { route, method, args } of adminWrites) {
+ test(`${route} dangerous confirmation identifies the current object and cancelled action writes nothing`, async () => {
+  const f = adminConfirmation(route)
   assert.match(f.dialogs[0].content, route === 'admin-users' ? /目标用户.*31/ : /目标菜品.*7/)
-  f.dialogs[0].success({ confirm: false }); assert.equal(f.writes.length, 0)
-  f.switch(); f.dialogs[0].success({ confirm: true }); assert.equal(f.writes.length, 0)
+  await f.dialogs[0].success({ confirm: false }); assert.equal(f.writes.length, 0)
+  f.switch(); await f.dialogs[0].success({ confirm: true }); assert.equal(f.writes.length, 0)
+ })
+ test(`${route} explicit current confirmation observes the named administrative write`, async () => {
+  const f = adminConfirmation(route)
+  await f.dialogs[0].success({ confirm: true })
+  assert.deepEqual(f.writes, [{ method, args }])
+ })
+}
+
+for (const action of ['deleteDish', 'toggleStatus']) test(`admin-user-detail ${action} rejects confirmation after target user changes`, async () => {
+  const f = adminConfirmation('admin-user-detail', action)
+  const dialog = f.dialogs.at(-1)
+  f.page.setData({ userId: 32, user: { id: 32, nickname: '另一用户', status: 1 } })
+  await dialog.success({ confirm: true })
+  assert.equal(f.writes.length, 0)
 })
