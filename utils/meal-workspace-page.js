@@ -3,6 +3,11 @@ const { feedbackAction } = require('./meal-feedback')
 const theme = require('./ui-tokens')
 const { validateCounts, compositionRows } = require('./meal-composition')
 const experiencePreferences = require('./experience-preferences')
+function savedPreferencesSnapshot(result) {
+  const saved=result&&Object.prototype.hasOwnProperty.call(result,'preferences')?result.preferences:result
+  if(!saved||typeof saved!=='object'||Array.isArray(saved))throw new Error('已保存偏好暂未读到')
+  return saved
+}
 const { contextPresentation } = require('./meal-workspace-presentation')
 const { getCurrentUserIdentity, getUserStorageKey } = require('./util')
 const { createWorkspaceStore, defaultTarget, resolveActiveTarget, normalizeContext, requestId, matchesWorkspaceReference } = require('./meal-workspace')
@@ -86,7 +91,7 @@ module.exports = function workspacePage(options = {}) {
       actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,
       conversationNotice:'',pageTitle:options.mode==='assistant'?'本餐对话':options.mode==='result'?'本餐方案':'今天', mealName:'当前餐', workspaceEnabled: true, requirementsVisible:false, requirementsDraft:'', requirementsSaving:false, voicePhase:'idle', voicePrivacyVisible:false, primaryLabel:'生成本餐菜单', primaryAction:'onGenerate', showRequirements:true, legacyMeals: [], theme, loading: true, busy: false, errorMessage: '', syncLabel: '', syncStatus: 'loading',
       peopleVisible:false,compositionVisible:false,compositionContext:null,compositionRows:[],compositionTotal:0,compositionHint:'',compositionSaving:false,compositionApplyDisabled:true,conditionsNotice:'',compositionPreferenceNotice:'',filterSummary:'',
-      peopleInput:'2',peopleError:'',hardExclusionSummary:'正在读取长期忌口',hasHardExclusions:false,hardExclusionsUnavailable:false,advancedVisible:false,
+      peopleInput:'2',peopleError:'',hardExclusionSummary:'正在读取长期忌口',hasHardExclusions:false,hardExclusionsUnavailable:false,advancedVisible:false,preferencesSnapshot:null,preferencesState:'loading',
       context: initialContext, ...contextPresentation(initialContext),
       draft: { dishes: [], lockedDishIds: [], history: [], planVersion: 0 }, status: 'empty', linkedPlan: null, actual: null,
       mealLabels: LABELS, mealIndex: 0, settingsVisible: false, settingsContext: null, countRows: [], ownedText: '', settingsError: '',
@@ -124,17 +129,17 @@ module.exports = function workspacePage(options = {}) {
         wx.setStorageSync(getUserStorageKey('activeMealTarget'), {...target,selectedOn:defaultTarget().date})
       }
       this.setData({loading:true,busy:false,errorMessage:'',syncLabel:'',feedbackNotice:'',legacyMeals:[],legacyNotice:'',conflictDraftAvailable:false,context:normalizeContext({...target,people:2}),draft:{dishes:[],history:[],lockedDishIds:[]},linkedPlan:null,actual:null,status:'empty',settingsContext:null,settingsVisible:false,confirmationVisible:false,canConfirm:false,saveTarget:null,saveError:'',saveTargetLoading:false,saveTargetLocked:false,saveRecoveryPending:false,saveState:'unsaved',savedTarget:null,savedMessage:'',midnightNotice:''})
-      this.setData({...contextPresentation(this.data.context),peopleInput:'2',peopleError:'',hardExclusionSummary:'正在读取长期忌口',hasHardExclusions:false,hardExclusionsUnavailable:false,advancedVisible:false})
+      this.setData({...contextPresentation(this.data.context),peopleInput:'2',peopleError:'',hardExclusionSummary:'正在读取长期忌口',hasHardExclusions:false,hardExclusionsUnavailable:false,advancedVisible:false,preferencesSnapshot:null,preferencesState:'loading'})
       let people = 2
       try {
         const result = await api.getUserPreferences()
         if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return
-        const saved = result && result.preferences || result || {}, savedPeople = Number(saved.defaultPeople)
+        const saved = savedPreferencesSnapshot(result), savedPeople = Number(saved.defaultPeople)
         people = Number.isInteger(savedPeople) && savedPeople >= 1 && savedPeople <= 50 ? savedPeople : 2
         const version = wx.getStorageSync('recommendationOptionsCurrentVersion') || 1
-        this.setData({hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
+        this.setData({preferencesSnapshot:saved,preferencesState:'ready',hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
       }
-      catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({ syncLabel: '常用人数暂未读到，本餐默认两人', hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true }) }
+      catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({preferencesSnapshot:null,preferencesState:'unavailable', syncLabel: '常用人数暂未读到，本餐默认两人', hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true }) }
       let fontScale = 1
       if (wx.getAppBaseInfo) { const info = wx.getAppBaseInfo(); fontScale = info.fontSizeScaleFactor || (info.fontSizeSetting ? info.fontSizeSetting / 16 : 1) }
       this.store = createWorkspaceStore({canCommand:expectedRef=>!expectedRef || !this.canRunReferencedCommand || this.canRunReferencedCommand(expectedRef)})
@@ -232,9 +237,9 @@ module.exports = function workspacePage(options = {}) {
       try {
         const result=await api.getUserPreferences()
         if(!owns())return
-        const saved=result && result.preferences || result || {},version=wx.getStorageSync('recommendationOptionsCurrentVersion') || 1
-        this.setData({hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
-      } catch(error) {if(owns())this.setData({hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true})}
+        const saved=savedPreferencesSnapshot(result),version=wx.getStorageSync('recommendationOptionsCurrentVersion') || 1
+        this.setData({preferencesSnapshot:saved,preferencesState:'ready',hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
+      } catch(error) {if(owns())this.setData({preferencesSnapshot:null,preferencesState:'unavailable',hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true})}
     },
     onHide() { this.cancelVoiceInput(); clearTimeout(this._pollTimer); clearTimeout(this._draftTimer) },
     onUnload() { this.disposeControlledHarness();this.disposeMealActual();this.cancelVoiceInput(); this._alive = false; this.stopTimers(); if (this.store) this.store.dispose() },

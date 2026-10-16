@@ -12,6 +12,9 @@ module.exports=function assistantPage(fallback, options={}) {
   refreshConversationMenus(state=this.conversation&&this.conversation.state()) {
    if(!this.store || !this.current())return
    const local=this.store.state(),w=local.workspace,context=w&&w.context,dishes=w&&w.draft&&w.draft.dishes
+   let sourceOptions=null
+   try{if(typeof wx!=='undefined'&&wx.getStorageSync){const version=wx.getStorageSync('recommendationOptionsCurrentVersion')||1;sourceOptions=wx.getStorageSync(`recommendationOptionsV${version}`)}}catch(error){/* Optional labels cannot block the current meal or actions. */}
+   this.setData({conversationContextSummary:require('./assistant-presentation').buildAssistantContextSummary({workspace:{...w,context:local.context||context||this.data.context},preferencesSnapshot:this.data.preferencesSnapshot,preferencesState:this.data.preferencesState,options:sourceOptions})})
    const conversationState={...(state||{}),actionsEnabled:!!state&&this.data.conversationActionsEnabled!==false},workspaceState={...local,busy:!!this.data.busy}
    const decorate=card=>({...card,menuActions:presentMenuActions({card,workspace:w,conversationState,workspaceState})})
    const live=context&&Array.isArray(dishes)&&dishes.length?decorate({id:'current-menu',type:'menu',title:'当前本餐菜单',workspaceRef:workspaceReference(w),data:{date:context.date,mealType:context.mealType,people:context.people,dishes,canUndo:false}}):null
@@ -102,6 +105,9 @@ module.exports=function assistantPage(fallback, options={}) {
     const enabled=await (options.probe||probeAssistantCapability)({force:true})
     if(!this._assistantAlive||!this.current()||scope!==this._scope||activeConversation!==this.conversation)return
     this.setData({conversationActionsEnabled:enabled,conversationCapabilityChecking:false});if(activeConversation.setActionsEnabled)activeConversation.setActionsEnabled(enabled)
+    if(this.refreshHardExclusions)await this.refreshHardExclusions()
+    if(!this._assistantAlive||!this.current()||scope!==this._scope||activeConversation!==this.conversation)return
+    this.refreshConversationMenus()
     const conversation=this.conversation,store=this.store,state=conversation.state()
     if(state.recoverable)return conversation.recover()
     this.renderConversation(state)
@@ -115,6 +121,12 @@ module.exports=function assistantPage(fallback, options={}) {
   onHide(){this._assistantVisible=false;clearTimeout(this._conversationTimer);if(fallback.onHide)fallback.onHide.call(this)},
   onUnload(){this._assistantAlive=false;clearTimeout(this._conversationTimer);if(this.conversation)this.conversation.dispose();if(fallback.onUnload)fallback.onUnload.call(this)},
   onToggleConversationMenu(){if(this.current())this.setData({conversationMenuExpanded:!this.data.conversationMenuExpanded})},
+  onConversationEditRequirements(){
+   if(!this.current()||!this.store||this.data.conversationActionsEnabled===false||this.workspaceBlocksConversation())return
+   const local=this.store.state(),context=local.context||local.workspace&&local.workspace.context
+   if(context)this.offerConversationInput(context.requirements?`本餐要求：${context.requirements}`:'这餐我想要：',workspaceReference(local.workspace))
+  },
+  onConversationPreferences(){if(this.current())wx.navigateTo({url:'/pages/settings/settings'})},
   onConversationCurrentMenu(){if(this.current()){this.setData({conversationMenuExpanded:true,conversationScrollTarget:''},()=>this.setData({conversationScrollTarget:'conversation-current-menu'}));this.refreshConversationMenus()}},
   workspaceBlocksConversation(){const local=this.store&&this.store.state();return !!(this.data.busy || this._directDishBinding || local&&(local.pending || ['saving','unknown','conflict'].includes(local.syncStatus) || local.workspace&&local.workspace.status==='generating'))},
   canRunReferencedCommand(expectedRef){

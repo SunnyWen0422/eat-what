@@ -3,7 +3,17 @@
  <view class="connected-header"><view><text class="ew-heading">餐桌助手</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">{{assistantReturnLabel || '回到今天'}}</button></view>
  <scroll-view class="connected-messages" scroll-y enhanced bindscroll="onConversationScroll" bindscrolltolower="onConversationBottom" scroll-into-view="{{conversationScrollTarget}}">
   <button wx:if="{{conversationHasOlder}}" class="ew-hit-target ew-link" bindtap="onConversationOlder">查看更早的对话</button>
-  <button class="ew-hit-target connected-context" bindtap="onToggleConversationMenu" aria-expanded="{{conversationMenuExpanded}}">{{context.date}} · {{mealName}} · {{context.people}}人<text wx:if="{{conversationMenuCount}}"> · {{conversationMenuCount}}道菜 {{conversationMenuExpanded ? '收起' : '查看'}}</text></button>
+  <button class="ew-hit-target connected-context" bindtap="onToggleConversationMenu" aria-expanded="{{conversationMenuExpanded}}">{{conversationContextSummary.targetLabel}}<text wx:if="{{conversationMenuCount}}"> · {{conversationMenuCount}}道菜</text> · {{conversationMenuExpanded ? '收起' : '查看来源与菜单'}}</button>
+  <view wx:if="{{conversationMenuExpanded}}" class="connected-context-details">
+   <text class="ew-title">本餐输入（仅这餐）</text>
+   <view wx:for="{{conversationContextSummary.mealRows}}" wx:key="id"><text class="ew-muted">{{item.label}}：</text><text>{{item.text}}</text></view>
+   <button class="ew-hit-target ew-link" disabled="{{conversationBusy || conversationWorkspaceBlocked || conversationRecoverable || conversationActionsEnabled === false}}" bindtap="onConversationEditRequirements">修改本餐要求</button>
+   <text class="ew-title">已保存的长期偏好</text>
+   <view wx:for="{{conversationContextSummary.savedRows}}" wx:key="id"><text class="ew-muted">{{item.label}}：</text><text>{{item.text}}</text></view>
+   <text wx:if="{{conversationContextSummary.unavailableLabel}}" class="ew-muted">{{conversationContextSummary.unavailableLabel}}</text>
+   <button class="ew-hit-target ew-link" bindtap="onConversationPreferences">编辑并保存长期偏好</button>
+   <text class="ew-muted">这里只说明输入来源；每次安排还会核对忌口和可用菜品。临时要求不会自动保存为长期偏好。</text>
+  </view>
   <view id="conversation-current-menu"><assistant-card wx:if="{{conversationCurrentMenu && conversationMenuExpanded}}" card="{{conversationCurrentMenu}}" active="{{false}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" /></view>
   <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="ew-title">说说你这一餐的想法</text><view class="connected-shortcuts"><button wx:for="{{conversationSuggestions}}" wx:key="id" class="ew-hit-target connected-shortcut" data-id="{{item.id}}" disabled="{{conversationBusy || conversationRecoverable}}" bindtap="onConversationSuggestion">{{item.label}}</button></view></view>
   <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">

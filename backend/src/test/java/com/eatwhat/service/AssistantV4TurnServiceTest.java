@@ -27,6 +27,38 @@ class AssistantV4TurnServiceTest {
  @BeforeEach void setup(){fixture=new AssistantV4StoreTest();fixture.setup();store=fixture.store;model=mock(AssistantV4ModelGateway.class);context=mock(AssistantV4ContextService.class);protection=mock(AiProtectionService.class);dishes=mock(DishQueryService.class);when(protection.acquire(any(),any(),anyInt())).thenReturn(AiProtectionService.Decision.allowed());when(dishes.getDishesByIdsForUser(anyList(),anyLong())).thenReturn(Collections.emptyList());ModelContext ctx=new ModelContext();ctx.getActiveMeal().put("currentDishes",Collections.singletonList(Collections.singletonMap("id",1L)));when(context.build(any(),any(),any())).thenReturn(ctx);registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,c,s)->read(c));runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);id=store.claimTurn(1L,fixture.session(),fixture.request()).getTurnId();}
  ReadResult read(ToolRead call){ReadResult r=new ReadResult();r.setCallId(call.getCallId());r.setName(call.getName());Map<String,Object> item=new LinkedHashMap<>();item.put("id",2L);item.put("name","青菜");r.getItems().add(item);return r;}
  StepOutput finalOutput(){StepOutput out=new StepOutput();out.setType("final");out.setReply("已保存日历并采购成功");return out;}
+ @Test void model_success_prose_cannot_create_a_factual_receipt(){
+  when(model.step(any())).thenAnswer(i->store.turnRecord(1L,id).getProviderCallsUsed()==1?tools(i.getArgument(0),"fact"):finalOutput());
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);
+  assertEquals("completed",view.getStatus());assertTrue(view.getReply().contains("青菜"));assertTrue(view.getReply().contains("这次"));
+  assertFalse(view.getReply().contains("已保存"));assertFalse(view.getReply().contains("采购成功"));assertNull(view.getPendingAction());
+  assertTrue(view.getCards().stream().allMatch(c->c.getReceiptRef()==null));verify(model,times(2)).step(any());
+ }
+ @Test void partial_read_is_not_a_complete_total(){
+  registry.registerRead("read_shopping",(u,c,s)->{ReadResult r=new ReadResult();r.setCallId(c.getCallId());r.setName(c.getName());r.setNextCursor("2");r.getItems().add(AssistantV4ContextService.map("name","番茄","checked",false,"quantityValue",null,"quantityProvenance","unknown"));return r;});
+  when(model.step(any())).thenAnswer(i->{if(store.turnRecord(1L,id).getProviderCallsUsed()>1)return finalOutput();StepOutput out=tools(i.getArgument(0),"page");out.getReadCalls().get(0).setName("read_shopping");((Map<String,Object>)((Map<?,?>)((List<?>)out.getProviderContinuation().getAssistantMessage().get("tool_calls")).get(0)).get("function")).put("name","read_shopping");return out;});
+  runner.runTurn(1L,id);String reply=store.findTurn(1L,id).getReply();assertTrue(reply.contains("这次"));assertTrue(reply.contains("部分"));assertTrue(reply.contains("番茄"));assertFalse(reply.contains("共1项"));assertFalse(reply.contains("已保存"));
+ }
+ @Test void explicit_empty_read_never_borrows_the_existing_current_meal_or_model_success(){
+  AssistantCapabilityService emptyRegistry=new AssistantCapabilityService(true);emptyRegistry.registerRead("search_dishes",(u,c,s)->{ReadResult r=new ReadResult();r.setName(c.getName());r.setCallId(c.getCallId());return r;});
+  runner=new AssistantV4TurnService(store,context,emptyRegistry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);
+  when(model.step(any())).thenAnswer(i->store.turnRecord(1L,id).getProviderCallsUsed()==1?tools(i.getArgument(0),"empty"):finalOutput());
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);assertEquals("completed",view.getStatus());assertTrue(view.getReply().contains("未查到匹配结果"));assertFalse(view.getReply().contains("当前餐"));assertFalse(view.getReply().contains("已保存"));assertEquals("recipe",view.getCards().get(0).getType());assertNull(view.getPendingAction());
+ }
+ @Test void failed_authorized_read_cannot_be_completed_by_provider_prose(){
+  AssistantCapabilityService failedRegistry=new AssistantCapabilityService(true);failedRegistry.registerRead("search_dishes",(u,c,s)->{throw new IllegalArgumentException("owner denied");});
+  runner=new AssistantV4TurnService(store,context,failedRegistry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);
+  when(model.step(any())).thenReturn(tools(new StepInput(),"denied"));runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);
+  assertEquals("failed",view.getStatus());assertTrue(view.getCards().isEmpty());assertFalse(view.getReply().contains("已保存"));verify(model,times(1)).step(any());
+ }
+ @Test void no_read_final_current_plan_is_only_an_authenticated_context_snapshot(){
+  ModelContext ctx=new ModelContext();ctx.getActiveMeal().putAll(AssistantV4ContextService.map("date","2026-10-16","mealType","dinner","people",2,"currentDishes",Collections.singletonList(AssistantV4ContextService.map("id",1L,"name","现有计划青菜"))));when(context.build(any(),any(),any())).thenReturn(ctx);when(model.step(any())).thenReturn(finalOutput());
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);assertTrue(view.getReply().contains("当前餐"));assertTrue(view.getReply().contains("现有计划青菜"));assertFalse(view.getReply().contains("已保存"));assertTrue(view.getCards().stream().allMatch(c->c.getReceiptRef()==null));verify(model,times(1)).step(any());
+ }
+ @Test void no_read_final_with_empty_context_remains_a_question_without_fabricated_facts(){
+  when(context.build(any(),any(),any())).thenReturn(new ModelContext());when(model.step(any())).thenReturn(finalOutput());runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);
+  assertEquals("请说明想查询的菜品、日期或餐次",view.getReply());assertTrue(view.getCards().isEmpty());assertNull(view.getPendingAction());verify(model,times(1)).step(any());
+ }
  @Test void saved_menu_and_dictionary_reads_reach_visible_server_text_even_without_new_client_renderers(){
   registry.configureExtensions(true,()->true);
   registry.registerRead("read_saved_menus",(u,c,s)->{ReadResult r=new ReadResult();r.setName(c.getName());r.setCallId(c.getCallId());r.getItems().add(AssistantV4ContextService.map("id",3L,"name","工作日晚餐","people",4,"dishIds",Arrays.asList(7L,8L)));return r;});
@@ -55,6 +87,11 @@ class AssistantV4TurnServiceTest {
  @Test void recent_actual_final_uses_actual_facts_with_empty_current_meal(){assertRecentActualProjection(false,true,false);}
  @Test void recent_actual_empty_snapshot_does_not_fall_back_to_current_plan(){assertRecentActualProjection(true,false,false);}
  @Test void recent_actual_truncated_snapshot_is_marked_partial(){assertRecentActualProjection(true,true,true);}
+ @Test void recent_actual_context_keeps_multiple_meals_on_the_same_day_in_the_reply(){
+  ModelContext ctx=new ModelContext();for(String meal:Arrays.asList("lunch","dinner"))ctx.getRecentActual().add(AssistantV4ContextService.map("date","2026-10-10","mealType",meal,"status","eaten","dishes",Collections.emptyList()));
+  when(context.build(any(),any(),any())).thenReturn(ctx);StepOutput out=finalOutput();out.setFactSource("recent_actual");when(model.step(any())).thenReturn(out);
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);assertTrue(view.getReply().contains("2餐明确记录"));assertEquals(2,((List<?>)view.getCards().get(0).getData().get("meals")).size());assertFalse(view.getReply().contains("已保存"));
+ }
  void assertRecentActualProjection(boolean currentMeal,boolean actualExists,boolean truncated){
   ModelContext ctx=new ModelContext();ctx.getActiveMeal().put("currentDishes",currentMeal?Collections.singletonList(AssistantV4ContextService.map("id",1L,"name","未来计划青菜")):Collections.emptyList());
   ctx.getEvidence().put("recentActualRange",AssistantV4ContextService.map("startDate","2026-10-05","endDate","2026-10-11"));ctx.getEvidence().put("truncated",truncated);

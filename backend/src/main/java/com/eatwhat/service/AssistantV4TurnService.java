@@ -56,7 +56,7 @@ public class AssistantV4TurnService {
             Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
-            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();int readCount=0,factChars=0;
+            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;
             for(int round=0;round<4;round++){
                 active(user,lease);
                 // Keep 0.5s for local completion inside the unchanged 30s lease. Each HTTP attempt
@@ -76,7 +76,7 @@ public class AssistantV4TurnService {
                     for(ToolRead call:calls){active(user,lease);ReadResult read=registry.readExecutor(call.getName()).read(user,call,scope);active(user,lease);
                         if(read==null||!Objects.equals(read.getCallId(),call.getCallId())||!Objects.equals(read.getName(),call.getName()))throw new IllegalArgumentException("查询结果不匹配");
                         int length=encode(read).length();if(factChars+length>12000){TurnResult stopped=result("needs_input","查询内容较多，请缩小日期范围或菜品范围",false);stopped.setCards(facts);stopped.setWorkspaceRef(reference(scope));finish(user,lease,stopped);return;}
-                        factChars+=length;readCount++;usedCalls.add(call.getCallId());authorizeRead(read,scope);mergeFacts(facts,factCards(user,read));results.add(read);
+                        factChars+=length;readCount++;usedCalls.add(call.getCallId());authorizeRead(read,scope);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromRead(read,call));mergeFacts(facts,factCards(user,read));results.add(read);
                     }
                     input.setReadResults(results);input.setProviderContinuation(output.getProviderContinuation());continue;
                 }
@@ -91,9 +91,10 @@ public class AssistantV4TurnService {
                 }
                 if(!"final".equals(output.getType()))throw new IllegalArgumentException("无法理解本次请求");
                 if(output.getActionProposal()==null||output.getActionProposal().getSteps().isEmpty()){
-                    if("recent_actual".equals(output.getFactSource()))facts.addAll(recentActualCards(user,context));
-                    if(facts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());facts.addAll(factCards(user,current));}
-                    TurnResult r=result("completed",facts.isEmpty()?"请说明想查询的菜品、日期或餐次":"已查到以下内容",false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
+                    if("recent_actual".equals(output.getFactSource())){ReadResult recent=recentActualRead(context);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(recent));facts.addAll(recentActualCards(user,context,recent));}
+                    // An explicit empty read is a result. Never replace it with an unrelated plan.
+                    if(authorizedFacts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(current));facts.addAll(factCards(user,current));}
+                    TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 validateActions(output.getActionProposal(),scope);WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
                 if(executeStep(user,lease,scope,true,c))resumeWorkflow(user,turnId);return;
@@ -214,14 +215,18 @@ public class AssistantV4TurnService {
     private String readableLines(List<String> lines,boolean partial){String text=String.join("\n",lines);return text+(partial?"\n以上为部分结果，可缩小范围继续查询":"");}
     private String optionGroup(Object value){if("cuisine".equals(value))return "菜系";if("flavor".equals(value))return "口味";if("scene".equals(value))return "用餐场景";if("diet".equals(value))return "饮食偏好";if("method".equals(value))return "做法";return "";}
     /** Only a source selector crosses the model boundary; rows remain server-authorized context facts. */
-    private List<Card> recentActualCards(Long user,ModelContext context){
+    private ReadResult recentActualRead(ModelContext context){
         ReadResult read=new ReadResult();read.setCallId("context-recent-actual");read.setName("read_actual_diet_review");
         read.setTruncated(Boolean.TRUE.equals(context.getEvidence().get("truncated")));
+        Map<Object,List<Map<String,Object>>> byDay=new LinkedHashMap<>();
         for(Map<String,Object> actual:context.getRecentActual()){
             if(!"eaten".equals(actual.get("status")))continue;
-            Map<String,Object> day=new LinkedHashMap<>();day.put("date",actual.get("date"));
-            day.put("actual",Collections.singletonList(actual));read.getItems().add(day);
+            byDay.computeIfAbsent(actual.get("date"),key->new ArrayList<>()).add(actual);
         }
+        for(Map.Entry<Object,List<Map<String,Object>>> entry:byDay.entrySet()){Map<String,Object> day=new LinkedHashMap<>();day.put("date",entry.getKey());day.put("actual",entry.getValue());read.getItems().add(day);}
+        return read;
+    }
+    private List<Card> recentActualCards(Long user,ModelContext context,ReadResult read){
         List<Card> cards=factCards(user,read);
         for(Card card:cards){
             card.getData().put("factSource","recent_actual");
