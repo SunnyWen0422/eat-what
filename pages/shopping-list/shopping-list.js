@@ -6,7 +6,7 @@ const experiencePreferences = require('../../utils/experience-preferences')
 const tokens = require('../../utils/ui-tokens')
 const flow = require('../../utils/meal-workflow')
 const pricing = require('../../utils/shopping-prices')
-const {decorateShoppingRows}=require('../../utils/shopping-list-presentation')
+const {decorateShoppingRows,shoppingPagePresentation}=require('../../utils/shopping-list-presentation')
 const confirm = (title, content, confirmText = '确认') => new Promise(resolve => wx.showModal({ title, content, confirmText, success: r => resolve(r.confirm), fail: () => resolve(false) }))
 const emptyFeedback = () => ({ requestId: '', state: '', message: '', undoAvailable: false })
 const clone = value => JSON.parse(JSON.stringify(value))
@@ -47,7 +47,7 @@ Page({
       this.applyList(store.saveLocalShoppingList(list)); this.setData({ offline: false })
     } catch (error) {
       if (epoch === this._epoch && this.current(scope)) this.setData({ offline: true, errorMessage: flow.errorMessage(error, '暂时无法读取云端，显示上次清单。新增内容可保存为待确认草稿。') })
-    } finally { if (epoch === this._epoch && this.current(scope)) this.setData({ loading: false, refreshing: false }) }
+    } finally { if (epoch === this._epoch && this.current(scope)) {this.setData({ loading: false, refreshing: false });this.renderList()} }
   },
   applyList(list) {
     const next = { version: 0, dishes: [], ...list }
@@ -66,7 +66,8 @@ Page({
     }
     const dishes = display.groups.map(group => ({ ...group,contextLabel:group.sourceDate?`${Number(group.sourceDate.slice(5,7))}月${Number(group.sourceDate.slice(8,10))}日 ${flow.mealNames[group.sourceMealType] || ''}`.trim():'手动添加', expanded: (this._expandedDishes || []).includes(group.key), items: group.items.map(decorate) }))
     const sourceMeals=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes).map(t=>({...t,label:t.date+' '+flow.mealNames[t.mealType]}))
-    this.setData({ sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
+    const pagePresentation=shoppingPagePresentation({...this.data,pendingCount:view.pendingCount,checkedCount:view.checkedCount,sourceMeals})
+    this.setData({ pagePresentation,sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
       dishes, summaryRows: decorateShoppingRows(display.rows.map(decorate), [], this._expandedSources || []) })
   },
   refreshPricing(){

@@ -74,6 +74,14 @@ Page({
   onViewMode(e) { const mode = e.currentTarget.dataset.mode; if (mode === 'summary' || mode === 'dish') {this.setData({ viewMode: mode });this.persist()} },
   onToggleDish(e) { const key=e.currentTarget.dataset.key;if(!this.current() || !this.data.shoppingView.groups.some(group=>group.selectionKey===key))return;const expanded=this.data.expandedDishes || [];this.setData({expandedDishes:expanded.includes(key)?expanded.filter(value=>value!==key):[...expanded,key]});this.refreshView() },
   onEditRow(e) { if(this.locked())return;const row=this.data.shoppingView.rows.find(item=>item.key===e.currentTarget.dataset.key);if(!row)return;if(row.sourceCount===1){const source=this.sourceEvent({currentTarget:{dataset:{key:row.sources[0].key}}});if(source)this.onEditItem(source)}else this.onSources(e) },
+  onOwnedRow(e) {
+    if(this.locked())return
+    const row=this.data.shoppingView.rows.find(item=>item.key===e.currentTarget.dataset.key)
+    if(!row)return
+    // A merged quantity never authorizes removing every recipe's source.
+    if(row.sourceCount>1)return this.onSources(e)
+    this.onRemoveSource({currentTarget:{dataset:{key:row.sources[0].sourceKey}}})
+  },
   onPeopleOptions() { if(!this.locked())this.setData({peopleVisible:true,peopleDraft:String(this.data.targetPeople),errorMessage:''}) },
   closePeople() { if(!this.data.previewLoading)this.setData({peopleVisible:false}) },
   onPeopleDraft(e) { this.setData({peopleDraft:e.detail.value}) },

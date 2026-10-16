@@ -34,9 +34,10 @@ function buildShoppingView(list = {}, status = 'pending') {
       const item = normalizeQuantitySafety(raw)
       const stableId = item.id != null ? item.id : item.clientKey || (item.sourceLineNo != null ? item.sourceLineNo : [item.sourceText, item.displayName, item.quantityText])
       const itemKey = identity('item', [source.key, stableId])
-      const origin = { ...source, key: itemKey, itemId: item.id, sourceLabel: sourceLabel(source), quantityText: item.quantityText || '用量待确认', userOverride: item.userOverride === true, note: !source.dishId && !source.sourceDate && source.dishName === '手动添加' ? item.sourceQuantityText || '' : '' }
+      const origin = { ...source, key: itemKey, sourceKey: itemKey, itemId: item.id, sourceLabel: sourceLabel(source), quantityText: item.quantityText || '用量待确认', sourceQuantityText: item.sourceQuantityText || item.sourceText || item.quantityText || '用量待确认', warnings:item.warnings || [], userOverride: item.userOverride === true, note: !source.dishId && !source.sourceDate && source.dishName === '手动添加' ? item.sourceQuantityText || '' : '' }
       const quantityLabel = item.userOverride ? item.quantityText || '用量待确认' : formatShoppingQuantity(item)
-      const value = { ...item, key: itemKey, rowKey: itemKey, name: item.displayName || '未命名食材', quantityLabel, itemIds: item.id == null ? [] : [item.id], sources: [origin], sourceCount: 1, sourceLabel: origin.sourceLabel, checkedState: checked ? 'all' : 'none' }
+      const name=item.displayName || '未命名食材'
+      const value = { ...item, key: itemKey, sourceKey:itemKey, rowKey: itemKey, name: item.normalizedVariant && !name.includes(item.normalizedVariant) ? `${name}（${item.normalizedVariant}）` : name, quantityUncertain:!item.userOverride && (!isSafeQuantity(item) || !!(item.warnings || []).length), quantityLabel, itemIds: item.id == null ? [] : [item.id], sources: [origin], sourceCount: 1, sourceLabel: origin.sourceLabel, checkedState: checked ? 'all' : 'none' }
       items.push(value)
       const safe = isSafeQuantity(item)
       const key = safe ? identity('ingredient', [item.canonicalName || item.displayName, item.unitFamily, item.unitCode, item.normalizedVariant || '']) : itemKey
@@ -54,6 +55,7 @@ function buildShoppingView(list = {}, status = 'pending') {
         row.sourceCount = row.sources.length
         row.sourceLabel = row.sources.map(entry => entry.sourceLabel).join('；')
         row.warnings = [...new Set([...(row.warnings || []), ...(item.warnings || [])])]
+        row.quantityUncertain = row.quantityUncertain || value.quantityUncertain
       }
     }
     if (items.length) groups.push({ ...dish, ...source, sourceLabel: sourceLabel(source), items })

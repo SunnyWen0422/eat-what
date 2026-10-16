@@ -21,13 +21,14 @@ const event = (key, detail = {}) => ({ currentTarget: { dataset: { key } }, deta
 function pageHarness({ list = eightSources(), check, patch, readList, mutate, reducedMotion = false, drafts = [] } = {}) {
   let owner = 'A', server = plain(list), page
   const storage = new Map([['A:shoppingListPendingOps', plain(drafts)]])
-  const calls = [], modals = [], timers = new Map(), scrolls = []
+  const calls = [], modals = [], timers = new Map(), scrolls = [], navigations = []
   let timerId = 0, priceReads = 0, capabilityReads = 0
   const util = { getUserStorageKey: key => `${owner}:${key}` }
   const wx = {
     getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, plain(value)), removeStorageSync: key => storage.delete(key),
     showToast() {}, switchTab() {}, setClipboardData() {},
     pageScrollTo: options => scrolls.push(plain(options)),
+    navigateTo: options => navigations.push(plain(options)),
     showModal: options => modals.push(options),
   }
   const api = {
@@ -66,12 +67,41 @@ function pageHarness({ list = eightSources(), check, patch, readList, mutate, re
     page.applyList(store.loadLocalShoppingList())
     return page
   }
-  return { page: createPage(), createPage, store, calls, modals, scrolls, storage,
+  return { page: createPage(), createPage, store, calls, modals, scrolls, storage,navigations,
     answer: (confirm = true) => { const modal = modals.shift(); assert.ok(modal, 'a real confirmation must be pending'); modal.success({ confirm }) },
     settle: () => { const work = [...timers.values()]; timers.clear(); work.forEach(fn => fn()) },
     switchOwner: () => { owner = 'B' }, priceReads: () => priceReads, capabilityReads: () => capabilityReads,
   }
 }
+
+test('mixed sources require explicit selection',()=>{
+ const h=pageHarness(),before=plain(h.page._full)
+ h.page.onOpenSourceMeal()
+ assert.equal(h.page.data.sourceMealsVisible,true);assert.equal(h.navigations.length,0);assert.equal(h.calls.length,0)
+ h.page.onOpenSourceMeal({currentTarget:{dataset:{key:'2026-10-10:dinner'}}})
+ assert.match(h.navigations[0].url,/date=2026-10-10&mealType=dinner/)
+ assert.deepEqual(plain(h.page._full),before);assert.equal(h.calls.length,0)
+ const checked=changedList(eightSources(),[1,2,3,4,5,6,7,8],true)
+ h.page.applyList(checked);assert.equal(h.page.data.pagePresentation.addEmphasis,'secondary');assert.equal(h.page.data.sourceMeals.length,2)
+ h.page.onOpenSourceMeal();assert.equal(h.navigations.length,1);assert.equal(h.page.data.sourceMealsVisible,true)
+})
+
+test('quantity warning expands exact raw source and collapses without editing purchase facts',()=>{
+ const list={version:2,dishes:[group('one','2026-10-16',[
+  item(1,'猪肉',{normalizedVariant:'里脊切丝',calculationStatus:'NEEDS_ADJUSTMENT',sourceQuantityText:'里脊两小块，去筋后切丝',warnings:['原始份数不明']}),
+  item(2,'猪肉',{normalizedVariant:'五花切片',sourceQuantityText:'五花肉100克'}),
+ ])]}
+ const h=pageHarness({list}),before=plain(h.page._full)
+ const uncertain=h.page.data.summaryRows.find(row=>row.itemIds.includes(1)),safe=h.page.data.summaryRows.find(row=>row.itemIds.includes(2))
+ assert.equal(uncertain.quantityUncertain,true);assert.equal(safe.quantityUncertain,false)
+ assert.match(uncertain.name,/里脊切丝/);assert.equal(uncertain.sourceExpanded,false)
+ h.page.onSourceDetails(event(uncertain.key))
+ const expanded=h.page.data.summaryRows.find(row=>row.key===uncertain.key)
+ assert.equal(expanded.sourceExpanded,true);assert.equal(expanded.sources[0].sourceQuantityText,'里脊两小块，去筋后切丝');assert.equal(expanded.sources[0].sourceDate,'2026-10-16');assert.match(expanded.sources[0].sourceLabel,/番茄炒蛋/)
+ assert.ok(expanded.sources[0].warnings.includes('原始份数不明'))
+ h.page.onSourceDetails(event(uncertain.key));assert.equal(h.page.data.summaryRows.find(row=>row.key===uncertain.key).sourceExpanded,false)
+ assert.deepEqual(plain(h.page._full),before);assert.equal(h.calls.length,0)
+})
 
 test('summaryCountsRemainSourceCounts', () => {
   const list = eightSources(), view = shoppingView().buildShoppingView(list, 'pending')

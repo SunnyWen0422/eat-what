@@ -79,3 +79,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .cost-row .ew-grow { min-width:0; flex:1; overflow-wrap:anywhere; }
 .cost-row text { display:block; }
 .cost-row button { flex:0 0 auto; max-width:45%; white-space:normal; }
+
+.shopping-page .shopping-context { display:block; margin:4px 0 8px; padding:4px 0; text-align:left; font-size:0.875em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.shopping-page button.quantity-warning { display:block; margin:0; padding:0 8px; text-align:left; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.shopping-page button.quantity-warning::after { border:0; }

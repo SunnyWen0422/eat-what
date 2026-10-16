@@ -116,18 +116,17 @@ test('page and shared WXML bindings use native data and arithmetic without funct
 
 test('both shopping views show unresolved quantities even with readable amounts and preserve manual confirmation', () => {
   const source = read('pages/shopping-list/shopping-list.wxml')
-  const warningTags = [...source.matchAll(/<view\s+wx:if="([^"]+)"\s+class="quantity-warning">([^<]+)<\/view>/g)]
+  const warningTags = [...source.matchAll(/<button\s+wx:if="([^"]+)"\s+class="[^"]*quantity-warning"[^>]*>([^<]+)<\/button>/g)]
   assert.equal(warningTags.length, 2, 'summary and meal templates both need a visible status')
-  const ingredients = require('../utils/shopping-ingredients')
   const fixtures = [
     { calculationStatus: 'NEEDS_ADJUSTMENT', quantityText: '200g', warnings: ['UNKNOWN_SERVINGS'] },
-    { calculationStatus: 'CALCULATED', quantityText: '400g', servingsVerified: true, warnings: [] },
+    { calculationStatus: 'CALCULATED', quantityText: '400g', quantityValue:400, parseStatus:'PARSED', unitFamily:'mass', unitCode:'g', servingsVerified: true, warnings: [] },
     { calculationStatus: 'CALCULATED', quantityText: '400g' },
     { calculationStatus: 'USER_OVERRIDE', quantityText: '450g', userOverride: true, warnings: [] },
   ]
   for (const tag of warningTags) {
     fixtures.forEach((fixture, index) => {
-      const item = ingredients.normalizeQuantitySafety(fixture)
+      const item = require('../utils/shopping-view').buildShoppingView({dishes:[{items:[fixture]}]}).rows[0]
       assert.equal(binding(tag[1], { item }), index === 0 || index === 2 ? 'true' : 'false')
       if (index === 0 || index === 2) assert.match(binding(tag[2], { item }), /核对|调整/)
     })

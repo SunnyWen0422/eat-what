@@ -42,7 +42,7 @@ function shoppingPage({ item = unresolved(), patch, drafts = [] } = {}) {
 }
 
 function warningsInBothViews(page, expected) {
-  const expressions = [...read('pages/shopping-list/shopping-list.wxml').matchAll(/<view wx:if="([^"]+)" class="quantity-warning">/g)].map(match => match[1].slice(2, -2))
+  const expressions = [...read('pages/shopping-list/shopping-list.wxml').matchAll(/<button wx:if="([^"]+)" class="[^"]*quantity-warning"/g)].map(match => match[1].slice(2, -2))
   assert.equal(expressions.length, 2)
   const rows = [page.data.summaryRows[0], page.data.dishes[0].items[0]]
   expressions.forEach((expression, index) => assert.equal(vm.runInNewContext(expression, { item: rows[index] }), expected))

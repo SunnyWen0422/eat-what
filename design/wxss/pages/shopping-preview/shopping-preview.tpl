@@ -67,3 +67,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 
 .preview-dish-surface { background:linear-gradient(145deg,{{glassStart}},{{glassMid}} 60%,{{glassEnd}}); border-radius:18px; padding:8px; }
+
+/* Source decisions stay visible beside quantities and wrap at enlarged text. */
+.shopping-preview-page .owned-action { flex:0 0 auto; margin:0; padding:0 4px; font-size:0.8125em; white-space:normal; }
+.shopping-preview-page .quantity-warning { display:block; margin:0; padding:0; text-align:left; font-size:0.8125em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }

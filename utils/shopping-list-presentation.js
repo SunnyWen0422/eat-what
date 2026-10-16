@@ -6,4 +6,4 @@ function decorateShoppingRows(rows,costs=[],expanded=[]) {
     return {...row,ingredientKey:cost&&cost.ingredientKey||'',actualText:cost&&cost.actualText||'—',referenceText:cost&&cost.referenceText||'—',quoteLabel:cost&&cost.quoteLabel||'暂无官方参考价',sourceExpanded:expanded.includes(row.key || row.rowKey)}
   })
 }
-module.exports={decorateShoppingRows}
+module.exports={decorateShoppingRows,...require('./shopping-page-presentation')}

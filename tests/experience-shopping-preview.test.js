@@ -15,6 +15,35 @@ function harness(options = {}) {
   return { page, sent, saved, pending, modals, redirects, storage, changeAccount: () => { scope = 'other:' } }
 }
 async function loaded(options) { const h = harness(options); h.page.onLoad(); await new Promise(resolve => setImmediate(resolve)); return h }
+test('owned exclusion preserves source identity',async()=>{
+ const h=await loaded(),first=clone(h.page.data.dishes[0]),second=clone(first)
+ Object.assign(first,{sourceDate:'2026-10-16',sourceMealType:'dinner'})
+ Object.assign(second,{sourceDate:'2026-10-17',sourceMealType:'lunch',selectionKey:'second-meal'})
+ first.items=first.items.slice(0,2).map((item,index)=>({...item,displayName:'猪肉',canonicalName:'猪肉',normalizedVariant:index?'五花切片':'里脊切丝',sourceQuantityText:index?'五花肉两片':'里脊肉少许'}))
+ second.items=[{...clone(first.items[0]),clientKey:'second-meal-0'}]
+ h.page.setData({dishes:[first,second]});h.page.refreshView()
+ const selected=h.page.data.shoppingView.rows.find(row=>row.name.includes('五花'))
+ assert.match(selected.name,/五花切片/);assert.equal(selected.quantityUncertain,true)
+ h.page.onOwnedRow({currentTarget:{dataset:{key:selected.key}}})
+ assert.equal(h.page.data.itemCount,2)
+ const duplicate=h.page.data.shoppingView.rows.filter(row=>row.name.includes('里脊'))
+ h.page.onRemoveSource({currentTarget:{dataset:{key:duplicate[1].sourceKey}}})
+ // Replaying that stale source key cannot remove the surviving same-name item.
+ h.page.onRemoveSource({currentTarget:{dataset:{key:duplicate[1].sourceKey}}})
+ await h.page.onConfirm()
+ assert.equal(h.sent[0].dishes.length,1);assert.equal(h.sent[0].dishes[0].sourceDate,'2026-10-16')
+ assert.equal(h.sent[0].dishes[0].items.length,1);assert.equal(h.sent[0].dishes[0].items[0].normalizedVariant,'里脊切丝');assert.equal(h.sent[0].dishes[0].items[0].sourceQuantityText,'里脊肉少许')
+})
+test('owned action on merged sources waits for explicit source choice',async()=>{
+ const h=await loaded();const safe={calculationStatus:'CALCULATED',servingsVerified:true,parseStatus:'PARSED',quantityValue:20,unitFamily:'mass',unitCode:'g'}
+ for(const item of h.page.data.dishes[0].items)Object.assign(item,safe)
+ h.page.refreshView();const row=h.page.data.shoppingView.rows[0]
+ h.page.onOwnedRow({currentTarget:{dataset:{key:row.key}}})
+ assert.equal(h.page.data.sourcesVisible,true);assert.equal(h.page.data.itemCount,3)
+ const source=h.page.data.sourceRows[1]
+ h.page.onRemoveSource({currentTarget:{dataset:{key:source.sourceKey}}})
+ assert.equal(h.page.data.itemCount,2);assert.equal(h.page.data.dishes[0].items.some(item=>item.clientKey===source.clientKey),false)
+})
 const event = (dishIndex = 0, itemIndex = 0) => ({ currentTarget: { dataset: { dishIndex, itemIndex } } })
 test('read-only initial quantities and unknown source counts permit one-page confirmation', async () => {
   const { page } = await loaded()
