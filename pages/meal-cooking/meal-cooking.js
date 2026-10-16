@@ -19,11 +19,27 @@ Page({
  onActualReload(...args){return actual.onActualReload.call(this,...args)},
  submitMealActual(...args){return actual.submitMealActual.call(this,...args)},
  sendMealActual(...args){return actual.sendMealActual.call(this,...args)},
- data:{recipeMode:false,actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,fontBase:require('../../utils/font-scale').base,fontScale:require('../../utils/font-scale')(),loading:true,errorMessage:'',dishes:[],steps:[],dishName:'',dishIndex:0,stepIndex:0},
+ data:{cookingActionHeight:176,reducedMotion:false,ingredientsVisible:false,recipeMode:false,actualText:'',actualVisible:false,actualNeedsReload:false,actualBusy:false,fontBase:require('../../utils/font-scale').base,fontScale:require('../../utils/font-scale')(),loading:true,errorMessage:'',dishes:[],steps:[],dishName:'',dishIndex:0,stepIndex:0},
  onLoad(options){this._recipeId=Number(options.recipeId);this.setData({recipeMode:Number.isSafeInteger(this._recipeId)&&this._recipeId>0});this._target={date:options.date,mealType:options.mealType,planRevision:Number(options.planRevision)};this._alive=true},
- onUnload(){this.disposeMealActual();this._alive=false;this._epoch=(this._epoch||0)+1},
+ onUnload(){this.disposeMealActual();this._ingredientReturnPosition=null;this._alive=false;this._epoch=(this._epoch||0)+1},
+ onReady(){this.measureCookingActions()},
+ onResize(){this.measureCookingActions()},
+ onPageScroll(e){this._scrollTop=Number.isFinite(e.scrollTop)?Math.max(0,e.scrollTop):0},
+ measureCookingActions(){
+  if(!this._alive||!wx.createSelectorQuery)return
+  const epoch=this._epoch,scope=this._scope,serial=this._positionSerial
+  const measure=()=>{
+   if(!this._alive||epoch!==this._epoch||serial!==this._positionSerial||scope!==getUserStorageKey('cooking'))return
+   wx.createSelectorQuery().in(this).select('.cooking-bottom').boundingClientRect(rect=>{
+    if(this._alive&&epoch===this._epoch&&serial===this._positionSerial&&scope===getUserStorageKey('cooking')&&rect&&rect.height>0)this.setData({cookingActionHeight:Math.ceil(rect.height)+16})
+   }).exec()
+  }
+  if(wx.nextTick)wx.nextTick(measure);else measure()
+ },
  async onShow(){
   const epoch=this._epoch=(this._epoch||0)+1,scope=getUserStorageKey('cooking')
+  this._ingredientReturnPosition=null
+  this.setData({ingredientsVisible:false,reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
   if(this._scope!==scope){this.disposeMealActual();this.setData({actualVisible:false,actualQuick:false,actualText:'',actualSavedMessage:'',actualBusy:false,actualUnknown:false,ingredientsVisible:false})}
   this._scope=scope
   this.setData({loading:true,errorMessage:'',planChanged:false,resumeNotice:'',dishes:[],steps:[],canRecordActual:!this.data.recipeMode&&this._target.date<=flow.today()})
@@ -51,19 +67,41 @@ Page({
   if(!this._alive||this._scope!==getUserStorageKey('cooking')||!this._reading)return
   const index=Number(e.currentTarget.dataset.index),dish=this.data.dishes[index];if(!Number.isInteger(index)||!dish)return
   const id=String(dish.id||dish.dishId),steps=dish.stepsList
+  this._ingredientReturnPosition=null;this._positionSerial=(this._positionSerial||0)+1
   this._reading.activeDishId=id;this.persistReading()
-  this.setData({dishIndex:index,dishName:dish.name,steps,ingredients:dish.ingredientsList,ingredientNotice:dish.ingredientNotice,stepIndex:this._reading.entries[id].stepIndex})
+  this.setData({ingredientsVisible:false,dishIndex:index,dishName:dish.name,steps,ingredients:dish.ingredientsList,ingredientNotice:dish.ingredientNotice,stepIndex:this._reading.entries[id].stepIndex},()=>this.measureCookingActions())
  },
- onHide(){if(this._alive&&this._scope===getUserStorageKey('cooking')&&this._reading)this.persistReading()},
+ onHide(){this._ingredientReturnPosition=null;this._positionSerial=(this._positionSerial||0)+1;if(this._alive&&this._scope===getUserStorageKey('cooking')&&this._reading)this.persistReading()},
  persistReading(){if(!progress.saveReading(wx,this._progressContext,this._reading))this.setData({resumeNotice:'阅读位置暂未保存，仍可继续查看做法'})},
- onIngredients(){if(this._alive&&this._scope===getUserStorageKey('cooking'))this.setData({ingredientsVisible:!this.data.ingredientsVisible})},
+ ingredientPositionCurrent(position){
+  const dish=this.data.dishes[this.data.dishIndex]
+  return !!position&&this._alive&&this._scope===getUserStorageKey('cooking')&&position.serial===this._positionSerial&&position.scope===this._scope&&position.epoch===this._epoch&&dish&&position.dishId===String(dish.id||dish.dishId)&&position.fingerprint===progress.contentFingerprint(dish)&&position.stepIndex===this.data.stepIndex
+ },
+ onIngredients(){
+  if(!this._alive||this._scope!==getUserStorageKey('cooking')||!this._reading)return
+  if(this.data.ingredientsVisible)return this.closeIngredients()
+  const dish=this.data.dishes[this.data.dishIndex];if(!dish)return
+  this._positionSerial=(this._positionSerial||0)+1
+  this._ingredientReturnPosition={serial:this._positionSerial,scope:this._scope,epoch:this._epoch,dishId:String(dish.id||dish.dishId),fingerprint:progress.contentFingerprint(dish),stepIndex:this.data.stepIndex,scrollTop:this._scrollTop||0}
+  this.setData({ingredientsVisible:true})
+ },
+ closeIngredients(){
+  const position=this._ingredientReturnPosition;this._ingredientReturnPosition=null
+  this.setData({ingredientsVisible:false},()=>{
+   if(!this.data.ingredientsVisible&&this.ingredientPositionCurrent(position)&&wx.pageScrollTo)wx.pageScrollTo({scrollTop:position.scrollTop,duration:0})
+  })
+ },
  onNextStep(){return this.moveStep(1)},onPreviousStep(){return this.moveStep(-1)},
  moveStep(amount){
   if(!this._alive||this._scope!==getUserStorageKey('cooking')||!this._reading)return
   const dish=this.data.dishes[this.data.dishIndex];if(!dish||!this.data.steps.length)return
   const next=Math.min(Math.max(this.data.stepIndex+amount,0),this.data.steps.length-1)
+  if(next===this.data.stepIndex)return
+  this._ingredientReturnPosition=null
   this._reading.entries[String(dish.id||dish.dishId)].stepIndex=next;this.persistReading()
-  this.setData({stepIndex:next},()=>{if(wx.pageScrollTo)wx.pageScrollTo({scrollTop:0,duration:0})})
+  this._positionSerial=(this._positionSerial||0)+1
+  const position={serial:this._positionSerial,scope:this._scope,epoch:this._epoch,dishId:String(dish.id||dish.dishId),fingerprint:progress.contentFingerprint(dish),stepIndex:next}
+  this.setData({ingredientsVisible:false,stepIndex:next},()=>{this.measureCookingActions();if(this.ingredientPositionCurrent(position)&&wx.pageScrollTo)wx.pageScrollTo({selector:'#cooking-step-heading',duration:this.data.reducedMotion?0:180})})
  },
  onActualAdjustment(){if(this.data.actualBusy || this.data.actualLoading || this.data.actualUnknown)return;this.setData({actualQuick:false,actualMode:'changed'})},
  onRecordActual(){if(this.data.recipeMode||!this.data.canRecordActual||this._target.date>flow.today())return;if(this._alive&&this._scope===getUserStorageKey('cooking'))return this.openMealActual({...this._target,quick:true,displayedPlanNames:this.data.dishes.map(d=>d.name).join('、')})},

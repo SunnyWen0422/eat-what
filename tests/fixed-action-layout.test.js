@@ -41,3 +41,12 @@ test('shopping footer space follows measured wrapping and ignores callbacks afte
   f.page._unloaded = true; f.height(400); f.page.measurePreviewActions()
   assert.equal(f.page.data.previewActionHeight, 267)
 })
+
+test('long final step clears bottom controls as cooking actions wrap', () => {
+  assert.match(fs.readFileSync('pages/meal-cooking/meal-cooking.wxml', 'utf8'), /padding-bottom:\{\{cookingActionHeight\}\}px/)
+  const f = pageFixture('meal-cooking')
+  f.page._alive = true; f.page._scope = 'A:cooking'
+  f.height(185.5); f.page.onReady(); assert.equal(f.page.data.cookingActionHeight, 202)
+  f.height(280.5); f.page.onResize(); assert.equal(f.page.data.cookingActionHeight, 297)
+  f.page._alive = false; f.height(400); f.page.measureCookingActions(); assert.equal(f.page.data.cookingActionHeight, 297)
+})

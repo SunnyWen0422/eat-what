@@ -1,12 +1,13 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
-.cooking-step{font-size:1em;line-height:1.8;min-height:120px;padding:20px 0;white-space:pre-wrap;word-break:break-word;color:#25332B}
-
 @import "../../styles/workspace.wxss";
-.ew-page{background:#F8F7F2}.ew-heading{margin-bottom:8px}.ew-tabs{overflow-x:auto;flex-wrap:nowrap;margin:20px 0}.ew-tabs button{flex:0 0 auto;max-width:240px;white-space:normal}.cooking-step{font-size:1.125em;line-height:1.75;margin:20px 0;min-height:180px;word-break:break-word}.ew-card{padding:20px}.ew-actions{margin-top:20px}
-
-.dish-switch-scroll { width:100%; min-width:0; }
-.cooking-ingredients { padding:16px; margin-bottom:16px; border-radius:16px; background:#FFFFFF; border:1px solid #D9E1D5; }
-.cooking-ingredients text { display:block; white-space:pre-wrap; overflow-wrap:anywhere; margin-bottom:8px; }
-.cooking-page .ew-actions { display:flex; flex-wrap:wrap; gap:12px; }
-.cooking-page .ew-actions > ui-button { flex:1 1 120px; min-width:0; }
+.cooking-page{background:#F8F7F2}
+.ew-heading{margin-bottom:8px}
+.ew-tabs{overflow-x:auto;flex-wrap:nowrap;margin:20px 0}
+.ew-tabs button{flex:0 0 auto;max-width:240px;white-space:normal}
+.dish-switch-scroll{width:100%;min-width:0}
+.cooking-step-heading text{display:block;margin-bottom:12px;overflow-wrap:anywhere}
+.cooking-step{font-size:1em;line-height:1.65;margin:20px 0;min-height:180px;white-space:pre-wrap;overflow-wrap:anywhere;color:#25332B}
+.cooking-ingredients text{display:block;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:12px}
+.cooking-bottom{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;flex-wrap:wrap;gap:16px;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));background:#F8F7F2;border-top:1px solid #D9E1D5}
+.cooking-bottom > ui-button{flex:1 1 120px;min-width:0}
