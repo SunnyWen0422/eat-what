@@ -29,14 +29,32 @@ public class MealWorkspaceTaskRunner {
     public MealWorkspaceTaskRunner(MealWorkspaceMapper db,MealWorkspaceService service,MealWorkspacePlanner planner,MealWorkspaceAgentGateway agent,ObjectMapper json,@Value("${meal-workspace.enabled:false}") boolean enabled) {
         this.db=db;this.service=service;this.planner=planner;this.agent=agent;this.json=json;this.enabled=enabled;
     }
+    /** Identity only; the worker reads the committed row on its own connection. */
+    public static final class Ready {
+        final String id,workspace;final Long user;
+        Ready(String id,String workspace,Long user){this.id=id;this.workspace=workspace;this.user=user;}
+    }
+    @org.springframework.transaction.event.TransactionalEventListener(phase=org.springframework.transaction.event.TransactionPhase.AFTER_COMMIT)
+    public void ready(Ready event){
+        if(!enabled)return;
+        try{submit(event.id,()->db.taskById(event.id,event.workspace,event.user));}
+        catch(RuntimeException unavailable){LOG.warn("workspace_dispatch_deferred kind={}",unavailable.getClass().getSimpleName());}
+    }
+    private boolean submit(String id,java.util.function.Supplier<WorkspaceTask> source){
+        if(!submitted.add(id))return true;
+        try{
+            executor.execute(()->{try{WorkspaceTask task=source.get();if(task!=null)execute(task);}
+                catch(RuntimeException deferred){LOG.warn("workspace_dispatch_deferred kind={}",deferred.getClass().getSimpleName());}
+                finally{submitted.remove(id);}});
+            return true;
+        }catch(RejectedExecutionException full){submitted.remove(id);return false;}
+    }
     @Scheduled(fixedDelay=250,initialDelay=1000)
     public void poll() {
         if(!enabled)return;
         try {
             for(WorkspaceTask task:db.pending()) {
-                if(!submitted.add(task.getId()))continue;
-                try {executor.execute(()->{try {execute(task);}finally {submitted.remove(task.getId());}});}
-                catch(RejectedExecutionException full) {submitted.remove(task.getId());break;}
+                if(!submit(task.getId(),()->task))break;
             }
         } catch(Exception e) {LOG.warn("workspace_poll_failed kind={}",e.getClass().getSimpleName());}
     }

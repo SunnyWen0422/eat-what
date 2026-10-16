@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 @Service
 public class MealWorkspaceService {
     @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private org.springframework.context.ApplicationEventPublisher events;
 
     private final MealWorkspaceMapper db;
     private final MealConsumptionMapper locks;
@@ -100,6 +101,10 @@ public class MealWorkspaceService {
                     w.setDraft(MealWorkspaceRules.prepareInteraction(w.getDraft(),command,request.getReleaseLegacyLocks()));
                     db.cancel(id,user,w.getTaskId());WorkspaceTask task=new WorkspaceTask();task.setId(UUID.randomUUID().toString());task.setWorkspaceId(id);task.setUserId(user);task.setBaseRevision(before+1);
                     Map<String,Object> input=new LinkedHashMap<>();input.put("workspace",w);input.put("request",request);task.setInputJson(encode(input));db.task(task);
+                    // The listener runs only after the owning transaction commits.
+                    // A failed notification leaves the durable recovery poll intact.
+                    try{if(events!=null)events.publishEvent(new MealWorkspaceTaskRunner.Ready(task.getId(),id,user));}
+                    catch(RuntimeException notificationUnavailable){/* durable queued row is authoritative */}
                     w.setTaskId(task.getId());w.setStatus("generating");w.setMessage("正在安排本餐");
                 } else throw new IllegalArgumentException("工作区操作无效");
             }

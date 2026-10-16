@@ -256,8 +256,27 @@ def owned_runtime(config,out,baseline=False,execution=None):
                 except OSError:
                     if time.monotonic()>until:raise RuntimeError('Owned restart readiness failed') from None
                     time.sleep(.2)
+        def create_benchmark_users(count):
+            # This closure exists only after this context created and authenticated
+            # its own DB/JVM. Never connect using a caller-supplied database target.
+            if execution is not None or not 1 <= count <= 25 or mysql.poll() is not None or jvm.poll() is not None:
+                raise ValueError('Live owned mock processes and 1..25 users required')
+            ids=list(range(920001,920001+count))
+            with connection.cursor() as c:
+                c.execute('SELECT DATABASE(), @@port')
+                if c.fetchone() != (database,db_port):raise ValueError('Owned database identity changed')
+                for user in ids:
+                    identity='owned-benchmark-'+str(user)
+                    c.execute('SELECT open_id,status FROM users WHERE id=%s',(user,));existing=c.fetchone()
+                    if existing is None:
+                        c.execute('INSERT INTO users(id,open_id,nickname,status) VALUES(%s,%s,%s,1)',(user,identity,'合成容量账户'))
+                    elif existing != (identity,1):raise ValueError('Synthetic account identity collision')
+                    c.execute('SELECT id,open_id,status FROM users WHERE id=%s',(user,))
+                    if c.fetchone() != (user,identity,1):raise ValueError('Synthetic account verification failed')
+            return ids
         yield SimpleNamespace(api=a,db=connection,state=state,model=model,java=jvm,mysql=mysql,output=out,data=data,
-                              dataset=dataset,properties=properties,config=config,restart=restart,app=app)
+                              dataset=dataset,properties=properties,config=config,restart=restart,app=app,
+                              create_benchmark_users=create_benchmark_users)
     finally:
         if connection is not None:connection.close()
         if server is not None:server.should_exit=True
@@ -268,3 +287,7 @@ def owned_runtime(config,out,baseline=False,execution=None):
                 process.terminate()
                 try:process.wait(timeout=20)
                 except subprocess.TimeoutExpired:process.kill();process.wait(timeout=10)
+        (out/'cleanup.json').write_text(json.dumps({'ownedProcesses':[
+            {'pid':p.pid,'exitCode':p.poll()} for p in processes],
+            'residualProcesses':sum(p.poll() is None for p in processes),
+            'residualPythonServerThreads':int(thread is not None and thread.is_alive())},indent=2),encoding='utf-8')
