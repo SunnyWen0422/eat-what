@@ -93,6 +93,7 @@ Page({
     const ordinaryIntent=this._openMenusRequested || ['recipeSelectionIntent','openPersonalMenus','openCustomDishForm','openPersonalMenuForm'].some(key=>wx.getStorageSync(getUserStorageKey(key)))
     const resume=this._assistantOrigin && this._assistantResumeOrigin===this._assistantOrigin && this._assistantResumeTarget===this.assistantTaskTarget()
     this._assistantResumeOrigin=null
+    this._assistantResumeNavigation=null; this._detailNavigation=null
     if(this._assistantOrigin){if(resume&&!ordinaryIntent)origins.refreshAssistantOrigin(this);else origins.bindAssistantOrigin(this,null)}
     this.setData({reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
     this._recipeVisible = true
@@ -153,15 +154,22 @@ Page({
     }catch(error){if(current())this.setData({showMenus:true,menuError:require('../../utils/meal-workflow').errorMessage(error,'这份内容暂未读到，请重新查询后再打开')})}
   },
   onHide() { this._recipeVisible = false; clearTimeout(this._recipePoll); this._visible = false; this._menuApplyEpoch = (this._menuApplyEpoch || 0) + 1; if (this._menuApplying) { this._menuApplyWasHidden = true; this._menuApplying = false } },
-  onTabItemTap() { this._assistantResumeOrigin=null; require('../../utils/assistant-origin').bindAssistantOrigin(this,null) },
+  onTabItemTap() { this._assistantResumeOrigin=null; this._assistantResumeNavigation=null; this._detailNavigation=null; require('../../utils/assistant-origin').bindAssistantOrigin(this,null) },
   assistantTaskTarget() { return JSON.stringify(['activeMealTarget','pendingRecipeRecord'].map(key=>wx.getStorageSync(getUserStorageKey(key))||null)) },
-  captureAssistantResume() { this._assistantResumeOrigin=this._assistantOrigin; this._assistantResumeTarget=this.assistantTaskTarget() },
+  captureAssistantResume(navigation=null) { this._assistantResumeOrigin=this._assistantOrigin; this._assistantResumeTarget=this.assistantTaskTarget(); this._assistantResumeNavigation=navigation },
   openTaskDishDetail(url) {
-    const origin=this._assistantOrigin
-    this.captureAssistantResume()
-    wx.navigateTo({url,fail:()=>{if(this._assistantResumeOrigin===origin)this._assistantResumeOrigin=null}})
+    if(this._unloaded || this._detailNavigation)return
+    // Keep a successful departure owned until onShow; duplicate taps must not
+    // create a second failure callback that can erase its return destination.
+    const navigation={};this._detailNavigation=navigation
+    this.captureAssistantResume(navigation)
+    wx.navigateTo({url,fail:()=>{
+      if(this._detailNavigation!==navigation)return
+      this._detailNavigation=null
+      if(this._assistantResumeNavigation===navigation){this._assistantResumeOrigin=null;this._assistantResumeNavigation=null}
+    }})
   },
-  onUnload() { if(this._assistantAppHide&&typeof wx.offAppHide==='function')wx.offAppHide(this._assistantAppHide); this._assistantAppHide=null; this._assistantResumeOrigin=null; require('../../utils/dish-workspace-handoff').disposeSelectionPage(this); this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
+  onUnload() { if(this._assistantAppHide&&typeof wx.offAppHide==='function')wx.offAppHide(this._assistantAppHide); this._assistantAppHide=null; this._assistantResumeOrigin=null; this._assistantResumeNavigation=null; this._detailNavigation=null; require('../../utils/dish-workspace-handoff').disposeSelectionPage(this); this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
   onToggleSelectionMode(){if(this.ensureBrowseOwner())this.setData({selectionMode:!this.data.selectionMode})},
   ensureBrowseOwner() {
     if (this._unloaded) return false
