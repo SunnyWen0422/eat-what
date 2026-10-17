@@ -10,6 +10,78 @@ ROOT=Path(__file__).resolve().parents[1]
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def fingerprint(subjects):
+    return hashlib.sha256(json.dumps(subjects,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
+def component_subjects(directory):
+    """Hash copied runtime bytes, not a documentation HEAD or caller's assertion."""
+    directory=Path(directory)
+    groups={'mini':('wechat/',),'web':('web/',),'java':('backend/eatwhat-backend.jar',),
+            'python':('recommend-service/','docs/assistant/'),'schema':('backend/db/','migration/'),
+            'resources':('wechat/assets/','wechat/styles/'),'config':('config/','wechat/utils/config.js'),
+            'data':('catalog/',)}
+    files={p.relative_to(directory).as_posix():digest(p) for p in directory.rglob('*') if p.is_file()}
+    subjects={}
+    for name,prefixes in groups.items():
+        members={key:value for key,value in files.items() if any(key.startswith(prefix) for prefix in prefixes)
+                 and key!='wechat/source-manifest.json'}
+        if members:subjects[name]=fingerprint(members)
+    return subjects
+
+
+def external_subjects(manifest_path):
+    if manifest_path is None:return {}
+    path=Path(manifest_path);manifest=json.loads(path.read_text(encoding='utf-8'))
+    result={}
+    for name,reference in manifest.get('externalSubjects',{}).items():
+        if not re.fullmatch(r'(config|data):[a-z0-9-]{1,64}',name):raise ValueError('Invalid external subject name')
+        source=path.parent/reference
+        if source.is_symlink() or not source.is_file():raise ValueError('External subject is not a regular file')
+        result[name]=digest(source)
+    return result
+
+
+def validate_evidence(manifest_path,actual_subjects,source_sha):
+    """External reports stay private. Only checked hashes and bounded scope leave here."""
+    result={'status':'DRAFT','deploymentAllowed':False,'evidenceStatus':'missing','entries':[]}
+    if manifest_path is None:return result
+    path=Path(manifest_path);manifest=json.loads(path.read_text(encoding='utf-8'))
+    if manifest.get('schemaVersion')!=1 or not isinstance(manifest.get('entries'),list):raise ValueError('Invalid evidence manifest')
+    required={'regression','browser','static-release','performance','native','usability','review'}
+    statuses={'verified','blocked','not-run','failed','performance-miss','partial'}
+    for entry in manifest['entries']:
+        kind=entry.get('kind');status=entry.get('status');subjects=entry.get('subjects',{})
+        if kind not in required or status not in statuses:raise ValueError('Unknown evidence kind/status')
+        if not re.fullmatch('[a-f0-9]{40}',entry.get('sourceSha','')):raise ValueError('Exact evidence source SHA required')
+        if not isinstance(subjects,dict) or not subjects:raise ValueError('Evidence subject missing')
+        if any(name not in actual_subjects or value!=actual_subjects[name] for name,value in subjects.items()):raise ValueError('Evidence subject bytes changed')
+        if entry.get('artifactFingerprint')!=fingerprint(subjects):raise ValueError('Evidence subject fingerprint mismatch')
+        # A runtime result cannot be certified by a document or resource hash alone.
+        minimum={'performance':{'java'},'browser':{'web'},'static-release':{'web'},
+                 'native':{'mini','resources'},'regression':{'mini','java','python','schema'},
+                 'usability':{'mini'},'review':{'mini','web','java','python','schema'}}[kind]
+        if not minimum.issubset(subjects):raise ValueError('Evidence subject scope incomplete')
+        if kind=='performance' and (not any(n.startswith('config:') for n in subjects) or not any(n.startswith('data:') for n in subjects)):
+            raise ValueError('Performance config/data subject missing')
+        report=path.parent/entry.get('report','')
+        if report.is_symlink() or not report.is_file() or digest(report)!=entry.get('reportSha256'):raise ValueError('Evidence report hash mismatch')
+        # The hashed report must itself bind the subjects. Updating only an index
+        # beside an older report must never make that report certify new bytes.
+        try:binding=json.loads(report.read_text(encoding='utf-8'))['evidenceBinding']
+        except (ValueError,KeyError,TypeError):raise ValueError('Evidence report binding missing') from None
+        if binding!={key:entry[key] for key in ('kind','status','sourceSha','artifactFingerprint','subjects')}:
+            raise ValueError('Evidence report subject binding differs')
+        limits=entry.get('limits')
+        if not isinstance(limits,list) or not limits or any(not isinstance(v,str) or len(v)>500 for v in limits):raise ValueError('Explicit bounded evidence limits required')
+        # Do not copy arbitrary fields, report bodies, private filenames or configs.
+        result['entries'].append({key:entry[key] for key in ('kind','status','sourceSha','artifactFingerprint','reportSha256','limits','subjects')})
+        result['entries'][-1]['reuse']='same-source' if entry['sourceSha']==source_sha else 'identical-subject-bytes'
+    result['evidenceStatus']='verified' if required=={e['kind'] for e in result['entries']} and all(e['status']=='verified' for e in result['entries']) else 'partial'
+    result['missingKinds']=sorted(required-{e['kind'] for e in result['entries']})
+    return result
+
+
 def candidate_metadata(source_sha,evidence,migration):
     if not re.fullmatch('[0-9a-f]{40}',source_sha):raise ValueError('Exact source SHA required')
     return {'sourceSha':source_sha,'schemaDelta':{name:(migration or {}).get(name,[]) for name in ('newTables','addedColumns','addedIndexes')},
@@ -41,7 +113,8 @@ def frontend_api(root):
 
 def python_inputs(root):
     root=Path(root);service=root/'recommend-service'
-    for source in sorted(service.rglob('*.py')):
+    # Explicit runtime locations; never recurse into local environments/tools/state.
+    for source in sorted([*service.glob('*.py'),*(service/'graph').rglob('*.py')]):
         if '__pycache__' not in source.parts:yield source,source.relative_to(root)
     yield service/'requirements.txt',Path('recommend-service/requirements.txt')
     # Only the runtime prompt is a release input; local prompt drafts stay private.
@@ -53,6 +126,15 @@ def python_inputs(root):
         source=root/'docs/assistant'/name
         if not source.is_file():raise ValueError('Missing runtime assistant policy: '+name)
         yield source,source.relative_to(root)
+
+
+def check_public_catalog(bundle):
+    # This is a release privacy boundary, not a data-cleaning operation.
+    for line in (Path(bundle)/'source-recipes.jsonl').read_text(encoding='utf-8').splitlines():
+        if not line.strip():continue
+        row=json.loads(line)
+        if not isinstance(row,dict) or row.get('user_id') not in (None,'') or row.get('is_custom') not in (None,'',0,'0'):
+            raise ValueError('Private/user recipe cannot enter a candidate')
 
 
 def check_prepared_migration(directory):
@@ -70,7 +152,7 @@ def check_prepared_migration(directory):
     return receipt
 
 
-def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
+def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None,evidence_manifest=None):
     bundle=release_path(bundle);out=release_path(out)
     if out.exists() or out.is_relative_to(ROOT):raise ValueError('Choose a new output directory outside the source repository')
     manifest=json.loads((bundle/'manifest.json').read_text(encoding='utf-8'))
@@ -78,6 +160,7 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     if any(name not in allowed for name in manifest['files']):raise ValueError('Unrecognized quality package member')
     for name,expected in manifest['files'].items():
         if digest(bundle/name)!=expected:raise ValueError('Quality package has changed')
+    check_public_catalog(bundle)
     api=frontend_api(ROOT)
     web_release=release_path(web_release) if web_release else None
     migration_bundle=release_path(migration_bundle) if migration_bundle else None
@@ -119,7 +202,8 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     for name in ('2026-10-10-local-merged-readiness.md',):
         source=ROOT/'docs/release'/name
         if source.is_file():copy(source,source.relative_to(ROOT))
-    for relative in ('docs/testing/product-maturity-final.md','docs/release/product-maturity-candidate.md'):
+    for relative in ('docs/testing/product-maturity-final.md','docs/release/product-maturity-candidate.md',
+                     'docs/testing/experience-continuity-final.md','docs/testing/experience-continuity-release-checklist.md'):
         source=ROOT/relative
         if source.is_file():copy(source,Path(relative))
     if web_release:
@@ -134,6 +218,10 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
     git=['git','-c','safe.directory='+ROOT.as_posix(),'-C',str(ROOT)]
     commit=subprocess.check_output(git+['rev-parse','HEAD'],text=True).strip()
     dirty=bool(subprocess.check_output(git+['status','--porcelain'],text=True).strip())
+    subjects=component_subjects(out)
+    subjects.update(external_subjects(evidence_manifest))
+    evidence=validate_evidence(evidence_manifest,subjects,commit)
+    (out/'evidence-index.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2),encoding='utf-8')
     files={p.relative_to(out).as_posix():digest(p) for p in sorted(out.rglob('*')) if p.is_file()}
     record={'status':'DRAFT','gitBaseCommit':commit,'workingTreeHasChanges':dirty,'datasetVersion':manifest['datasetVersion'],'files':files,
             'snapshotSha256':hashlib.sha256(json.dumps(files,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
@@ -141,12 +229,13 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None):
             'datasetLimitations':['unreviewed recipes cannot become trusted automatic web recommendations','unknown portions/prices/nutrition remain unknown'],
             'deploymentAllowed':False,'frontendApi':api,'webIncluded':bool(web_release),'preparedMigrationIncluded':bool(migration_bundle),
             'pythonEntrypoint':'main:app','productionConfigurationIncluded':False}
-    record.update(candidate_metadata(commit,[],migration_receipt))
+    record.update(candidate_metadata(commit,evidence['entries'],migration_receipt))
+    record.update(evidenceStatus=evidence['evidenceStatus'],artifactSubjects=subjects)
     record['artifactHashes']=files
     (out/'release-manifest.json').write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf-8')
     return {'status':record['status'],'files':len(files),'datasetVersion':record['datasetVersion'],'output':str(out),'snapshotSha256':record['snapshotSha256']}
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--quality-bundle',required=True);parser.add_argument('--out',required=True);parser.add_argument('--web-release');parser.add_argument('--migration-bundle');parser.add_argument('--jar');args=parser.parse_args()
-    print(json.dumps(package(args.quality_bundle,args.out,args.web_release,args.migration_bundle,args.jar),ensure_ascii=False,indent=2))
+    parser=argparse.ArgumentParser();parser.add_argument('--quality-bundle',required=True);parser.add_argument('--out',required=True);parser.add_argument('--web-release');parser.add_argument('--migration-bundle');parser.add_argument('--jar');parser.add_argument('--evidence-manifest');args=parser.parse_args()
+    print(json.dumps(package(args.quality_bundle,args.out,args.web_release,args.migration_bundle,args.jar,args.evidence_manifest),ensure_ascii=False,indent=2))

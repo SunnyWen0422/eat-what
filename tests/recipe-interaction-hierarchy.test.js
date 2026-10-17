@@ -35,7 +35,8 @@ test('favorite menu ignores callbacks after page ownership changes',()=>{
 })
 test('personal editor presents one current save state above its fields',()=>{
  const markup=fs.readFileSync('pages/custom-dishes/custom-dishes.wxml','utf8')
- assert.match(markup,/wx:if="{{!editing}}" class="ew-subtitle"/)
+ // E18 removed the duplicate subtitle; the current save state remains above fields.
+ assert.doesNotMatch(markup,/class="ew-subtitle"/)
  assert.match(markup,/class="ew-notice personal-edit-status"[^>]*>{{editPending \?/)
  assert.ok(markup.indexOf('personal-edit-status')<markup.indexOf('id="edit-name"'))
  assert.match(markup,/wx:if="{{formError && !editPending}}"/)

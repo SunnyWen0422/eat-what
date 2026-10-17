@@ -8,6 +8,63 @@ spec=importlib.util.spec_from_file_location('maturity_release',ROOT/'scripts/pac
 release=importlib.util.module_from_spec(spec);spec.loader.exec_module(release)
 
 class ReleaseInputsTest(unittest.TestCase):
+    def test_package_excludes_private_configuration_and_owned_catalog_rows(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/'source-recipes.jsonl'
+            source.write_text('{"id":1,"user_id":null,"is_custom":0}\n')
+            release.check_public_catalog(root)
+            for row in ({'user_id':7},{'user_id':None,'is_custom':1}):
+                source.write_text(json.dumps(row))
+                with self.assertRaisesRegex(ValueError,'Private/user'):
+                    release.check_public_catalog(root)
+
+    def test_stale_report_cannot_certify_changed_application_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);report=root/'report.json';report.write_text('{"passed":true}')
+            subjects={'java':'a'*64,'config:owned':'b'*64,'data:catalog':'c'*64}
+            entry={'kind':'performance','status':'verified','sourceSha':'a'*40,
+                   'artifactFingerprint':release.fingerprint(subjects),'subjects':subjects,
+                   'report':'report.json','reportSha256':release.digest(report),'limits':['Local MOCK only']}
+            report.write_text(json.dumps({'evidenceBinding':{key:entry[key] for key in ('kind','status','sourceSha','artifactFingerprint','subjects')}}))
+            entry['reportSha256']=release.digest(report)
+            manifest=root/'evidence.json';manifest.write_text(json.dumps({'schemaVersion':1,'entries':[entry]}))
+            result=release.validate_evidence(manifest,subjects,'b'*40)
+            self.assertEqual(result['entries'][0]['reuse'],'identical-subject-bytes')
+            self.assertNotIn('report',result['entries'][0])
+            changed=dict(subjects,java='d'*64)
+            altered=dict(entry,subjects=changed,artifactFingerprint=release.fingerprint(changed))
+            manifest.write_text(json.dumps({'schemaVersion':1,'entries':[altered]}))
+            with self.assertRaisesRegex(ValueError,'report subject binding'):
+                release.validate_evidence(manifest,changed,'b'*40)
+            manifest.write_text(json.dumps({'schemaVersion':1,'entries':[entry]}))
+            with self.assertRaisesRegex(ValueError,'subject'):
+                release.validate_evidence(manifest,dict(subjects,java='d'*64),'b'*40)
+            report.write_text('{"passed":false}')
+            with self.assertRaisesRegex(ValueError,'report'):
+                release.validate_evidence(manifest,subjects,'b'*40)
+
+    def test_missing_evidence_yields_draft_not_deployable(self):
+        result=release.validate_evidence(None,{},'a'*40)
+        self.assertEqual(result['evidenceStatus'],'missing')
+        self.assertFalse(result['deploymentAllowed'])
+        self.assertEqual(result['status'],'DRAFT')
+
+    def test_blocked_not_run_and_performance_miss_remain_visible(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);report=root/'report';report.write_text('limited')
+            subjects={'java':'a'*64,'config:owned':'b'*64,'data:catalog':'c'*64}
+            for status in ('blocked','not-run','failed','performance-miss'):
+                entry={'kind':'performance','status':status,'sourceSha':'a'*40,'subjects':subjects,
+                       'artifactFingerprint':release.fingerprint(subjects),'report':'report',
+                       'reportSha256':release.digest(report),'limits':['Gate not met']}
+                report.write_text(json.dumps({'evidenceBinding':{key:entry[key] for key in ('kind','status','sourceSha','artifactFingerprint','subjects')}}))
+                entry['reportSha256']=release.digest(report)
+                manifest=root/'manifest';manifest.write_text(json.dumps({'schemaVersion':1,'entries':[entry]}))
+                result=release.validate_evidence(manifest,subjects,'a'*40)
+                self.assertEqual(result['evidenceStatus'],'partial')
+                self.assertEqual(result['entries'][0]['status'],status)
+                self.assertFalse(result['deploymentAllowed'])
+
     def test_candidate_metadata_never_converts_partial_evidence_to_release_approval(self):
         value=release.candidate_metadata('a'*40,[],{'steps':[]})
         self.assertEqual('a'*40,value['sourceSha'])

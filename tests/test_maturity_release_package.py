@@ -46,6 +46,8 @@ class MaturityReleasePackageTest(unittest.TestCase):
             (source / 'utils').mkdir()
             (source / 'utils/config.js').write_text("const API_BASE_URL = 'https://chishenme.icu/api'\n", encoding='utf-8')
             (source / 'recommend-service/prompts/private.txt').write_text('synthetic private prompt')
+            (source / 'recommend-service/private').mkdir()
+            (source / 'recommend-service/private/provider_log.py').write_text('private sentinel')
             jar = source / 'backend/target/eatwhat-backend-1.0.0.jar'
             jar.parent.mkdir(parents=True)
             with zipfile.ZipFile(jar, 'w') as archive:
@@ -55,6 +57,7 @@ class MaturityReleasePackageTest(unittest.TestCase):
             members = ['recipes.csv', 'quality.jsonl', 'issues.csv', 'changes.jsonl', 'source-recipes.jsonl', 'review-candidates.csv', 'profile.json', 'audit.md']
             for name in members:
                 (bundle / name).write_text('synthetic public fixture', encoding='utf-8')
+            (bundle/'source-recipes.jsonl').write_text('{"id":1,"user_id":null,"is_custom":0}\n')
             (bundle / 'manifest.json').write_text(json.dumps({
                 'datasetVersion': 'synthetic-v1',
                 'files': {name: hashlib.sha256((bundle / name).read_bytes()).hexdigest() for name in members},
@@ -72,6 +75,30 @@ class MaturityReleasePackageTest(unittest.TestCase):
             self.assertFalse(record['deploymentAllowed'])
             self.assertFalse((output / 'recommend-service/.env').exists())
             self.assertFalse((output / 'recommend-service/prompts/private.txt').exists())
+            self.assertFalse((output / 'recommend-service/private/provider_log.py').exists())
+            self.assertEqual(record['evidenceStatus'],'missing')
+            report=base/'checks.json';report.write_text('{"result":"not-run"}')
+            subjects=packager.component_subjects(output)
+            evidence=base/'evidence.json'
+            evidence.write_text(json.dumps({'schemaVersion':1,'entries':[{
+                'kind':'regression','status':'partial','sourceSha':'b'*40,
+                'subjects':subjects,'artifactFingerprint':packager.fingerprint(subjects),
+                'report':'checks.json','reportSha256':packager.digest(report),
+                'limits':['Synthetic packaging test only'],'privateRecord':'must not leave source'}]}))
+            bound=json.loads(evidence.read_text());entry=bound['entries'][0]
+            report.write_text(json.dumps({'evidenceBinding':{key:entry[key] for key in ('kind','status','sourceSha','artifactFingerprint','subjects')}}))
+            entry['reportSha256']=packager.digest(report);evidence.write_text(json.dumps(bound))
+            with patch.object(packager,'ROOT',source),patch.object(packager.subprocess,'check_output',side_effect=['a'*40+'\n','']):
+                packager.package(bundle,base/'bound-release',evidence_manifest=evidence)
+            index=(base/'bound-release/evidence-index.json').read_text()
+            self.assertNotIn('privateRecord',index)
+            self.assertNotIn('checks.json',index)
+            self.assertIn('identical-subject-bytes',index)
+            (source/'app.js').write_text('changed actual application bytes')
+            with patch.object(packager,'ROOT',source),patch.object(packager.subprocess,'check_output',side_effect=['a'*40+'\n','']):
+                with self.assertRaisesRegex(ValueError,'subject bytes changed'):
+                    packager.package(bundle,base/'stale-release',evidence_manifest=evidence)
+            self.assertFalse((base/'stale-release/release-manifest.json').exists())
 
 
 if __name__ == '__main__':
