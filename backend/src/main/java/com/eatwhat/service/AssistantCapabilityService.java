@@ -12,6 +12,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class AssistantCapabilityService {
     public interface TurnExecutor {void enqueue(Long user,String turnId);}
+    public interface ReadVersion {String version(Long user,TurnScope scope);}
+    private final Map<String,ReadVersion> readVersions=new ConcurrentHashMap<>();
+    public void registerReadVersion(String name,ReadVersion provider){if(!reads.containsKey(name)||readVersions.putIfAbsent(name,Objects.requireNonNull(provider))!=null)throw new IllegalArgumentException("unsupported or duplicate read version");}
+    public String readVersion(String name,Long user,TurnScope scope){ReadVersion provider=readVersions.get(name);return provider==null?null:provider.version(user,scope);}
     public interface ReadExecutor {ReadResult read(Long user,ToolRead call,TurnScope scope);}
     public interface ActionExecutor {TurnResult execute(Long user,WorkflowStep step,TurnScope scope);}
     private final boolean enabled;

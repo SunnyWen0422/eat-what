@@ -19,6 +19,7 @@ public class AssistantV4TurnService {
     @org.springframework.beans.factory.annotation.Autowired(required=false) private ExperienceMetrics metrics;
 
     // Must match server-authored questions in assistant_v4_schema.py / assistant_v4_step.py.
+    private static final org.slf4j.Logger LOG=org.slf4j.LoggerFactory.getLogger(AssistantV4TurnService.class);
     private static final String SAFE_QUESTION="请说明要查询或调整的菜品、餐次。";
     private static final String UNAVAILABLE="本次智能理解暂不可用，请明确需求或稍后重试。";
     private static final Set<String> QUESTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("这餐安排几个人用餐？","请说明目标日期。","请说明目标餐次：早餐、午餐或晚餐。","请说明要查询或调整哪道菜。","请说明使用当前餐还是已有的日历安排。",SAFE_QUESTION,UNAVAILABLE,"这餐想优先调整什么？","这餐每道菜最多做几分钟？","这餐不吃哪些食材？")));
@@ -71,7 +72,7 @@ public class AssistantV4TurnService {
         TurnRecord lease;try{lease=store.acquireTurn(user,turnId);}catch(RuntimeException alreadyClaimed){return;}
         long observedStart=clock.millis();String observedOutcome="success";
         ExperienceMetrics.observe(metrics,"assistant_queue","success",observedStart-lease.getCreatedAt(),1);
-        boolean acquired=false;
+        boolean acquired=false;int providerCalls=0,readCalls=0,cacheHits=0;
         try {
             TurnRequest request=store.turnRequest(user,turnId);
             AiProtectionService.Decision decision=protection.acquire(user,"assistant-v4",request.getMessage().getBytes(StandardCharsets.UTF_8).length);
@@ -80,13 +81,13 @@ public class AssistantV4TurnService {
             Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
-            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;List<ReadResult> answerReads=new ArrayList<>();
+            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;List<ReadResult> answerReads=new ArrayList<>();AssistantTurnReadCache readCache=new AssistantTurnReadCache(json);
             for(int round=0;round<4;round++){
                 active(user,lease);
                 // Keep 0.5s for local completion inside the unchanged 30s lease. Each HTTP attempt
                 // has at most 23s: Python reserves 3s of that envelope and waits at most 20s.
                 if(lease.getModelDeadlineAt()-clock.millis()<4000)throw new IllegalStateException("请求剩余时间不足");
-                int used=store.reserveProviderCall(user,turnId,lease.getLeaseToken());
+                int used=store.reserveProviderCall(user,turnId,lease.getLeaseToken());providerCalls++;
                 long now=clock.millis(),outerMillis=Math.min(23000,lease.getModelDeadlineAt()-now-500);
                 if(outerMillis<3500)throw new IllegalStateException("请求剩余时间不足");
                 input.setTimeoutSeconds(outerMillis/1000.0);input.setDeadlineEpochMillis(now+outerMillis);input.setFinalRound(used==4||readCount==8);
@@ -106,9 +107,11 @@ public class AssistantV4TurnService {
                     validateContinuation(output.getProviderContinuation(),calls,input.getProviderContinuation(),input.getReadResults());
                     Set<String> batch=new HashSet<>();for(ToolRead call:calls){if(call==null||call.getCallId()==null||call.getCallId().length()>100||call.getCallId().isEmpty()||usedCalls.contains(call.getCallId())||!batch.add(call.getCallId())||!caps.getReads().contains(call.getName()))throw new IllegalArgumentException("查询内容无效");registry.readExecutor(call.getName());}
                     List<ReadResult> results=new ArrayList<>();
-                    for(ToolRead call:calls){active(user,lease);ReadResult read=registry.readExecutor(call.getName()).read(user,call,scope);active(user,lease);
+                    for(ToolRead call:calls){active(user,lease);readCalls++;
+                        String sourceVersion=registry.readVersion(call.getName(),user,scope);ReadResult read=readCache.find(call.getName(),call.getArguments(),sourceVersion);boolean cached=read!=null;
+                        if(cached){read.setCallId(call.getCallId());cacheHits++;}else{read=registry.readExecutor(call.getName()).read(user,call,scope);readCache.put(call.getName(),call.getArguments(),sourceVersion,read);}active(user,lease);
                         if(read==null||!Objects.equals(read.getCallId(),call.getCallId())||!Objects.equals(read.getName(),call.getName()))throw new IllegalArgumentException("查询结果不匹配");
-                        int length=encode(read).length();if(factChars+length>12000){TurnResult stopped=result("needs_input","查询内容较多，请缩小日期范围或菜品范围",false);stopped.setCards(facts);stopped.setWorkspaceRef(reference(scope));finish(user,lease,stopped);return;}
+                        int length=cached?0:encode(read).length();if(factChars+length>12000){TurnResult stopped=result("needs_input","查询内容较多，请缩小日期范围或菜品范围",false);stopped.setCards(facts);stopped.setWorkspaceRef(reference(scope));finish(user,lease,stopped);return;}
                         factChars+=length;readCount++;usedCalls.add(call.getCallId());authorizeRead(read,scope);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromRead(read,call));mergeFacts(facts,factCards(user,read));results.add(read);answerReads.add(read);
                     }
                     input.setReadResults(results);input.setProviderContinuation(output.getProviderContinuation());continue;
@@ -154,7 +157,7 @@ public class AssistantV4TurnService {
                 if(executeStep(user,lease,scope,true,c,"meal_reply.v1".equals(input.getReplyContract())?output.getAnswer():null))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
-        }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);}}
+        }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);LOG.info("assistant_turn provider_calls={} read_calls={} read_cache_hits={} workflow_outcome={} duration_ms={}",providerCalls,readCalls,cacheHits,observedOutcome,clock.millis()-observedStart);}}
     }
     private String failRunning(Long user,TurnRecord lease){try{TurnRecord current=store.turnRecord(user,lease.getId());if(!"running".equals(current.getStatus()))return "cancelled".equals(current.getStatus())?"cancel":"error";if(current.getLeaseUntil()<=clock.millis()){store.recoverExpired(user,lease.getId());return "timeout";}TurnResult r=result("failed","本次处理未完成，请重新发送；已有内容仍保留",true);r.setContinuation(store.continuation(user,lease.getId()));r.setWorkspaceRef(store.findTurn(user,lease.getId()).getWorkspaceRef());finish(user,lease,r);}catch(RuntimeException stale){/* Cancellation/deletion wins over a late result. */}return "error";}
     private boolean changesUninterpretedRequirements(ActionProposal proposal,ModelContext context){
