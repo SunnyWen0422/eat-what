@@ -45,6 +45,14 @@ public class DishCandidateQueryService {
             return new DishPageDTO(rows, total, page, pageSize);
         }
 
+        List<String> han=new ArrayList<>();boolean exactHan=!safe(value.getExcludedIngredients()).isEmpty()&&safe(value.getExcludeTagCodes()).isEmpty();
+        for(String term:safe(value.getExcludedIngredients()))if(term!=null&&!term.trim().isEmpty()){String word=term.trim();if(!isHanOnly(word))exactHan=false;han.add(word);}
+        if(exactHan&&!han.isEmpty()){
+            int count=dishMapper.countHanExcludedDishes(userId,safeType,safeKeyword,safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),han);
+            List<Dish> pageRows=offset>=count?Collections.emptyList():dishMapper.selectHanExcludedDishesPage(userId,safeType,safeKeyword,safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),han,pageSize,offset);
+            return new DishPageDTO(pageRows,count,page,pageSize);
+        }
+
         int total = 0;
         Long beforeId = null;
         List<Long> selected = new ArrayList<>();
@@ -111,6 +119,20 @@ public class DishCandidateQueryService {
             beforeId=next;if(batch.size()<256)break;
         }
         return result;
+    }
+
+    /** Validates a bounded identity set with exactly the ranking SQL/Java hard predicates. */
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public List<Dish> findSelectedForUser(Long user,List<Long> ids,RecommendationCriteria criteria){
+        if(ids==null||ids.isEmpty())return Collections.emptyList();if(ids.size()>20)throw new IllegalArgumentException("所选菜品过多");
+        Set<Long> requested=new java.util.LinkedHashSet<>(ids);if(requested.contains(null)||requested.stream().anyMatch(id->id<1))throw new IllegalArgumentException("菜品编号无效");
+        RecommendationCriteria value=criteria==null?new RecommendationCriteria():criteria;
+        List<Dish> selected=dishMapper.selectSelectedCandidateFacts(user,null,null,safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),new ArrayList<>(requested));
+        Map<Long,Dish> available=new HashMap<>();if(selected!=null)for(Dish dish:selected){
+            if(dish==null||dish.getId()==null||!requested.contains(dish.getId())||(dish.getUserId()!=null&&!user.equals(dish.getUserId())))throw new IllegalStateException("所选菜品不可访问");
+            if(!hasExcludedTag(dish,value.getExcludeTagCodes())&&!containsExcludedIngredient(dish,value.getExcludedIngredients()))available.put(dish.getId(),dish);
+        }
+        List<Dish> result=new ArrayList<>();for(Long id:requested)if(available.containsKey(id))result.add(available.get(id));return result;
     }
 
     /** Materialize only selected IDs, preserving order and rejecting changed selection facts. */

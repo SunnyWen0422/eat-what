@@ -62,6 +62,23 @@ public interface DishMapper {
         @Param("cuisineCodes") List<String> cuisineCodes, @Param("includeTagCodes") List<String> includeTagCodes,
         @Param("maxCookMinutes") Integer maxCookMinutes, @Param("beforeId") Long beforeId, @Param("limit") int limit);
 
+    // Exact UTF-8 byte containment matches Java String.contains for Han-only terms.
+    String HAN_EXCLUSIONS="<foreach item='ingredient' collection='excludedIngredients'> AND INSTR(CAST(COALESCE(CL,'') AS BINARY),CAST(#{ingredient} AS BINARY))=0 AND INSTR(CAST(COALESCE(INGREDIENTS_AMOUNTS,'') AS BINARY),CAST(#{ingredient} AS BINARY))=0 </foreach>";
+    @Select("<script>SELECT COUNT(*) "+FILTERED_FROM+HAN_EXCLUSIONS+"</script>")
+    int countHanExcludedDishes(@Param("userId") Long user,@Param("type") String type,@Param("keyword") String keyword,
+        @Param("cuisineCodes") List<String> cuisines,@Param("includeTagCodes") List<String> tags,@Param("maxCookMinutes") Integer max,@Param("excludedIngredients") List<String> excluded);
+    @Select("<script>SELECT "+CANDIDATE_COLUMNS+FILTERED_FROM+HAN_EXCLUSIONS+" ORDER BY ID DESC LIMIT #{limit} OFFSET #{offset}</script>")
+    @Options(useCache=false)
+    List<Dish> selectHanExcludedDishesPage(@Param("userId") Long user,@Param("type") String type,@Param("keyword") String keyword,
+        @Param("cuisineCodes") List<String> cuisines,@Param("includeTagCodes") List<String> tags,@Param("maxCookMinutes") Integer max,@Param("excludedIngredients") List<String> excluded,@Param("limit") int limit,@Param("offset") long offset);
+
+    /** Same hard SQL predicates as ranking, restricted to the requested IDs. */
+    @Select("<script>SELECT ID as id,NAME as name,TYPE as type,CL as cl,INGREDIENTS_AMOUNTS as ingredientsAmounts,TAG_CODES as tagCodes,CUISINE_CODE as cuisineCode,COOK_MINUTES as cookMinutes,METADATA_VERSION as metadataVersion,user_id as userId "
+        + FILTERED_FROM + "AND <choose><when test='ids != null and ids.size() > 0'>ID IN <foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach></when><otherwise>1=0</otherwise></choose></script>")
+    @Options(useCache=false)
+    List<Dish> selectSelectedCandidateFacts(@Param("userId") Long userId,@Param("type") String type,@Param("keyword") String keyword,
+        @Param("cuisineCodes") List<String> cuisines,@Param("includeTagCodes") List<String> tags,@Param("maxCookMinutes") Integer max,@Param("ids") List<Long> ids);
+
     /** At most one requested page of complete recipes, still scoped to the current reader. */
     @Select("<script>" + "SELECT " + CANDIDATE_COLUMNS
         + "FROM food WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) AND "

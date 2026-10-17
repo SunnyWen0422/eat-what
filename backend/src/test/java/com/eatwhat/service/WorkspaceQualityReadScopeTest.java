@@ -35,6 +35,7 @@ class WorkspaceQualityReadScopeTest {
                     .sorted(Comparator.comparing(Dish::getId).reversed()).limit(limit)
                     .peek(d->d.setSteps(null)).collect(Collectors.toList());
             });
+            when(dishes.selectSelectedCandidateFacts(eq(7L),any(),any(),anyList(),anyList(),any(),anyList())).thenAnswer(call->{List<Long> ids=call.getArgument(6);return rawRows().stream().filter(d->ids.contains(d.getId())).collect(Collectors.toList());});
             when(dishes.selectFilteredPageDetails(anyList(),eq(7L))).thenAnswer(call -> {
                 List<Long> ids=call.getArgument(0);assertTrue(ids.size()<=256);
                 return rawRows().stream().filter(d->ids.contains(d.getId())).collect(Collectors.toList());

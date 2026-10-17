@@ -56,6 +56,14 @@ public class MealWorkspacePlanner {
         if(!uniform)pool.sort(Comparator.comparingInt((Dish d)->scores.get(d.getId())).reversed());
         return new RankedCandidates(pool,criteria,recentIds);
     }
+    private RankedCandidates selected(Long user,MealContext c,SelectionOrigin origin,List<Long> requested,Set<Long> locked){
+        if(!metadata.validateCriteria(c.getCriteria()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
+        EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolve(c.getCriteria(),preferences.get(user),true);
+        LinkedHashSet<Long> ids=new LinkedHashSet<>(locked);if(requested!=null)ids.addAll(requested);
+        List<Dish> pool=new ArrayList<>(candidates.findSelectedForUser(user,new ArrayList<>(ids),criteria));
+        if(origin==SelectionOrigin.AUTOMATIC&&"breakfast".equals(c.getMealType()))pool.removeIf(d->!Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE"));
+        return new RankedCandidates(pool,criteria,recentDishIds(user,c,criteria.getAvoidRecentDays()));
+    }
     private Set<Long> recentDishIds(Long user,MealContext context,Integer days) {
         if (days == null || days <= 0) return Collections.emptySet();
         java.time.LocalDate end=MealConsumptionService.date(context.getDate());
@@ -80,7 +88,8 @@ public class MealWorkspacePlanner {
     }
     private PlanDraft generate(Long user,MealWorkspace w,String command,Long target,List<Long> selected,SelectionOrigin origin) {
         MealContext c=MealWorkspaceRules.normalize(w.getContext());PlanDraft prior=w.getDraft();
-        RankedCandidates ranking=rank(user,c,origin);List<Dish> pool=ranking.pool;Map<Long,Dish> valid=pool.stream().collect(Collectors.toMap(Dish::getId,d->d,(a,b)->a));
+        if("select".equals(command)&&(selected==null||selected.isEmpty()||selected.size()>10))throw new IllegalArgumentException("请选择 1 至 10 道菜");
+        RankedCandidates ranking="select".equals(command)?selected(user,c,origin,selected,prior.getLockedDishIds()):rank(user,c,origin);List<Dish> pool=ranking.pool;Map<Long,Dish> valid=pool.stream().collect(Collectors.toMap(Dish::getId,d->d,(a,b)->a));
         if ("replace".equals(command)) {
             Dish old=prior.getDishes().stream().filter(d->Objects.equals(d.getId(),target)).findFirst().orElseThrow(()->new IllegalArgumentException("菜品不在方案中"));
             Set<Long> used=prior.getDishes().stream().map(Dish::getId).collect(Collectors.toSet());
@@ -149,7 +158,7 @@ public class MealWorkspacePlanner {
         List<Long> ids=w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList());
         if(completeContext){lockAndValidateAssistant(user,w,ids);return;}
         Map<Long,Dish> readable=enrich(dishes.lockReadableDishes(ids,user)).stream().collect(Collectors.toMap(Dish::getId,d->d));
-        Set<Long> allowed=eligible(user,w.getContext(),"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC).stream().map(Dish::getId).collect(Collectors.toSet());
+        Set<Long> allowed=selected(user,w.getContext(),"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC,ids,w.getDraft().getLockedDishIds()).pool.stream().map(Dish::getId).collect(Collectors.toSet());
         for(Dish dish:w.getDraft().getDishes())if(!allowed.contains(dish.getId())||!MealWorkspaceRules.sameRecipe(dish,readable.get(dish.getId())))throw new MealConsumptionService.VersionConflict("撤销内容已不可用或不符合当前限制");
     }
     private PlanDraft validateSelection(Long user,MealWorkspace w,List<Long> ids,SelectionOrigin origin) {
