@@ -337,7 +337,8 @@ async function assistantCardEvidence(mini,page,call,out,width,expected) {
  const capture=async label=>{const file=path.join(out,'assistant-'+label+'-w'+width+'-f2.png');await bounded(mini.screenshot({path:file}));result.evidence.push(file)}
  const inspect=async()=>{
   const rows=[]
-  for(const host of await bounded(page.$$('assistant-card'))){const card=await bounded(host.data('card')),view=await bounded(host.data('view'));if(!card||!view)continue;rows.push({host,card,view})}
+  // The SDK exposes the registered component path, not its WXML alias.
+  for(const host of await bounded(page.$$('components\\/assistant-card\\/index'))){const card=await bounded(host.data('card')),view=await bounded(host.data('view'));if(!card||!view)continue;rows.push({host,card,view})}
   return rows
  }
  const reach=async element=>{
@@ -346,7 +347,7 @@ async function assistantCardEvidence(mini,page,call,out,width,expected) {
   return box(element)
  }
  let cards=await inspect()
- const historical=cards.find(c=>!!c.card.receiptRef),preview=cards.find(c=>c.view.canConfirm&&c.card.type==='calendar_save')
+ const historical=cards.find(c=>!!c.card.receiptRef),preview=cards.find(c=>c.view.canConfirm&&c.card.active&&c.card.type==='calendar_save')
  if(!historical||!preview)throw Error('Native history receipt or unconfirmed preview card absent')
  for(const [kind,item] of [['historical',historical],['preview',preview]]){
   const root=await bounded(item.host.$('.assistant-card')),title=await bounded(item.host.$('.card-title'))
@@ -354,7 +355,7 @@ async function assistantCardEvidence(mini,page,call,out,width,expected) {
   result.cards.push({kind,type:item.card.type,target:item.view.targetLabel,receiptPresent:!!item.card.receiptRef,canConfirm:item.view.canConfirm,active:await bounded(item.host.data('active')),titleBox:rect,rootBox:await box(root),fontSize:await bounded(root.style('font-size'))})
  }
  let confirm
- for(const action of await bounded(preview.host.$$('ui-button')))if(await bounded(action.data('label'))==='确认保存计划'){confirm=await bounded(action.$('.button'));break}
+ for(const action of await bounded(preview.host.$$('.card-action')))if(await bounded(action.data('label'))==='确认保存计划'){confirm=await bounded(action.$('.button'));break}
  if(!confirm)throw Error('Unconfirmed preview confirmation control absent')
  result.confirmBox=await reach(confirm);result.confirmFontSize=await bounded(confirm.style('font-size'))
  result.confirmReachable=result.confirmBox.left>=0&&result.confirmBox.left+result.confirmBox.width<=width+1&&result.confirmBox.top>=viewport.top-1&&result.confirmBox.top+result.confirmBox.height<=viewport.top+viewport.height+1&&result.confirmBox.height>=47.5
