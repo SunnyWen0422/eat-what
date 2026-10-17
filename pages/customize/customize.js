@@ -80,9 +80,20 @@ Page({
   },
 
   async onShow() {
-    // Tab pages are reused: only a fresh consumed handoff below may expose a
-    // conversation return on this visit. Keep editor and request state intact.
-    if(this._assistantOrigin)require('../../utils/assistant-origin').bindAssistantOrigin(this,null)
+    const origins=require('../../utils/assistant-origin')
+    if(!this._assistantAppHide && typeof wx.onAppHide==='function'){
+      this._assistantAppHide=()=>{
+        const stack=typeof getCurrentPages==='function'?getCurrentPages():[]
+        if(stack[stack.length-1]===this)this.captureAssistantResume()
+      }
+      wx.onAppHide(this._assistantAppHide)
+    }
+    // A consumed source belongs to this task, not every future visit to the Tab.
+    // Detail navigation and app background are explicit resume signals.
+    const ordinaryIntent=this._openMenusRequested || ['recipeSelectionIntent','openPersonalMenus','openCustomDishForm','openPersonalMenuForm'].some(key=>wx.getStorageSync(getUserStorageKey(key)))
+    const resume=this._assistantOrigin && this._assistantResumeOrigin===this._assistantOrigin && this._assistantResumeTarget===this.assistantTaskTarget()
+    this._assistantResumeOrigin=null
+    if(this._assistantOrigin){if(resume&&!ordinaryIntent)origins.refreshAssistantOrigin(this);else origins.bindAssistantOrigin(this,null)}
     this.setData({reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
     this._recipeVisible = true
     this._visible = true
@@ -142,7 +153,15 @@ Page({
     }catch(error){if(current())this.setData({showMenus:true,menuError:require('../../utils/meal-workflow').errorMessage(error,'这份内容暂未读到，请重新查询后再打开')})}
   },
   onHide() { this._recipeVisible = false; clearTimeout(this._recipePoll); this._visible = false; this._menuApplyEpoch = (this._menuApplyEpoch || 0) + 1; if (this._menuApplying) { this._menuApplyWasHidden = true; this._menuApplying = false } },
-  onUnload() { require('../../utils/dish-workspace-handoff').disposeSelectionPage(this); this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
+  onTabItemTap() { this._assistantResumeOrigin=null; require('../../utils/assistant-origin').bindAssistantOrigin(this,null) },
+  assistantTaskTarget() { return JSON.stringify(['activeMealTarget','pendingRecipeRecord'].map(key=>wx.getStorageSync(getUserStorageKey(key))||null)) },
+  captureAssistantResume() { this._assistantResumeOrigin=this._assistantOrigin; this._assistantResumeTarget=this.assistantTaskTarget() },
+  openTaskDishDetail(url) {
+    const origin=this._assistantOrigin
+    this.captureAssistantResume()
+    wx.navigateTo({url,fail:()=>{if(this._assistantResumeOrigin===origin)this._assistantResumeOrigin=null}})
+  },
+  onUnload() { if(this._assistantAppHide&&typeof wx.offAppHide==='function')wx.offAppHide(this._assistantAppHide); this._assistantAppHide=null; this._assistantResumeOrigin=null; require('../../utils/dish-workspace-handoff').disposeSelectionPage(this); this._unloaded = true; clearTimeout(this.searchTimer); this._pageEpoch = (this._pageEpoch || 0) + 1; this._privateEpoch = (this._privateEpoch || 0) + 1; this._pendingPlanWrite = null },
   onToggleSelectionMode(){if(this.ensureBrowseOwner())this.setData({selectionMode:!this.data.selectionMode})},
   ensureBrowseOwner() {
     if (this._unloaded) return false
@@ -460,15 +479,13 @@ Page({
     const id = Number(e.currentTarget.dataset.id), people = Number(e.currentTarget.dataset.people)
     if (!Number.isSafeInteger(id) || id < 1) return
     const targetPeople = Number.isInteger(people) && people >= 1 && people <= 50 ? people : 2
-    wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${targetPeople}` })
+    this.openTaskDishDetail(`/pages/dish-detail/dish-detail?id=${id}&people=${targetPeople}`)
   },
   onTapDish(e) {
     if (!this.ensureBrowseOwner()) return
     const dish = e.detail && e.detail.id ? this.allDishesMap[e.detail.id] || {id:e.detail.id} : e.currentTarget.dataset.dish
     if (!dish || !dish.id) return
-    wx.navigateTo({
-      url: `/pages/dish-detail/dish-detail?id=${dish.id}&people=${this.data.selectedMeal ? this.data.selectedMeal.people : 2}`
-    })
+    this.openTaskDishDetail(`/pages/dish-detail/dish-detail?id=${dish.id}&people=${this.data.selectedMeal ? this.data.selectedMeal.people : 2}`)
   },
 
   // 勾选/取消
@@ -611,7 +628,7 @@ Page({
 
   onHideMealSelected(){this.setData({showMealSelected:false})},
   onRemoveMealDish(e){return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'remove',Number(e.currentTarget.dataset.id),this.selectionOptions())},
-  onSelectedDish(e){if(this.ensureBrowseOwner())wx.navigateTo({url:'/pages/dish-detail/dish-detail?id='+Number(e.currentTarget.dataset.id)+'&people='+(this.data.selectedMeal?this.data.selectedMeal.people:2)})},
+  onSelectedDish(e){if(this.ensureBrowseOwner())this.openTaskDishDetail('/pages/dish-detail/dish-detail?id='+Number(e.currentTarget.dataset.id)+'&people='+(this.data.selectedMeal?this.data.selectedMeal.people:2))},
   onContinueSelecting(){this.setData({showMealSelected:false,showSelectedPanel:false})},
   selectionOptions() { return { api, wx, storageKey:getUserStorageKey, current:()=>this.ensureBrowseOwner(), errorKey:'saveError' } },
   refreshSelectedMeal() { return require('../../utils/dish-workspace-handoff').refreshSelectionPage(this,this.selectionOptions()) },

@@ -39,7 +39,8 @@ test('return prefers a matching real stack and only reconstructs whitelisted tar
 // Load real page and helper code; replace only platform and HTTP boundaries.
 function pageFixture(route){
  let account='A',apiBase='http://127.0.0.1/synthetic',definition;const rows=new Map(),navigation=[],dialogs=[],writes=[],cache={};let stack=[]
- const wx={getStorageSync:k=>plain(rows.get(k)),setStorageSync:(k,v)=>rows.set(k,plain(v)),removeStorageSync:k=>rows.delete(k),getStorageInfoSync:()=>({keys:[...rows.keys()]}),showModal:o=>dialogs.push(o),showToast(){},navigateTo:o=>navigation.push({mode:'navigateTo',url:o.url}),switchTab:o=>navigation.push({mode:'switchTab',url:o.url}),navigateBack:o=>navigation.push({mode:'back',delta:o.delta}),enableAlertBeforeUnload(){},disableAlertBeforeUnload(){}}
+ const appHideListeners=new Set()
+ const wx={onAppHide:fn=>appHideListeners.add(fn),offAppHide:fn=>appHideListeners.delete(fn),getStorageSync:k=>plain(rows.get(k)),setStorageSync:(k,v)=>rows.set(k,plain(v)),removeStorageSync:k=>rows.delete(k),getStorageInfoSync:()=>({keys:[...rows.keys()]}),showModal:o=>dialogs.push(o),showToast(){},navigateTo:o=>navigation.push({mode:'navigateTo',url:o.url}),switchTab:o=>navigation.push({mode:'switchTab',url:o.url}),navigateBack:o=>navigation.push({mode:'back',delta:o.delta}),enableAlertBeforeUnload(){},disableAlertBeforeUnload(){}}
  const http=new Proxy({getPersonalMenus:async()=>[],getMealWorkspace:async()=>({}),getUserPreferences:async()=>({})},{get:(obj,k)=>obj[k]|| (async()=>{if(!String(k).startsWith('get'))writes.push(k);return{}})})
  const sandbox={wx,Page:v=>definition=v,getCurrentPages:()=>stack,getApp:()=>({globalData:{loginReady:true}}),console,setTimeout,clearTimeout}
  function load(file){
@@ -54,7 +55,7 @@ function pageFixture(route){
  }
  load(path.resolve(`pages/${route}/${route}.js`))
  const page={...definition,data:plain(definition.data),setData:v=>Object.assign(page.data,v)}
- return{page,wx,rows,navigation,dialogs,writes,http,load:n=>load(path.resolve('utils',n+'.js')),stack:v=>stack=v,switch:()=>account='B',apiSwitch:()=>apiBase='http://127.0.0.1/other'}
+ return{page,wx,rows,navigation,dialogs,writes,http,appHide:()=>appHideListeners.forEach(fn=>fn()),load:n=>load(path.resolve('utils',n+'.js')),stack:v=>stack=v,switch:()=>account='B',apiSwitch:()=>apiBase='http://127.0.0.1/other'}
 }
 const handoffs=[['record_actual','calendar-detail',{ref:{},target}],['edit_preferences','settings',{ref:{}}],['edit_shopping','shopping-list',{ref:{itemId:7},sourceVersion:'1'}],['copy_recipe','custom-dishes',{ref:{dishId:7},sourceVersion:'v1'}],['save_personal_menu','customize',{ref:{workspaceId:'workspace-1'},target,sourceVersion:'1:1'}],['use_personal_menu','customize',{ref:{menuId:3},target,sourceVersion:'1'}],['view_favorite','dish-detail',{ref:{dishId:7}}]]
 for(const [kind,route,fields] of handoffs)test(`${kind} handoff returns to its original session without writing`,async()=>{
@@ -150,6 +151,60 @@ test('ordinary Tab revisit clears prior origin and a new valid handoff rebinds w
  const token=h.currentStore().put({kind:'use_personal_menu',ref:{menuId:3},target,sourceVersion:'1'},{...source(),sessionId:'session-2'})
  f.rows.set('A:assistantActionTab',{token});await f.page.onShow()
  assert.equal(f.page.data.assistantReturnVisible,true);assert.equal(f.page._assistantOrigin.sessionId,'session-2');assert.equal(f.page.data.menuName,'待核对的原菜单');assert.equal(f.page.data.menuPending,true);assert.equal(f.page._pendingPlanWrite.requestId,'original-menu-request');assert.equal(f.writes.length,0)
+})
+
+async function activeRecipeTask(){
+ const f=pageFixture('customize'),h=f.load('assistant-action-handoff')
+ f.page.refreshSelectedMeal=async()=>{};f.stack([f.page]);await f.page.onShow()
+ f.page.data.menuPending=true;f.page.data.menuFormVisible=true;f.page.data.menuName='保留的菜单输入'
+ f.page._pendingPlanWrite={requestId:'original-pending-menu'}
+ f.rows.set('A:assistantActionTab',{token:h.currentStore().put({kind:'use_personal_menu',ref:{menuId:3},target,sourceVersion:'1'},source())})
+ await f.page.applyAssistantMenuHandoff();assert.equal(f.page._assistantOrigin.sessionId,'session-1')
+ assert.equal(f.rows.has('A:assistantActionTab'),false)
+ return f
+}
+for(const method of ['onMenuDish','onTapDish','onSelectedDish'])test(`${method} detail round trip preserves the consumed source and pending editor without writes`,async()=>{
+ const f=await activeRecipeTask()
+ f.page[method]({detail:{id:7},currentTarget:{dataset:{id:7,people:2,dish:{id:7}}}})
+ assert.match(f.navigation.at(-1).url,/pages\/dish-detail\/dish-detail\?id=7/)
+ f.page.onHide();f.stack([f.page]);await f.page.onShow()
+ assert.equal(f.page.data.assistantReturnVisible,true);assert.equal(f.page._assistantOrigin.sessionId,'session-1')
+ assert.equal(f.page.data.menuName,'保留的菜单输入');assert.equal(f.page.data.menuPending,true);assert.equal(f.page._pendingPlanWrite.requestId,'original-pending-menu')
+ f.navigation.length=0;f.page.onAssistantReturn();assert.equal(f.navigation.length,0);assert.equal(f.dialogs.at(-1).showCancel,false);assert.equal(f.writes.length,0)
+})
+test('app foreground resumes only the active Recipes task even when app hide follows page hide',async()=>{
+ const f=await activeRecipeTask();f.page.onHide();f.appHide();await f.page.onShow()
+ assert.equal(f.page.data.assistantReturnVisible,true);assert.equal(f.page._assistantOrigin.sessionId,'session-1');assert.equal(f.page.data.menuPending,true);assert.equal(f.page._pendingPlanWrite.requestId,'original-pending-menu');assert.equal(f.writes.length,0)
+ f.page.onHide();f.stack([{route:'pages/index/index'}]);f.appHide();f.stack([f.page]);await f.page.onShow()
+ assert.equal(f.page.data.assistantReturnVisible,false)
+})
+test('foreground with dirty editor retains input and canceled return does not navigate or save',async()=>{
+ const f=await activeRecipeTask();f.page.data.menuPending=false;f.page._pendingPlanWrite=null
+ f.appHide();f.page.onHide();await f.page.onShow()
+ f.page.onAssistantReturn();assert.equal(f.navigation.length,0);assert.equal(f.dialogs.length,1)
+ f.dialogs[0].success({confirm:false});assert.equal(f.page.data.menuName,'保留的菜单输入');assert.equal(f.page.data.menuFormVisible,true)
+ f.page.data.menuFormVisible=false;f.page.onAssistantReturn();assert.match(f.navigation.at(-1).url,/sessionId=session-1/);assert.equal(f.writes.length,0)
+ f.page.onHide();await f.page.onShow();assert.equal(f.page.data.assistantReturnVisible,false)
+})
+test('failed detail navigation and unloaded page cannot retain a resume signal',async()=>{
+ const f=await activeRecipeTask();f.wx.navigateTo=o=>o.fail()
+ f.page.onSelectedDish({currentTarget:{dataset:{id:7}}});f.page.onHide();await f.page.onShow()
+ assert.equal(f.page.data.assistantReturnVisible,false)
+ f.page.onUnload();f.appHide();assert.equal(f.page._assistantResumeOrigin,null);assert.equal(f.writes.length,0)
+})
+for(const replacement of ['tab','selection','menus','custom','menuForm','record','target','account','api','expired','invalid-handoff'])test(`same task resume rejects ${replacement} replacement or invalid source`,async()=>{
+ const f=await activeRecipeTask();f.page.onSelectedDish({currentTarget:{dataset:{id:7}}});f.page.onHide()
+ if(replacement==='account')f.switch()
+ if(replacement==='api')f.apiSwitch()
+ if(replacement==='expired')f.page._assistantOrigin.created=Date.now()-600001
+ if(replacement==='invalid-handoff')f.rows.set('A:assistantActionTab',{token:'already-consumed'})
+ if(replacement==='record')f.rows.set('A:pendingRecipeRecord',{date:'2026-10-16',mealType:'lunch',expectedRevision:2})
+ if(replacement==='target')f.rows.set('A:activeMealTarget',{date:'2026-10-16',mealType:'lunch'})
+ const keys={selection:'recipeSelectionIntent',menus:'openPersonalMenus',custom:'openCustomDishForm',menuForm:'openPersonalMenuForm'}
+ if(keys[replacement])f.rows.set('A:'+keys[replacement],true)
+ await f.page.onShow()
+ if(replacement==='tab')f.page.onTabItemTap({pagePath:'pages/customize/customize'})
+ assert.equal(f.page.data.assistantReturnVisible,false);assert.equal(f.page._assistantOrigin,null);assert.equal(f.writes.length,0)
 })
 for(const route of ['dish-detail','customize'])for(const condition of ['selectionBusy','pending','dirty'])test(`${route} return blocks ${condition} recipe selection and preserves its original recovery state`,()=>{
  const f=pageFixture(route),api=f.load('assistant-origin')

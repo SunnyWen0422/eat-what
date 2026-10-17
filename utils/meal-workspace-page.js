@@ -373,7 +373,7 @@ module.exports = function workspacePage(options = {}) {
       if(this._draftSave) await this._draftSave
       if(!this.current() || store!==this.store)return
       const operation=store.save();this._draftSave=operation
-      try {await operation} finally {if(this._draftSave===operation)this._draftSave=null}
+      try {return await operation} finally {if(this._draftSave===operation)this._draftSave=null}
     },
     async runCommand(command, extra = {}, expectedRef = null) {
       if (this.data.busy || !this.store || !this.current()) return
@@ -671,9 +671,14 @@ module.exports = function workspacePage(options = {}) {
     onOpenShoppingList(){if(this.current())wx.navigateTo({url:'/pages/shopping-list/shopping-list'})},
     async openWorkspaceRoute(route){
       if(!this.current() || this.data.busy)return
-      const scope=this._scope,store=this.store
-      const reference=()=>{const w=store.state&&store.state().workspace;return JSON.stringify([this.data.context.date,this.data.context.mealType,w&&w.id,w&&w.draft&&w.draft.planVersion])},before=reference()
-      try{await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store || reference()!==before)return
+      const scope=this._scope,store=this.store,source=require('./config').getApiBaseUrl()
+      const target=JSON.stringify([this.data.context.date,this.data.context.mealType]),initial=store.state&&store.state().workspace
+      const reference=w=>JSON.stringify([w&&w.id,w&&w.draft&&w.draft.planVersion]),before=reference(initial)
+      try{const accepted=await this.flushDraft();if(!this.current() || this._scope!==scope || this.store!==store || source!==require('./config').getApiBaseUrl() || target!==JSON.stringify([this.data.context.date,this.data.context.mealType]))return
+        const current=store.state&&store.state(),created=!initial&&accepted&&accepted.workspace
+        if(created){
+          if(accepted.dirty || accepted.pending || accepted.syncStatus!=='synced' || !created.context || target!==JSON.stringify([created.context.date,created.context.mealType]) || reference(current&&current.workspace)!==reference(created))return
+        }else if(reference(current&&current.workspace)!==before)return
         const origin=options.mode==='today'&&route.split('?')[0]==='/pages/chat/chat'?require('./assistant-origin').originQuery({kind:'home',date:this.data.context.date,mealType:this.data.context.mealType},{storage:wx,storageKey:getUserStorageKey}):''
         wx.navigateTo({url:`${route}${route.includes('?')?'&':'?'}date=${this.data.context.date}&mealType=${this.data.context.mealType}${origin}`})}
       catch(error){if(this.current() && this.store===store)this.setData({errorMessage:userError(error,'本餐尚未保存，内容已保留')})}

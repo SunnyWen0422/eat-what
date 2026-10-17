@@ -24,3 +24,35 @@ test('reference is checked after asynchronous draft flush',async()=>{
   done();await opening;assert.equal(f.urls.length,0,change)
  }
 })
+
+async function freshFixture(){
+ const f=fixture();let source='synthetic-api',finish;const requests=[]
+ const {createWorkspaceStore}=require('../utils/meal-workspace')
+ f.page.store=createWorkspaceStore({identity:()=>f.page.current()?'A':'B',source:()=>source,read:()=>null,write:()=>{},api:{
+  getMealWorkspace:async()=>({workspace:null}),
+  createMealWorkspace:body=>{requests.push(body);return new Promise(resolve=>finish=()=>resolve({id:'created-workspace',revision:1,context:body.context,draft:{planVersion:0,dishes:[]}}))}
+ }})
+ await f.page.store.load('2026-10-09','lunch')
+ return{...f,requests,finish:()=>finish(),apiSwitch:()=>source='other-api'}
+}
+test('first route tap accepts the real store initial workspace save',async()=>{
+ for(const [method,route] of [['onOpenMealResult','result/result'],['onOpenAssistantView','chat/chat'],['onOpenLongTermPreferences','settings/settings']]){
+  const f=await freshFixture();assert.equal(f.page.store.state().workspace,null)
+  const opening=f.page[method]();assert.equal(f.urls.length,0);f.finish();await opening
+  assert.deepEqual(f.urls,[`/pages/${route}?date=2026-10-09&mealType=lunch`]);assert.equal(f.requests.length,1)
+  assert.equal(f.page.store.state().workspace.id,'created-workspace')
+ }
+})
+test('initial save cannot authorize navigation after target, owner, store or accepted version changes',async()=>{
+ for(const change of ['date','mealType','account','api','store','version']){
+  const f=await freshFixture(),store=f.page.store
+  if(change==='version'){const save=store.save;store.save=async()=>{const accepted=await save();store.state=()=>({...accepted,workspace:{...accepted.workspace,draft:{...accepted.workspace.draft,planVersion:9}}});return accepted}}
+  const opening=f.page.onOpenMealResult()
+  if(change==='date')f.page.data.context.date='2026-10-10'
+  if(change==='mealType')f.page.data.context.mealType='dinner'
+  if(change==='account')f.switch()
+  if(change==='api')f.apiSwitch()
+  if(change==='store')f.page.store={}
+  f.finish();await opening;assert.equal(f.urls.length,0,change)
+ }
+})

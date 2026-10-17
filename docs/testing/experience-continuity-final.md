@@ -10,6 +10,10 @@ E18 修复了原生大字号部分控件、底部入口和助手目标可读性�
 
 E20 增加可选 `--evidence-manifest`。报告 SHA256、报告内部 evidenceBinding 与实际小程序/网页/Java/Python/资源/配置/数据 subject 均须匹配。仅改索引不能让旧报告认证新字节；文档提交不同但 subject 字节相同，可显式标记 identical-subject-bytes。候选始终 DRAFT、deploymentAllowed=false；缺 manifest 为 evidenceStatus=missing，blocked/not-run/failed/performance-miss 为 partial。
 
+最终整分支审阅发现并修复两项导航问题：新餐首次保存创建工作区后，允许此次保存实际接受的身份继续打开目标；菜谱页从详情或前后台恢复时，保留并重新校验当前任务的原对话来源。普通 Tab 点击、其他选菜入口、新交接、目标/账户/API 变化和来源过期仍清理旧来源，原有未保存/待核对保护保留。恢复判断使用明确导航、应用隐藏事件和页面栈，不使用时间阈值。
+
+修复后按用户要求只运行 **67 项针对性及必要邻接检查**，全部通过；未重跑全仓 Node、Java、Python、网页、浏览器、原生或负载矩阵。生命周期结果是离线行为验证，不能表述为真实微信前后台或设备通过。新的候选与证据独立保留，旧候选不可变。下面 Node 1239 与历史原生观察属于修复前小程序 subject，不能认证修复后的完整小程序；未变 Java/网页/Python 等只按实际相同字节复用原证据，新回归索引仍为 partial，最终定向复审在打包时仍 not-run。
+
 ## 未达与未验收
 
 - E18 开发工具 API 高度与真实 viewport 存在差异；不认证全部垂直安全区、全部状态、系统返回、IME、读屏或物理设备。用户取消手机/二维码测试；Android 未运行，iOS 不可用。
