@@ -19,11 +19,17 @@ public class AssistantGuidanceService {
     private final AssistantCapabilityService registry;
     private DishQueryService dishes;private PersonalMenuService menus;private FavoriteDishService favorites;private ShoppingListService shopping;private MealConsumptionService meals;private UserPreferenceService preferences;
     @Autowired public AssistantGuidanceService(MealWorkspaceService w,AssistantV4Store s,ObjectMapper j,AssistantCapabilityService registry){this(w,s,j,registry,Clock.systemUTC());}
-    AssistantGuidanceService(MealWorkspaceService w,AssistantV4Store s,ObjectMapper j,AssistantCapabilityService registry,Clock c){workspaces=w;store=s;json=j;clock=c;this.registry=registry;registry.registerUiFeature("clarification_v1");}
+    AssistantGuidanceService(MealWorkspaceService w,AssistantV4Store s,ObjectMapper j,AssistantCapabilityService registry,Clock c){workspaces=w;store=s;json=j;clock=c;this.registry=registry;registry.registerUiFeature("clarification_v1");registry.registerUiFeature("meal_requirements_v1");}
     @Autowired void setupNavigation(DishQueryService d,PersonalMenuService m,FavoriteDishService f,ShoppingListService sh,MealConsumptionService actual,UserPreferenceService p){dishes=d;menus=m;favorites=f;shopping=sh;meals=actual;preferences=p;registry.registerUiFeature("handoff_v1");}
     public Card createClarification(String turnId,MealWorkspace w,String question){
         String kind,code;List<String> required;List<Map<String,Object>> options=new ArrayList<>();
         switch(question){
+            case "这餐想优先调整什么？":
+                kind="meal_requirement";code="meal_requirement";required=Collections.singletonList("requirementMode");
+                options.add(option("time","限制每道菜用时",map("requirementMode","time")));
+                options.add(option("ingredients","补充本餐忌口",map("requirementMode","ingredients")));
+                options.add(option("keep","先保持当前菜单",map("requirementMode","keep")));break;
+
             case "请说明目标日期。":
                 kind="meal_target";code="target_date";required=Collections.singletonList("date");LocalDate today=LocalDate.now(clock.withZone(ZoneId.of("Asia/Shanghai")));
                 options.add(option("today","今天",map("date",today.toString())));options.add(option("tomorrow","明天",map("date",today.plusDays(1).toString())));options.add(option("date","选择日期",Collections.emptyMap()));break;

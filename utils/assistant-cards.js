@@ -21,7 +21,7 @@ function presentMenuActions({card,workspace,conversationState={},workspaceState=
 }
 function clarificationOptions(card,now=Date.now()){
  const data=card.data||{},options=data.authorizedOptions,ref=card.workspaceRef
- if(card.type!=='clarification'||Number(card.expiresAt)<=now||!Number.isFinite(Number(card.expiresAt))||!ref||typeof data.continuationRef!=='string'||!data.continuationRef||data.consumedByRequestId||!Array.isArray(options)||!options.length||options.length>4)return []
+ if(card.type!=='clarification'||Number(card.expiresAt)<=now||!Number.isFinite(Number(card.expiresAt))||!ref||typeof data.continuationRef!=='string'||!data.continuationRef||data.consumedByRequestId||!Array.isArray(options)||!options.length||options.length>(data.kind==='meal_requirement'?3:4))return []
  const seen=new Set(),result=[]
  for(const option of options){
   if(!option||typeof option.id!=='string'||!option.id||option.id.length>100||seen.has(option.id)||!safeText(option.label)||option.label.length>120)return []

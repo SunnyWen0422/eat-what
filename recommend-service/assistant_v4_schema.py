@@ -13,7 +13,7 @@ MEALS = ["breakfast", "lunch", "dinner"]
 READS = ["search_dishes", "search_by_ingredients", "get_dish_details", "get_dish_methods",
          "read_current_meal", "read_calendar", "read_shopping", "read_actual_diet_review",
          "get_recommendation_options", "read_favorites", "read_saved_menus"]
-UI_FEATURES = ["clarification_v1", "handoff_v1"]
+UI_FEATURES = ["clarification_v1", "handoff_v1", "meal_requirements_v1"]
 
 
 class StepValidationError(ValueError):
@@ -151,6 +151,8 @@ def model_output_schema(capabilities=(), reply_contract=None):
     clarification = {"type": string(20, ["need_input"]), "question": string(2000, nonempty=True)}
     if "clarification_v1" in capabilities:
         clarification["clarificationKind"] = string(40, ["meal_target","dish_reference","source_choice","missing_people"])
+    if "meal_requirements_v1" in capabilities:
+        clarification["clarificationKind"] = string(40,["meal_target","dish_reference","source_choice","missing_people","meal_requirement"])
     result = {"anyOf": [
         obj(clarification, ["type", "question"]),
         obj(final_properties, ["type", "reply"]),
@@ -196,9 +198,9 @@ PLAN = obj({"id": ID, "mealType": nullable(string(20, MEALS)), "name": nullable(
 CALENDAR = obj({"date": DATE, "actual": array(ACTUAL, 30), "plans": array(PLAN, 30), "basis": string(30, ["explicit_eaten"]),
     "summary": obj({k: integer() for k in ["mealCount", "recordedDays", "uniqueDishCount", "entryCount", "classifiedCount", "unclassifiedCount"]})})
 CONTEXT = obj({"schemaVersion": string(30, [VERSION]), "requestContext": obj({"entryScene": string(20, ["home", "calendar", "chat"]),
-    "clarification": obj({"kind": string(40, ["meal_target","dish_reference","source_choice","missing_people"]),
+    "clarification": obj({"kind": string(40, ["meal_target","dish_reference","source_choice","missing_people","meal_requirement"]),
         "originalIntent": TEXT, "selection": obj({"date": DATE, "mealType": string(20, MEALS), "dishId": ID,
-            "people": integer(1,50), "source": string(20, ["draft","calendar"])})}, ["kind","originalIntent","selection"]),
+            "people": integer(1,50), "source": string(20, ["draft","calendar"]), "requirementMode":string(20,["time","ingredients","keep"])})}, ["kind","originalIntent","selection"]),
     "locale": string(20), "timezone": string(100), "now": string(100), "selectedTarget": obj({"date": DATE, "mealType": string(20, MEALS)})}),
     "activeMeal": ACTIVE, "constraints": obj({"hard": CRITERIA, "requirements": nullable(TEXT), "ownedIngredients": nullable(STRINGS),
         "soft": obj({"preferredCuisineCodes": nullable(STRINGS), "preferredTagCodes": nullable(STRINGS), "avoidRecentDays": nullable(integer(0, 366))})}),
@@ -343,7 +345,11 @@ def step_input(value):
     return value
 
 
-def clarification_question(supplier_question):
+def clarification_question(supplier_question, meal_requirements=False):
+    if meal_requirements:
+        if re.search(r"几分钟|多少分钟|用时上限",supplier_question):return "这餐每道菜最多做几分钟？"
+        if re.search(r"不吃哪些|什么忌口|哪些食材",supplier_question):return "这餐不吃哪些食材？"
+        if re.search(r"简单|清淡|少油|优先调整",supplier_question):return "这餐想优先调整什么？"
     # Classification selects only known server wording; it never echoes any part
     # of supplier prose and cannot create an execution/success indication.
     for pattern, question in (
@@ -369,7 +375,7 @@ def final_output(value, authorized_ids, allowed_actions=(), reply_contract=None,
     if value.get("type") == "need_input":
         schema = model_output_schema(allowed_actions)["anyOf"][0]
         validate(value, schema)
-        result = {"type": "need_input", "question": clarification_question(value["question"])}
+        result = {"type": "need_input", "question": clarification_question(value["question"],reply_contract=="meal_reply.v1" and "meal_requirements_v1" in allowed_actions)}
         if "clarificationKind" in value:
             result["clarificationKind"] = value["clarificationKind"]
         # Java derives actual options from its normalized question and current

@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict')
+const {clarificationOptions}=require('../utils/assistant-cards')
+const card=()=>({type:'clarification',expiresAt:Date.now()+60000,workspaceRef:{workspaceId:'w',workspaceRevision:1,planVersion:1},data:{kind:'meal_requirement',continuationRef:'turn',questionCode:'meal_requirement',authorizedOptions:[{id:'time',label:'限制用时',selection:{requirementMode:'time'}},{id:'ingredients',label:'补充本餐忌口',selection:{requirementMode:'ingredients'}}]}})
+test('meal requirement options remain readable and never pretend to have a value',()=>{const choices=clarificationOptions(card());assert.deepEqual(choices.map(v=>v.label),['限制用时','补充本餐忌口']);assert.equal(choices[0].requiresDate,false)})
+test('meal requirement offers at most three choices and expires normally',()=>{const c=card();c.data.authorizedOptions.push({id:'keep',label:'先不调整'},{id:'extra',label:'多余选项'});assert.deepEqual(clarificationOptions(c),[]);c.expiresAt=1;assert.deepEqual(clarificationOptions(c),[])})

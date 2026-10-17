@@ -21,7 +21,7 @@ public class AssistantV4TurnService {
     // Must match server-authored questions in assistant_v4_schema.py / assistant_v4_step.py.
     private static final String SAFE_QUESTION="请说明要查询或调整的菜品、餐次。";
     private static final String UNAVAILABLE="本次智能理解暂不可用，请明确需求或稍后重试。";
-    private static final Set<String> QUESTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("这餐安排几个人用餐？","请说明目标日期。","请说明目标餐次：早餐、午餐或晚餐。","请说明要查询或调整哪道菜。","请说明使用当前餐还是已有的日历安排。",SAFE_QUESTION,UNAVAILABLE)));
+    private static final Set<String> QUESTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("这餐安排几个人用餐？","请说明目标日期。","请说明目标餐次：早餐、午餐或晚餐。","请说明要查询或调整哪道菜。","请说明使用当前餐还是已有的日历安排。",SAFE_QUESTION,UNAVAILABLE,"这餐想优先调整什么？","这餐每道菜最多做几分钟？","这餐不吃哪些食材？")));
     private final AssistantV4Store store;
     private final AssistantV4ContextService contexts;
     private final AssistantCapabilityService registry;
@@ -133,6 +133,14 @@ public class AssistantV4TurnService {
                     if("meal_reply.v1".equals(input.getReplyContract())){AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(output.getAnswer(),input.getAnswerBasis());
                         if(answer.isAccepted()){r.setReply(answer.getReply());r.setCards(selectAnswerDishCards(facts,answer.getCardRefs()));}}
                     r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
+                }
+                if("meal_reply.v1".equals(input.getReplyContract())&&actual.contains("meal_requirements_v1")){
+                    AssistantRequirementResolver.RequirementDecision resolved=new AssistantRequirementResolver().resolve(context,output.getActionProposal());
+                    if(!"applicable".equals(resolved.getStatus())){
+                        TurnResult r=result("needs_input","这餐想优先调整什么？",false);r.setCards(facts);r.setWorkspaceRef(reference(scope));
+                        if(guidance!=null){Card card=guidance.createClarification(turnId,contextWorkspace(user,request),r.getReply());if(card!=null){retainOriginalIntent(card,context,request);r.getCards().add(card);}}
+                        finish(user,lease,r);return;
+                    }output.setActionProposal(resolved.getValidatedProposal());
                 }
                 validateActions(output.getActionProposal(),scope);
                 // Raw wording is not a proven executable constraint. Keep the

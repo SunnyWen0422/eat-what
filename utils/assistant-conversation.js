@@ -10,7 +10,7 @@ async function probeAssistantCapability(options = {}) {
  const entry={until:now+300000,enabled:false}
  entry.promise=Promise.resolve().then(()=>scope===scopeOf(options)?api.getAssistantV4Capabilities():null).then(result=>{
   entry.enabled=!!(result && result.enabled===true && result.schemaVersion==='assistant.v4.1' && Array.isArray(result.reads) && Array.isArray(result.draftCommands) && Array.isArray(result.previewActions))
-  entry.uiFeatures=entry.enabled&&Array.isArray(result.supportedUiFeatures)?['clarification_v1','handoff_v1'].filter(name=>result.supportedUiFeatures.includes(name)):[]
+  entry.uiFeatures=entry.enabled&&Array.isArray(result.supportedUiFeatures)?['clarification_v1','handoff_v1','meal_requirements_v1'].filter(name=>result.supportedUiFeatures.includes(name)):[]
   return entry.enabled
  }).catch(()=>false).finally(()=>{delete entry.promise})
  capabilities.set(scope,entry)
