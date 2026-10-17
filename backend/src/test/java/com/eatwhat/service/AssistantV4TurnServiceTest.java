@@ -40,6 +40,42 @@ class AssistantV4TurnServiceTest {
   runner.runTurn(1L,id);verifyNoInteractions(model);assertEquals(0,store.turnRecord(1L,id).getProviderCallsUsed());assertEquals("failed",store.findTurn(1L,id).getStatus());
  }
  AssistantV4StoreTest fixture;AssistantV4Store store;AssistantV4ModelGateway model;AssistantV4ContextService context;AssistantCapabilityService registry;AssistantV4TurnService runner;AiProtectionService protection;DishQueryService dishes;ObjectMapper json=new ObjectMapper();String id;
+ @Test void current_user_message_is_excluded_by_turn_identity_before_context_projection(){
+  String text=fixture.request().getMessage();
+  when(fixture.db.messages(anyLong(),anyString(),anyLong(),anyInt(),anyLong())).thenReturn(Arrays.asList(
+   AssistantV4ContextService.map("id","2","turnId",id,"role","user","text",text,"createdAt",fixture.now),
+   AssistantV4ContextService.map("id","1","turnId","previous-turn","role","user","text",text,"createdAt",fixture.now-1)));
+  AssistantV4ContextTest.Fixture facts=new AssistantV4ContextTest.Fixture();facts.w.setId("w");facts.w.setRevision(0L);facts.w.getDraft().setPlanVersion(0L);facts.w.getDraft().getDishes().forEach(d->d.setUserId(1L));
+  when(facts.workspaces.get(1L,"w")).thenReturn(facts.w);when(facts.preferences.get(1L)).thenReturn(facts.preference);when(facts.menus.list(1L)).thenReturn(Collections.emptyList());
+  when(context.build(any(),any(),any())).thenAnswer(call->facts.service().build(call.getArgument(0),call.getArgument(1),call.getArgument(2)));
+  when(model.step(any())).thenReturn(finalOutput());
+  runner.runTurn(1L,id);
+  org.mockito.ArgumentCaptor<StepInput> input=org.mockito.ArgumentCaptor.forClass(StepInput.class);verify(model).step(input.capture());
+  assertEquals(text,input.getValue().getMessage());assertEquals(1,input.getValue().getConversationFrames().size());assertEquals(text,input.getValue().getConversationFrames().get(0).getContent());
+  org.mockito.ArgumentCaptor<SessionState> history=org.mockito.ArgumentCaptor.forClass(SessionState.class);
+  verify(context).build(eq(1L),any(),history.capture());
+  assertTrue(history.getValue().getMessages().stream().noneMatch(m->id.equals(m.getTurnId())),"current message belongs only in StepInput.message");
+  assertEquals(1,history.getValue().getMessages().size(),"same text in an earlier turn must survive");
+  assertTrue(store.sessionState(1L,store.turnRecord(1L,id).getSessionId()).getMessages().stream().anyMatch(m->id.equals(m.getTurnId())),"stored history must remain intact");
+ }
+ @Test void running_cancel_interrupts_only_its_worker_and_releases_admission() throws Exception {
+  ThreadPoolExecutor pool=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(2));
+  CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1),interrupted=new CountDownLatch(1);
+  when(model.step(any())).thenAnswer(call->{entered.countDown();try{release.await();}catch(InterruptedException stop){interrupted.countDown();throw new IllegalStateException("cancelled");}return finalOutput();});
+  runner=new AssistantV4TurnService(store,context,new AssistantCapabilityService(true),model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),pool);
+  try {
+   runner.enqueue(1L,id);assertTrue(entered.await(2,TimeUnit.SECONDS));assertEquals("cancelled",runner.cancelTurn(1L,id).getStatus());
+   assertTrue(interrupted.await(1,TimeUnit.SECONDS),"cancel must reach the running worker");
+   pool.submit(()->{}).get(1,TimeUnit.SECONDS);verify(protection,times(1)).release();assertEquals("cancelled",store.findTurn(1L,id).getStatus());
+  } finally {release.countDown();pool.shutdownNow();assertTrue(pool.awaitTermination(3,TimeUnit.SECONDS));}
+ }
+ @Test void queued_cancel_removes_capacity_without_running_model() throws Exception {
+  ThreadPoolExecutor pool=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(1));CountDownLatch held=new CountDownLatch(1),release=new CountDownLatch(1);
+  pool.execute(()->{held.countDown();try{release.await();}catch(InterruptedException ignored){Thread.currentThread().interrupt();}});assertTrue(held.await(2,TimeUnit.SECONDS));
+  runner=new AssistantV4TurnService(store,context,new AssistantCapabilityService(true),model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),pool);
+  try {runner.enqueue(1L,id);assertEquals(1,pool.getQueue().size());runner.cancelTurn(1L,id);assertEquals(0,pool.getQueue().size());verifyNoInteractions(model);assertEquals("cancelled",store.findTurn(1L,id).getStatus());}
+  finally{release.countDown();pool.shutdownNow();assertTrue(pool.awaitTermination(3,TimeUnit.SECONDS));}
+ }
  @BeforeEach void setup(){fixture=new AssistantV4StoreTest();fixture.setup();store=fixture.store;model=mock(AssistantV4ModelGateway.class);context=mock(AssistantV4ContextService.class);protection=mock(AiProtectionService.class);dishes=mock(DishQueryService.class);when(protection.acquire(any(),any(),anyInt())).thenReturn(AiProtectionService.Decision.allowed());when(dishes.getDishesByIdsForUser(anyList(),anyLong())).thenReturn(Collections.emptyList());ModelContext ctx=new ModelContext();ctx.getActiveMeal().put("currentDishes",Collections.singletonList(Collections.singletonMap("id",1L)));when(context.build(any(),any(),any())).thenReturn(ctx);registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,c,s)->read(c));runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);id=store.claimTurn(1L,fixture.session(),fixture.request()).getTurnId();}
  ReadResult read(ToolRead call){ReadResult r=new ReadResult();r.setCallId(call.getCallId());r.setName(call.getName());Map<String,Object> item=new LinkedHashMap<>();item.put("id",2L);item.put("name","青菜");r.getItems().add(item);return r;}
  StepOutput finalOutput(){StepOutput out=new StepOutput();out.setType("final");out.setReply("已保存日历并采购成功");return out;}

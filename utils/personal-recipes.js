@@ -31,18 +31,28 @@ function createWriteJournal(options = {}) {
       return [{ id, name: typeof request.name === 'string' && request.name.trim() ? request.name.trim().slice(0, 255) : '菜谱副本' }]
     }).sort((a, b) => a.id - b.id)
   }
+  function pendingDeletes(kind) {
+    if (!['dish', 'menu'].includes(kind)) return []
+    const prefix = storageKey(kind + ':delete:')
+    return keys().filter(name => typeof name === 'string' && name.startsWith(prefix)).flatMap(name => {
+      const suffix = name.slice(prefix.length), id = Number(suffix), request = read(name)
+      if (!/^[1-9]\d*$/.test(suffix) || !Number.isSafeInteger(id) || !request || !request.requestId || !request.expectedVersion) return []
+      return [{ id, request: JSON.stringify(request), name: (kind === 'dish' ? '菜谱' : '菜单') + '（编号 ' + id + '）' }]
+    }).sort((a, b) => a.id - b.id)
+  }
   function run(action, body, send) {
     const scope = identity(), name = storageKey(action)
+    const current = () => scope === identity() && name === storageKey(action)
     if (inFlight.has(name)) return inFlight.get(name)
     const request = pending(action) || { ...clone(body), requestId: requestId() }
     write(name, request)
     const promise = (async () => {
       try {
         const result = await send(clone(request))
-        if (scope !== identity()) throw new Error('账号已切换，请重新进入')
+        if (!current()) throw new Error('账号或服务已切换，请重新进入')
         remove(name); return result
       } catch (error) {
-        if (scope === identity() && error.statusCode >= 400 && error.statusCode < 500 && ![401,403,408,429].includes(error.statusCode)) remove(name)
+        if (current() && error.statusCode >= 400 && error.statusCode < 500 && ![401,403,408,429].includes(error.statusCode)) remove(name)
         throw error
       }
     })()
@@ -50,7 +60,7 @@ function createWriteJournal(options = {}) {
     promise.then(() => inFlight.delete(name), () => inFlight.delete(name))
     return promise
   }
-  return { pending, pendingCopies, run }
+  return { pending, pendingCopies, pendingDeletes, run }
 }
 function menuHandoff(menu) {
   if (!menu || !Number.isInteger(menu.menuId) || !Number.isInteger(menu.menuVersion) || menu.menuVersion < 1 || !/^\d{4}-\d{2}-\d{2}$/.test(menu.menuDate) || !['breakfast','lunch','dinner'].includes(menu.menuMealType) || !Number.isInteger(menu.people) || menu.people < 1 || menu.people > 50 || !Array.isArray(menu.dishIds) || !menu.dishIds.length || menu.dishIds.length > 10 || menu.dishIds.some(id => !Number.isInteger(id) || id < 1)) throw new Error('菜单目标或版本无效，请重新读取')
@@ -58,8 +68,15 @@ function menuHandoff(menu) {
   if (new Set(menu.dishIds).size !== menu.dishIds.length) throw new Error('菜单菜品重复，请重新读取')
   return { date: menu.menuDate, mealType: menu.menuMealType, menuId: menu.menuId, menuVersion: menu.menuVersion, menuDate: menu.menuDate, menuMealType: menu.menuMealType, people: menu.people, dishIds: [...menu.dishIds] }
 }
+function legacyIngredientLine(value) {
+  if (typeof value !== 'string') return value
+  const p = value.split('|').map(x => x.trim())
+  // Require the established numeric quantity + unit columns, not arbitrary prose.
+  if (p.length < 3 || p.length > 7 || !p[0] || !/^\d+(?:\.\d+)?$/.test(p[1]) || !/^(克|千克|公斤|斤|两|毫升|升|个|只|条|片|块|根|颗|勺|汤匙|茶匙|杯|碗|袋|盒|把|适量)$/.test(p[2])) return value
+  return p[0] + ' ' + p[1] + p[2] + (p[4] ? '（' + p[4] + '）' : '')
+}
 function readableRecipeLine(item) {
-  if (typeof item === 'string') return item
+  if (typeof item === 'string') return legacyIngredientLine(item)
   if (!item || typeof item !== 'object') return item == null ? '' : String(item)
   const text = value => typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''
   // Render recipe content, never internal JSON, media URLs or evidence fields.
@@ -76,14 +93,14 @@ function editableRecipeText(value) {
   let source = value
   if (typeof source === 'string') { try { source = JSON.parse(source) } catch (_) {} }
   if (Array.isArray(source)) return source.map(readableRecipeLine).join('\n')
-  return String(value || '').replace(/###|#/g, '\n')
+  return String(value || '').split(/###|#|\n/).map(legacyIngredientLine).join('\n')
 }
-// Only untouched JSON structures bypass the legacy plain-text separator representation.
+// Untouched content retains all original evidence columns and separator spelling.
 function recipeFieldPayload(original, text) {
   const input = String(text || '').trim()
   if (input === editableRecipeText(original).trim()) {
     if (Array.isArray(original)) return JSON.stringify(original)
-    try { if (Array.isArray(JSON.parse(original))) return original } catch (_) {}
+    if (typeof original === 'string') return original
   }
   return input.replace(/\n/g, '#')
 }

@@ -272,15 +272,31 @@ Page({
   },
   async onReviewDraft(e) {
     const scope = this._scope
+    if (this.data.busy || this._reviewingDraft || !this.current(scope)) return
     const operation = store.loadPendingOperations().find(item => item.operationId === e.currentTarget.dataset.id)
     if (!operation) return
-    const detail = operation.type === 'manual' ? `${operation.payload.name} ${operation.payload.quantityText || ''}` : operation.type === 'batch-add' ? (operation.payload.dishes || []).map(d => `${d.sourceDate || ''} ${flow.mealNames[d.sourceMealType] || ''} ${(d.items || []).map(i => i.displayName).join('、')}`).join('；') : `${operation.type} · 原清单版本 ${operation.payload.expectedListVersion}`
-    if (operation.isUndo && operation.conflict) { await confirm('撤销版本已过期', '请刷新清单，到已买中查看并改回。原撤销不会强行应用到新版清单。', '知道了'); return }
-    if (!operation.conflict) { await confirm('草稿内容', detail + '\n云端结果待确认，请先点击重试草稿。', '知道了'); return }
-    if (!await confirm('重新确认冲突草稿？', `${detail}\n将以刚读取的清单版本 ${this.data.version} 提交。`, '应用修改') || !this.current(scope)) return
-    const next = { ...operation, conflict: false, payload: { ...operation.payload, expectedListVersion: this.data.version, requestId: flow.requestId(operation.type) } }
-    store.replacePendingOperation(operation.operationId, next)
-    await this.onRetryDrafts()
+    this._reviewingDraft = true
+    try {
+      if (operation.isUndo && operation.conflict) { await confirm('撤销版本已过期', '请刷新清单，到已买中查看并改回。原撤销不会强行应用到新版清单。', '知道了'); return }
+      if (operation.conflict) {
+        const epoch=this._epoch, latest=await api.getShoppingList('all')
+        if (!this.current(scope) || epoch!==this._epoch) return
+        if (!latest || !Array.isArray(latest.dishes) || !Number.isSafeInteger(latest.version) || latest.version<this.data.version) throw Error('latest list unavailable')
+        this.applyList(store.saveLocalShoppingList(latest))
+      }
+      const version=this.data.version, snapshot=JSON.stringify(this._full), original=JSON.stringify(operation)
+      const preview=require('../../utils/shopping-list-presentation').describeShoppingOperation(operation,this._full)
+      if (preview.error) { this.setData({ errorMessage: preview.error }); return }
+      if (!operation.conflict) { await confirm('草稿内容', preview.text + '\n云端结果待确认，请先点击重试草稿。', '知道了'); return }
+      if (!await confirm('重新确认冲突草稿？', preview.text, '应用修改') || !this.current(scope)) return
+      if (version!==this.data.version || snapshot!==JSON.stringify(this._full) || original!==JSON.stringify(store.loadPendingOperations().find(item=>item.operationId===operation.operationId))) {
+        this.setData({ errorMessage:'确认期间清单或草稿已变化，请重新查看并核对；原请求保留。' }); return
+      }
+      const next = { ...operation, conflict: false, payload: { ...operation.payload, expectedListVersion: version, requestId: flow.requestId(operation.type) } }
+      store.replacePendingOperation(operation.operationId, next)
+      await this.onRetryDrafts()
+    } catch (_) { if(this.current(scope))this.setData({errorMessage:'最新清单暂未核对，请稍后重新查看冲突草稿。'}) }
+    finally { this._reviewingDraft = false }
   },
   async onDiscardDraft(e) { const scope = this._scope; if (await confirm('丢弃本地草稿？', '只移除待确认草稿；云端可能已保存的内容请刷新查看。', '丢弃') && this.current(scope)) { store.removePendingOperation(e.currentTarget.dataset.id); this.setData({ drafts: store.loadPendingOperations() }) } },
   onBackToToday() { wx.switchTab({ url: '/pages/index/index' }) },

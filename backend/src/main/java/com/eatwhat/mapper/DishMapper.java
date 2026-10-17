@@ -142,14 +142,14 @@ public interface DishMapper {
     /**
      * 搜索菜品（按关键词 + 可选类型）
      */
-    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE NAME LIKE CONCAT('%',#{keyword},'%') AND TYPE=#{type} AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE NAME LIKE CONCAT('%',#{keyword},'%') AND TYPE=#{type} AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC LIMIT 100")
     List<Dish> searchDishes(@Param("keyword") String keyword,
                            @Param("type") String type);
 
     /**
      * 搜索菜品（仅按关键词，不限类型）
      */
-    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE NAME LIKE CONCAT('%',#{keyword},'%') AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE NAME LIKE CONCAT('%',#{keyword},'%') AND user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1 ORDER BY ID DESC LIMIT 100")
     List<Dish> searchDishesByKeyword(@Param("keyword") String keyword);
 
     /**

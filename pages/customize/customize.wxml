@@ -176,7 +176,7 @@
     </view>
   </view>
 
-  <ui-sheet visible="{{showMenus}}" title="{{menuFormVisible || menuEditingId || menuPending ? '保存常用菜单' : activeMenu ? activeMenu.name : '常用菜单'}}" busy="{{menuBusy}}" bind:close="onCloseMenus">
+  <ui-sheet visible="{{showMenus}}" title="{{menuFormVisible || menuEditingId || menuPending ? '保存常用菜单' : activeMenu ? activeMenu.name : '常用菜单'}}" busy="{{menuBusy}}" bind:close="onCloseMenus"><view wx:if="{{pendingDeletes.length}}" class="ew-card"><view class="ew-label">删除结果待核对</view><view class="ew-muted">列表中没有该项也不能确认原删除结果。点击核对会重试原删除请求。</view><button wx:for="{{pendingDeletes}}" wx:key="id" class="ew-hit-target ew-link" data-id="{{item.id}}" data-generation="{{pendingDeleteGeneration}}" bindtap="onRecoverDelete" disabled="{{menuBusy}}">核对原删除 · {{item.name}}</button></view>
     <view wx:if="{{menuError}}" class="ew-error">{{menuError}}<button class="ew-hit-target ew-link" disabled="{{menuBusy}}" bindtap="loadMenus">重新读取菜单</button></view>
     <ui-state wx:if="{{menuLoading}}" kind="loading" title="正在读取菜单" />
     <block wx:if="{{!menuFormVisible && !menuEditingId && !menuPending}}">

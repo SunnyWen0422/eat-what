@@ -31,7 +31,7 @@ function emptyCustomForm() {
 
 Page({
   onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
+  data: { pendingDeletes: [], pendingDeleteGeneration: 0, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
     activeTab: 'meat',recipeSource:'all',browseScrollTop:0,selectionMode:true,selectionTargetLabel:'',showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionLoading:false,selectionBusy:false,selectionBlocked:true,
     personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],activeMenu:null,showMenuTarget:false,menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, menuDate: '', menuMealIndex: 2, menuMealLabels: ['早餐','午餐','晚餐'], customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
     tabs: ['meat', 'veg', 'soup', 'staple', 'dessert', 'side'],
@@ -103,6 +103,7 @@ Page({
     if (!this.ensureBrowseOwner()) this.loadPage('meat', 1)
     this.setData({browseScrollTop:this._browseScrollTop||0})
     this._browseScope = scope
+    this.refreshPendingDeletes()
     const menuIntentKey=getUserStorageKey('openPersonalMenus')
     if(this._openMenusRequested || wx.getStorageSync(menuIntentKey)){this._openMenusRequested=false;wx.removeStorageSync(menuIntentKey);this.onOpenMenus()}
     const pendingCustom = this.writeJournal().pending('dish:create')
@@ -183,7 +184,7 @@ Page({
     this.allDishesMap = {}; this.currentPage = 1; this._pendingPlanWrite = null; this._customInitial = null; this._menuInitial = null; this._menuVersion = null; this._menuNamingDialog = null
     this._browseScrollTop=0
     this._planOwnerScope = getUserStorageKey('mealView')
-    this.setData({ activeTab: 'meat', recipeSource:'all', browseScrollTop:0, showMealSelected:false,mealSelectedDishes:[],selectedMeal:null, selectionFeedback:null, selectionBusy:false, selectionLoading:false, selectionMode:true, selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
+    this.setData({ pendingDeletes: [], pendingDeleteGeneration: this.data.pendingDeleteGeneration + 1, activeTab: 'meat', recipeSource:'all', browseScrollTop:0, showMealSelected:false,mealSelectedDishes:[],selectedMeal:null, selectionFeedback:null, selectionBusy:false, selectionLoading:false, selectionMode:true, selectedIds: [], selectedTotal: 0, selectedList: [], currentDishes: [], showCustomForm: false, showSelectedPanel: false,
       customForm: emptyCustomForm(), customTagOptions: this.data.customTagOptions.map(item => ({ ...item, selected: false })),
       customError: '', saveError: '', browseError: '', savingCustom: false, savingPlan: false, loading: false, loadingMore: false,
       personalSaveMessage:'',personalGuideVisible:false,customFocus:'',customExtrasVisible:false,menuMissingDishes:[],activeMenu:null,showMenuTarget:false,menuFormVisible:false, showMenus: false, menus: [], menuLoading: false, menuSaving: false, menuBusy: false, menuError: '', menuName: '', menuPeople: 2, menuEditingId: null, customPending: false, menuPending: false, menuReviewDishes: [], menuReviewNotice: '',
@@ -666,6 +667,26 @@ Page({
   onBackToMenus() { if (this.ensureBrowseOwner() && !this.data.menuBusy) this.setData({ activeMenu: null, showMenuTarget: false, menuMissingDishes: [] }) },
   onToggleMenuTarget() { if (this.ensureBrowseOwner() && !this.data.menuBusy) this.setData({ showMenuTarget: !this.data.showMenuTarget }) },
 
+  refreshPendingDeletes() {
+    if (!this.ensureBrowseOwner()) return
+    if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
+    try { this.setData({ pendingDeletes: this._writeJournal.pendingDeletes('menu'), pendingDeleteGeneration: this.data.pendingDeleteGeneration + 1 }) }
+    catch (_) { this.setData({ menuError: '待核对的删除暂未读到，请重新进入。' }) }
+  },
+  async onRecoverDelete(e) {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    const { id, generation } = e.currentTarget.dataset
+    if (Number(generation) !== this.data.pendingDeleteGeneration) return
+    const entry = this.data.pendingDeletes.find(row => row.id === Number(id)), action = 'menu:delete:' + Number(id)
+    if (!entry || JSON.stringify(this._writeJournal.pending(action)) !== entry.request) { this.refreshPendingDeletes(); return }
+    const identity = this._browseIdentity, epoch = this._privateEpoch || 0
+    this.setData({ menuBusy: true, menuError: '' })
+    try {
+      await this._writeJournal.run(action, {}, body => api.deletePersonalMenu(Number(id), body))
+      if (this.isBrowseCurrent(identity, epoch)) { wx.showToast({ title: '原删除已确认', icon: 'success' }); await this.loadMenus() }
+    } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '删除结果仍待核对，请稍后重试原请求。') }) }
+    finally { if (this.isBrowseCurrent(identity, epoch)) { this.setData({ menuBusy: false }); this.refreshPendingDeletes() } }
+  },
   writeJournal() {
     if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
     return this._writeJournal
@@ -706,6 +727,7 @@ Page({
   onMenuMeal(e) { if (!this.data.menuBusy) this.setData({ menuMealIndex: Number(e.detail.value) }) },
   async loadMenus() {
     if (!this.ensureBrowseOwner()) return
+    this.refreshPendingDeletes()
     const identity = this._browseIdentity, epoch = this._menuEpoch = (this._menuEpoch || 0) + 1
     this.setData({ menuLoading: true, menuError: '' })
     try {
@@ -904,7 +926,7 @@ Page({
         await this.writeJournal().run('menu:delete:' + menu.id, { expectedVersion: menu.version }, body => api.deletePersonalMenu(menu.id, body))
         if (this.isBrowseCurrent(identity, epoch)) { if (String(this.data.menuEditingId) === String(menu.id)) this.setData({ menuEditingId: null, menuName: '' }); await this.loadMenus() }
       } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '删除结果未确认，请重试原操作') }) }
-      finally { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuBusy: false }) }
+      finally { if (this.isBrowseCurrent(identity, epoch)) { this.setData({ menuBusy: false }); this.refreshPendingDeletes() } }
     } })
   },
 

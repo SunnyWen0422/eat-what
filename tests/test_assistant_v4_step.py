@@ -60,6 +60,15 @@ class AssistantV4StepTest(unittest.TestCase):
             self.assertEqual([], service.network_attempts)
         return response.status_code, response.json(), requests
 
+    def test_same_text_previous_turn_survives_and_current_message_is_appended_once(self):
+        request = body()
+        request["conversationFrames"] = [{"role":"user","content":request["message"]}]
+        request["context"]["conversation"]["recentText"] = [{"role":"user","text":request["message"]}]
+        _, _, requests = self.route(final({"type":"final","reply":"ok"}), request)
+        messages = requests[0]["json"]["messages"]
+        self.assertEqual(2, sum(m.get("content") == request["message"] for m in messages))
+        self.assertNotIn("recentText", messages[1]["content"])
+
     def test_real_route_preserves_two_parallel_calls_and_exact_metadata(self):
         message = tool_message(call("c1"), call("c2", "read_shopping", {"status": "pending"}))
         status, value, requests = self.route(message)

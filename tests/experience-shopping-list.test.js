@@ -41,6 +41,7 @@ function pageHarness({ list = eightSources(), check, patch, readList, mutate, re
     },
     patchShoppingItemConfirmed: async (id, payload) => { calls.push({ type: 'patch', id, payload: plain(payload) }); const result = patch ? await patch(id, payload, plain(server)) : { ...plain(server), version: server.version + 1 }; server = plain(result.list || result); return result },
     clearShoppingList: async payload => { calls.push({ type: 'clear', payload: plain(payload) }); return { ...plain(server), version: server.version + 1, dishes: payload.scope === 'all' ? [] : server.dishes.map(d => ({ ...d, items: d.items.filter(i => !i.checked) })) } },
+    saveShoppingExpense: async payload => { calls.push({type:'expense',payload:plain(payload)});return {...plain(server),version:server.version+1} },
     getIngredientPriceQuotes: async () => { priceReads++; return [] },
   }
   if (mutate) for (const method of ['addManualShoppingItem', 'patchShoppingItemConfirmed', 'deleteShoppingItemConfirmed', 'clearShoppingList']) api[method] = (...args) => mutate(method, ...args)
@@ -686,4 +687,26 @@ test('unloaded inverse recovers via original journal replay with no duplicate in
   assert.equal(h.store.loadPendingOperations().length, 0)
   assert.equal(returned.data.checkedCount, 0)
   assert.equal(returned.data.version, 4)
+})
+
+for(const type of ['check','patch','delete','clear','expense'])test('conflict '+type+' previews concrete latest impact before exact submission',async()=>{
+ const list={version:4,dishes:[group('x','2026-10-17',[item(1,'豆腐',{normalizedVariant:'嫩'}),item(2,'青菜')])]}
+ const payload={expectedListVersion:1,requestId:'old',...(type==='check'?{itemIds:[1],checked:true}:type==='patch'?{displayName:'嫩豆腐',quantityText:'2盒',note:'切块'}:type==='clear'?{scope:'all'}:type==='expense'?{ingredientKey:require('../utils/shopping-prices').buildPricing(list).rows[0].ingredientKey,amount:'0',channel:'盒马'}:{})}
+ const draft={operationId:'conflict',type,itemId:1,conflict:true,payload};const h=pageHarness({list,drafts:[draft],mutate:async(method,...args)=>{h.calls.push({method,args});return {...list,version:5,dishes:[]}}})
+ const pending=h.page.onReviewDraft({currentTarget:{dataset:{id:'conflict'}}});await new Promise(setImmediate)
+ const content=h.modals[0].content;assert.match(content,/豆腐/);assert.doesNotMatch(content,/原清单版本|清单版本|\bcheck\b|\bpatch\b|\bexpense\b/)
+ if(type==='clear'){assert.match(content,/青菜/);assert.match(content,/2 项/)}
+ if(type==='expense')assert.match(content,/0\.00|0 元/)
+ if(type==='patch')assert.match(content,/2盒/)
+ h.answer();await new Promise(setImmediate);if(h.modals.length)h.answer();await pending
+ assert.equal(h.calls.length,1)
+ const sent=['check','expense'].includes(type)?h.calls[0].payload:h.calls[0].args.at(-1)
+ assert.equal(sent.expectedListVersion,4);assert.notEqual(sent.requestId,'old');if(type==='expense')assert.equal(sent.amount,'0')
+})
+for(const change of ['version','account','missing'])test('conflict reapproval stays pending on '+change,async()=>{
+ const draft={operationId:'conflict',type:'delete',itemId:change==='missing'?999:1,conflict:true,payload:{expectedListVersion:1,requestId:'old'}}
+ const h=pageHarness({drafts:[draft]});const pending=h.page.onReviewDraft({currentTarget:{dataset:{id:'conflict'}}});await new Promise(setImmediate)
+ if(change==='version')h.page.applyList({...h.page._full,version:10});if(change==='account')h.switchOwner()
+ if(h.modals.length)h.answer();await new Promise(setImmediate);if(h.modals.length)h.answer();await pending
+ assert.equal(h.calls.length,0);if(change!=='account')assert.equal(h.store.loadPendingOperations()[0].payload.requestId,'old')
 })

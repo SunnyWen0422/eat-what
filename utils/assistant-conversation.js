@@ -19,13 +19,13 @@ async function probeAssistantCapability(options = {}) {
 }
 function createAssistantConversation(options = {}) {
  const api=options.api || require('./api'),store=options.workspaceStore,scope=scopeOf(options),read=options.read || (key=>wx.getStorageSync(key)),write=options.write || ((key,v)=>wx.setStorageSync(key,v)),makeId=options.uuid || uuid
- let active=true,actionsEnabled=true,key='',record=null,running=null
+ let active=true,actionsEnabled=true,key='',record=null,running=null,cancellation=null
  let view={sessionId:null,messages:[],input:'',error:'',busy:false,recoverable:false,turn:null,nextCursor:null}
  const current=()=>active && scope===scopeOf(options)
- const state=()=>current()?clone({...view,selectionPending:!!(record&&record.renewal),confirmationPending:!!(record&&record.confirmation&&record.confirmation.unknown)}):{sessionId:null,messages:[],input:'',error:'请重新进入这一餐',busy:false,recoverable:false,turn:null}
+ const state=()=>current()?clone({...view,busy:view.busy||!!cancellation,error:cancellation?'正在停止这次请求，请稍候核对结果':view.error,cancelling:!!cancellation,selectionPending:!!(record&&record.renewal),confirmationPending:!!(record&&record.confirmation&&record.confirmation.unknown)}):{sessionId:null,messages:[],input:'',error:'请重新进入这一餐',busy:false,recoverable:false,turn:null}
  const notify=()=>{if(current()&&options.onChange)options.onChange(state())}
  const persist=()=>{if(current()&&key){record.input=view.input;write(key,clone(record))}notify()}
- const exclusive=action=>{if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
+ const exclusive=action=>{if(cancellation)return cancellation;if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
  const workspace=()=>store && store.state().workspace
  const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(!record.sessionId||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&record.pending)view.input=record.pending.body.message;persist();return state()}
  const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending'
@@ -249,17 +249,27 @@ function createAssistantConversation(options = {}) {
   record.renewal={turnId:turn.turnId,taskId:card.taskId,body};view.busy=true;view.error='';persist()
   try{return await resolveRenewal(false)}catch(error){return fail('食材选择结果待核对，请恢复刚才的请求后再确认')}
  })}
- function cancelTurn() {return exclusive(async()=>{
+ function cancelTurn() {
+  if(cancellation)return cancellation
+  if(!current()||!record)return Promise.resolve(state())
+  const origin=record,sessionId=record.sessionId,pending=record.pending,turnId=view.turn&&view.turn.turnId,prior=running
+  const same=()=>current()&&record===origin&&record.sessionId===sessionId
+  cancellation=Promise.resolve(prior).then(async()=>{
   try{
+   if(!same())return state()
+   const id=pending?pending.turnId:turnId
+   if(!id)return fail('原请求结果待核对，请先恢复后再停止')
+   if(view.turn&&view.turn.turnId!==id)return state()
+
    if(record&&record.confirmation&&record.confirmation.unknown){if(!await resolveConfirmation())return state()}
-   if(!current())return state()
+   if(!same()||view.turn&&view.turn.turnId!==id)return state()
    const turn=view.turn
    if(turn&&!['queued','running','awaiting_confirmation'].includes(turn.status))return state()
-   const id=turn&&turn.turnId || record&&record.pending&&record.pending.turnId
-   if(!id)return fail('原请求结果待核对，请先恢复后再停止')
    await api.cancelAssistantV4Turn(id);if(!current())return state();return await poll(id)
   }catch(error){return fail('停止前还需核对原结果，请恢复刚才的请求')}
- })}
+ }).finally(()=>{cancellation=null;notify()})
+ view.error='正在停止这次请求，请稍候核对结果';notify();return cancellation
+ }
  function loadOlder(){return exclusive(async()=>{
   if(!record || !record.sessionId || !view.nextCursor)return state()
   try {

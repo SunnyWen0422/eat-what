@@ -36,7 +36,6 @@ function presentRecipeLines(value,ingredients=false){
  const {readableRecipeLine}=require('./personal-recipes')
  const lines=Array.isArray(source)?source:typeof source==='string'?source.split(/###|#|\n/):source&&typeof source==='object'?[source]:[]
  return lines.map(row=>{
-  if(typeof row==='string'&&ingredients){const parts=row.split('|');if(parts.length>=3)return (parts[0]+' '+parts[1]+parts[2]).trim()}
   return readableRecipeLine(row)
  }).filter(line=>line&&line!=='请补充这一项'&&line.trim()).map(line=>line.trim())
 }

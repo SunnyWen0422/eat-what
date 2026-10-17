@@ -40,7 +40,7 @@ test('synchronous transport failure cannot poison the in-flight retry slot', asy
 test('editable recipe text preserves rich arrays as readable lines', () => {
   const { editableRecipeText } = require('../utils/personal-recipes')
   assert.equal(editableRecipeText('["洗鱼","蒸熟"]'), '洗鱼\n蒸熟')
-  assert.equal(editableRecipeText('鱼|1|条###姜|2|片'), '鱼|1|条\n姜|2|片')
+  assert.equal(editableRecipeText('鱼|1|条###姜|2|片'), '鱼 1条\n姜 2片')
 })
 test('rich objects are shown as human-readable lines while untouched edits retain original JSON', () => {
   const { editableRecipeText, recipeFieldPayload } = require('../utils/personal-recipes')
@@ -60,4 +60,16 @@ for (const statusCode of [401, 403]) test(`unknown create then ${statusCode} ret
   assert.ok(f.journal.pending('create'))
   await f.journal.run('create', { name: 'edited again' }, async body => { sent.push(body); return { id: 1 } })
   assert.deepEqual(sent[2], sent[0])
+})
+
+test('legacy ingredient columns become readable without losing untouched original or exposing evidence', () => {
+  const {editableRecipeText,recipeFieldPayload,recipeEditBody,recipeForm}=require('../utils/personal-recipes')
+  const raw='豆腐|460|克|主料|切块或切片|2名成年人总量+15%冗余|菜名+步骤###姜|2|片'
+  assert.equal(editableRecipeText(raw),'豆腐 460克（切块或切片）\n姜 2片')
+  assert.equal(recipeFieldPayload(raw,editableRecipeText(raw)),raw)
+  assert.equal(editableRecipeText('说明|可选|自由文字'),'说明|可选|自由文字')
+  const dish={name:'豆腐',cl:raw,step:'煮熟',contentVersion:'v1'};const form=recipeForm(dish);form.ingredients='豆腐 500克'
+  assert.equal(recipeEditBody(dish,form,'veg').cl,'豆腐 500克')
+  assert.match(require('../utils/recipe-quality').editRecipeQualityNotice(dish,form),/重新核实/)
+  assert.deepEqual(require('../utils/recipe-quality').presentRecipeLines(raw,true),['豆腐 460克（切块或切片）','姜 2片'])
 })

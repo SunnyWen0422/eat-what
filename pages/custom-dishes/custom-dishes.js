@@ -4,7 +4,7 @@ const flow = require('../../utils/meal-workflow')
 const { currentIdentity } = require('../../utils/account-identity')
 Page({
   onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
-  data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], pendingCopies: [], pendingCopyGeneration: 0, recoveryError: '', loading: true, errorMessage: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, form: {}, formError: '', editPending: false, editExtrasVisible: false, formFocus: '', editQualityNotice: '', personalSaveMessage: '', types: ['荤菜','素菜','汤品','主食','甜品','配餐'], typeIndex: 0 },
+  data: { pendingDeletes: [], pendingDeleteGeneration: 0, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), dishes: [], pendingCopies: [], pendingCopyGeneration: 0, recoveryError: '', loading: true, errorMessage: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, form: {}, formError: '', editPending: false, editExtrasVisible: false, formFocus: '', editQualityNotice: '', personalSaveMessage: '', types: ['荤菜','素菜','汤品','主食','甜品','配餐'], typeIndex: 0 },
   onLoad(options = {}) {
     const handoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['copy_recipe'],{storage:wx,storageKey:getUserStorageKey}):null
     if(handoff)options={...options,copy:handoff.ref.dishId,version:handoff.sourceVersion||''}
@@ -26,10 +26,30 @@ Page({
     if (this._identity === identity && this._viewScope === getUserStorageKey('customDishesCloud')) return true
     this._identity = identity; this._viewScope = getUserStorageKey('customDishesCloud'); this._epoch = (this._epoch || 0) + 1
     this._requestedEdit = null; this._requestedCopy = null; this._original = null; this._editScope = null; this._editInitial = null
-    this.setData({ pendingCopies: [], pendingCopyGeneration: this.data.pendingCopyGeneration + 1, recoveryError: '', editQualityNotice: '', personalSaveMessage: '', editExtrasVisible: false, formFocus: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, editPending: false, loading: false, dishes: [], form: {}, formError: '', errorMessage: '', typeIndex: 0 }); this.syncEditLeaveAlert()
+    this.setData({ pendingDeletes: [], pendingDeleteGeneration: this.data.pendingDeleteGeneration + 1, pendingCopies: [], pendingCopyGeneration: this.data.pendingCopyGeneration + 1, recoveryError: '', editQualityNotice: '', personalSaveMessage: '', editExtrasVisible: false, formFocus: '', editing: false, copyDraft: false, legacyCopyPending: false, saving: false, editPending: false, loading: false, dishes: [], form: {}, formError: '', errorMessage: '', typeIndex: 0 }); this.syncEditLeaveAlert()
     return false
   },
   current(scope, identity = this._identity) { return this.ensureOwner() && identity === this._identity && scope === getUserStorageKey('customDishesCloud') },
+  refreshPendingDeletes() {
+    if (!this.ensureOwner()) return
+    if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
+    try { this.setData({ pendingDeletes: this._writeJournal.pendingDeletes('dish'), pendingDeleteGeneration: this.data.pendingDeleteGeneration + 1 }) }
+    catch (_) { this.setData({ errorMessage: '待核对的删除暂未读到，请重新进入。' }) }
+  },
+  async onRecoverDelete(e) {
+    if (!this.ensureOwner() || this.data.saving) return
+    const { id, generation } = e.currentTarget.dataset
+    if (Number(generation) !== this.data.pendingDeleteGeneration) return
+    const entry = this.data.pendingDeletes.find(row => row.id === Number(id)), action = 'dish:delete:' + Number(id)
+    if (!entry || JSON.stringify(this._writeJournal.pending(action)) !== entry.request) { this.refreshPendingDeletes(); return }
+    const identity = this._identity, scope = getUserStorageKey('customDishesCloud')
+    this.setData({ saving: true, errorMessage: '' })
+    try {
+      await this._writeJournal.run(action, {}, body => api.deleteCustomDish(Number(id), body))
+      if (this.current(scope, identity)) { wx.showToast({ title: '原删除已确认', icon: 'success' }); await this.loadCustomDishes() }
+    } catch (error) { if (this.current(scope, identity)) this.setData({ errorMessage: require('../../utils/meal-workflow').errorMessage(error, '删除结果仍待核对，请稍后重试原请求。') }) }
+    finally { if (this.current(scope, identity)) { this.setData({ saving: false }); this.refreshPendingDeletes() } }
+  },
   refreshPendingCopies() {
     if (!this.ensureOwner()) return
     if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
@@ -75,6 +95,7 @@ Page({
   onRetryRead() { return this._requestedCopy ? this.loadCopyDraft(true) : this.loadCustomDishes() },
   async loadCustomDishes() {
     if (!this.ensureOwner()) return
+    this.refreshPendingDeletes()
     const identity = this._identity
     const scope = getUserStorageKey('customDishesCloud'), epoch = this._epoch = (this._epoch || 0) + 1
     this._viewScope = scope
@@ -200,8 +221,8 @@ Page({
         if (!dish) throw new Error('菜品已变化，请重新读取')
         if (!this._writeJournal) this._writeJournal = require('../../utils/personal-recipes').createWriteJournal()
         await this._writeJournal.run('dish:delete:' + id, { expectedVersion: dish.contentVersion }, body => api.deleteCustomDish(id, body)); if (this.current(scope, identity)) { wx.showToast({ title: '已删除', icon: 'success' }); await this.loadCustomDishes() } }
-      catch (error) { if (this.current(scope, identity)) this.setData({ errorMessage: flow.errorMessage(error, '删除失败，菜品仍然保留') }) }
-      finally { if (this.current(scope, identity)) this.setData({ saving: false }) }
+      catch (error) { if (this.current(scope, identity)) this.setData({ errorMessage: flow.errorMessage(error, '删除结果待核对，请使用原删除入口核对。') }) }
+      finally { if (this.current(scope, identity)) { this.setData({ saving: false }); this.refreshPendingDeletes() } }
     } })
   },
   onAdd() { wx.setStorageSync(getUserStorageKey('openCustomDishForm'),true); wx.switchTab({ url: '/pages/customize/customize' }) },

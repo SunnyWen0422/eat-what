@@ -31,7 +31,7 @@ public class AssistantV4TurnService {
     private final ObjectMapper json;
     private final Clock clock;
     private final Executor executor;
-    private final Set<String> scheduled=ConcurrentHashMap.newKeySet();
+    private final ConcurrentMap<String,FutureTask<Void>> scheduled=new ConcurrentHashMap<>();
     private AssistantGuidanceService guidance;
     @Autowired void setGuidance(AssistantGuidanceService service){guidance=service;}
     @Autowired public AssistantV4TurnService(AssistantV4Store store,AssistantV4ContextService contexts,AssistantCapabilityService registry,AssistantV4ModelGateway model,AiProtectionService protection,DishQueryService dishes,ObjectMapper json){
@@ -42,10 +42,30 @@ public class AssistantV4TurnService {
     @org.springframework.scheduling.annotation.Scheduled(fixedDelay=15000,initialDelay=15000)
     public void recoverInterrupted(){if(!registry.capabilities().isEnabled())return;for(TurnRecord row:store.recoverable()){try{if("queued".equals(row.getStatus()))enqueue(row.getUserId(),row.getId());else store.recoverExpired(row.getUserId(),row.getId());}catch(RuntimeException stale){/* Another worker, cancellation, or retention won. */}}}
     public TurnView startTurn(Long user,String sessionId,TurnRequest request){registry.requireEnabled();TurnView view=store.claimTurn(user,sessionId,request);if("queued".equals(view.getStatus()))enqueue(user,view.getTurnId());return store.findTurn(user,view.getTurnId());}
-    public TurnView cancelTurn(Long user,String turnId){return store.cancelTurn(user,turnId);}
+    public TurnView cancelTurn(Long user,String turnId){
+        // Commit the authoritative cancellation first; completed receipts remain intact.
+        TurnView view=store.cancelTurn(user,turnId);
+        if("cancelled".equals(view.getStatus())){
+            FutureTask<Void> task=scheduled.get(user+":"+turnId);
+            if(task!=null){task.cancel(true);if(executor instanceof ThreadPoolExecutor)((ThreadPoolExecutor)executor).remove(task);}
+        }
+        return view;
+    }
     public void enqueue(Long user,String turnId){
-        String key=user+":"+turnId;if(!scheduled.add(key))return;
-        try{executor.execute(()->{try{runTurn(user,turnId);}finally{scheduled.remove(key);}});}catch(RuntimeException ex){scheduled.remove(key);try{store.completeTurn(user,turnId,"queued",result("failed","请求较多，请稍后重试",true));}catch(RuntimeException stale){/* Another claimant owns it. */}}
+        String key=user+":"+turnId;
+        FutureTask<Void> task=new FutureTask<Void>(()->{runTurn(user,turnId);return null;}){
+            @Override protected void done(){scheduled.remove(key,this);}
+        };
+        if(scheduled.putIfAbsent(key,task)!=null)return;
+        try{executor.execute(task);}catch(RuntimeException ex){scheduled.remove(key,task);try{store.completeTurn(user,turnId,"queued",result("failed","请求较多，请稍后重试",true));}catch(RuntimeException stale){/* Another claimant owns it. */}}
+    }
+    private SessionState historyBeforeCurrentTurn(Long user,TurnRecord lease){
+        SessionState session=store.sessionState(user,lease.getSessionId());
+        List<Message> history=new ArrayList<>();
+        for(Message message:session.getMessages())if(message!=null&&!lease.getId().equals(message.getTurnId()))history.add(message);
+        // The current user message is persisted already, but is sent through StepInput.message.
+        // Never deduplicate by text: a previous turn may legitimately repeat this wording.
+        session.setMessages(history);return session;
     }
     public void runTurn(Long user,String turnId){
         TurnRecord lease;try{lease=store.acquireTurn(user,turnId);}catch(RuntimeException alreadyClaimed){return;}
@@ -56,7 +76,7 @@ public class AssistantV4TurnService {
             TurnRequest request=store.turnRequest(user,turnId);
             AiProtectionService.Decision decision=protection.acquire(user,"assistant-v4",request.getMessage().getBytes(StandardCharsets.UTF_8).length);
             if(!decision.isAllowed()){observedOutcome="error";finish(user,lease,result("failed","请求较多，请稍后重试",true));return;}acquired=true;
-            TurnScope scope=scope(user,lease,request);ModelContext context=contexts.build(user,request,store.sessionState(user,lease.getSessionId()));
+            TurnScope scope=scope(user,lease,request);ModelContext context=contexts.build(user,request,historyBeforeCurrentTurn(user,lease));
             Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));

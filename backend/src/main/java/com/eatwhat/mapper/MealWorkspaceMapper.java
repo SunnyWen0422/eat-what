@@ -42,5 +42,5 @@ public interface MealWorkspaceMapper {
     @Delete("DELETE FROM behavior_event WHERE created_at < DATE_SUB(NOW(),INTERVAL 90 DAY) LIMIT 500") int purgeEvents();
     @Update("UPDATE meal_workspace SET state_json=JSON_SET(state_json,'$.draft',JSON_OBJECT('planVersion',JSON_EXTRACT(state_json,'$.draft.planVersion'),'dishes',JSON_ARRAY(),'lockedDishIds',JSON_ARRAY(),'history',JSON_ARRAY(),'source','rules','explanations',JSON_ARRAY()),'$.context.requirements','','$.context.ownedIngredients',JSON_ARRAY(),'$.status','expired','$.taskId',NULL),revision=revision+1 WHERE updated_at < DATE_SUB(NOW(),INTERVAL 30 DAY) AND JSON_UNQUOTE(JSON_EXTRACT(state_json,'$.status')) NOT IN ('expired','generating','planned') LIMIT 500")
     int expireDrafts();
-    @Update("UPDATE workspace_task SET input_json='{}' WHERE status NOT IN ('queued','running') AND created_at < DATE_SUB(NOW(),INTERVAL 30 DAY) LIMIT 500") int purgeTaskInputs();
+    @Update("UPDATE workspace_task SET input_json='{}' WHERE input_json <> JSON_OBJECT() AND status NOT IN ('queued','running') AND created_at < DATE_SUB(NOW(),INTERVAL 30 DAY) LIMIT 500") int purgeTaskInputs();
 }

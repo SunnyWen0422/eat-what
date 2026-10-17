@@ -59,7 +59,7 @@ function collectRecoveryPointers({storage,storageKey,assistantScope}){
    if(!value||!value.requestId)continue
    const copy=/^dish:copy:[1-9][0-9]*$/.test(suffix),menu=/^menu:(?:create|new|edit:[1-9][0-9]*|delete:[1-9][0-9]*|[1-9][0-9]*)$/.test(suffix)
    if(!copy&&!menu&&!/^dish:(?:create|edit:[1-9][0-9]*|delete:[1-9][0-9]*)$/.test(suffix))continue
-   pointers.push({id:'personal:'+suffix,kind:copy?'copy_recipe':menu?'personal_menu':'personal_recipe',state:'unknown',target:null,label:copy?'菜谱副本保存待核对':menu?'常用菜单保存待核对':'个人菜谱保存待核对',requestId:value.requestId,route:menu?'/pages/customize/customize?menus=1':'/pages/custom-dishes/custom-dishes'})
+   pointers.push({id:'personal:'+suffix,kind:copy?'copy_recipe':menu?'personal_menu':'personal_recipe',state:'unknown',target:null,label:suffix.includes(':delete:')?(menu?'常用菜单删除待核对':'个人菜谱删除待核对'):copy?'菜谱副本保存待核对':menu?'常用菜单保存待核对':'个人菜谱保存待核对',requestId:value.requestId,route:menu?'/pages/customize/customize?menus=1':'/pages/custom-dishes/custom-dishes'})
   }else if(assistantPrefix&&key.startsWith(assistantPrefix)){
    const value=storage.getStorageSync(key);if(!value||!(value.pending||value.renewal||value.confirmation&&value.confirmation.unknown))continue
    const target=workspaces.get(value.sessionBody&&value.sessionBody.workspaceId)||null,status=value.lastTurn&&value.lastTurn.status

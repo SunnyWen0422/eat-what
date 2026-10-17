@@ -91,6 +91,7 @@ public class DishController {
     /**
      * 搜索菜品
      * GET /api/dishes/search?keyword=鸡&type=meat
+     * 兼容列表接口最多返回100项；完整搜索请使用 GET /api/dishes 分页入口。
      * 需要认证
      */
     @GetMapping("/search")

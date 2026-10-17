@@ -74,3 +74,28 @@ test('genuine preaccept 409 preserves input refreshes workspace and permits only
 test('genuine ambiguous network send keeps frozen UUID and body for recovery',async()=>{let first=true;const {api,runtime}=genuineClient(request=>{if(respondSession(request))return;if(request.url.endsWith('/turns')){if(first){first=false;request.fail({errMsg:'lost'});return}request.success({statusCode:202,data:{turnId:'original'},header:{}})}else request.success({statusCode:200,data:{turnId:'original',status:'completed',cards:[]},header:{}})});const f=fixture(api);await f.conversation.load();await f.conversation.send('准备食材');assert.equal(f.conversation.state().recoverable,true);await f.conversation.recover();const posts=runtime.requests.filter(r=>r.url.endsWith('/turns'));assert.deepEqual(posts[0].data,posts[1].data);assert.equal(f.reads(),0);assert.equal(f.conversation.state().turn.turnId,'original')})
 test('all genuine shared capability callers reject late source and account results',async()=>{for(const changed of ['source','account']){clearCapabilityCache();let pending;const {api,runtime}=genuineClient(request=>pending=request);const options={api,identity:()=>runtime.account,source:()=>runtime.source};const first=probeAssistantCapability(options),shared=probeAssistantCapability(options);await new Promise(setImmediate);if(changed==='source')runtime.source='http://127.0.0.1:19002/api';else runtime.account='B';pending.success({statusCode:200,data:{enabled:true,schemaVersion:'assistant.v4.1',reads:[],draftCommands:[],previewActions:[]},header:{}});assert.deepEqual(await Promise.all([first,shared]),[false,false]);assert.equal(runtime.requests.length,1)}})
 test('genuine transport rejects old source response before exposing private payload',async()=>{let pending;const {api,runtime}=genuineClient(request=>pending=request);const result=api.getAssistantV4Turn('private');runtime.source='http://127.0.0.1:19002/api';pending.success({statusCode:200,data:{turnId:'private',status:'completed',reply:'old source private'},header:{}});await assert.rejects(result)})
+
+test('stop intent during suspended poll survives and repeated clicks cancel the same turn once',async()=>{
+ let release,cancels=0,hold=false,cancelled=false
+ const f=fixture({getAssistantV4Turn:()=>hold?new Promise(r=>release=r):Promise.resolve({turnId:'t1',status:cancelled?'cancelled':'running'}),cancelAssistantV4Turn:async id=>{assert.equal(id,'t1');cancels++;cancelled=true}})
+ await f.conversation.load();await f.conversation.send('查询');hold=true
+ const polling=f.conversation.recover();await new Promise(setImmediate)
+ const stop=f.conversation.cancelTurn(),again=f.conversation.cancelTurn()
+ assert.equal(f.conversation.state().cancelling,true)
+ hold=false;release({turnId:'t1',status:'running'});await Promise.all([polling,stop,again])
+ assert.equal(cancels,1);assert.equal(f.conversation.state().turn.status,'cancelled');assert.equal(f.conversation.state().cancelling,false)
+})
+for(const changed of ['account','source','dispose'])test('queued stop does not cross '+changed,async()=>{
+ let release,cancels=0,hold=false
+ const f=fixture({getAssistantV4Turn:()=>hold?new Promise(r=>release=r):Promise.resolve({turnId:'t1',status:'running'}),cancelAssistantV4Turn:async()=>cancels++})
+ await f.conversation.load();await f.conversation.send('查询');hold=true;const polling=f.conversation.recover();await new Promise(setImmediate)
+ const stop=f.conversation.cancelTurn();if(changed==='account')f.switch();else if(changed==='source')f.switchSource();else f.conversation.dispose()
+ release({turnId:'t1',status:'running'});await Promise.all([polling,stop]);assert.equal(cancels,0)
+})
+
+test('stop while send locates the new turn and never cancels an older turn after ambiguous send',async()=>{
+ for(const fail of [false,true]){
+  let release,cancels=[];const f=fixture({sendAssistantV4Turn:()=>new Promise((resolve,reject)=>release=()=>fail?reject(Error('lost')):resolve({turnId:'new'})),getAssistantV4Turn:async id=>({turnId:id,status:cancels.length?'cancelled':'running'}),cancelAssistantV4Turn:async id=>cancels.push(id)})
+  await f.conversation.load();const send=f.conversation.send('新请求');await new Promise(setImmediate);const stop=f.conversation.cancelTurn();release();await Promise.all([send,stop]);assert.deepEqual(cancels,fail?[]:['new'])
+ }
+})

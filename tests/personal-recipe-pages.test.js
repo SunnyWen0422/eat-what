@@ -13,8 +13,8 @@ function deferred() {
 
 function load(route, api = {}, extras = {}) {
   let definition
-  const account = { id: 'A', token: 'token-A' }
-  const navigation = [], dialogs = [], timers = new Map(), storage = new Map()
+  const account = extras.account || { id: 'A', token: 'token-A', api: '' }
+  const navigation = [], dialogs = [], timers = new Map(), storage = extras.storage || new Map()
   const wx = {
     getStorageInfoSync: () => ({ keys: [...storage.keys()] }),
     getStorageSync: key => key === 'userInfo' ? { id: account.id } : key === 'token' ? account.token : storage.get(key),
@@ -25,7 +25,7 @@ function load(route, api = {}, extras = {}) {
   }
   const modules = {
     '../../utils/api': api, '../../utils/font-scale': () => 1,
-    '../../utils/util': { getUserStorageKey: key => `${account.id || 'guest'}:${key}` },
+    '../../utils/util': { getUserStorageKey: key => `${account.id || 'guest'}${account.api || ''}:${key}` },
     '../../utils/config': { ENABLE_MEAL_WORKSPACE: false }, '../../utils/meal-workflow': flow,
     '../../utils/recommendation-options': { loadRecommendationOptions: async () => ({ options: { groups: {} } }) },
     '../../utils/preference-store': { createPreferenceStore: () => ({ readCache: () => ({}) }) },
@@ -63,7 +63,7 @@ function load(route, api = {}, extras = {}) {
       target[parts.at(-1)] = value
     }
   } }
-  return { page, account, wx, navigation, dialogs, timers }
+  return { page, account, storage, wx, navigation, dialogs, timers }
 }
 
 test('personal create retries one request ID and preserves form after unknown outcome', async () => {
@@ -100,7 +100,7 @@ test('copied rich recipe editor uses detailed steps and retries the exact versio
   const { page } = load('pages/custom-dishes/custom-dishes', { updateCustomDish: async (id, body) => { sent.push(body); if (sent.length === 1) throw { isNetworkError: true }; return { id } }, getCustomDishes: async () => [dish] })
   page.onLoad(); page.edit(dish); assert.equal(page.data.form.steps, '洗鱼\n蒸熟')
   await page.saveEdit(); assert.equal(page.data.editPending, true); await page.saveEdit()
-  assert.equal(sent[0].expectedVersion, 'v1'); assert.equal(sent[0].requestId, sent[1].requestId); assert.equal(sent[0].step, '洗鱼#蒸熟')
+  assert.equal(sent[0].expectedVersion, 'v1'); assert.equal(sent[0].requestId, sent[1].requestId); assert.equal(sent[0].step, '洗鱼###蒸熟')
 })
 test('menu save recovery restores selected IDs after reentry', async () => {
   const { page, wx } = load('pages/customize/customize', { getPersonalMenus: async () => [] })
@@ -144,4 +144,38 @@ test('dish detail time uses explicit evidence while raw legacy text remains in s
   }
   assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /\{\{dish\.cookTimeDisplay\}\}/)
   assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /原资料时长说明：\{\{dish\.cookTime/)
+})
+
+for (const kind of ['dish','menu']) test('lost '+kind+' delete receipt remains recoverable after object disappears and reuses exact request',async()=>{
+ const sends=[];let gone=false,release
+ const api={getCustomDishes:async()=>gone?[]:[{id:7,name:'豆腐',contentVersion:'v1'}],getPersonalMenus:async()=>gone?[]:[{id:7,name:'晚餐',version:1}]}
+ api[kind==='dish'?'deleteCustomDish':'deletePersonalMenu']=async(id,body)=>{sends.push({id,body:structuredClone(body)});gone=true;if(sends.length===1)throw Error('lost');return new Promise(r=>release=r)}
+ const route=kind==='dish'?'pages/custom-dishes/custom-dishes':'pages/customize/customize',f=load(route,api);let p=f.page
+ if(kind==='dish'){p.onLoad();await p.onShow()}else{p.ensureBrowseOwner();await p.loadMenus()}
+ p[kind==='dish'?'onDelete':'onDeleteMenu']({currentTarget:{dataset:{id:7}}});await f.dialogs.at(-1).success({confirm:true})
+ const restored=load(route,api,{account:f.account,storage:f.storage});p=restored.page
+ if(kind==='dish'){p.onLoad();await p.onShow()}else{p.ensureBrowseOwner();await p.loadMenus()}
+ const pending=p.data.pendingDeletes;assert.equal(pending.length,1);assert.equal(sends.length,1)
+ const event={currentTarget:{dataset:{id:7,generation:p.data.pendingDeleteGeneration}}}
+ const first=p.onRecoverDelete(event),second=p.onRecoverDelete(event);await new Promise(setImmediate)
+ release({deleted:true});await Promise.all([first,second]);assert.deepEqual(sends[1],sends[0]);assert.equal(sends.length,2);assert.equal(p.data.pendingDeletes.length,0)
+})
+
+for(const kind of ['dish','menu'])for(const change of ['account','api'])test('pending '+kind+' delete cannot cross '+change+' or accept late receipts',async()=>{
+ const route=kind==='dish'?'pages/custom-dishes/custom-dishes':'pages/customize/customize';let finish,sends=0
+ const api={getCustomDishes:async()=>[],getPersonalMenus:async()=>[]};api[kind==='dish'?'deleteCustomDish':'deletePersonalMenu']=async()=>{sends++;return new Promise(r=>finish=r)}
+ const f=load(route,api),p=f.page
+ f.storage.set('A:personalRecipeWrite:'+kind+':delete:7',{expectedVersion:kind==='dish'?'v1':1,requestId:'original'})
+ if(kind==='dish'){p.onLoad();await p.onShow()}else{p.ensureBrowseOwner();await p.loadMenus()}
+ const event={currentTarget:{dataset:{id:7,generation:p.data.pendingDeleteGeneration}}}
+ const recovering=p.onRecoverDelete(event);await new Promise(setImmediate)
+ if(change==='account')f.account.id='B';else f.account.api='other'
+ p[kind==='dish'?'ensureOwner':'ensureBrowseOwner']();finish({deleted:true});await recovering
+ assert.equal(p.data.pendingDeletes.length,0);assert.ok(f.storage.has('A:personalRecipeWrite:'+kind+':delete:7'))
+ await p.onRecoverDelete(event);assert.equal(sends,1)
+})
+
+test('dish detail uses the shared readable legacy ingredient formatter without duplicate raw columns',async()=>{
+ const {page}=load('pages/dish-detail/dish-detail',{getDishById:async()=>({id:1,name:'豆腐',cl:'豆腐|460|克|主料|切块|2名成年人总量+15%冗余|菜名+步骤',step:'煮熟'}),checkFavoriteDish:async()=>({})})
+ await page.loadDishDetail(1);assert.deepEqual(Array.from(page.data.dish.ingredientsList),['豆腐 460克（切块）']);assert.equal(page.data.dish.cl,'豆腐|460|克|主料|切块|2名成年人总量+15%冗余|菜名+步骤')
 })

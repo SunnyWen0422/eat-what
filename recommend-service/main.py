@@ -1,5 +1,5 @@
 """FastAPI 入口 - 菜谱推荐服务"""
-from fastapi import FastAPI, HTTPException, Header, Body
+from fastapi import FastAPI, HTTPException, Header, Body, Request
 from pydantic import BaseModel
 from typing import Optional, List, Any, Dict
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -381,7 +381,7 @@ def assistant_v4_capabilities(x_service_token: Optional[str] = Header(default=No
     return {"contractRevision":"maturity.2","uiFeatures":["clarification_v1","handoff_v1"]}
 
 @app.post("/internal/v4/assistant/step")
-async def assistant_v4_step(req: Any = Body(...), x_service_token: Optional[str] = Header(default=None)):
+async def assistant_v4_step(request: Request, req: Any = Body(...), x_service_token: Optional[str] = Header(default=None)):
     import hmac
     import os
     from assistant_v4_schema import StepValidationError
@@ -389,10 +389,25 @@ async def assistant_v4_step(req: Any = Body(...), x_service_token: Optional[str]
     configured = os.getenv("MEAL_WORKSPACE_SERVICE_TOKEN", "")
     if not configured or not x_service_token or not hmac.compare_digest(x_service_token, configured):
         raise HTTPException(status_code=403, detail="internal service authorization required")
+    import asyncio
+    async def disconnected():
+        while not await request.is_disconnected():
+            await asyncio.sleep(.05)
+    work = asyncio.create_task(run_step_async(req, getattr(app.state, "v4_provider", None)))
+    connection = asyncio.create_task(disconnected())
     try:
-        return await run_step_async(req,getattr(app.state,"v4_provider",None))
+        done, _ = await asyncio.wait({work, connection}, return_when=asyncio.FIRST_COMPLETED)
+        if work in done:
+            return await work
+        # Client disconnect stops only this request's awaitable. It cannot undo a
+        # committed Java write or guarantee that a remote supplier stops billing.
+        raise HTTPException(status_code=499, detail="request disconnected")
     except StepValidationError:
         raise HTTPException(status_code=400, detail="invalid assistant step") from None
+    finally:
+        for task in (work, connection):
+            if not task.done(): task.cancel()
+        await asyncio.gather(work, connection, return_exceptions=True)
 
 
 @app.post("/internal/v4/meal-task")
