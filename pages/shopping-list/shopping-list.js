@@ -66,7 +66,8 @@ Page({
     }
     const dishes = display.groups.map(group => ({ ...group,contextLabel:group.sourceDate?`${Number(group.sourceDate.slice(5,7))}月${Number(group.sourceDate.slice(8,10))}日 ${flow.mealNames[group.sourceMealType] || ''}`.trim():'手动添加', expanded: (this._expandedDishes || []).includes(group.key), items: group.items.map(decorate) }))
     const sourceMeals=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes).map(t=>({...t,label:t.date+' '+flow.mealNames[t.mealType]}))
-    const pagePresentation=shoppingPagePresentation({...this.data,hasExpense:Object.values((this._full||{}).expenses||{}).some(e=>e && e.amount!=null),pendingCount:view.pendingCount,checkedCount:view.checkedCount,sourceMeals})
+    // Expenses belong to remaining ingredients; empty lists cannot retain detached spend.
+    const pagePresentation=shoppingPagePresentation({...this.data,hasExpense:false,pendingCount:view.pendingCount,checkedCount:view.checkedCount,sourceMeals})
     this.setData({ pagePresentation,sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
       dishes, summaryRows: decorateShoppingRows(display.rows.map(decorate), [], this._expandedSources || []) })
   },

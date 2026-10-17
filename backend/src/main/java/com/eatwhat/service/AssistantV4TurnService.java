@@ -80,6 +80,14 @@ public class AssistantV4TurnService {
             TurnScope scope=scope(user,lease,request);ModelContext context=contexts.build(user,request,historyBeforeCurrentTurn(user,lease));
             Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
+            // Context contains only the server-validated, owned clarification choice.
+            // Keeping the menu is already a complete decision, not a model instruction.
+            Object choice=context.getRequestContext().get("clarification");
+            Map<String,Object> clarification=choice instanceof Map?map(choice):Collections.emptyMap();
+            if("meal_requirement".equals(clarification.get("kind"))&&clarification.get("selection") instanceof Map&&"keep".equals(map(clarification.get("selection")).get("requirementMode"))){
+                active(user,lease);ReadResult current=new ReadResult();current.setCallId("kept-current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());
+                TurnResult kept=result("completed","好的，先保持当前菜单。",false);kept.setCards(factCards(user,current));kept.setWorkspaceRef(reference(scope));finish(user,lease,kept);return;
+            }
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
             Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;List<ReadResult> answerReads=new ArrayList<>();AssistantTurnReadCache readCache=new AssistantTurnReadCache(json);
             for(int round=0;round<4;round++){

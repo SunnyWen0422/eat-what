@@ -7,6 +7,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantReplyIntegrationTest {
+ @Test void authenticated_keep_choice_completes_without_model_or_draft_write(){
+  ModelContext context=new ModelContext();context.getActiveMeal().put("currentDishes",Collections.singletonList(AssistantV4ContextService.map("id",1L,"name","原菜单")));
+  context.getRequestContext().put("clarification",AssistantV4ContextService.map("kind","meal_requirement","selection",AssistantV4ContextService.map("requirementMode","keep")));
+  when(f.context.build(any(),any(),any())).thenReturn(context);
+  java.util.concurrent.atomic.AtomicInteger writes=new java.util.concurrent.atomic.AtomicInteger();
+  f.registry.registerDraft("draft_update",(u,step,scope)->{writes.incrementAndGet();TurnResult result=new TurnResult();result.setStatus("completed");Card card=new Card();card.setReceiptRef("unexpected-write");result.getCards().add(card);return result;});
+  StepOutput out=output("可以换一道。");ActionProposal proposal=new ActionProposal();ActionIntent action=new ActionIntent();action.setKind("draft_update");action.setArguments(AssistantV4ContextService.map("operation","generate","selectedDishIds",Collections.singletonList(1L)));proposal.getSteps().add(action);out.setActionProposal(proposal);when(f.model.step(any())).thenReturn(out);
+  f.runner.runTurn(1L,f.id);TurnView result=f.store.findTurn(1L,f.id);
+  assertEquals(0,writes.get());verify(f.model,never()).step(any());assertEquals(0,f.store.turnRecord(1L,f.id).getProviderCallsUsed());
+  assertEquals("completed",result.getStatus());assertNull(result.getPendingAction());assertNull(result.getContinuation());assertFalse(result.getCards().isEmpty());assertTrue(result.getCards().stream().allMatch(card->card.getReceiptRef()==null));
+ }
  AssistantV4TurnServiceTest f;
  @BeforeEach void setup(){f=new AssistantV4TurnServiceTest();f.setup();when(f.model.supportsNaturalReplies()).thenReturn(true);}
  StepOutput output(String text){StepOutput out=new StepOutput();out.setType("final");AnswerDraft draft=new AnswerDraft();AnswerSegment segment=new AnswerSegment();segment.setText(text);segment.getEvidenceKeys().add("dish:1");draft.getSegments().add(segment);draft.getCardRefs().add("dish:1");out.setAnswer(draft);return out;}

@@ -34,8 +34,9 @@ Page({
     finally{if(this.current(scope,epoch))this.setData({loading:false})}
   },
   async onContinueV4(e){
-    const id=e.currentTarget.dataset.id,selected=this.data.v4Sessions.find(s=>s.sessionId===id),scope=this._scope,epoch=this._epoch=(this._epoch||0)+1
+    const id=e.currentTarget.dataset.id,selected=this.data.v4Sessions.find(s=>s.sessionId===id)
     if(!selected||this.data.loading)return
+    const scope=this._scope,epoch=this._epoch=(this._epoch||0)+1
     this.setData({loading:true,errorMessage:''})
     try{const latest=await api.getAssistantV4Session(id);if(!this.current(scope,epoch))return
       const ref=latest.workspaceRef,target=latest.target

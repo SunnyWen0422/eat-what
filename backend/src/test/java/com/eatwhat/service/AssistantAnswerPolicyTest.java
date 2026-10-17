@@ -5,6 +5,13 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class AssistantAnswerPolicyTest {
+ @Test void equal_times_cannot_support_a_faster_claim(){
+  ModelContext c=context();((Map<String,Object>)((List<?>)c.getActiveMeal().get("currentDishes")).get(1)).put("cookMinutes",15);
+  AnswerDraft a=answer("清炒青菜更省时。");AnswerSegment s=a.getSegments().get(0);s.setEvidenceKeys(Arrays.asList("dish:1","dish:2"));
+  AnswerClaim claim=new AnswerClaim();claim.setOp("equal");claim.setLeft("dish:2");claim.setRight("dish:1");claim.setField("cookMinutes");claim.setValue(15);s.getClaims().add(claim);
+  assertFalse(new AssistantAnswerPolicy().evaluate(a,new AssistantAnswerBasisService(json).build(c,Collections.emptyList())).isAccepted());
+  s.setText("两道菜预计都是15分钟，可以按想吃的口味选。");assertTrue(new AssistantAnswerPolicy().evaluate(a,new AssistantAnswerBasisService(json).build(c,Collections.emptyList())).isAccepted());
+ }
  final ObjectMapper json=new ObjectMapper();
  ModelContext context(){ModelContext c=new ModelContext();c.getActiveMeal().put("currentDishes",Arrays.asList(row(1,"番茄炒蛋",15),row(2,"清炒青菜",10)));return c;}
  Map<String,Object> row(long id,String name,Integer time){Map<String,Object> m=new LinkedHashMap<>();m.put("id",id);m.put("name",name);m.put("cookMinutes",time);return m;}

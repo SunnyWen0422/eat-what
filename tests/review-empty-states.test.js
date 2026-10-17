@@ -8,8 +8,14 @@ test('checked items, zero expenses and recovery remain accessible',()=>{
  assert.equal(presentation.shoppingPagePresentation({hasExpense:true}).showExpenses,true)
  for(const state of [{drafts:[{}]},{loading:true},{offline:true},{errorMessage:'暂未连接'}])assert.equal(presentation.shoppingPagePresentation(state).emptyAction,'')
 })
-test('an expense survives removed ingredients including an actual zero',()=>{
- const p=pricing.buildPricing({dishes:[],expenses:{synthetic:{amount:'0',channel:'其他'}}});assert.equal(p.recorded,1);assert.equal(p.actualText,'¥0.00');assert.equal(p.rows.length,1);assert.equal(p.rows[0].displayName,'已移出清单的食材');assert.equal(pricing.copyPending({dishes:[],expenses:{synthetic:{amount:'0'}}}),'')
+test('removed ingredient expenses do not reappear from a stale response',()=>{
+ const p=pricing.buildPricing({dishes:[],expenses:{synthetic:{amount:'0',channel:'其他'}}});assert.equal(p.recorded,0);assert.equal(p.actualText,'—');assert.equal(p.rows.length,0);assert.equal(pricing.copyPending({dishes:[],expenses:{synthetic:{amount:'0'}}}),'')
+})
+
+test('zero expense remains a real amount while the ingredient still exists',()=>{
+ const item={sourceDishId:1,canonicalName:'番茄',displayName:'番茄',quantityText:'1个'}
+ const key=pricing.ingredientKey(item),p=pricing.buildPricing({dishes:[{dishId:1,items:[item]}],expenses:{[key]:{amount:'0',channel:'其他'}}})
+ assert.equal(p.recorded,1);assert.equal(p.actualText,'¥0.00');assert.equal(p.rows.length,1)
 })
 test('diet empty state is based on eaten meals and retains pending plans',()=>{
  const range={startDate:'2026-10-12',endDate:'2026-10-18'},report={metadata:{...range,basis:'explicit_eaten'},blocks:{overview:{mealCount:0},actualDetails:{records:[]},frequentDishes:{dishes:[]},categoryCounts:{categories:{},entryCount:0},planExecution:{unconfirmedMeals:2},completeness:{observedDays:7}}}
