@@ -80,7 +80,7 @@ public class AssistantV4TurnService {
             Capabilities caps=registry.capabilities();List<String> actual=new ArrayList<>(caps.getReads());actual.addAll(caps.getDraftCommands());actual.addAll(caps.getPreviewActions());if(request.getUiFeatures()!=null)for(String feature:request.getUiFeatures())if(caps.getSupportedUiFeatures().contains(feature))actual.add(feature);context.setCapabilities(actual);boundContext(context);
             authorizeCurrent(context.getActiveMeal(),scope);
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
-            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;
+            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;List<ReadResult> answerReads=new ArrayList<>();
             for(int round=0;round<4;round++){
                 active(user,lease);
                 // Keep 0.5s for local completion inside the unchanged 30s lease. Each HTTP attempt
@@ -90,6 +90,15 @@ public class AssistantV4TurnService {
                 long now=clock.millis(),outerMillis=Math.min(23000,lease.getModelDeadlineAt()-now-500);
                 if(outerMillis<3500)throw new IllegalStateException("请求剩余时间不足");
                 input.setTimeoutSeconds(outerMillis/1000.0);input.setDeadlineEpochMillis(now+outerMillis);input.setFinalRound(used==4||readCount==8);
+                input.setReplyContract(null);input.setAnswerBasis(null);
+                if(model.supportsNaturalReplies()){
+                    AnswerBasis basis=new AssistantAnswerBasisService(json).build(context,answerReads);
+                    if(encode(basis).length()+encode(input.getReadResults()).length()+32<=12000){input.setReplyContract("meal_reply.v1");input.setAnswerBasis(basis);}
+                }
+                // A capability probe consumes the same turn deadline, never a fresh timeout.
+                now=clock.millis();outerMillis=Math.min(23000,lease.getModelDeadlineAt()-now-500);
+                if(outerMillis<3500)throw new IllegalStateException("请求剩余时间不足");
+                input.setTimeoutSeconds(outerMillis/1000.0);input.setDeadlineEpochMillis(now+outerMillis);
                 StepOutput output=model.step(input);active(user,lease);
                 validateOutput(output);
                 if("read_calls".equals(output.getType())){
@@ -100,7 +109,7 @@ public class AssistantV4TurnService {
                     for(ToolRead call:calls){active(user,lease);ReadResult read=registry.readExecutor(call.getName()).read(user,call,scope);active(user,lease);
                         if(read==null||!Objects.equals(read.getCallId(),call.getCallId())||!Objects.equals(read.getName(),call.getName()))throw new IllegalArgumentException("查询结果不匹配");
                         int length=encode(read).length();if(factChars+length>12000){TurnResult stopped=result("needs_input","查询内容较多，请缩小日期范围或菜品范围",false);stopped.setCards(facts);stopped.setWorkspaceRef(reference(scope));finish(user,lease,stopped);return;}
-                        factChars+=length;readCount++;usedCalls.add(call.getCallId());authorizeRead(read,scope);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromRead(read,call));mergeFacts(facts,factCards(user,read));results.add(read);
+                        factChars+=length;readCount++;usedCalls.add(call.getCallId());authorizeRead(read,scope);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromRead(read,call));mergeFacts(facts,factCards(user,read));results.add(read);answerReads.add(read);
                     }
                     input.setReadResults(results);input.setProviderContinuation(output.getProviderContinuation());continue;
                 }
@@ -120,7 +129,10 @@ public class AssistantV4TurnService {
                     if("recent_actual".equals(output.getFactSource())&&authorizedFacts.stream().noneMatch(fact->!fact.contextSnapshot&&"read_actual_diet_review".equals(fact.name))){ReadResult recent=recentActualRead(context);authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(recent));facts.addAll(recentActualCards(user,context,recent));}
                     // An explicit empty read is a result. Never replace it with an unrelated plan.
                     if(authorizedFacts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(current));facts.addAll(factCards(user,current));}
-                    TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
+                    TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);
+                    if("meal_reply.v1".equals(input.getReplyContract())){AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(output.getAnswer(),input.getAnswerBasis());
+                        if(answer.isAccepted()){r.setReply(answer.getReply());r.setCards(selectAnswerDishCards(facts,answer.getCardRefs()));}}
+                    r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 validateActions(output.getActionProposal(),scope);
                 // Raw wording is not a proven executable constraint. Keep the
@@ -131,7 +143,7 @@ public class AssistantV4TurnService {
                     r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
-                if(executeStep(user,lease,scope,true,c))resumeWorkflow(user,turnId);return;
+                if(executeStep(user,lease,scope,true,c,"meal_reply.v1".equals(input.getReplyContract())?output.getAnswer():null))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
         }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);}}
@@ -166,6 +178,9 @@ public class AssistantV4TurnService {
         }return store.findTurn(user,turnId);
     }
     private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected){
+        return executeStep(user,row,scope,running,expected,null);
+    }
+    private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected,AnswerDraft explanation){
         final long revision=expected.getRevision();final int cursor=expected.getCursor();final String stepId=expected.getSteps().get(cursor).getStepId();
         Supplier<Boolean> work=()->{
             WorkflowContinuation c=store.continuation(user,row.getId());
@@ -178,6 +193,11 @@ public class AssistantV4TurnService {
             if("completed".equals(outcome.getStatus())){
                 String receipt=null;for(Card card:outcome.getCards())if(card.getReceiptRef()!=null&&!card.getReceiptRef().trim().isEmpty())receipt=card.getReceiptRef();if(receipt==null)throw new IllegalStateException("缺少业务回执");step.setStatus("completed");step.setReceiptRef(receipt);c.setCursor(c.getCursor()+1);outcome.setStatus(c.getCursor()==c.getSteps().size()?"completed":"awaiting_confirmation");
                 String feedback="draft_update".equals(step.getKind())?"已更新本餐":"calendar_save".equals(step.getKind())?"已保存计划":"已加入采购清单";outcome.setReply(feedback+(c.getCursor()==c.getSteps().size()?"":"，正在准备下一步"));
+                if("draft_update".equals(step.getKind())&&c.getCursor()==c.getSteps().size()&&explanation!=null){
+                    ModelContext actual=new ModelContext();for(Card card:outcome.getCards())if("menu".equals(card.getType()))actual.getActiveMeal().put("currentDishes",card.getData().get("dishes"));
+                    AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(explanation,new AssistantAnswerBasisService(json).build(actual,Collections.emptyList()));
+                    if(answer.isAccepted())outcome.setReply(feedback+"。\n"+answer.getReply());
+                }
             }else if("awaiting_confirmation".equals(outcome.getStatus())){PendingAction p=outcome.getPendingAction();if(p==null||!step.getStepId().equals(p.getStepId())||p.getTaskId()==null||p.getPreviewToken()==null||p.getExpiresAt()==null||p.getExpiresAt()<=clock.millis())throw new IllegalStateException("缺少确认预览");step.setStatus("awaiting_confirmation");step.setTaskId(p.getTaskId());outcome.setReply("请核对以下内容后确认");
             }else throw new IllegalStateException("业务结果无效");
             List<Card> cards=new ArrayList<>();for(Card card:before.getCards())if(card.getReceiptRef()!=null)cards.add(card);cards.addAll(outcome.getCards());outcome.setCards(cards);outcome.setContinuation(c);if(outcome.getWorkspaceRef()==null)outcome.setWorkspaceRef(before.getWorkspaceRef());
@@ -255,6 +275,14 @@ public class AssistantV4TurnService {
         }card.getData().put("meals",meals);}
         else return Collections.emptyList();
         if(read.getItems().isEmpty())card.setText("这个范围内暂无记录");return Collections.singletonList(card);
+    }
+    private List<Card> selectAnswerDishCards(List<Card> cards,List<String> refs){
+        if(refs.isEmpty())return cards;Set<Long> ids=new HashSet<>();for(String ref:refs)if(ref.startsWith("dish:"))ids.add(Long.valueOf(ref.substring(5)));
+        List<Card> selected=new ArrayList<>();for(Card card:cards){
+            if(!"recipe".equals(card.getType())||!"readonly_fact".equals(card.getData().get("kind"))){selected.add(card);continue;}
+            List<Map<String,Object>> dishes=new ArrayList<>();for(Map<String,Object> dish:rows(card.getData().get("dishes")))if(dish.get("id") instanceof Number&&ids.contains(((Number)dish.get("id")).longValue()))dishes.add(dish);
+            if(!dishes.isEmpty()){card.getData().put("dishes",dishes);selected.add(card);}
+        }return selected;
     }
     private String humanLabel(Object value){if(!(value instanceof String))return "";String text=((String)value).replaceAll("[\\p{Cntrl}]","").trim();return text.length()>120?text.substring(0,120)+"…":text;}
     private String readableLines(List<String> lines,boolean partial){String text=String.join("\n",lines);return text+(partial?"\n以上为部分结果，可缩小范围继续查询":"");}
