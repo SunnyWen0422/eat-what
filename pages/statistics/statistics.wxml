@@ -1,6 +1,6 @@
 <view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px">
   <text class="ew-heading">饮食回顾</text>
-  
+
   <view class="ew-tabs">
     <view aria-role="button" class="ew-hit-target ew-pill {{periodMode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="onMode">按周</view>
     <view aria-role="button" class="ew-hit-target ew-pill {{periodMode === 'month' ? 'active' : ''}}" data-mode="month" bindtap="onMode">按月</view>

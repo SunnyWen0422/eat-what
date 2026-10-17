@@ -3,7 +3,7 @@ const {getUserStorageKey} = require('../../utils/util')
 const {mealsFromSession} = require('../../utils/legacy-meal-import')
 const flow = require('../../utils/meal-workflow')
 Page({
-  data: {fontBase:require('../../utils/font-scale').base,fontScale:require('../../utils/font-scale')(),v4Sessions:[],v4Messages:[],v4SessionId:'',v4NextCursor:null,legacyVisible:false,sessions:[],messages:[],meals:[],sessionId:'',nextCursor:null,loading:false,errorMessage:''},
+  data: {fontBase:require('../../utils/font-scale').base,fontScale:require('../../utils/font-scale')(),canDeleteV4:typeof api.deleteAssistantV4Session==='function',v4Sessions:[],v4Messages:[],v4SessionId:'',v4NextCursor:null,legacyVisible:false,sessions:[],messages:[],meals:[],sessionId:'',nextCursor:null,loading:false,errorMessage:''},
   onLoad(options={}) { this._alive=true;this._target=options },
   onUnload() { this._alive=false;this._epoch=(this._epoch||0)+1 },
   current(scope,epoch) { return this._alive && scope===getUserStorageKey('assistantHistory') && epoch===this._epoch },
@@ -16,7 +16,7 @@ Page({
       const response=await api.getAssistantV4Sessions({cursor:more?this.data.v4NextCursor:null,limit:20})
       if(!this.current(scope,epoch))return
       const byId=new Map((more?this.data.v4Sessions:[]).map(s=>[s.sessionId,s]))
-      for(const s of response.sessions||[]){const target=s.target,meal=target&&({breakfast:'早餐',lunch:'午餐',dinner:'晚餐'})[target.mealType];byId.set(s.sessionId,{...s,label:target&&meal?`${target.date} · ${meal}`:'餐桌对话',statusLabel:s.hasPending?'有待核对的操作':'',timeLabel:new Date(s.updatedAt).toLocaleString('zh-CN')})}
+      for(const s of response.sessions||[])byId.set(s.sessionId,require('../../utils/assistant-history').presentHistorySession(s))
       this.setData({v4Sessions:[...byId.values()],v4NextCursor:response.nextCursor||null})
     }catch(error){if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'餐桌助手记录暂未读到，请重新读取。')})}
     finally{if(this.current(scope,epoch))this.setData({loading:false})}
@@ -44,6 +44,26 @@ Page({
       const origin=require('../../utils/assistant-origin').originQuery({kind:'history'},{storage:wx,storageKey:getUserStorageKey})
       wx.navigateTo({url:`/pages/chat/chat?sessionId=${encodeURIComponent(id)}&workspaceId=${encodeURIComponent(ref.workspaceId)}&date=${checked.date}&mealType=${checked.mealType}${origin}`})
     }catch(error){if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'原餐次暂未读到，可以稍后继续。')})}
+    finally{if(this.current(scope,epoch))this.setData({loading:false})}
+  },
+  onEnterV4(e){const selected=this.data.v4Sessions.find(s=>s.sessionId===e.currentTarget.dataset.id);return selected&&selected.target?this.onContinueV4(e):this.onOpenV4Session(e)},
+  onHistoryMore(e){
+    const id=e.currentTarget.dataset.id,selected=this.data.v4Sessions.find(s=>s.sessionId===id),scope=this._scope,epoch=this._epoch
+    if(!selected||this.data.loading)return
+    const removable=this.data.canDeleteV4&&!selected.hasPending
+    wx.showActionSheet({itemList:removable?['查看记录','删除对话']:['查看记录'],success:result=>{if(!this.current(scope,epoch))return;return result.tapIndex===1&&removable?this.onDeleteV4(e):this.onOpenV4Session(e)}})
+  },
+  async onDeleteV4(e){
+    const id=e.currentTarget.dataset.id,selected=this.data.v4Sessions.find(s=>s.sessionId===id),scope=this._scope,epoch=this._epoch
+    if(!selected||selected.hasPending||this.data.loading||typeof api.deleteAssistantV4Session!=='function')return
+    const confirmed=await new Promise(resolve=>wx.showModal({title:'删除这段对话？',content:'仅删除对话记录，日历安排、采购清单和实际用餐记录会保留。',confirmText:'删除对话',confirmColor:'#9B463B',success:r=>resolve(r.confirm),fail:()=>resolve(false)}))
+    if(!confirmed||!this.current(scope,epoch))return
+    this.setData({loading:true,errorMessage:''})
+    try{
+      const latest=await api.getAssistantV4Session(id);if(!this.current(scope,epoch))return
+      if(latest.sessionId!==id||latest.latestTurn&&['queued','running','awaiting_confirmation'].includes(latest.latestTurn.status))throw Error('请先进入对话核对未完成的操作')
+      await api.deleteAssistantV4Session(id);if(!this.current(scope,epoch))return;this.setData({v4Sessions:this.data.v4Sessions.filter(s=>s.sessionId!==id),...(this.data.v4SessionId===id?{v4SessionId:'',v4Messages:[]}: {})})}
+    catch(error){if(this.current(scope,epoch)){if(error.statusCode===404)this.setData({v4Sessions:this.data.v4Sessions.filter(s=>s.sessionId!==id),...(this.data.v4SessionId===id?{v4SessionId:'',v4Messages:[]}: {})});else this.setData({errorMessage:flow.errorMessage(error,'删除结果暂未确认，请重新读取后核对。')})}}
     finally{if(this.current(scope,epoch))this.setData({loading:false})}
   },
   onToggleLegacy(){this.setData({legacyVisible:!this.data.legacyVisible});if(this.data.legacyVisible&&!this.data.sessions.length)return this.readHistory(false)},

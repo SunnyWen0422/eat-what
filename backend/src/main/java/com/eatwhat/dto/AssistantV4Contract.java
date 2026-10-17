@@ -50,6 +50,7 @@ public final class AssistantV4Contract {
         @JsonInclude(JsonInclude.Include.NON_NULL) private TurnView latestTurn;
     }
     @Data public static class SessionSummary {
+        @JsonInclude(JsonInclude.Include.NON_NULL) private String title,preview;
         private String sessionId;private WorkspaceRef workspaceRef;private Map<String,String> target;private long updatedAt;private String lastStatus;private boolean hasPending;
         @JsonIgnore private Long userId;@JsonIgnore private String workspaceId,date,mealType;@JsonIgnore private Long workspaceRevision,planVersion;
     }

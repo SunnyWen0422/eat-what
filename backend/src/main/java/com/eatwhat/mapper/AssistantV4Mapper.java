@@ -7,6 +7,8 @@ import java.util.*;
 @Mapper
 public interface AssistantV4Mapper {
     @Select("<script>SELECT s.id AS sessionId,s.user_id AS userId,s.workspace_id AS workspaceId,s.updated_at AS updatedAt,w.meal_date AS date,w.meal_type AS mealType,w.revision AS workspaceRevision,JSON_EXTRACT(w.state_json,'$.draft.planVersion') AS planVersion,"
+        +"(SELECT LEFT(m.text_content,80) FROM assistant_v4_message m WHERE m.user_id=s.user_id AND m.session_id=s.id AND m.role='user' AND m.created_at>=UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000-2592000000 ORDER BY m.id DESC LIMIT 1) AS title,"
+        +"(SELECT LEFT(m.text_content,140) FROM assistant_v4_message m WHERE m.user_id=s.user_id AND m.session_id=s.id AND m.role='assistant' AND m.created_at>=UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000-2592000000 ORDER BY m.id DESC LIMIT 1) AS preview,"
         +"(SELECT t.status FROM assistant_v4_turn t WHERE t.user_id=s.user_id AND t.session_id=s.id ORDER BY t.updated_at DESC,t.id DESC LIMIT 1) AS lastStatus,"
         +"EXISTS(SELECT 1 FROM assistant_v4_turn t WHERE t.user_id=s.user_id AND t.session_id=s.id AND t.status IN ('queued','running','awaiting_confirmation')) AS hasPending "
         +"FROM assistant_v4_session s LEFT JOIN meal_workspace w ON w.user_id=s.user_id AND w.id=s.workspace_id "

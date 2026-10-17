@@ -95,7 +95,7 @@ public class AssistantV4Store {
         }catch(Exception invalid){throw new IllegalArgumentException("分页标识无效");}}
         List<SessionSummary> rows=db.sessions(user,before,id,limit+1);if(rows==null)rows=Collections.emptyList();
         SessionList result=new SessionList();
-        for(int n=0;n<Math.min(limit,rows.size());n++){SessionSummary row=rows.get(n);if(!Objects.equals(user,row.getUserId()))throw new IllegalStateException("会话记录归属异常");
+        for(int n=0;n<Math.min(limit,rows.size());n++){SessionSummary row=rows.get(n);if(!Objects.equals(user,row.getUserId()))throw new IllegalStateException("会话记录归属异常");AssistantHistorySummary.normalize(row);
             WorkspaceRef ref=new WorkspaceRef();ref.setWorkspaceId(row.getWorkspaceId());ref.setWorkspaceRevision(row.getWorkspaceRevision());ref.setPlanVersion(row.getPlanVersion());row.setWorkspaceRef(ref);
             if(row.getDate()!=null&&row.getMealType()!=null){Map<String,String> target=new LinkedHashMap<>();target.put("date",row.getDate());target.put("mealType",row.getMealType());row.setTarget(target);}result.getSessions().add(row);
         }
