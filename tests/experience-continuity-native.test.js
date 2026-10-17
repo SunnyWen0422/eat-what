@@ -11,6 +11,8 @@ test('native modes are explicit and fixture cannot claim service lifecycle', () 
   assert.throws(() => native.options(['--mode', 'live', '--out', 'x']), /mode/)
   assert.equal(native.options(['--mode', 'fixture', '--out', 'x']).mode, 'fixture')
   assert.throws(()=>native.options(['--mode','fixture','--out','x','--remote']),/service mode/)
+  assert.throws(()=>native.options(['--mode','service','--config','x','--out','x','--remote-ui']),/explicit --remote/)
+  assert.equal(native.options(['--mode','service','--config','x','--out','x','--remote','--remote-ui']).remoteUi,true)
 })
 test('all 27 routes register eight states and both admin roles without invented passes', () => {
   const routes = require('../app.json').pages, matrix = native.matrix(routes)

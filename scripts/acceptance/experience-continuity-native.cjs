@@ -8,6 +8,7 @@ const bounded=(promise,ms=25000)=>new Promise((resolve,reject)=>{const t=setTime
 function options(argv) {
  const value=name=>{const i=argv.indexOf('--'+name);return i<0?undefined:argv[i+1]}
  const mode=value('mode');if(!['fixture','service'].includes(mode))throw Error('Explicit --mode fixture|service required')
+ if(argv.includes('--remote-ui')&&!argv.includes('--remote'))throw Error('Official UI entry requires explicit --remote')
  if(!value('out'))throw Error('--out required')
  if(mode==='service'&&!value('config'))throw Error('Service mode requires --config for NEW owned runtime')
  if(mode!=='service'&&(argv.includes('--remote')||argv.includes('--assistant-cards')))throw Error('Remote entry and actual assistant cards require owned service mode')
@@ -16,7 +17,7 @@ function options(argv) {
  const width=Number(value('width')||390),widths=(value('widths')||String(width)).split(',').map(Number),port=Number(value('port')||9431)
  if(widths.some(w=>![320,390,430].includes(w))||!Number.isInteger(port)||port<1024||[9420,9427,18780,18781].includes(port))throw Error('Explicit safe automation port and 320/390/430 width required')
  return {mode,out:path.resolve(value('out')),config:value('config'),session:value('session'),python:value('python')||process.env.CODEX_PYTHON,node:process.execPath,
-  sdk:value('sdk')||process.env.EATWHAT_NATIVE_SDK,cli:value('cli')||process.env.EATWHAT_WECHAT_CLI,port,width,widths,scales,cases:value('cases')?.split(','),prepare:argv.includes('--prepare-only'),remote:argv.includes('--remote'),manualConfirm:argv.includes('--manual-confirm'),assistantCards:argv.includes('--assistant-cards')}
+  sdk:value('sdk')||process.env.EATWHAT_NATIVE_SDK,cli:value('cli')||process.env.EATWHAT_WECHAT_CLI,port,width,widths,scales,cases:value('cases')?.split(','),prepare:argv.includes('--prepare-only'),remote:argv.includes('--remote'),remoteUi:argv.includes('--remote-ui'),manualConfirm:argv.includes('--manual-confirm'),assistantCards:argv.includes('--assistant-cards')}
 }
 function matrix(routes) {
  const local=new Set(['about']), dirty=new Set(['index','result','customize','custom-dishes','profile-edit','recommend-filter','settings','chat','shopping-preview','shopping-list','calendar-detail','meal-cooking','admin','admin-dishes'])
@@ -186,15 +187,20 @@ async function capture(o,manifest,session) {
   report.actualViewport=await bounded(mini.systemInfo());report.device={kind:'WeChat developer-tools simulator',model:report.actualViewport.model,platform:report.actualViewport.platform,SDKVersion:report.actualViewport.SDKVersion};report.widthMatched=report.actualViewport.windowWidth===o.width;save()
   if(o.mode==='service'){report.phase='await-login';save();await bounded(mini.evaluate(()=>getApp().waitForLogin()));report.phase='login-wait-completed';save()}
   if(o.remote){
-   report.phase='enable-remote';report.remote={status:'requesting-qr',providerMode:'mock'};save()
+   report.phase=o.remoteUi?'await-official-ui-entry':'enable-remote';report.remote={status:o.remoteUi?'awaiting official UI entry; no SDK enable request':'requesting-qr',providerMode:'mock'};save()
    const connected=new Promise(r=>mini.connection.once('Tool.onRemoteDebugConnected',r))
    let qr,uiConnected=false
+   if(o.remoteUi){
+    report.remote.connectionWindowSeconds=600;save();console.log(JSON.stringify(report.remote))
+    await bounded(connected,600000);uiConnected=true
+   }else{
    try{qr=await bounded(mini.send('Tool.enableRemoteDebug',{auto:false}),55000)}catch(error){
     // Keep only this verified owned IDE available for one manual official UI
     // observation. No device/service claim follows from the SDK timeout.
     report.phase='enable-remote-sdk-blocked-official-ui-window'
     report.remote={status:'blocked-sdk; official UI observation window only',sdkError:error.message,providerMode:'mock',uiWindowSeconds:180,network:'NOT VERIFIED'};save();console.log(JSON.stringify(report.remote))
     await bounded(connected,180000);uiConnected=true
+   }
    }
    if(qr){
     report.phase='qr-return';save()
@@ -215,8 +221,9 @@ async function capture(o,manifest,session) {
    await bounded(mini.reLaunch('/pages/index/index'))
    const remotePage=await bounded(mini.currentPage()),observedScale=await bounded(remotePage.data('fontScale'))
    report.remote.font={adapter:'disabled; original device base-info preserved',observedScale,styles:await fontStyles(remotePage,observedScale)}
-   report.remote.observationWindowSeconds=180;report.status='remote-entry-only';save();console.log(JSON.stringify({status:'android-owned-mock-entry-ready',seconds:180}))
-   await sleep(180000);return report
+   const observationMs=o.remoteUi?600000:180000
+   report.remote.observationWindowSeconds=observationMs/1000;report.status='remote-entry-only';save();console.log(JSON.stringify({status:'android-owned-mock-entry-ready',seconds:observationMs/1000}))
+   await sleep(observationMs);return report
   }
   const routes=report.matrix.filter(r=>!o.cases||o.cases.includes(r.route.split('/')[1]))
   report.widths=[]
@@ -400,7 +407,7 @@ function fixtureData(name,fontScale) {
 async function main(argv=process.argv.slice(2)) {
  const o=options(argv);outside(o.out)
  if(!o.python)throw Error('Installed Python required through --python or CODEX_PYTHON')
- if(o.mode==='service'&&!o.session){const args=[path.join(__dirname,'experience_continuity_native.py'),'--config',path.resolve(o.config),'--out',o.out,'--node',o.node,'--driver',__filename,'--width',String(o.width),'--widths',o.widths.join(','),'--scales',o.scales.join(','),'--port',String(o.port),'--python',o.python];for(const k of ['sdk','cli'])if(o[k])args.push('--'+k,o[k]);if(o.cases)args.push('--cases',o.cases.join(','));if(o.prepare)args.push('--prepare-only');if(o.remote)args.push('--remote');if(o.manualConfirm)args.push('--manual-confirm');if(o.assistantCards)args.push('--assistant-cards');return await new Promise(resolve=>{const child=cp.spawn(o.python,args,{windowsHide:true,stdio:'inherit'});child.on('exit',code=>{process.exitCode=code||0;resolve()});child.on('error',e=>{console.error(e.message);process.exitCode=1;resolve()})})}
+ if(o.mode==='service'&&!o.session){const args=[path.join(__dirname,'experience_continuity_native.py'),'--config',path.resolve(o.config),'--out',o.out,'--node',o.node,'--driver',__filename,'--width',String(o.width),'--widths',o.widths.join(','),'--scales',o.scales.join(','),'--port',String(o.port),'--python',o.python];for(const k of ['sdk','cli'])if(o[k])args.push('--'+k,o[k]);if(o.cases)args.push('--cases',o.cases.join(','));if(o.prepare)args.push('--prepare-only');if(o.remote)args.push('--remote');if(o.remoteUi)args.push('--remote-ui');if(o.manualConfirm)args.push('--manual-confirm');if(o.assistantCards)args.push('--assistant-cards');return await new Promise(resolve=>{const child=cp.spawn(o.python,args,{windowsHide:true,stdio:'inherit'});child.on('exit',code=>{process.exitCode=code||0;resolve()});child.on('error',e=>{console.error(e.message);process.exitCode=1;resolve()})})}
  const session=o.session?read(o.session):null
  if(o.mode==='service'&&(!session||session.purpose!=='E18-new-owned-native'||session.ownerPid!==process.ppid||!session.nonce||session.nonce!==process.env.EATWHAT_E18_CHILD||session.sourceSha!==cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim()))throw Error('Fresh owned coordinator session required')
  const manifest=prepare(o,session)

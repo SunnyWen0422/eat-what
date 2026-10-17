@@ -147,6 +147,7 @@ def run(args):
             if getattr(args,key): command += ['--'+key,getattr(args,key)]
         if args.prepare_only: command += ['--prepare-only']
         if args.remote: command += ['--remote']
+        if args.remote_ui: command += ['--remote-ui']
         if args.manual_confirm: command += ['--manual-confirm']
         before = {str(u):int(runtime.api.sql('SELECT COUNT(*) FROM food WHERE user_id=%s',(u,))[0][0]) for u in [910001,910002]}
         # Page modules and administrative reset snapshots cache initial data.
@@ -186,5 +187,6 @@ if __name__ == '__main__':
     for key in ['config','out','node','driver','python','port','width','widths','scales']:p.add_argument('--'+key,required=True)
     for key in ['sdk','cli','cases']:p.add_argument('--'+key)
     p.add_argument('--prepare-only',action='store_true');p.add_argument('--remote',action='store_true')
+    p.add_argument('--remote-ui',action='store_true')
     p.add_argument('--manual-confirm',action='store_true');p.add_argument('--assistant-cards',action='store_true')
     sys.exit(run(p.parse_args()))
