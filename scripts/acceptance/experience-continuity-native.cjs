@@ -184,10 +184,12 @@ async function capture(o,manifest,session) {
   mini=await launch(o,manifest)
   mini.on('exception',e=>{report.exceptions.push(String(e.message||e).slice(0,800));save()})
   report.actualViewport=await bounded(mini.systemInfo());report.device={kind:'WeChat developer-tools simulator',model:report.actualViewport.model,platform:report.actualViewport.platform,SDKVersion:report.actualViewport.SDKVersion};report.widthMatched=report.actualViewport.windowWidth===o.width;save()
-  if(o.mode==='service')await bounded(mini.evaluate(()=>getApp().waitForLogin()))
+  if(o.mode==='service'){report.phase='await-login';save();await bounded(mini.evaluate(()=>getApp().waitForLogin()));report.phase='login-wait-completed';save()}
   if(o.remote){
+   report.phase='enable-remote';report.remote={status:'requesting-qr',providerMode:'mock'};save()
    const connected=new Promise(r=>mini.connection.once('Tool.onRemoteDebugConnected',r))
    const qr=await bounded(mini.send('Tool.enableRemoteDebug',{auto:false}),55000)
+   report.phase='qr-return';save()
    if(!qr.qrCode)throw Error('Official remote debug returned no QR; device entry blocked')
    const data=qr.qrCode.replace(/^data:image\/\w+;base64,/,''),file=path.join(o.out,'android-remote-qr.png');fs.writeFileSync(file,Buffer.from(data,'base64'))
    report.remote={status:'awaiting-device',qr:file,providerMode:'mock',network:'NOT VERIFIED: phone loopback must never be assumed PC loopback'};save();console.log(JSON.stringify(report.remote))
@@ -339,7 +341,7 @@ async function assistantCardEvidence(mini,page,call,out,width,expected) {
   return rows
  }
  const reach=async element=>{
-  const before=await box(element),top=Number(await bounded(scroll.property('scrollTop')))||0
+  const before=await box(element),position=await bounded(mini.evaluate(()=>new Promise(resolve=>{const q=wx.createSelectorQuery();q.select('.connected-messages').scrollOffset();q.exec(rows=>resolve(rows[0]))}))),top=Number(position?.scrollTop)||0
   await bounded(scroll.scrollTo(0,Math.max(0,top+before.top-viewport.top-8)));await sleep(200)
   return box(element)
  }
