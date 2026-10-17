@@ -40,7 +40,7 @@ function presentDietReport(report, range) {
   const missing = blocks.completeness.daysWithoutActualRecord || 0
   const skipped = blocks.completeness.explicitSkippedMeals || 0
   const coverageNotice = `${blocks.completeness.observedDays === 0 ? '这一周期尚未到观察日期。' : missing ? `记录覆盖不足：${missing} 天没有实际记录。` : '仅回顾已记录的用餐。'}明确取消 ${skipped} 餐，单独说明，不计入吃过；未记录不能推断是否用餐。`
-  return { review, coverageNotice, recordUrl: recordUrl(range.startDate), reportView: { metadata, ...blocks }, categoryRows, dailyRows, recordRows }
+  return { hasActualRecords: Number(blocks.overview.mealCount)>0, review, coverageNotice, recordUrl: recordUrl(range.startDate), reportView: { metadata, ...blocks }, categoryRows, dailyRows, recordRows }
 }
 
 module.exports = { presentDietReport, recordUrl }

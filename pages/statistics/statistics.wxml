@@ -1,6 +1,6 @@
 <view class="ew-page ew-screen" style="font-size:{{fontBase * fontScale}}px">
   <text class="ew-heading">饮食回顾</text>
-  <text class="ew-subtitle">饮食统计只计入实际吃过的记录；计划执行单独对照。</text>
+  
   <view class="ew-tabs">
     <view aria-role="button" class="ew-hit-target ew-pill {{periodMode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="onMode">按周</view>
     <view aria-role="button" class="ew-hit-target ew-pill {{periodMode === 'month' ? 'active' : ''}}" data-mode="month" bindtap="onMode">按月</view>
@@ -13,8 +13,9 @@
   <ui-state wx:if="{{loading}}" kind="loading" title="正在整理实际记录" />
   <ui-state wx:elif="{{errorMessage}}" kind="error" title="暂时无法读取回顾" description="{{errorMessage}}" action-label="重新加载" bind:action="loadStatistics" />
   <block wx:elif="{{reportView}}">
-    <view class="ew-notice">{{coverageNotice}}</view>
-    <view data-report-block="overview">
+    <view wx:if="{{hasActualRecords}}" class="ew-notice">{{coverageNotice}}</view>
+    <ui-state wx:if="{{!hasActualRecords}}" kind="empty" title="这一周期还没有用餐记录" description="吃过后记一餐，下次回顾就能看到了。" action-label="记录这一餐" bind:action="onRecord" />
+    <view wx:if="{{hasActualRecords}}" data-report-block="overview">
       <text class="ew-section-title">用餐概览</text>
       <view class="ew-grid metrics">
         <view class="ew-card"><text class="ew-number">{{reportView.overview.mealCount}}</text><text class="metric-label">明确吃过的餐次</text></view>
@@ -22,7 +23,6 @@
         <view class="ew-card"><text class="ew-number">{{reportView.overview.uniqueDishCount}}</text><text class="metric-label">已识别菜品种类</text></view>
         <view class="ew-card"><text class="ew-number">{{reportView.overview.entryCount}}</text><text class="metric-label">实际菜品条目</text></view>
       </view>
-      <ui-state wx:if="{{reportView.overview.mealCount === 0}}" kind="empty" title="这一周期还没有实际用餐记录" description="计划不会自动当成吃过；没有记录也不等于没有吃饭。" action-label="记录饮食" bind:action="onRecord" />
     </view>
     <view wx:if="{{reportView.overview.mealCount > 0}}" class="ew-card" data-report-block="categoryCounts">
       <text class="ew-section-title">菜品类别次数</text>

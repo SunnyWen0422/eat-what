@@ -62,9 +62,14 @@ function buildPricing(list, quotes = {}, today = shanghaiDate()) {
       quoteLabel: q ? (q.quoteDate === today ? '报价日期 ' : '最近报价 ') + q.quoteDate : '暂无官方参考价',
       actualText: expense ? money(amountCents(expense.amount)) : '—', channel: expense && expense.channel || '', expense: expense || null }
   })
+  // Current-list expense records remain visible even if their ingredient was removed.
+  for (const [key,saved] of Object.entries(list.expenses || {})) if (!groups.has(key) && saved && saved.amount != null) {
+    const cents=amountCents(saved.amount); actualCents+=cents;recorded++
+    rows.push({ingredientKey:key,displayName:'已移出清单的食材',normalizedVariant:'',items:[],quantityText:'',referenceText:'—',quoteLabel:'原食材已移出清单',actualText:money(cents),channel:saved.channel||'',expense:saved})
+  }
   return { rows, dishCosts, pendingText: money(pendingPriced ? pendingCents : null), pendingMissing, pendingPriced, actualText: money(recorded ? actualCents : null), recorded, total: rows.length }
 }
 function copyPending(list) {
-  return buildPricing({ ...list, dishes: (list.dishes || []).map(d => ({ ...d, items: d.items.filter(i => !i.checked) })) }).rows.map(row => row.displayName + (row.normalizedVariant ? '（' + row.normalizedVariant + '）' : '') + ' ' + row.quantityText).join('\n')
+  return buildPricing({ ...list, expenses: {}, dishes: (list.dishes || []).map(d => ({ ...d, items: d.items.filter(i => !i.checked) })) }).rows.map(row => row.displayName + (row.normalizedVariant ? '（' + row.normalizedVariant + '）' : '') + ' ' + row.quantityText).join('\n')
 }
 module.exports = { CHANNELS, ingredientKey, amountCents, estimate, buildPricing, copyPending, shanghaiDate, money }
