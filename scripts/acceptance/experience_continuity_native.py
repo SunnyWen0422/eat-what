@@ -15,6 +15,41 @@ from maturity_runtime import ROOT, new_output, owned_runtime, preflight
 from assistant_v4_acceptance import bearer
 
 
+def run_native_child(command,nonce):
+    allowed={'systemroot','windir','comspec','path','pathext','systemdrive','userprofile',
+             'homedrive','homepath','appdata','localappdata','temp','tmp','programdata',
+             'programfiles','programfiles(x86)','programw6432'}
+    env={key:value for key,value in os.environ.items() if key.lower() in allowed}
+    env['EATWHAT_E18_CHILD']=nonce
+    child=subprocess.Popen(command,env=env,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+    try:return child.wait(timeout=3600)
+    except BaseException:
+        child.terminate();child.wait(timeout=20)
+        raise
+
+
+def finish_receipt(out,receipt,cases):
+    before,after=receipt['copyCountsBefore'],receipt['copyCountsAfter']
+    attempts=[item['interaction'] for item in cases if item.get('route')=='pages/custom-dishes/custom-dishes'
+              and item.get('interaction',{}).get('status') not in (None,'not-run')]
+    summary={'name':'system cancel creates no copy','status':'not-run','attemptCount':len(attempts),
+             'reason':'No native cancel interaction was attempted'}
+    if attempts:
+        valid=all(type(counts.get(role)) is int and counts[role]>=0 for counts in (before,after) for role in ('910001','910002'))
+        summary['editorClosed']=all(item.get('editorClosed') is True for item in attempts)
+        summary['countsEqual']=valid and all(before[role]==after[role] for role in ('910001','910002'))
+        summary['nativeStatuses']=[item.get('status') for item in attempts]
+        if not valid or any(item.get('status')=='blocked' for item in attempts):
+            summary.update(status='blocked',reason='Native cancel or both-role count evidence unavailable')
+        elif not summary['editorClosed'] or not summary['countsEqual'] or any(item.get('status') not in ('observed','observed-requires-db-count') for item in attempts):
+            summary.update(status='failed',reason='Native editor did not close or personal recipe counts changed')
+        else:summary.update(status='observed',reason='Native editor closed and both roles have zero personal recipe increment')
+    receipt['copyCancel']=summary
+    receipt['coordinatorExitCode']=receipt['nativeExitCode'] or (2 if summary['status'] in ('failed','blocked') else 0)
+    (out/'service-receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
+    return receipt['coordinatorExitCode']
+
+
 def temporary_semantics(runtime):
     """Minimal scripted proposal through the real Java/Python/owned DB chain.
 
@@ -158,13 +193,7 @@ def run(args):
             single=list(command)
             single[single.index('--out')+1]=str(out/('native-font'+factor))
             single += ['--scales',factor]
-            child = subprocess.Popen(single, env=dict(os.environ,EATWHAT_E18_CHILD=nonce),
-                                     creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-            try:
-                result = child.wait(timeout=3600)
-            except BaseException:
-                child.terminate(); child.wait(timeout=20)
-                raise
+            result=run_native_child(single,nonce)
             font_runs.append({'fontScale':float(factor),'exitCode':result,'evidence':single[single.index('--out')+1]})
             if result: code=result; break
         after = {str(u):int(runtime.api.sql('SELECT COUNT(*) FROM food WHERE user_id=%s',(u,))[0][0]) for u in [910001,910002]}
@@ -178,7 +207,11 @@ def run(args):
                    'lifecycleEnabled':True,'providerMode':'mock','authentication':'local-v4 synthetic, not WeChat SSO',
                    'copyCountsBefore':before,'copyCountsAfter':after,'nativeExitCode':code,'fontRuns':font_runs,
                    'realDeviceProof':False,'runtimeManifest':'owned-runtime/private/runtime.json'}
-        (out / 'service-receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
+        native_cases=[]
+        for font_run in font_runs:
+            result_file=Path(font_run['evidence'])/'native-results.json'
+            if result_file.exists():native_cases.extend(json.loads(result_file.read_text(encoding='utf-8-sig')).get('cases',[]))
+        code=finish_receipt(out,receipt,native_cases)
     return code
 
 

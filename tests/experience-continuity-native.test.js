@@ -5,6 +5,51 @@ const path = require('node:path')
 const vm = require('node:vm')
 const native = require('../scripts/acceptance/experience-continuity-native.cjs')
 
+test('every attempted interaction failure changes the aggregate and exit code',()=>{
+ for(const route of ['custom-dishes','meal-cooking','customize','chat'])for(const status of ['failed','blocked']){
+  const item={route:'pages/'+route+'/'+route,status:'measured',errors:[],interaction:{status}}
+  native.aggregateInteraction(item)
+  assert.ok(['failed','blocked'].includes(item.status),route+' '+status)
+  const report={widths:[],exceptions:[],cases:[item]}
+  assert.equal(native.captureStatus(report),'captured-with-failures')
+  assert.equal(native.resultExitCode({status:native.captureStatus(report)}),2)
+ }
+ for(const status of ['not-run','observed','observed-requires-db-count']){
+  const item={status:'measured',interaction:{status}}
+  native.aggregateInteraction(item);assert.equal(item.status,'measured')
+  assert.equal(native.captureStatus({widths:[],exceptions:[],cases:[item]}),'captured-requires-inspection')
+ }
+ const item={status:'failed',interaction:{status:'observed'}};native.aggregateInteraction(item)
+ assert.equal(item.status,'failed')
+})
+
+test('new process boundaries receive explicit minimal environments',async()=>{
+ const {EventEmitter}=require('node:events'),calls=[]
+ const source=fs.readFileSync(path.resolve(__dirname,'../scripts/acceptance/experience-continuity-native.cjs'),'utf8')
+ const injected={SystemRoot:'C:/Windows',PATH:'D:/tools',USERPROFILE:'C:/synthetic',TEMP:'C:/temp',PYTHONPATH:'D:/verification',EATWHAT_E18_CHILD:'stale',SENTINEL_CREDENTIAL:'secret',NODE_OPTIONS:'--require inject',DEEPSEEK_API_KEY:'secret',HTTPS_PROXY:'secret'}
+ const cp={spawn:(file,args,opts)=>{
+  calls.push({file,opts});const child=new EventEmitter();child.stdout=new EventEmitter();child.stderr=new EventEmitter();child.exitCode=0
+  queueMicrotask(()=>child.emit('exit',0));return child
+ },spawnSync:(file,args,opts)=>{calls.push({file,opts});throw Error('export-boundary-captured')}}
+ const fakeFs={...fs,mkdirSync(){},writeFileSync(){},existsSync:p=>['fake-sdk','fake-cli'].includes(String(p))||fs.existsSync(p)}
+ const mini={evaluate:async()=>({runId:'owned',mode:'fixture'}),disconnect(){}}
+ const req=name=>name==='node:child_process'?cp:name==='node:fs'?fakeFs:name===path.resolve('fake-sdk')?{connect:async()=>mini}:require(name)
+ const context={require:req,module:{exports:{}},__dirname:path.resolve(__dirname,'../scripts/acceptance'),__filename:path.resolve(__dirname,'../scripts/acceptance/experience-continuity-native.cjs'),process:{...process,env:injected},console,setTimeout,clearTimeout}
+ vm.runInNewContext(source+'\nmodule.exports.main=main;module.exports.launch=launch;validate=()=>{};portAvailable=async()=>{}',context)
+ const api=context.module.exports,out=path.join(require('node:os').tmpdir(),'e18-spawn-contract-no-write')
+ await api.main(['--mode','service','--config','synthetic.json','--out',out,'--python','python'])
+ assert.throws(()=>api.prepare({out,mode:'fixture',python:'python',scales:[1]}),/export-boundary-captured/)
+ await api.launch({sdk:'fake-sdk',cli:'fake-cli',port:9431,mode:'fixture',out},{project:out,runId:'owned'})
+ assert.equal(calls.length,3)
+ for(const {opts} of calls){
+  assert.equal(opts.env.SystemRoot,'C:/Windows');assert.equal(opts.env.PATH,'D:/tools')
+  for(const key of ['SENTINEL_CREDENTIAL','NODE_OPTIONS','DEEPSEEK_API_KEY','HTTPS_PROXY','EATWHAT_E18_CHILD'])assert.equal(opts.env[key],undefined,key)
+ }
+ assert.equal(calls[0].opts.env.PYTHONPATH,'D:/verification')
+ assert.equal(calls[1].opts.env.PYTHONPATH,undefined)
+ assert.equal(calls[2].opts.env.PYTHONPATH,undefined)
+})
+
 test('native modes are explicit and fixture cannot claim service lifecycle', () => {
   assert.throws(() => native.options([]), /mode/)
   assert.throws(() => native.options(['--mode', 'service', '--out', 'x']), /config/)

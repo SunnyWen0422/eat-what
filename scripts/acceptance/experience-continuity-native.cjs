@@ -4,6 +4,24 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const ROOT=path.resolve(__dirname,'../..'), sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')
 const read=p=>JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,'')), write=(p,v)=>fs.writeFileSync(p,typeof v==='string'?v:JSON.stringify(v,null,2))
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
+const CHILD_ENV_KEYS=new Set(['systemroot','windir','comspec','path','pathext','systemdrive','userprofile','homedrive','homepath','appdata','localappdata','temp','tmp','programdata','programfiles','programfiles(x86)','programw6432'])
+function childEnv(coordinator=false) {
+ const env={}
+ for(const [key,value] of Object.entries(process.env))if(CHILD_ENV_KEYS.has(key.toLowerCase())||coordinator&&key==='PYTHONPATH')env[key]=value
+ return env
+}
+function aggregateInteraction(item) {
+ const status=item.interaction?.status
+ if(['failed','blocked'].includes(status)){
+  if(item.status!=='failed')item.status=status
+  ;(item.errors??=[]).push('Attempted native interaction '+status+': '+(item.interaction.name||item.route||'unnamed'))
+ }
+ return item
+}
+function captureStatus(report) {
+ return report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':report.exceptions.length||report.cases.some(c=>['failed','blocked'].includes(c.status))?'captured-with-failures':report.cases.some(c=>c.heightValidation?.status==='blocked')?'captured-height-blocked':'captured-requires-inspection'
+}
+function resultExitCode(report){return ['blocked','blocked-width-mismatch','captured-with-failures'].includes(report.status)?2:0}
 const bounded=(promise,ms=25000)=>new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('Native operation timed out; remaining items not-run')),ms);promise.then(v=>{clearTimeout(t);resolve(v)},e=>{clearTimeout(t);reject(e)})})
 function options(argv) {
  const value=name=>{const i=argv.indexOf('--'+name);return i<0?undefined:argv[i+1]}
@@ -84,10 +102,10 @@ function validate(project,manifest) {
 function prepare(o,session) {
  outside(o.out);if(fs.existsSync(o.out))throw Error('Choose a fresh evidence directory')
  fs.mkdirSync(o.out,{recursive:true});const project=path.join(o.out,'project')
- const exported=cp.spawnSync(o.python,[path.join(ROOT,'scripts/export_local_miniprogram.py'),'--out',project],{encoding:'utf8',windowsHide:true})
+ const exported=cp.spawnSync(o.python,[path.join(ROOT,'scripts/export_local_miniprogram.py'),'--out',project],{encoding:'utf8',windowsHide:true,env:childEnv()})
  if(exported.status!==0)throw Error('Export failed: '+exported.stderr)
  const source=read(path.join(project,'source-manifest.json')),api=o.mode==='service'?session.api:'http://127.0.0.1:9/api',runId=path.basename(o.out)+'-'+crypto.createHash('sha256').update(o.out).digest('hex').slice(0,12)
- const sourceSha=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim()
+ const sourceSha=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8',env:childEnv()}).trim()
  if(o.mode==='service'&&o.scales.length!==1)throw Error('Each service export must use one cold font factor; coordinator splits scales')
  write(path.join(project,'native-guard.js'),guardSource({mode:o.mode,runId,api,fontScale:o.remote?null:o.scales[0]}))
  let app=fs.readFileSync(path.join(project,'app.js'),'utf8')
@@ -110,7 +128,7 @@ async function launch(o,manifest) {
  validate(manifest.project,manifest);await portAvailable(o.port)
  if(!o.sdk||!o.cli||!fs.existsSync(o.sdk)||!fs.existsSync(o.cli))throw Error('Provide installed --sdk and official --cli paths; no dependency installation')
  const quote=v=>"'"+v.replaceAll("'","''")+"'"
- const child=cp.spawn('powershell.exe',['-NoProfile','-Command','& '+quote(o.cli)+' auto --project '+quote(manifest.project)+' --auto-port '+o.port+' --trust-project'],{windowsHide:true,stdio:['ignore','pipe','pipe']})
+ const child=cp.spawn('powershell.exe',['-NoProfile','-Command','& '+quote(o.cli)+' auto --project '+quote(manifest.project)+' --auto-port '+o.port+' --trust-project'],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:childEnv()})
  const chunks=[];child.stdout.on('data',b=>chunks.push(String(b)));child.stderr.on('data',b=>chunks.push(String(b)));child.once('error',e=>chunks.push(e.message))
  let mini;const deadline=Date.now()+55000,sdk=require(path.resolve(o.sdk))
  try {while(!mini&&Date.now()<deadline){try{mini=await bounded(sdk.connect({wsEndpoint:'ws://127.0.0.1:'+o.port}),5000)}catch(_){await sleep(1000)}}}finally{write(path.join(o.out,'cli.log'),chunks.join(''));if(child.exitCode===null)child.kill()}
@@ -267,7 +285,7 @@ async function capture(o,manifest,session) {
      item.interaction=await exercise(mini,page,name,o.out,item.actualViewport.windowWidth,session.assistantNativeCards)
     }
     if(o.mode==='service'&&scale===2&&name==='custom-dishes')item.interaction=o.manualConfirm&&width===320?await exercise(mini,page,name,o.out,width):{status:'not-run',reason:'Dedicated native discard confirmation not requested for this layout capture'}
-    if(session?.assistantNativeCards&&scale===2&&name==='chat'&&item.interaction?.status!=='observed'){item.status='failed';item.errors.push('Native assistant card interaction did not satisfy its target/reachability assertions')}
+    aggregateInteraction(item)
     item.fontScaleObserved=await bounded(page.data('fontScale'))
     item.fontStyles=await fontStyles(page,scale)
     if(item.fontStyles.rootMatches===false)throw Error('Actual page font factor differs from native computed size')
@@ -283,7 +301,7 @@ async function capture(o,manifest,session) {
    if(item.error&&/timed out|font factor|Actual width|native viewport/.test(item.error))throw Error(item.error)
   }}
   report.guard=await bounded(mini.evaluate(()=>({denied:getApp().nativeAcceptance.denied,requests:getApp().nativeAcceptance.requests,lifecycle:getApp().nativeAcceptance.lifecycle,mode:getApp().nativeAcceptance.mode})))
-  report.status=report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':report.exceptions.length||report.cases.some(c=>['failed','blocked'].includes(c.status))?'captured-with-failures':report.cases.some(c=>c.heightValidation?.status==='blocked')?'captured-height-blocked':'captured-requires-inspection'
+  report.status=captureStatus(report)
  }catch(e){report.status='blocked';report.reason=String(e.message).slice(0,800)}finally{
   // mini is assigned only after launch verifies this export's runId/mode.
   if(mini){try{await bounded(mini.close(),10000);report.ownedIdeClosed=true}catch(error){report.ownedIdeCloseError=error.message;mini.disconnect()}}
@@ -407,12 +425,12 @@ function fixtureData(name,fontScale) {
 async function main(argv=process.argv.slice(2)) {
  const o=options(argv);outside(o.out)
  if(!o.python)throw Error('Installed Python required through --python or CODEX_PYTHON')
- if(o.mode==='service'&&!o.session){const args=[path.join(__dirname,'experience_continuity_native.py'),'--config',path.resolve(o.config),'--out',o.out,'--node',o.node,'--driver',__filename,'--width',String(o.width),'--widths',o.widths.join(','),'--scales',o.scales.join(','),'--port',String(o.port),'--python',o.python];for(const k of ['sdk','cli'])if(o[k])args.push('--'+k,o[k]);if(o.cases)args.push('--cases',o.cases.join(','));if(o.prepare)args.push('--prepare-only');if(o.remote)args.push('--remote');if(o.remoteUi)args.push('--remote-ui');if(o.manualConfirm)args.push('--manual-confirm');if(o.assistantCards)args.push('--assistant-cards');return await new Promise(resolve=>{const child=cp.spawn(o.python,args,{windowsHide:true,stdio:'inherit'});child.on('exit',code=>{process.exitCode=code||0;resolve()});child.on('error',e=>{console.error(e.message);process.exitCode=1;resolve()})})}
+ if(o.mode==='service'&&!o.session){const args=[path.join(__dirname,'experience_continuity_native.py'),'--config',path.resolve(o.config),'--out',o.out,'--node',o.node,'--driver',__filename,'--width',String(o.width),'--widths',o.widths.join(','),'--scales',o.scales.join(','),'--port',String(o.port),'--python',o.python];for(const k of ['sdk','cli'])if(o[k])args.push('--'+k,o[k]);if(o.cases)args.push('--cases',o.cases.join(','));if(o.prepare)args.push('--prepare-only');if(o.remote)args.push('--remote');if(o.remoteUi)args.push('--remote-ui');if(o.manualConfirm)args.push('--manual-confirm');if(o.assistantCards)args.push('--assistant-cards');return await new Promise(resolve=>{const child=cp.spawn(o.python,args,{windowsHide:true,stdio:'inherit',env:childEnv(true)});child.on('exit',code=>{process.exitCode=code||0;resolve()});child.on('error',e=>{console.error(e.message);process.exitCode=1;resolve()})})}
  const session=o.session?read(o.session):null
- if(o.mode==='service'&&(!session||session.purpose!=='E18-new-owned-native'||session.ownerPid!==process.ppid||!session.nonce||session.nonce!==process.env.EATWHAT_E18_CHILD||session.sourceSha!==cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim()))throw Error('Fresh owned coordinator session required')
+ if(o.mode==='service'&&(!session||session.purpose!=='E18-new-owned-native'||session.ownerPid!==process.ppid||!session.nonce||session.nonce!==process.env.EATWHAT_E18_CHILD||session.sourceSha!==cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8',env:childEnv()}).trim()))throw Error('Fresh owned coordinator session required')
  const manifest=prepare(o,session)
  if(o.prepare){console.log(JSON.stringify({status:'prepared-not-tested',project:manifest.project,appFingerprint:manifest.appFingerprint}));return}
- const result=await capture(o,manifest,session);if(['blocked','blocked-width-mismatch','captured-with-failures'].includes(result.status))process.exitCode=2
+ const result=await capture(o,manifest,session);process.exitCode=resultExitCode(result)
 }
 if(require.main===module)main().catch(e=>{console.error(e.message);process.exitCode=1})
-module.exports={options,matrix,guardSource,assess,validate,prepare,fingerprint,outside}
+module.exports={options,matrix,guardSource,assess,validate,prepare,fingerprint,outside,aggregateInteraction,captureStatus,resultExitCode}
