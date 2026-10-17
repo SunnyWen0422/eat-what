@@ -10,6 +10,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantV4TurnServiceTest {
+ @Test void negotiated_direct_action_uses_bound_task_once_without_user_confirmation(){
+  ControlledToolHarnessService harness=mock(ControlledToolHarnessService.class);runner.setDirectHarness(harness);
+  when(model.supportsFlexibleReplies()).thenReturn(true);
+  TurnRequest request=fixture.request();request.setRequestId(UUID.randomUUID().toString());request.setUiFeatures(Collections.singletonList("direct_execution_v1"));
+  registry.configureExtensions(true,()->true);registry.registerUiFeature("direct_execution_v1");
+  id=store.claimTurn(1L,store.turnRecord(1L,id).getSessionId(),request).getTurnId();
+  registry.registerPreview("calendar_save",(u,step,scope)->{TurnResult result=new TurnResult();result.setStatus("awaiting_confirmation");PendingAction pending=new PendingAction();pending.setStepId(step.getStepId());pending.setTaskId("bound");pending.setPreviewToken("token");pending.setExpiresAt(fixture.now+60000);result.setPendingAction(pending);return result;});
+  when(model.step(any())).thenReturn(action("calendar_save",AssistantV4ContextService.map("targetDate","2026-10-18","targetMealType","dinner")));
+  when(harness.confirm(1L,"bound","token")).thenAnswer(call->{WorkflowStep step=store.continuation(1L,id).getSteps().get(0);Card receipt=new Card();receipt.setId("receipt");receipt.setType("receipt");receipt.setReceiptRef("real");store.completeWorkflowStep(1L,id,step.getStepId(),"real",receipt);return null;});
+  runner.runTurn(1L,id);assertEquals("completed",store.findTurn(1L,id).getStatus());verify(harness,times(1)).confirm(1L,"bound","token");runner.resumeWorkflow(1L,id);verifyNoMoreInteractions(harness);
+ }
+ @Test void display_alias_preserves_real_id_and_source_map(){
+  Map<String,Object> source=new LinkedHashMap<>();source.put("id",1L);source.put("name","番茄炒蛋");Card card=new Card();card.getData().put("dishes",Collections.singletonList(source));AnswerDraft answer=new AnswerDraft();CardLabel label=new CardLabel();label.setDishRef("dish:1");label.setTitle("家常番茄鸡蛋");answer.getCardLabels().add(label);
+  AssistantV4TurnService.applyCardLabels(Collections.singletonList(card),answer);
+  Map<?,?> displayed=(Map<?,?>)((List<?>)card.getData().get("dishes")).get(0);assertEquals(1L,displayed.get("id"));assertEquals("家常番茄鸡蛋",displayed.get("name"));assertEquals("番茄炒蛋",displayed.get("sourceName"));assertEquals("番茄炒蛋",source.get("name"));
+ }
  @Test void uninterpreted_temporary_text_gets_an_actionable_question_without_retry_or_execution(){
   java.util.concurrent.atomic.AtomicInteger calls=new java.util.concurrent.atomic.AtomicInteger();
   registry.registerDraft("draft_update",(u,s,c)->{calls.incrementAndGet();throw new IllegalArgumentException("请先将文字限制明确为筛选条件");});

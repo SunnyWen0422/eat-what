@@ -2,6 +2,41 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const { createAssistantConversation, probeAssistantCapability, clearCapabilityCache } = require('../utils/assistant-conversation')
 const confirmationTurn=()=>({turnId:'t1',status:'awaiting_confirmation',cards:[{id:'save',type:'calendar_save',taskId:'task1',previewToken:'token1',expiresAt:Date.now()+60000}],pendingAction:{taskId:'task1',previewToken:'token1'}})
+test('new instruction cancels old turn and keeps original goal with the addition',async()=>{
+ let cancelled=false,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);return{turnId:'t'+(++seq)}},getAssistantV4Turn:async id=>({turnId:id,status:id==='t1'?(cancelled?'cancelled':'running'):'completed',cards:[]}),cancelAssistantV4Turn:async id=>{assert.equal(id,'t1');cancelled=true}})
+ await f.conversation.load();await f.conversation.send('安排两个人晚饭');await f.conversation.send('不要鸡蛋');
+ assert.equal(f.bodies.length,2);assert.match(f.bodies[1].message,/安排两个人晚饭/);assert.match(f.bodies[1].message,/不要鸡蛋/);assert.notEqual(f.bodies[0].requestId,f.bodies[1].requestId)
+})
+test('failed cancellation preserves queued addition across reload and sends nothing new',async()=>{
+ let cancelled=false;const f=fixture({getAssistantV4Turn:async()=>({turnId:'t1',status:cancelled?'cancelled':'running',cards:[]}),cancelAssistantV4Turn:async()=>{throw Error('offline')}})
+ await f.conversation.load();await f.conversation.send('安排晚饭');await f.conversation.send('不要辣');assert.equal(f.bodies.length,1);
+ const restored=f.recreate();await restored.load();assert.match(restored.state().input,/不要辣/);
+})
+test('multiple additions during cancellation combine and a committed action is not repeated',async()=>{
+ let release,done=false,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);return{turnId:'t'+(++seq)}},getAssistantV4Turn:async id=>({turnId:id,status:done?'completed':'running',cards:done?[{receiptRef:'saved'}]:[]}),cancelAssistantV4Turn:()=>new Promise(r=>release=()=>{done=true;r()})});
+ await f.conversation.load();await f.conversation.send('保存明晚菜单');const first=f.conversation.send('换一道汤');await new Promise(setImmediate);const second=f.conversation.send('不用冬瓜');release();await Promise.all([first,second]);
+ assert.equal(f.bodies.length,2);assert.match(f.bodies[1].message,/换一道汤/);assert.match(f.bodies[1].message,/不用冬瓜/);assert.doesNotMatch(f.bodies[1].message,/保存明晚菜单/)
+})
+test('queued addition cannot cross account while cancellation is in flight',async()=>{
+ let release;const f=fixture({getAssistantV4Turn:async()=>({turnId:'t1',status:'running'}),cancelAssistantV4Turn:()=>new Promise(r=>release=r)});await f.conversation.load();await f.conversation.send('做晚饭');const next=f.conversation.send('不要葱');await new Promise(setImmediate);f.switch();release();await next;assert.equal(f.bodies.length,1)
+})
+test('recovering direct pending write resumes server flow without a frontend confirmation',async()=>{
+ let resumed=0;const turn={turnId:'t1',status:'awaiting_confirmation',cards:[{id:'save',type:'calendar_save',data:{executionMode:'direct'}}],pendingAction:{taskId:'bound'}};
+ const f=fixture({getAssistantV4Turn:async()=>turn,resumeAssistantV4Turn:async()=>{resumed++;return{turnId:'t1',status:'completed',cards:[{receiptRef:'real'}]}}});await f.conversation.load();await f.conversation.send('保存今晚');await f.conversation.recover();assert.equal(resumed,1);assert.equal(f.confirms.length,0)
+})
+test('polling direct write can recover a server restart without manual confirmation',async()=>{
+ let resumes=0;const turn={turnId:'t1',status:'awaiting_confirmation',retryable:false,cards:[{id:'save',type:'calendar_save',data:{executionMode:'direct'}}],pendingAction:{taskId:'bound'}};
+ const f=fixture({getAssistantV4Turn:async()=>turn,resumeAssistantV4Turn:async()=>{resumes++;return{turnId:'t1',status:'completed',cards:[{receiptRef:'real'}]}}});await f.conversation.load();await f.conversation.send('保存今晚');await f.conversation.recover('t1');assert.equal(resumes,1);assert.equal(f.confirms.length,0)
+})
+test('cancelled turn with failed workspace refresh keeps an explicit steering recovery entry',async()=>{
+ let cancelled=false,broken=true,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);return{turnId:'t'+(++seq)}},getAssistantV4Turn:async id=>({turnId:id,status:id==='t1'?(cancelled?'cancelled':'running'):'completed',cards:[],workspaceRef:cancelled?{workspaceId:'w1',workspaceRevision:2,planVersion:2}:undefined}),cancelAssistantV4Turn:async()=>{cancelled=true}});
+ f.store.reloadLatest=async()=>{if(broken)throw Error('offline')};await f.conversation.load();await f.conversation.send('安排晚饭');await f.conversation.send('不要辣');assert.equal(f.bodies.length,1);assert.equal(f.conversation.state().recoverable,true);assert.equal(f.conversation.state().canSteer,false);
+ broken=false;await f.conversation.recover();assert.equal(f.bodies.length,2);assert.equal(f.bodies[1].message.split('不要辣').length,2)
+})
+test('restart with a retained addition and failed session lookup still offers recovery',async()=>{
+ let broken=false,cancelled=false;const f=fixture({getAssistantV4Session:async()=>{if(broken)throw Error('offline');return{sessionId:'s1',messages:[]}},getAssistantV4Turn:async()=>({turnId:'t1',status:cancelled?'cancelled':'running',cards:[],workspaceRef:cancelled?{workspaceId:'w1',workspaceRevision:2,planVersion:2}:undefined}),cancelAssistantV4Turn:async()=>{cancelled=true}});
+ f.store.reloadLatest=async()=>{throw Error('offline')};await f.conversation.load();await f.conversation.send('安排晚饭');await f.conversation.send('不要辣');broken=true;const restored=f.recreate();await restored.load();assert.equal(restored.state().recoverable,true);assert.match(restored.state().input,/不要辣/);assert.equal(restored.state().canSteer,false);assert.equal(f.bodies.length,1)
+})
 test('running confirmation stays unknown until late completion and never duplicates write',async()=>{
  let task={status:'running'},cancels=0;const f=fixture({getAssistantV4Turn:async()=>confirmationTurn(),confirmControlledTask:async(...args)=>{f.confirms.push(args);throw Error('lost')},getControlledTask:async()=>task,cancelAssistantV4Turn:async()=>cancels++});await f.conversation.load();await f.conversation.send('保存');await f.conversation.confirm('save');await f.conversation.recover();await f.conversation.confirm('save');await f.conversation.cancelTurn();assert.equal(f.conversation.state().confirmationPending,true);assert.equal(cancels,0);assert.equal(f.confirms.length,1);task={status:'completed'};await f.conversation.recover();await f.conversation.confirm('save');assert.equal(f.conversation.state().confirmationPending,false);assert.equal(f.confirms.length,1)
 })

@@ -34,22 +34,23 @@ public class AssistantV4ModelGateway {
     private volatile boolean extensionReady;
     @Value("${assistant-v4.natural-reply-enabled:${ASSISTANT_V4_NATURAL_REPLY_ENABLED:false}}") private boolean naturalRepliesEnabled;
     private volatile long replyCheckUntil;
-    private volatile boolean replyReady;
-    public void configureNaturalReplies(boolean enabled){naturalRepliesEnabled=enabled;replyCheckUntil=0;replyReady=false;}
+    private volatile boolean replyReady,flexibleReplyReady;
+    public boolean supportsFlexibleReplies(){return supportsNaturalReplies()&&flexibleReplyReady;}
+    public void configureNaturalReplies(boolean enabled){naturalRepliesEnabled=enabled;replyCheckUntil=0;replyReady=false;flexibleReplyReady=false;}
     public synchronized boolean supportsNaturalReplies(){
         if(!naturalRepliesEnabled||token==null||token.trim().isEmpty())return false;
         long now=System.currentTimeMillis();if(now<replyCheckUntil)return replyReady;
-        boolean ready=false;Future<String> pending=null;TransportCancellation cancellation=new TransportCancellation();
+        boolean ready=false,flexible=false;Future<String> pending=null;TransportCancellation cancellation=new TransportCancellation();
         try{
             HttpHeaders headers=new HttpHeaders();headers.set("X-Service-Token",token);
             pending=requests.submit(()->transport(1000,cancellation).exchange(url.substring(0,url.length()-4)+"reply-capabilities",HttpMethod.GET,new HttpEntity<Void>(headers),String.class).getBody());
             String response=pending.get(1000,TimeUnit.MILLISECONDS);
             if(response!=null&&response.length()<2000){com.fasterxml.jackson.databind.JsonNode contracts=json.readTree(response).path("replyContracts");
-                if(contracts.isArray())for(com.fasterxml.jackson.databind.JsonNode contract:contracts)if(contract.isTextual()&&"meal_reply.v1".equals(contract.asText()))ready=true;}
+                if(contracts.isArray())for(com.fasterxml.jackson.databind.JsonNode contract:contracts)if(contract.isTextual()){if("meal_reply.v1".equals(contract.asText()))ready=true;if("meal_reply.v2".equals(contract.asText()))flexible=true;}}
         }catch(InterruptedException cancelled){Thread.currentThread().interrupt();}
         catch(Exception unavailable){/* Legacy adapters keep the original assistant contract. */}
         finally{if(pending!=null&&!pending.isDone()){pending.cancel(true);cancellation.cancel();}}
-        replyReady=ready;replyCheckUntil=now+60000;return ready;
+        flexibleReplyReady=flexible;replyReady=ready;replyCheckUntil=now+60000;return ready;
     }
     private final ExecutorService requests=new ThreadPoolExecutor(0,2,30,TimeUnit.SECONDS,new SynchronousQueue<>(),r->{Thread t=new Thread(r,"assistant-v4-http");t.setDaemon(true);return t;},new ThreadPoolExecutor.AbortPolicy());
     @Autowired public AssistantV4ModelGateway(@Value("${recommend.service.base-url:http://127.0.0.1:8000}") String baseUrl,

@@ -7,6 +7,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantReplyIntegrationTest {
+ @Test void v2_invalid_action_shape_is_corrected_before_any_write(){
+  when(f.model.supportsFlexibleReplies()).thenReturn(true);java.util.concurrent.atomic.AtomicInteger writes=new java.util.concurrent.atomic.AtomicInteger();
+  f.registry.registerDraft("draft_update",(u,s,c)->{writes.incrementAndGet();TurnResult result=new TurnResult();result.setStatus("completed");Card receipt=new Card();receipt.setReceiptRef("real");result.getCards().add(receipt);return result;});
+  when(f.model.step(any())).thenAnswer(call->{StepInput input=call.getArgument(0);StepOutput out=output("可以这样搭配。");ActionIntent action=new ActionIntent();action.setKind("draft_update");action.setArguments(AssistantV4ContextService.map("operation","adjust","selectedDishIds",Collections.singletonList(f.store.turnRecord(1L,f.id).getProviderCallsUsed()==1?999L:1L)));ActionProposal proposal=new ActionProposal();proposal.getSteps().add(action);out.setActionProposal(proposal);if(f.store.turnRecord(1L,f.id).getProviderCallsUsed()>1)assertTrue(input.getMessage().contains("尚未执行"));return out;});
+  f.runner.runTurn(1L,f.id);assertEquals("completed",f.store.findTurn(1L,f.id).getStatus());assertEquals(1,writes.get());verify(f.model,times(2)).step(any());
+ }
  @Test void authenticated_keep_choice_completes_without_model_or_draft_write(){
   ModelContext context=new ModelContext();context.getActiveMeal().put("currentDishes",Collections.singletonList(AssistantV4ContextService.map("id",1L,"name","原菜单")));
   context.getRequestContext().put("clarification",AssistantV4ContextService.map("kind","meal_requirement","selection",AssistantV4ContextService.map("requirementMode","keep")));

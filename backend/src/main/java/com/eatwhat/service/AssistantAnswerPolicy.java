@@ -19,6 +19,10 @@ public final class AssistantAnswerPolicy {
    if(draft==null||basis==null||draft.getSegments()==null||draft.getSegments().isEmpty()||draft.getSegments().size()>3||draft.getCardRefs()==null||draft.getCardRefs().size()>10)return reject("shape");
    Map<String,EvidenceItem> evidence=new HashMap<>();for(EvidenceItem item:basis.getItems())if(item==null||evidence.put(item.getKey(),item)!=null)return reject("evidence");
    if(new HashSet<>(draft.getCardRefs()).size()!=draft.getCardRefs().size()||!evidence.keySet().containsAll(draft.getCardRefs()))return reject("reference");
+   if(draft.getCardLabels()==null||draft.getCardLabels().size()>10)return reject("labels");
+   Set<String> labelled=new HashSet<>();for(CardLabel label:draft.getCardLabels()){
+    if(label==null||!evidence.containsKey(label.getDishRef())||!labelled.add(label.getDishRef())||label.getTitle()==null||label.getTitle().trim().isEmpty()||label.getTitle().length()>80||label.getTitle().matches("(?s).*[<>\\p{Cntrl}].*")||label.getTitle().contains("://"))return reject("labels");
+   }
    List<String> lines=new ArrayList<>();int size=0;
    for(AnswerSegment segment:draft.getSegments()){
     if(segment==null||segment.getText()==null||segment.getText().trim().isEmpty()||segment.getEvidenceKeys()==null||segment.getClaims()==null||segment.getEvidenceKeys().size()>24||segment.getClaims().size()>8)return reject("segment");

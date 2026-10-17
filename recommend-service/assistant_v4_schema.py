@@ -13,7 +13,7 @@ MEALS = ["breakfast", "lunch", "dinner"]
 READS = ["search_dishes", "search_by_ingredients", "get_dish_details", "get_dish_methods",
          "read_current_meal", "read_calendar", "read_shopping", "read_actual_diet_review",
          "get_recommendation_options", "read_favorites", "read_saved_menus"]
-UI_FEATURES = ["clarification_v1", "handoff_v1", "meal_requirements_v1"]
+UI_FEATURES = ["clarification_v1", "handoff_v1", "meal_requirements_v1", "direct_execution_v1"]
 
 
 class StepValidationError(ValueError):
@@ -139,8 +139,9 @@ def model_output_schema(capabilities=(), reply_contract=None):
     """Complete provider JSON envelope; each enabled action nests its arguments."""
     enabled = set(capabilities) & set(ACTION_ARGUMENTS)
     final_properties = {"type": string(20, ["final"]), "reply": string(2000, nonempty=True)}
-    if reply_contract == "meal_reply.v1":
-        from assistant_reply import ANSWER
+    if reply_contract in ("meal_reply.v1","meal_reply.v2"):
+        from assistant_reply import answer_schema
+        ANSWER = answer_schema(reply_contract)
         final_properties["answer"] = copy.deepcopy(ANSWER)
     if enabled:
         steps = [{"type": "object", "properties": {
@@ -159,7 +160,7 @@ def model_output_schema(capabilities=(), reply_contract=None):
         obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
              "factSource": string(30, ["recent_actual"])}, ["type", "reply", "factSource"]),
     ]}
-    if reply_contract == "meal_reply.v1": result["anyOf"][2]["properties"]["answer"] = copy.deepcopy(ANSWER)
+    if reply_contract in ("meal_reply.v1","meal_reply.v2"): result["anyOf"][2]["properties"]["answer"] = copy.deepcopy(ANSWER)
     if "handoff_v1" in capabilities: result["anyOf"].append(navigation_schema())
     return result
 
@@ -322,7 +323,7 @@ def step_input(value):
     allowed = {"schemaVersion", "context", "message", "conversationFrames", "readResults", "providerContinuation", "finalRound", "timeoutSeconds", "deadlineEpochMillis", "replyContract", "answerBasis"}
     if set(value) - allowed or allowed - {"timeoutSeconds", "deadlineEpochMillis", "replyContract", "answerBasis"} - set(value): raise StepValidationError("invalid input fields")
     if "replyContract" in value or "answerBasis" in value:
-        if value.get("replyContract") != "meal_reply.v1" or "answerBasis" not in value: raise StepValidationError("invalid reply negotiation")
+        if value.get("replyContract") not in ("meal_reply.v1","meal_reply.v2") or "answerBasis" not in value: raise StepValidationError("invalid reply negotiation")
         from assistant_reply import validate_basis
         validate_basis(value["answerBasis"])
         bounded_json({"basis":value["answerBasis"],"reads":value.get("readResults",[])},12000)
@@ -375,7 +376,7 @@ def final_output(value, authorized_ids, allowed_actions=(), reply_contract=None,
     if value.get("type") == "need_input":
         schema = model_output_schema(allowed_actions)["anyOf"][0]
         validate(value, schema)
-        result = {"type": "need_input", "question": clarification_question(value["question"],reply_contract=="meal_reply.v1" and "meal_requirements_v1" in allowed_actions)}
+        result = {"type": "need_input", "question": value["question"][:200] if reply_contract=="meal_reply.v2" else clarification_question(value["question"],reply_contract=="meal_reply.v1" and "meal_requirements_v1" in allowed_actions)}
         if "clarificationKind" in value:
             result["clarificationKind"] = value["clarificationKind"]
         # Java derives actual options from its normalized question and current
@@ -383,9 +384,9 @@ def final_output(value, authorized_ids, allowed_actions=(), reply_contract=None,
         return result
     answer = None
     if "answer" in value:
-        if reply_contract != "meal_reply.v1": raise StepValidationError("reply not negotiated")
+        if reply_contract not in ("meal_reply.v1","meal_reply.v2"): raise StepValidationError("reply not negotiated")
         from assistant_reply import validate_answer
-        answer=validate_answer(value["answer"], answer_basis)
+        answer=validate_answer(value["answer"], answer_basis,reply_contract)
         value=copy.deepcopy(value);value.pop("answer")
     validate(value, obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
         "factSource": string(30, ["recent_actual"]),

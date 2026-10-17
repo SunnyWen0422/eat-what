@@ -77,16 +77,16 @@ module.exports=function assistantPage(fallback, options={}) {
    const actionable=pending?cards.filter(c=>c.taskId===pending.taskId&&c.previewToken===pending.previewToken).slice(-1):turn&&turn.status==='needs_input'?cards.filter(c=>['clarification','handoff'].includes(c.type)).slice(-1):cards.filter(c=>c.type==='menu'&&c.data&&c.data.canUndo).slice(-1)
    const currentCards=new Set(actionable.map(c=>c.id)),enabled=this.data.conversationActionsEnabled!==false&&!state.busy&&!state.recoverable
    const workflow=presentWorkflow(state)
-   const messages=state.messages.map(m=>({...m,text:safeText(m.text || m.content),workflow:turn&&m.turnId===turn.turnId?workflow.rows:(m.workflow||[]),cards:(m.cards || []).map(card=>({...card,active:enabled&&!!turn&&m.turnId===turn.turnId&&currentCards.has(card.id)&&!state.selectionPending&&!state.confirmationPending&&(!card.taskId||turn.status==='awaiting_confirmation'&&turn.pendingAction&&turn.pendingAction.taskId===card.taskId&&turn.pendingAction.previewToken===card.previewToken)}))}))
+   const messages=state.messages.map(m=>({...m,text:safeText(m.text || m.content),workflow:turn&&m.turnId===turn.turnId?workflow.rows:(m.workflow||[]),cards:(m.cards || []).filter(card=>!(card.data&&card.data.executionMode==='direct')).map(card=>({...card,active:enabled&&!!turn&&m.turnId===turn.turnId&&currentCards.has(card.id)&&!state.selectionPending&&!state.confirmationPending&&(!card.taskId||turn.status==='awaiting_confirmation'&&turn.pendingAction&&turn.pendingAction.taskId===card.taskId&&turn.pendingAction.previewToken===card.previewToken)}))}))
    const recover=state.recoverable||workflow.primaryAction==='recover'
    this.setData({conversationWorkflow:workflow,conversationWorkflowAction:recover?'recover':workflow.primaryAction==='remaining'?'remaining':null,conversationWorkflowLabel:recover?(workflow.primaryAction==='recover'?workflow.primaryLabel:'核对原请求结果'):workflow.primaryLabel})
-   this.setData({conversationMessages:messages,conversationInput:state.input,conversationError:state.error,conversationBusy:state.busy,conversationRecoverable:state.recoverable,conversationCanStop:!!turn&&['queued','running','awaiting_confirmation'].includes(turn.status),conversationStopLabel:turn&&turn.status==='awaiting_confirmation'?'取消预览':'停止这次请求',conversationHasOlder:!!state.nextCursor,conversationProgressLabel:turn&&turn.status==='queued'?'正在排队…':'正在处理这次请求…'})
+   this.setData({conversationMessages:messages,conversationInput:state.input,conversationError:state.error,conversationCanSteer:state.canSteer,conversationBusy:state.busy,conversationRecoverable:state.recoverable,conversationCanStop:!!turn&&['queued','running','awaiting_confirmation'].includes(turn.status),conversationStopLabel:turn&&turn.status==='awaiting_confirmation'?'取消预览':'停止这次请求',conversationHasOlder:!!state.nextCursor,conversationProgressLabel:turn&&turn.status==='queued'?'正在排队…':'正在处理这次请求…'})
    this.refreshConversationMenus(state)
    const last=state.messages[state.messages.length-1],stamp=last?JSON.stringify([last.id,last.text||last.content,last.cards,turn&&turn.status]):''
    if(stamp!==this._conversationStamp){this._conversationStamp=stamp;if(this._conversationAtBottom!==false||this._conversationForceBottom)this.onConversationLatest();else this.setData({conversationScrollTarget:'',conversationHasNew:true})}
    this._conversationForceBottom=false
    clearTimeout(this._conversationTimer)
-   if(this._assistantVisible!==false&&state.busy&&state.turn&&['queued','running'].includes(state.turn.status))this._conversationTimer=setTimeout(()=>{if(this._assistantAlive&&this.current()&&this.conversation)this.conversation.recover(state.turn.turnId)},1000)
+   if(this._assistantVisible!==false&&state.busy&&state.turn&&(['queued','running'].includes(state.turn.status)||(state.turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct')))this._conversationTimer=setTimeout(()=>{if(this._assistantAlive&&this.current()&&this.conversation)this.conversation.recover(state.turn.turnId)},1000)
    this.applyAssistantEntry()
   },
   async onShow() {
@@ -176,7 +176,7 @@ module.exports=function assistantPage(fallback, options={}) {
    if(item)this.offerConversationInput(item.text)
   },
   onConversationInput(event){if(this.conversation)this.conversation.setInput(event.detail.value)},
-  onConversationSend(){if(this.conversation&&!this.workspaceBlocksConversation()&&!this.data.conversationBusy&&this.data.conversationActionsEnabled!==false){this._conversationForceBottom=true;return this.conversation.send(this.data.conversationInput)}},
+  onConversationSend(){if(this.conversation&&!this.workspaceBlocksConversation()&&(!this.data.conversationBusy||this.data.conversationCanSteer)&&this.data.conversationActionsEnabled!==false){this._conversationForceBottom=true;return this.conversation.send(this.data.conversationInput)}},
   onConversationRecover(){if(this.conversation)return this.conversation.recover();return this.openConnectedConversation()},
   onConversationWorkflow(){
    if(!this.current()||!this.conversation||this.data.conversationActionsEnabled===false||this.workspaceBlocksConversation())return

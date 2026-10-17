@@ -125,9 +125,11 @@ def prepare_step(value):
     messages = [{"role": "system", "content": SYSTEM + generation_hint + navigation_hint + "\n工具循环预算（服务端）：" + bounded_json(budget, 2000)
                  + "\n最终输出 JSON schema：" + bounded_json(model_output_schema(allowed_actions, value.get("replyContract")), 20000)},
                 {"role": "user", "content": "当前授权上下文资料(JSON)：" + bounded_json(context, 12000)}]
-    if value.get("replyContract") == "meal_reply.v1":
+    if value.get("replyContract") in ("meal_reply.v1","meal_reply.v2"):
         from assistant_reply import prepare_reply_instructions
-        messages[0]["content"] += prepare_reply_instructions(value["answerBasis"])
+        if "direct_execution_v1" in enabled and value["replyContract"]=="meal_reply.v2":
+            messages[0]["content"]=messages[0]["content"].replace("动作只是待 Java 校验/预览/确认的建议", "动作交给 Java 校验和直接执行")
+        messages[0]["content"] += prepare_reply_instructions(value["answerBasis"],value["replyContract"],"direct_execution_v1" in enabled)
         messages.append({"role":"user","content":"本轮回答依据(JSON)："+bounded_json(value["answerBasis"],8000)})
     messages.extend(copy.deepcopy(value["conversationFrames"]))
     messages.append({"role": "user", "content": value["message"]})
@@ -154,7 +156,7 @@ def _step_result(value,message,history,seen,results,allowed,allowed_actions):
     try:
         return final_output(output, _authorized_ids(value["context"], results), allowed_actions, value.get("replyContract"), value.get("answerBasis"))
     except StepValidationError:
-        if value.get("replyContract") != "meal_reply.v1" or not isinstance(output,dict) or "answer" not in output:
+        if value.get("replyContract") not in ("meal_reply.v1","meal_reply.v2") or not isinstance(output,dict) or "answer" not in output:
             raise
         # A bad explanation must not discard a separately valid business proposal.
         fallback=copy.deepcopy(output);fallback.pop("answer")

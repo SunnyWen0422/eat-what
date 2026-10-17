@@ -34,6 +34,11 @@ public class AssistantV4TurnService {
     private final Executor executor;
     private final ConcurrentMap<String,FutureTask<Void>> scheduled=new ConcurrentHashMap<>();
     private AssistantGuidanceService guidance;
+    private ControlledToolHarnessService directHarness;
+    @Autowired void setDirectHarness(ControlledToolHarnessService harness){directHarness=harness;}
+    private final ThreadLocal<Set<String>> resuming=ThreadLocal.withInitial(HashSet::new);
+    private boolean directRequest(TurnRequest request){return directHarness!=null&&request.getUiFeatures()!=null&&request.getUiFeatures().contains("direct_execution_v1");}
+
     @Autowired void setGuidance(AssistantGuidanceService service){guidance=service;}
     @Autowired public AssistantV4TurnService(AssistantV4Store store,AssistantV4ContextService contexts,AssistantCapabilityService registry,AssistantV4ModelGateway model,AiProtectionService protection,DishQueryService dishes,ObjectMapper json){
         this(store,contexts,registry,model,protection,dishes,json,Clock.systemUTC(),new ThreadPoolExecutor(2,2,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(16),r->{Thread t=new Thread(r,"assistant-v4");t.setDaemon(true);return t;},new ThreadPoolExecutor.AbortPolicy()));
@@ -89,7 +94,7 @@ public class AssistantV4TurnService {
                 TurnResult kept=result("completed","好的，先保持当前菜单。",false);kept.setCards(factCards(user,current));kept.setWorkspaceRef(reference(scope));finish(user,lease,kept);return;
             }
             StepInput input=new StepInput();input.setContext(context);input.setMessage(request.getMessage());input.setConversationFrames(frames(context));
-            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;List<ReadResult> answerReads=new ArrayList<>();AssistantTurnReadCache readCache=new AssistantTurnReadCache(json);
+            Set<String> usedCalls=new HashSet<>();List<Card> facts=new ArrayList<>();List<AssistantFactReplyFormatter.AuthorizedReadFact> authorizedFacts=new ArrayList<>();int readCount=0,factChars=0;List<ReadResult> answerReads=new ArrayList<>();AssistantTurnReadCache readCache=new AssistantTurnReadCache(json);boolean correctedAction=false;
             for(int round=0;round<4;round++){
                 active(user,lease);
                 // Keep 0.5s for local completion inside the unchanged 30s lease. Each HTTP attempt
@@ -102,7 +107,7 @@ public class AssistantV4TurnService {
                 input.setReplyContract(null);input.setAnswerBasis(null);
                 if(model.supportsNaturalReplies()){
                     AnswerBasis basis=new AssistantAnswerBasisService(json).build(context,answerReads);
-                    if(encode(basis).length()+encode(input.getReadResults()).length()+32<=12000){input.setReplyContract("meal_reply.v1");input.setAnswerBasis(basis);}
+                    if(encode(basis).length()+encode(input.getReadResults()).length()+32<=12000){input.setReplyContract(model.supportsFlexibleReplies()?"meal_reply.v2":"meal_reply.v1");input.setAnswerBasis(basis);}
                 }
                 // A capability probe consumes the same turn deadline, never a fresh timeout.
                 now=clock.millis();outerMillis=Math.min(23000,lease.getModelDeadlineAt()-now-500);
@@ -124,7 +129,7 @@ public class AssistantV4TurnService {
                     }
                     input.setReadResults(results);input.setProviderContinuation(output.getProviderContinuation());continue;
                 }
-                if("need_input".equals(output.getType())){String question=QUESTIONS.contains(output.getQuestion())?output.getQuestion():SAFE_QUESTION;TurnResult r=result("needs_input",question,UNAVAILABLE.equals(question));r.setCards(facts);r.setWorkspaceRef(reference(scope));if(guidance!=null&&actual.contains("clarification_v1")){Card card=guidance.createClarification(turnId,contextWorkspace(user,request),question);if(card!=null){retainOriginalIntent(card,context,request);r.getCards().add(card);}}finish(user,lease,r);return;}
+                if("need_input".equals(output.getType())){String question="meal_reply.v2".equals(input.getReplyContract())?safeQuestion(output.getQuestion()):QUESTIONS.contains(output.getQuestion())?output.getQuestion():SAFE_QUESTION;TurnResult r=result("needs_input",question,UNAVAILABLE.equals(question));r.setCards(facts);r.setWorkspaceRef(reference(scope));if(guidance!=null&&actual.contains("clarification_v1")){Card card=guidance.createClarification(turnId,contextWorkspace(user,request),question);if(card!=null){retainOriginalIntent(card,context,request);r.getCards().add(card);}}finish(user,lease,r);return;}
                 if("navigation".equals(output.getType())){
                     TurnResult r=result("needs_input","请在对应页面核对后操作",false);r.setCards(facts);r.setWorkspaceRef(reference(scope));
                     if(guidance!=null&&actual.contains("handoff_v1")){
@@ -141,8 +146,8 @@ public class AssistantV4TurnService {
                     // An explicit empty read is a result. Never replace it with an unrelated plan.
                     if(authorizedFacts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(current));facts.addAll(factCards(user,current));}
                     TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);
-                    if("meal_reply.v1".equals(input.getReplyContract())){AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(output.getAnswer(),input.getAnswerBasis());
-                        if(answer.isAccepted()){r.setReply(answer.getReply());r.setCards(selectAnswerDishCards(facts,answer.getCardRefs()));}}
+                    if(input.getReplyContract()!=null){AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(output.getAnswer(),input.getAnswerBasis());
+                        if(answer.isAccepted()){r.setReply(answer.getReply());r.setCards(selectAnswerDishCards(facts,answer.getCardRefs()));if("meal_reply.v2".equals(input.getReplyContract()))applyCardLabels(r.getCards(),output.getAnswer());}}
                     r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 if("meal_reply.v1".equals(input.getReplyContract())&&actual.contains("meal_requirements_v1")){
@@ -153,7 +158,14 @@ public class AssistantV4TurnService {
                         finish(user,lease,r);return;
                     }output.setActionProposal(resolved.getValidatedProposal());
                 }
-                validateActions(output.getActionProposal(),scope);
+                try{validateActions(output.getActionProposal(),scope);if("meal_reply.v2".equals(input.getReplyContract())&&changesUninterpretedRequirements(output.getActionProposal(),context))throw new IllegalArgumentException("请使用结构化条件");}
+                catch(IllegalArgumentException invalid){
+                    // Correct model-authored parameters before checkpointing any business action.
+                    // Same lease and four-call budget; never repair by changing the user's intent.
+                    if("meal_reply.v2".equals(input.getReplyContract())&&!correctedAction&&!input.isFinalRound()&&input.getMessage().length()<=1800){
+                        correctedAction=true;input.setMessage(input.getMessage()+"\n本次动作参数尚未执行。请按工具schema重新检查必要参数、动作顺序和已授权的真实菜品编号；需要数据时先查询，不得自行编造。临时条件用criteria等结构化字段，不只复制原话；无法执行的条件应简短解释或询问必要信息。保持用户原意，不让用户填写内部参数。");continue;
+                    }throw invalid;
+                }
                 // Raw wording is not a proven executable constraint. Keep the
                 // workspace guard unchanged and give a deterministic next step
                 // before checkpointing any action that cannot be applied.
@@ -162,7 +174,7 @@ public class AssistantV4TurnService {
                     r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
-                if(executeStep(user,lease,scope,true,c,"meal_reply.v1".equals(input.getReplyContract())?output.getAnswer():null))resumeWorkflow(user,turnId);return;
+                if(executeStep(user,lease,scope,true,c,input.getReplyContract()!=null?output.getAnswer():null))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
         }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);LOG.info("assistant_turn provider_calls={} read_calls={} read_cache_hits={} workflow_outcome={} duration_ms={}",providerCalls,readCalls,cacheHits,observedOutcome,clock.millis()-observedStart);}}
@@ -183,10 +195,28 @@ public class AssistantV4TurnService {
     private void active(Long user,TurnRecord lease){store.withActiveLease(user,lease.getId(),lease.getLeaseToken(),()->Boolean.TRUE);}
     /** Resume durable validated intent after a committed receipt; never requests the model again. */
     public TurnView resumeWorkflow(Long user,String turnId){
-        for(int attempt=0;attempt<3;attempt++){
+        String key=user+":"+turnId;if(resuming.get().contains(key))return store.findTurn(user,turnId);
+        return driveWorkflow(user,turnId);
+    }
+    private TurnView driveWorkflow(Long user,String turnId){
+        for(int attempt=0;attempt<6;attempt++){
             TurnRecord row=store.turnRecord(user,turnId);if(!"awaiting_confirmation".equals(row.getStatus()))return store.findTurn(user,turnId);
-            WorkflowContinuation c=store.continuation(user,turnId);if(c==null||c.getCursor()>=c.getSteps().size()||!"pending".equals(c.getSteps().get(c.getCursor()).getStatus()))return store.findTurn(user,turnId);
-            TurnRequest request=store.turnRequest(user,turnId);TurnScope scope=scope(user,row,request);WorkspaceRef ref=store.findTurn(user,turnId).getWorkspaceRef();if(ref!=null){scope.setExpectedWorkspaceRevision(ref.getWorkspaceRevision());scope.setExpectedPlanVersion(ref.getPlanVersion());}
+            WorkflowContinuation c=store.continuation(user,turnId);if(c==null||c.getCursor()>=c.getSteps().size())return store.findTurn(user,turnId);
+            TurnRequest request=store.turnRequest(user,turnId);
+            if("awaiting_confirmation".equals(c.getSteps().get(c.getCursor()).getStatus())){
+                if(!directRequest(request))return store.findTurn(user,turnId);
+                registry.requireEnabled();registry.requireUiFeatures(request.getUiFeatures());TurnView pending=store.findTurn(user,turnId);PendingAction action=pending.getPendingAction();
+                if(action==null||!Objects.equals(action.getTaskId(),c.getSteps().get(c.getCursor()).getTaskId()))return pending;
+                String key=user+":"+turnId;resuming.get().add(key);
+                try{directHarness.confirm(user,action.getTaskId(),action.getPreviewToken());}
+                catch(RuntimeException failure){return directUnresolved(user,turnId,action);}
+                finally{resuming.get().remove(key);if(resuming.get().isEmpty())resuming.remove();}
+                TurnView after=store.findTurn(user,turnId);
+                if(after.getPendingAction()!=null&&Objects.equals(action.getTaskId(),after.getPendingAction().getTaskId()))return directUnresolved(user,turnId,action);
+                continue;
+            }
+            if(!"pending".equals(c.getSteps().get(c.getCursor()).getStatus()))return store.findTurn(user,turnId);
+            TurnScope scope=scope(user,row,request);WorkspaceRef ref=store.findTurn(user,turnId).getWorkspaceRef();if(ref!=null){scope.setExpectedWorkspaceRevision(ref.getWorkspaceRevision());scope.setExpectedPlanVersion(ref.getPlanVersion());}
             try{if(!executeStep(user,row,scope,false,c))return store.findTurn(user,turnId);}catch(RuntimeException failure){
                 // A competing confirmation may already have advanced the durable revision. Never regress it.
                 TurnRecord latest=store.turnRecord(user,turnId);WorkflowContinuation current=store.continuation(user,turnId);
@@ -195,6 +225,12 @@ public class AssistantV4TurnService {
                 try{store.completeTurn(user,turnId,"awaiting_confirmation",retry);}catch(RuntimeException conflict){/* concurrent resume won */}return store.findTurn(user,turnId);
             }
         }return store.findTurn(user,turnId);
+    }
+    private TurnView directUnresolved(Long user,String id,PendingAction pending){
+        try{return store.withActiveParent(user,id,pending.getStepId(),()->{
+            TurnView current=store.findTurn(user,id);if(current.getPendingAction()==null||!Objects.equals(pending.getTaskId(),current.getPendingAction().getTaskId()))return current;
+            TurnResult retry=result("awaiting_confirmation","操作结果还待核对，已完成的内容仍保留",true);retry.setCards(current.getCards());retry.setPendingAction(current.getPendingAction());retry.setContinuation(store.continuation(user,id));retry.setWorkspaceRef(current.getWorkspaceRef());return store.completeTurn(user,id,"awaiting_confirmation",retry);
+        });}catch(RuntimeException changed){return store.findTurn(user,id);}
     }
     private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected){
         return executeStep(user,row,scope,running,expected,null);
@@ -215,9 +251,9 @@ public class AssistantV4TurnService {
                 if("draft_update".equals(step.getKind())&&c.getCursor()==c.getSteps().size()&&explanation!=null){
                     ModelContext actual=new ModelContext();for(Card card:outcome.getCards())if("menu".equals(card.getType()))actual.getActiveMeal().put("currentDishes",card.getData().get("dishes"));
                     AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(explanation,new AssistantAnswerBasisService(json).build(actual,Collections.emptyList()));
-                    if(answer.isAccepted())outcome.setReply(feedback+"。\n"+answer.getReply());
+                    if(answer.isAccepted()){outcome.setReply(feedback+"。\n"+answer.getReply());applyCardLabels(outcome.getCards(),explanation);}
                 }
-            }else if("awaiting_confirmation".equals(outcome.getStatus())){PendingAction p=outcome.getPendingAction();if(p==null||!step.getStepId().equals(p.getStepId())||p.getTaskId()==null||p.getPreviewToken()==null||p.getExpiresAt()==null||p.getExpiresAt()<=clock.millis())throw new IllegalStateException("缺少确认预览");step.setStatus("awaiting_confirmation");step.setTaskId(p.getTaskId());outcome.setReply("请核对以下内容后确认");
+            }else if("awaiting_confirmation".equals(outcome.getStatus())){PendingAction p=outcome.getPendingAction();if(p==null||!step.getStepId().equals(p.getStepId())||p.getTaskId()==null||p.getPreviewToken()==null||p.getExpiresAt()==null||p.getExpiresAt()<=clock.millis())throw new IllegalStateException("缺少确认预览");step.setStatus("awaiting_confirmation");step.setTaskId(p.getTaskId());boolean direct=directRequest(store.turnRequest(user,row.getId()));outcome.setReply(direct?"正在办理这次请求":"请核对以下内容后确认");if(direct){outcome.setRetryable(false);for(Card card:outcome.getCards())card.getData().put("executionMode","direct");}
             }else throw new IllegalStateException("业务结果无效");
             List<Card> cards=new ArrayList<>();for(Card card:before.getCards())if(card.getReceiptRef()!=null)cards.add(card);cards.addAll(outcome.getCards());outcome.setCards(cards);outcome.setContinuation(c);if(outcome.getWorkspaceRef()==null)outcome.setWorkspaceRef(before.getWorkspaceRef());
             if(running)store.completeTurn(user,row.getId(),"running",row.getLeaseToken(),outcome);else store.completeTurn(user,row.getId(),"awaiting_confirmation",outcome);return true;
@@ -294,6 +330,14 @@ public class AssistantV4TurnService {
         }card.getData().put("meals",meals);}
         else return Collections.emptyList();
         if(read.getItems().isEmpty())card.setText("这个范围内暂无记录");return Collections.singletonList(card);
+    }
+    private String safeQuestion(String value){if(value==null||value.trim().isEmpty()||value.length()>200||value.contains("://")||value.matches("(?s).*(?:[<>]|已(?:经)?(?:保存|采购|加入|记录|修改|更新)).*"))return SAFE_QUESTION;return value.trim();}
+    static void applyCardLabels(List<Card> cards,AnswerDraft answer){
+        if(answer==null||answer.getCardLabels()==null)return;
+        Map<String,String> labels=new HashMap<>();for(CardLabel label:answer.getCardLabels())labels.put(label.getDishRef(),label.getTitle().trim());
+        for(Card card:cards){Object value=card.getData().get("dishes");if(!(value instanceof List))continue;
+            List<Map<String,Object>> displayed=new ArrayList<>();for(Object row:(List<?>)value){if(!(row instanceof Map))continue;Map<String,Object> dish=new LinkedHashMap<>((Map<String,Object>)row);Object id=dish.get("id");String title=labels.get("dish:"+id);if(title!=null){dish.put("sourceName",dish.get("name"));dish.put("name",title);}displayed.add(dish);}card.getData().put("dishes",displayed);
+        }
     }
     private List<Card> selectAnswerDishCards(List<Card> cards,List<String> refs){
         if(refs.isEmpty())return cards;Set<Long> ids=new HashSet<>();for(String ref:refs)if(ref.startsWith("dish:"))ids.add(Long.valueOf(ref.substring(5)));

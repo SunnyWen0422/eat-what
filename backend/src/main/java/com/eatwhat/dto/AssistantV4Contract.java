@@ -11,7 +11,7 @@ import java.util.*;
 public final class AssistantV4Contract {
     private AssistantV4Contract() {}
     public static final String SCHEMA_VERSION="assistant.v4.1";
-    public static final Set<String> UI_FEATURES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("clarification_v1","handoff_v1","meal_requirements_v1")));
+    public static final Set<String> UI_FEATURES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("clarification_v1","handoff_v1","meal_requirements_v1","direct_execution_v1")));
     public static final Set<String> STATUSES=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("queued","running","needs_input","awaiting_confirmation","completed","partially_completed","failed","cancelled")));
     public static final Set<String> ACTIONS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("draft_update","calendar_save","shopping_preview")));
     public static final Set<String> HANDOFFS=Collections.unmodifiableSet(new HashSet<>(Arrays.asList("record_actual","edit_preferences","edit_shopping","copy_recipe","save_personal_menu","use_personal_menu","view_favorite")));
@@ -102,7 +102,8 @@ public final class AssistantV4Contract {
         private String key,entityType,sourceVersion;private Long entityId;
         private Map<String,Object> fields=new LinkedHashMap<>();private List<String> unknownFields=new ArrayList<>();
     }
-    @Data public static class AnswerDraft {private List<AnswerSegment> segments=new ArrayList<>();private List<String> cardRefs=new ArrayList<>();}
+    @Data public static class AnswerDraft {private List<AnswerSegment> segments=new ArrayList<>();private List<String> cardRefs=new ArrayList<>();private List<CardLabel> cardLabels=new ArrayList<>();}
+    @Data public static class CardLabel {private String dishRef,title;}
     @Data public static class AnswerSegment {private String text;private List<String> evidenceKeys=new ArrayList<>();private List<AnswerClaim> claims=new ArrayList<>();}
     @Data @JsonInclude(JsonInclude.Include.NON_NULL) public static class AnswerClaim {private String op,left,right,field;private Object value;}
     @Data public static class WorkflowStep {

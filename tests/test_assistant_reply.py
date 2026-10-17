@@ -6,6 +6,23 @@ import test_assistant_v4_step as step_fixture
 body=step_fixture.body
 final=step_fixture.final
 
+class FlexibleRouteTest(unittest.TestCase):
+    def test_model_display_name_and_direct_execution_instructions_survive_route(self):
+        request=body();request.update(replyContract='meal_reply.v2',answerBasis=basis())
+        request['context']['capabilities'].append('direct_execution_v1')
+        value=answer();value['cardLabels']=[{'dishRef':'dish:1','title':'家常番茄鸡蛋'}]
+        _,result,calls=step_fixture.AssistantV4StepTest().route(final({'type':'final','reply':'建议','answer':value}),request)
+        self.assertEqual(value['cardLabels'],result['answer']['cardLabels'])
+        prompt=calls[0]['json']['messages'][0]['content']
+        self.assertIn('不再要求用户确认',prompt);self.assertNotIn('采购写入需要用户确认',prompt)
+        self.assertEqual(1,len(calls))
+
+    def test_v2_keeps_model_question_instead_of_keyword_classification(self):
+        request=body();request.update(replyContract='meal_reply.v2',answerBasis=basis())
+        question='你是想保留鱼，还是把它换成鸡肉？'
+        _,result,_=step_fixture.AssistantV4StepTest().route(final({'type':'need_input','question':question}),request)
+        self.assertEqual(question,result['question'])
+
 
 class AssistantReplyTest(unittest.TestCase):
     def test_real_model_envelope_requests_short_answer_and_preserves_it(self):

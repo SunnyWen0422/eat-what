@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class AssistantAnswerPolicyTest {
+ @Test void model_card_title_does_not_have_to_equal_database_name(){
+  AnswerDraft a=answer("配上米饭就很合适。");CardLabel label=new CardLabel();label.setDishRef("dish:1");label.setTitle("家常番茄鸡蛋");a.getCardLabels().add(label);
+  assertTrue(new AssistantAnswerPolicy().evaluate(a,basis()).isAccepted());
+  label.setDishRef("dish:999");assertFalse(new AssistantAnswerPolicy().evaluate(a,basis()).isAccepted());
+ }
  @Test void equal_times_cannot_support_a_faster_claim(){
   ModelContext c=context();((Map<String,Object>)((List<?>)c.getActiveMeal().get("currentDishes")).get(1)).put("cookMinutes",15);
   AnswerDraft a=answer("清炒青菜更省时。");AnswerSegment s=a.getSegments().get(0);s.setEvidenceKeys(Arrays.asList("dish:1","dish:2"));

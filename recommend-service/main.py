@@ -386,7 +386,7 @@ def assistant_reply_capabilities(x_service_token: Optional[str] = Header(default
     configured = os.getenv("MEAL_WORKSPACE_SERVICE_TOKEN", "")
     if not configured or not x_service_token or not hmac.compare_digest(x_service_token, configured):
         raise HTTPException(status_code=403, detail="internal service authorization required")
-    return {"replyContracts": ["meal_reply.v1"]}
+    return {"replyContracts": ["meal_reply.v1", "meal_reply.v2"]}
 
 
 @app.post("/internal/v4/assistant/step")
