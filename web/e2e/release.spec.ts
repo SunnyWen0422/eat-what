@@ -49,8 +49,9 @@ test.describe('isolated static candidate acceptance (public API disabled)', () =
     page.on('pageerror', error => scriptErrors.push(error.message));
     page.on('response', response => { const path = new URL(response.url()).pathname; if (path.startsWith('/web-assets/')) assets.push({ path, status: response.status() }); });
     await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
-    const routes = [['today', '今天吃什么'], ['recipes', '菜谱'], ['calendar', '日历'], ['my', '我的']] as const;
-    for (const [route, label] of routes) {
+    // The empty-meal heading is a question; the navigation label stays unchanged.
+    const routes = [['today', '今天吃什么', '今天吃什么？'], ['recipes', '菜谱', '菜谱'], ['calendar', '日历', '日历'], ['my', '我的', '我的']] as const;
+    for (const [route, label, heading] of routes) {
       // A hash-only change returns no HTTP response; start each deep link in a fresh document.
       await page.goto('about:blank');
       const directory = page.waitForResponse(response => new URL(response.url()).pathname === '/api/public/catalog/dishes' && response.status() === 503);
@@ -58,18 +59,19 @@ test.describe('isolated static candidate acceptance (public API disabled)', () =
         page.goto(new URL(`/#/${route}`, base!).href).then(response => { expect(response?.status(), `Built candidate entry for ${route}`).toBe(200); }),
         directory,
       ]);
-      await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
       await expect(page.getByRole('navigation').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
       if (route === 'recipes') {
-        await expect(page.getByRole('button', { name: '重试在线菜谱', exact: true })).toBeVisible();
-        await expect(page.getByText('在线菜谱暂时无法读取。已有个人计划仍可查看，可在“我的”新建自定义菜谱。', { exact: true })).toBeVisible();
+        const recipes = page.getByRole('region', { name: '菜谱', exact: true });
+        await expect(recipes.getByRole('button', { name: '重试在线菜谱', exact: true })).toBeVisible();
+        await expect(recipes.getByText('在线菜谱暂时无法读取。已有个人计划仍可查看，可在“我的”新建自定义菜谱。', { exact: true })).toBeVisible();
       }
     }
     const directoryReads = requests.filter(url => new URL(url).pathname === '/api/public/catalog/dishes').length;
-    for (const [route, label] of routes) {
+    for (const [route, label, heading] of routes) {
       await page.getByRole('navigation').getByRole('button', { name: label, exact: true }).click();
       await expect(page).toHaveURL(new URL(`/#/${route}`, base!).href);
-      await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
     }
     await page.goBack(); await expect(page.getByRole('heading', { name: '日历', exact: true })).toBeVisible();
     expect(requests.filter(url => new URL(url).pathname === '/api/public/catalog/dishes')).toHaveLength(directoryReads);
