@@ -160,12 +160,12 @@ async function fontStyles(page,scale) {
 }
 async function actualViewport(mini) {
  return bounded(mini.evaluate(()=>new Promise(resolve=>{
-  const systemInfo=wx.getSystemInfoSync(),windowInfo=wx.getWindowInfo?wx.getWindowInfo():null
-  wx.createSelectorQuery().selectViewport().fields({size:true,rect:true},viewportRect=>resolve({
+  const plain=value=>JSON.parse(JSON.stringify(value)),systemInfo=plain(wx.getSystemInfoSync()),windowInfo=wx.getWindowInfo?plain(wx.getWindowInfo()):null
+  const q=wx.createSelectorQuery();q.selectViewport().fields({size:true});q.exec(values=>{const viewportRect=plain(values[0]);resolve({
    ...systemInfo,...windowInfo,windowWidth:viewportRect.width,windowHeight:viewportRect.height,
    viewportRect,systemInfo,windowInfo,windowMatches:!!windowInfo&&windowInfo.windowWidth===viewportRect.width&&windowInfo.windowHeight===viewportRect.height,
    source:'Actual native viewport size; raw system/window info retained separately'
-  })).exec()
+  })})
  })))
 }
 async function capture(o,manifest,session) {
