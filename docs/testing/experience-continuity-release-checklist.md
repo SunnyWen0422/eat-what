@@ -10,7 +10,7 @@
 |原生与真机|开发工具限定观察；Android 未运行、iOS 不可用，不能签署物理设备验收|
 |模型|20/20 与补充 4/4 已封存；澄清成功和临时过滤预算中断分别列明|
 |用户研究|blocked，0 人/40 not_run；36/40 与严重错误阻断门不变|
-|性能|当前候选须保留 2 用户模式 ×2 数据规模 ×3 并发 ×300 秒的实际结果；延迟未达不得改门或隐去退出 2|
+|性能|已完成 12×300 秒；两模式时长/清理门通过、延迟门未过，均退出 2。50000 行并发 10/25 餐单未达，共享用户 25 并发复杂列表也未达|
 |任务与整分支审阅|由控制器独立执行；未审阅不算验收通过|
 |生产与小程序发布|未授权、未执行，分别记录，不能由本地候选替代|
 
@@ -27,3 +27,5 @@
 subjects 的组件键为 mini、web、java、python、schema、resources、config、data；它们由实际打包字节计算。性能还必须包含 config:名称 和 data:名称，manifest 的 externalSubjects 将这些名称映射到实际本地文件，仅哈希进入索引。每种证据必须具备对应最小组件范围，不能只绑定文档或源码 HEAD。
 
 允许的 kind：regression、browser、static-release、performance、native、usability、review。允许的 status：verified、partial、blocked、not-run、failed、performance-miss。全部 required kind 均 verified 才显示 evidenceStatus=verified，仍然 DRAFT 且不得部署；任何缺项或不完整结果保持 partial。无 manifest 为 missing。
+
+包内链接检查同时覆盖文档副本：本次公开说明随包提供；其他历史资料仅以已跟踪公开仓库相对路径和 SHA256 记录来源，明确未随包。忽略的证据、私有配置或本机绝对路径只能泛称本地未随包资料，不进入公开引用索引；运行策略文件保持源码字节。

@@ -2,6 +2,7 @@
 import argparse,hashlib,json,os,re,shutil,subprocess,zipfile
 from pathlib import Path
 from urllib.parse import urlsplit
+from urllib.parse import unquote
 from export_local_miniprogram import export
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -152,6 +153,38 @@ def check_prepared_migration(directory):
     return receipt
 
 
+def document_references(directory,source_sha,tracked_files):
+    """Keep copied docs navigable without copying unrelated historical records."""
+    directory=Path(directory);references=[];omitted_local=0
+    for path in sorted(directory.rglob('*.md')):
+        relative=path.relative_to(directory)
+        # These are byte-pinned runtime policy inputs, not delivery prose.
+        if relative.as_posix().startswith('docs/assistant/'):continue
+        def replace(match):
+            nonlocal omitted_local
+            label,link=match.groups();url=urlsplit(link.strip('<>'))
+            if url.scheme=='file' or len(url.scheme)==1 or url.path.startswith(('/', '\\')):
+                omitted_local+=1
+                return 'Local evidence (not included in this candidate)'
+            if url.scheme or url.netloc or not url.path:return match.group(0)
+            target=(path.parent/unquote(url.path)).resolve()
+            if not target.is_relative_to(directory.resolve()):raise ValueError('Document link leaves candidate')
+            if target.is_file():return match.group(0)
+            name=target.relative_to(directory.resolve()).as_posix();source=ROOT/name
+            public=name in tracked_files and (name.startswith('docs/') or name.startswith('scripts/acceptance/')) and source.suffix in ('.md','.csv','.json')
+            if not public:
+                omitted_local+=1
+                return 'Local evidence (not included in this candidate)'
+            if not source.is_file() or source.is_symlink():raise ValueError('Document source reference missing: '+name)
+            references.append({'document':relative.as_posix(),'sourcePath':name,'sourceSha':source_sha,'sourceFileSha256':digest(source)})
+            return label+' (repository source reference: `'+name+'`; not included in this candidate)'
+        original=path.read_text(encoding='utf-8')
+        updated=re.sub(r'(?<!!)\[([^\]]+)\]\(([^)]+)\)',replace,original)
+        if updated!=original:path.write_text(updated,encoding='utf-8')
+    (directory/'documentation-references.json').write_text(json.dumps({'scope':'Tracked public repository source references only; not acceptance evidence or bundled files.','references':references,'omittedLocalEvidenceCount':omitted_local},ensure_ascii=False,indent=2),encoding='utf-8')
+    return references
+
+
 def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None,evidence_manifest=None):
     bundle=release_path(bundle);out=release_path(out)
     if out.exists() or out.is_relative_to(ROOT):raise ValueError('Choose a new output directory outside the source repository')
@@ -203,7 +236,11 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None,evid
         source=ROOT/'docs/release'/name
         if source.is_file():copy(source,source.relative_to(ROOT))
     for relative in ('docs/testing/product-maturity-final.md','docs/release/product-maturity-candidate.md',
-                     'docs/testing/experience-continuity-final.md','docs/testing/experience-continuity-release-checklist.md'):
+                     'docs/testing/experience-continuity-final.md','docs/testing/experience-continuity-release-checklist.md',
+                     'docs/testing/experience-usability-findings.md','docs/testing/experience-usability-protocol.md',
+                     'docs/testing/product-maturity-usability.md','docs/testing/product-maturity-usability-template.csv',
+                     'docs/testing/experience-continuity-native.md','docs/testing/experience-continuity-service.md',
+                     'scripts/acceptance/experience-continuity-device.md'):
         source=ROOT/relative
         if source.is_file():copy(source,Path(relative))
     if web_release:
@@ -218,6 +255,8 @@ def package(bundle,out,web_release=None,migration_bundle=None,jar_path=None,evid
     git=['git','-c','safe.directory='+ROOT.as_posix(),'-C',str(ROOT)]
     commit=subprocess.check_output(git+['rev-parse','HEAD'],text=True).strip()
     dirty=bool(subprocess.check_output(git+['status','--porcelain'],text=True).strip())
+    tracked=set(subprocess.check_output(git+['ls-files','-z'],text=True).split('\0'))
+    document_references(out,commit,tracked)
     subjects=component_subjects(out)
     subjects.update(external_subjects(evidence_manifest))
     evidence=validate_evidence(evidence_manifest,subjects,commit)
