@@ -159,14 +159,20 @@ async function fontStyles(page,scale) {
  return {fontBase,requestedScale:scale,styles,rootMatches:root&&Number.isFinite(fontBase)?Math.abs(parseFloat(root.fontSize)-fontBase*scale)<.5:null,scope:'Actual native computed styles via official SDK; export font adapter, not OS font responsiveness'}
 }
 async function actualViewport(mini) {
- return bounded(mini.evaluate(()=>new Promise(resolve=>{
-  const plain=value=>JSON.parse(JSON.stringify(value)),systemInfo=plain(wx.getSystemInfoSync()),windowInfo=wx.getWindowInfo?plain(wx.getWindowInfo()):null
-  const q=wx.createSelectorQuery();q.selectViewport().fields({size:true});q.exec(values=>{const viewportRect=plain(values[0]);resolve({
-   ...systemInfo,...windowInfo,windowWidth:viewportRect.width,windowHeight:viewportRect.height,
-   viewportRect,systemInfo,windowInfo,windowMatches:!!windowInfo&&windowInfo.windowWidth===viewportRect.width&&windowInfo.windowHeight===viewportRect.height,
-   source:'Actual native viewport size; raw system/window info retained separately'
-  })})
- })))
+ const stage=async(name,work)=>{try{return await bounded(work())}catch(e){throw Error(name+': '+e.message)}}
+ const systemInfo=await stage('SDK systemInfo',()=>mini.systemInfo())
+ const errors=[]
+ let windowInfo=null,viewportRect=null
+ try{windowInfo=await stage('native getWindowInfo primitives',()=>mini.evaluate(()=>{
+  const info=wx.getWindowInfo();return {windowWidth:Number(info.windowWidth),windowHeight:Number(info.windowHeight),
+   safeArea:info.safeArea?{top:Number(info.safeArea.top),bottom:Number(info.safeArea.bottom),left:Number(info.safeArea.left),right:Number(info.safeArea.right),width:Number(info.safeArea.width),height:Number(info.safeArea.height)}:null}
+ }))}catch(e){errors.push(e.message)}
+ try{viewportRect=await stage('native viewport query',()=>mini.evaluate(()=>new Promise(resolve=>{
+  const q=wx.createSelectorQuery();q.selectViewport().boundingClientRect();q.exec(values=>resolve(values[0]))
+ })))}catch(e){errors.push(e.message)}
+ return {...systemInfo,...windowInfo,
+  viewportRect,systemInfo,windowInfo,errors,windowMatches:!!windowInfo&&windowInfo.windowWidth===viewportRect?.width&&windowInfo.windowHeight===viewportRect?.height,
+  source:'Raw window-info API and independent native viewport query; disagreement blocks height acceptance'}
 }
 async function capture(o,manifest,session) {
  const report={mode:o.mode,lifecycleEnabled:o.mode==='service',sourceSha:manifest.sourceSha,appFingerprint:manifest.appFingerprint,authentication:manifest.authentication,requestedViewport:{width:o.width,widths:o.widths},actualViewport:null,fontScale:o.scales,device:null,evidence:[],matrix:matrix(read(path.join(manifest.project,'app.json')).pages),cases:[],exceptions:[],status:'not-run',physical:{android:'not-run',ios:'blocked: no iOS device available'},limits:['Measurements are not a complete layout/reader verdict','Font scale is fixed by export-only base-info before cold module loading; no per-page data override; original lifecycle executes; this does NOT prove product response to OS font changes or reader','No production/upload/release; original WeChat SSO unverified']}
@@ -213,8 +219,8 @@ async function capture(o,manifest,session) {
     const name=row.route.split('/')[1],query=o.mode==='service'?(session.queries[name]||''):''
     const page=await bounded(mini.reLaunch('/'+row.route+query));await sleep(200)
     if(o.mode==='fixture')await bounded(page.setData(fixtureData(name,scale)))
-    item.actualViewport=await actualViewport(mini);if(!item.actualViewport.windowHeight||item.actualViewport.windowWidth!==width)throw Error('Actual width/height changed or is unmeasurable during route capture; remaining viewport claims rejected')
-    if(!item.actualViewport.windowMatches)throw Error('Live window info and native viewport disagree; height-sensitive claims blocked')
+    item.actualViewport=await actualViewport(mini);if(item.actualViewport.windowWidth!==width||item.actualViewport.viewportRect&&item.actualViewport.viewportRect.width!==width)throw Error('Actual width changed during route capture; remaining width claims rejected')
+    item.heightValidation={status:item.actualViewport.windowMatches?'measured':'blocked',reason:item.actualViewport.windowMatches?'Window API and native viewport agree':'Live window info and native viewport disagree or a read is unavailable; no whole-page height acceptance'}
     item.geometry=await geometry(mini,page,item.actualViewport.windowWidth);Object.assign(item,assess(item.geometry))
     const file=path.join(o.out,name+'-'+row.role+'-w'+item.actualViewport.windowWidth+'-f'+scale+'.png');await bounded(mini.screenshot({path:file}));item.evidence.push(file)
     // Bottom reachability evidence is separate from screenshot quantity.
@@ -249,7 +255,7 @@ async function capture(o,manifest,session) {
    if(item.error&&/timed out|font factor|Actual width|native viewport/.test(item.error))throw Error(item.error)
   }}
   report.guard=await bounded(mini.evaluate(()=>({denied:getApp().nativeAcceptance.denied,requests:getApp().nativeAcceptance.requests,lifecycle:getApp().nativeAcceptance.lifecycle,mode:getApp().nativeAcceptance.mode})))
-  report.status=report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':report.exceptions.length||report.cases.some(c=>['failed','blocked'].includes(c.status))?'captured-with-failures':'captured-requires-inspection'
+  report.status=report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':report.exceptions.length||report.cases.some(c=>['failed','blocked'].includes(c.status))?'captured-with-failures':report.cases.some(c=>c.heightValidation?.status==='blocked')?'captured-height-blocked':'captured-requires-inspection'
  }catch(e){report.status='blocked';report.reason=String(e.message).slice(0,800)}finally{
   // mini is assigned only after launch verifies this export's runId/mode.
   if(mini){try{await bounded(mini.close(),10000);report.ownedIdeClosed=true}catch(error){report.ownedIdeCloseError=error.message;mini.disconnect()}}
