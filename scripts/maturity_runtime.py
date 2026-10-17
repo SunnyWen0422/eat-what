@@ -1,7 +1,8 @@
 """New-instance-only maturity harness. Never adopts an existing process or DB.
 
 All connection settings are generated here, secrets stay in the new evidence
-directory, and shutdown uses only Popen handles created by this context.
+directory. Shutdown uses the authenticated owned database and Popen handles;
+Windows cleanup additionally audits recorded process descendants.
 """
 from contextlib import contextmanager
 import hashlib
@@ -14,6 +15,7 @@ import re
 import secrets
 import socket
 import subprocess
+import sys
 import time
 import zipfile
 from types import SimpleNamespace
@@ -157,6 +159,81 @@ def preflight(config,out,baseline=False,execution=None):
     return SimpleNamespace(output=out,jar=jar,mysqld=mysqld,java=java)
 
 
+def process_snapshot(pids,descendants=False):
+    """Read only recorded roots/their children, never ambient command lines."""
+    if os.name!='nt' or not pids:return []
+    ids=','.join(str(int(pid)) for pid in pids)
+    script="""[Console]::OutputEncoding=[Text.Encoding]::UTF8;$ErrorActionPreference='Stop';
+$pending=[Collections.Generic.Queue[int]]::new();@(%s)|ForEach-Object{$pending.Enqueue($_)};
+$seen=@{};$rows=@();while($pending.Count){$id=$pending.Dequeue();
+$filter="ProcessId=$id";if(%s){$filter+=" OR ParentProcessId=$id"};
+foreach($p in @(Get-CimInstance Win32_Process -Filter $filter)){if(-not $seen.ContainsKey($p.ProcessId)){
+$seen[$p.ProcessId]=$true;$rows+=@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;created=$p.CreationDate.ToUniversalTime().ToString('o')};
+if(%s -and $p.ProcessId -ne $id){$pending.Enqueue([int]$p.ProcessId)}}}};ConvertTo-Json -InputObject @($rows) -Compress
+"""%(ids,'$true' if descendants else '$false','$true' if descendants else '$false')
+    executable=Path(os.environ['SYSTEMROOT'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+    result=subprocess.run([str(executable),'-NoProfile','-Command',script],capture_output=True,text=True,encoding='utf-8-sig',check=True,timeout=20,creationflags=FLAGS)
+    return json.loads(result.stdout)
+
+
+def remaining_owned_processes(observed):
+    current=process_snapshot([row['pid'] for row in observed])
+    identities={(row['pid'],row['created']) for row in observed}
+    return [row for row in current if (row['pid'],row['created']) in identities]
+
+
+def shutdown_owned_mysql(connection,mysql,expected):
+    result={'requested':False,'error':None}
+    if connection is None:return result
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT @@datadir, @@port, DATABASE()')
+            directory,port,database=cursor.fetchone()
+            if os.path.normcase(str(Path(directory).resolve()))!=os.path.normcase(str(Path(expected[0]).resolve())) or port!=expected[1] or database not in (None,expected[2]):
+                raise ValueError('Owned database identity changed before shutdown')
+            cursor.execute('SHUTDOWN');result['requested']=True
+    except Exception as error:result['error']=type(error).__name__
+    finally:
+        try:connection.close()
+        except Exception as error:result['error']=result['error'] or type(error).__name__
+    if result['requested'] and mysql is not None:
+        try:mysql.wait(timeout=20)
+        except subprocess.TimeoutExpired:result['error']='TimeoutExpired'
+    return result
+
+
+def cleanup_runtime(processes,connection,mysql,expected,thread,out,original_error=None):
+    errors=[];observed=[]
+    try:observed=process_snapshot([p.pid for p in processes],descendants=True)
+    except Exception as error:errors.append('process-tree:'+type(error).__name__)
+    shutdown=shutdown_owned_mysql(connection,mysql,expected)
+    if shutdown['error']:errors.append('mysql-shutdown:'+shutdown['error'])
+    for process in reversed(processes):
+        try:
+            if process.poll() is None:
+                process.terminate()
+                try:process.wait(timeout=20)
+                except subprocess.TimeoutExpired:process.kill();process.wait(timeout=10)
+        except Exception as error:errors.append('owned-process:'+type(error).__name__)
+    remaining=[]
+    try:
+        remaining=remaining_owned_processes(observed)
+        until=time.monotonic()+5
+        while remaining and time.monotonic()<until:
+            time.sleep(.1);remaining=remaining_owned_processes(observed)
+    except Exception as error:errors.append('residual-tree:'+type(error).__name__)
+    direct=sum(p.poll() is None for p in processes)
+    result={'ownedProcesses':[{'pid':p.pid,'exitCode':p.poll()} for p in processes],
+        'observedOwnedProcessTree':observed,'residualOwnedProcessTree':remaining,
+        'residualProcesses':max(direct,len(remaining)),'processTreeAuditSupported':os.name=='nt',
+        'residualPythonServerThreads':int(thread is not None and thread.is_alive()),
+        'mysqlShutdown':shutdown,'errors':errors,'originalFailureType':original_error}
+    result['cleanupVerified']=not errors and result['residualProcesses']==0 and result['residualPythonServerThreads']==0
+    (Path(out)/'cleanup.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+    if not result['cleanupVerified'] and original_error is None:raise RuntimeError('Owned runtime cleanup failed; see cleanup.json')
+    return result
+
+
 @contextmanager
 def owned_runtime(config,out,baseline=False,execution=None):
     """Bootstrap schema + fixture + Java/Python in one owning process tree."""
@@ -168,7 +245,7 @@ def owned_runtime(config,out,baseline=False,execution=None):
         for chunk in iter(lambda:source.read(1024*1024),b''):target.write(chunk)
     if digest(pinned)!=config['jarSha256']:raise ValueError('Candidate changed while pinning owned runtime')
     jar=pinned
-    processes=[];connection=None;server=None;thread=None;provider_context=None
+    processes=[];connection=None;mysql=None;server=None;thread=None;provider_context=None
     password=secrets.token_urlsafe(32);token=secrets.token_urlsafe(40);service_token=secrets.token_urlsafe(40)
     db_port=port();database=config['privateDb'];jdbc=f'jdbc:mysql://127.0.0.1:{db_port}/{database}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8'
     state={'api':config['loopbackApi'],'database':database,'dbPort':db_port,'password':password,'tokenSecret':token,'root':str(ROOT),'purpose':config['purpose'],'providerMode':config['providerMode']}
@@ -289,16 +366,12 @@ def owned_runtime(config,out,baseline=False,execution=None):
                               dataset=dataset,properties=properties,config=config,restart=restart,app=app,
                               create_benchmark_users=create_benchmark_users)
     finally:
-        if connection is not None:connection.close()
-        if server is not None:server.should_exit=True
-        if thread is not None:thread.join(timeout=10)
-        if provider_context is not None:provider_context.__exit__(None,None,None)
-        for process in reversed(processes):
-            if process.poll() is None:
-                process.terminate()
-                try:process.wait(timeout=20)
-                except subprocess.TimeoutExpired:process.kill();process.wait(timeout=10)
-        (out/'cleanup.json').write_text(json.dumps({'ownedProcesses':[
-            {'pid':p.pid,'exitCode':p.poll()} for p in processes],
-            'residualProcesses':sum(p.poll() is None for p in processes),
-            'residualPythonServerThreads':int(thread is not None and thread.is_alive())},indent=2),encoding='utf-8')
+        original_error=sys.exc_info()[0]
+        try:
+            if server is not None:server.should_exit=True
+            if thread is not None:thread.join(timeout=10)
+            if provider_context is not None:provider_context.__exit__(None,None,None)
+        finally:
+            active_error=sys.exc_info()[0] or original_error
+            cleanup_runtime(processes,connection,mysql,(mysql_data,db_port,database),thread,out,
+                            active_error.__name__ if active_error else None)
