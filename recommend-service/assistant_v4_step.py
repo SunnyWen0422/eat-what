@@ -123,8 +123,12 @@ def prepare_step(value):
             "selectedDishIds选1至10个已授权的真实候选ID，遵守保留菜和硬限制。"
             "优先一次均衡候选查询后直接给出完整有界建议，不先创建空方案，不重复生成。")
     messages = [{"role": "system", "content": SYSTEM + generation_hint + navigation_hint + "\n工具循环预算（服务端）：" + bounded_json(budget, 2000)
-                 + "\n最终输出 JSON schema：" + bounded_json(model_output_schema(allowed_actions), 12000)},
+                 + "\n最终输出 JSON schema：" + bounded_json(model_output_schema(allowed_actions, value.get("replyContract")), 20000)},
                 {"role": "user", "content": "当前授权上下文资料(JSON)：" + bounded_json(context, 12000)}]
+    if value.get("replyContract") == "meal_reply.v1":
+        from assistant_reply import prepare_reply_instructions
+        messages[0]["content"] += prepare_reply_instructions(value["answerBasis"])
+        messages.append({"role":"user","content":"本轮回答依据(JSON)："+bounded_json(value["answerBasis"],8000)})
     messages.extend(copy.deepcopy(value["conversationFrames"]))
     messages.append({"role": "user", "content": value["message"]})
     messages.extend(history)
@@ -147,7 +151,15 @@ def _step_result(value,message,history,seen,results,allowed,allowed_actions):
         "reasoning_content": {"anyOf": [string(60000), {"type": "null"}]},
         "tool_calls": {"type": "array", "items": {"type": "object"}, "maxItems": 0}}, ["role", "content"]))
     output = strict_json(message["content"])
-    return final_output(output, _authorized_ids(value["context"], results), allowed_actions)
+    try:
+        return final_output(output, _authorized_ids(value["context"], results), allowed_actions, value.get("replyContract"), value.get("answerBasis"))
+    except StepValidationError:
+        if value.get("replyContract") != "meal_reply.v1" or not isinstance(output,dict) or "answer" not in output:
+            raise
+        # A bad explanation must not discard a separately valid business proposal.
+        fallback=copy.deepcopy(output);fallback.pop("answer")
+        return final_output(fallback, _authorized_ids(value["context"], results), allowed_actions)
+
 
 
 def run_step(value: dict, model=None) -> dict:

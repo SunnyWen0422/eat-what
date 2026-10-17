@@ -135,10 +135,13 @@ def navigation_schema():
     return obj({"type":string(20,["navigation"]),"navigationIntent":{"anyOf":variants}},["type","navigationIntent"])
 
 
-def model_output_schema(capabilities=()):
+def model_output_schema(capabilities=(), reply_contract=None):
     """Complete provider JSON envelope; each enabled action nests its arguments."""
     enabled = set(capabilities) & set(ACTION_ARGUMENTS)
     final_properties = {"type": string(20, ["final"]), "reply": string(2000, nonempty=True)}
+    if reply_contract == "meal_reply.v1":
+        from assistant_reply import ANSWER
+        final_properties["answer"] = copy.deepcopy(ANSWER)
     if enabled:
         steps = [{"type": "object", "properties": {
             "kind": string(30, [kind]), "arguments": copy.deepcopy(arguments)},
@@ -154,6 +157,7 @@ def model_output_schema(capabilities=()):
         obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
              "factSource": string(30, ["recent_actual"])}, ["type", "reply", "factSource"]),
     ]}
+    if reply_contract == "meal_reply.v1": result["anyOf"][2]["properties"]["answer"] = copy.deepcopy(ANSWER)
     if "handoff_v1" in capabilities: result["anyOf"].append(navigation_schema())
     return result
 
@@ -313,8 +317,13 @@ def bounded_json(value, limit):
 
 def step_input(value):
     if not isinstance(value, dict): raise StepValidationError("input must be object")
-    allowed = {"schemaVersion", "context", "message", "conversationFrames", "readResults", "providerContinuation", "finalRound", "timeoutSeconds", "deadlineEpochMillis"}
-    if set(value) - allowed or allowed - {"timeoutSeconds", "deadlineEpochMillis"} - set(value): raise StepValidationError("invalid input fields")
+    allowed = {"schemaVersion", "context", "message", "conversationFrames", "readResults", "providerContinuation", "finalRound", "timeoutSeconds", "deadlineEpochMillis", "replyContract", "answerBasis"}
+    if set(value) - allowed or allowed - {"timeoutSeconds", "deadlineEpochMillis", "replyContract", "answerBasis"} - set(value): raise StepValidationError("invalid input fields")
+    if "replyContract" in value or "answerBasis" in value:
+        if value.get("replyContract") != "meal_reply.v1" or "answerBasis" not in value: raise StepValidationError("invalid reply negotiation")
+        from assistant_reply import validate_basis
+        validate_basis(value["answerBasis"])
+        bounded_json({"basis":value["answerBasis"],"reads":value.get("readResults",[])},12000)
     bounded_json(value, 400000)
     validate(value["schemaVersion"], string(30, [VERSION]))
     validate(value["context"], CONTEXT); bounded_json(value["context"], 12000)
@@ -348,7 +357,7 @@ def clarification_question(supplier_question):
     return "请说明要查询或调整的菜品、餐次。"
 
 
-def final_output(value, authorized_ids, allowed_actions=()):
+def final_output(value, authorized_ids, allowed_actions=(), reply_contract=None, answer_basis=None):
     if not isinstance(value, dict): raise StepValidationError("invalid final output")
     if value.get("type") == "navigation":
         if "handoff_v1" not in allowed_actions: raise StepValidationError("handoff not enabled")
@@ -366,6 +375,12 @@ def final_output(value, authorized_ids, allowed_actions=()):
         # Java derives actual options from its normalized question and current
         # authenticated facts; this declaration never supplies arbitrary choices.
         return result
+    answer = None
+    if "answer" in value:
+        if reply_contract != "meal_reply.v1": raise StepValidationError("reply not negotiated")
+        from assistant_reply import validate_answer
+        answer=validate_answer(value["answer"], answer_basis)
+        value=copy.deepcopy(value);value.pop("answer")
     validate(value, obj({"type": string(20, ["final"]), "reply": string(2000, nonempty=True),
         "factSource": string(30, ["recent_actual"]),
         "actionProposal": obj({"steps": array(obj({"kind": string(30, list(ACTION_ARGUMENTS)), "arguments": {"type": "object"}},
@@ -389,6 +404,7 @@ def final_output(value, authorized_ids, allowed_actions=()):
     # authenticated read-result cards and replaces action headers only after
     # domain execution/confirmation receipts. No phrase classifier is relied on.
     result = {"type": "final", "reply": "请查看查询结果，并核对本餐需求。"}
+    if answer is not None: result["answer"]=answer
     if "factSource" in value:
         result["factSource"] = value["factSource"]
     if "actionProposal" in value:

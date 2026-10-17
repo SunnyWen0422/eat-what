@@ -30,7 +30,7 @@
 
 ## 文件职责与依赖顺序
 
-顺序固定为 T1 → T2 → T3 → T4 → T5 → T6 → T7。先冻结可执行合同，后做界面和自然效果验收。
+用户于 2026-10-17 明确扩大执行范围至评估报告全部六项改进。顺序固定为 T1 → T2 → T3 → T4 → T5 → T6 → T8 → T9 → T10 → T11 → T7/T12，T7 的最终复审在所有产品改动之后进行。先冻结可执行合同，后做界面和自然效果验收。
 
 - `recommend-service/assistant_v4_schema.py`：仅定义/校验协议；`assistant_v4_step.py`：请求组装；新增 `assistant_reply.py`：自然表达规则与回答结构校验。
 - `backend/.../dto/AssistantV4Contract.java`：内部 DTO；新增 `AssistantAnswerBasisService.java`、`AssistantAnswerPolicy.java`：分别构建事实与核验回答，不继续膨胀 TurnService。
@@ -156,4 +156,60 @@ git diff --check
 | 少问、少查、少等待 | T6 | 同 turn 相同查询复用，事实足够停止，预算不扩大 |
 | 真实模型效果有证据 | T7 | 实际样本/请求数、完成事实和人工评价独立列示 |
 
-交付分为“代码与离线验收完成”“开发工具通过”“真实模型效果已验证”“可部署候选”四种状态，不能互相代替。本计划不自动产生最后一种许可。性能全库排名、全站视觉重做、数据治理与旧聊天扩展不加入本批。
+交付分为“代码与离线验收完成”“开发工具通过”“真实模型效果已验证”“可部署候选”四种状态，不能互相代替。本计划不自动产生最后一种许可。全站推倒重做、数据治理与旧聊天扩展不加入本批；已选菜单校验性能及下列报告改进已由用户追加授权。
+
+
+## 用户追加范围：评估报告六项改进（2026-10-17）
+
+来源：工作区 `work/version-review-20261017/review-content.json` 的 next[1..6]；旧报告作为历史证据不覆盖。自然回复不是本轮全部范围。源报告已修复的八项缺陷不重复实施。
+
+### Task 8：采购与回顾空态减负
+
+**Files:** `pages/shopping-list/shopping-list.{js,wxml,wxss}`、`utils/shopping-list-presentation.js`、`pages/statistics/statistics.{js,wxml}`；新增 `tests/review-empty-states.test.js`。
+
+**Interfaces:** 纯函数 `shoppingEmptyPresentation({totalItems,pendingCount,hasExpense,pendingRequest,loading,error})->{showViews,showExpenses,showPrepare,showAdd}`；`hasExpense` 按有无记录判断，0 元也算记录。统计沿用已有实际记录数量，不按全部指标为零猜空。
+
+- [ ] 先写失败行为测试覆盖真正空清单、只有已买、只有零元支出、待确认、加载和失败；检查恢复/错误入口不被隐藏。
+- [ ] 真正空采购页收起双层切换、费用区和无效批量动作，保留从本餐/日历准备与轻量添加；有记录按原交互呈现。
+- [ ] 无实吃记录时用一个记录入口替代零指标网格；有计划但无实吃不伪造统计；范围切换、错误和来源返回保留。
+- [ ] 运行新增测试及受影响相邻页面定向检查，提交 `feat: simplify empty shopping and diet review states`。
+
+### Task 9：能辨认的历史任务与安全删除
+
+**Files:** `dto/AssistantV4Contract.java`、`service/AssistantV4Store.java`、必要的助手 mapper、`pages/assistant-history/*`、`utils/assistant-history.js`（存在时复用，否则新增），对应 Java/Node 定向测试。
+
+**Interfaces:** SessionSummary 新增可选 `title,preview`，只从本用户持久消息、真实回执和任务状态生成，不调用模型。旧响应无这两项时前端用已有日期/餐次/状态。
+
+- [ ] 写失败测试：同日同餐次三段不同任务可区分；待确认/部分完成不标已办结；过期或异常历史仍可进入核对。
+- [ ] 使用有界批量查询提取摘要，不逐会话加载完整历史，不新增 N+1；前端整行进入，删去重复的大“继续”按钮，保留时间和状态。
+- [ ] 接入现有删除会话接口；确认文字明确仅删对话，日历、采购、实吃保留。账号切换、删除结果未知、重复点击和原确认中状态有保护。
+- [ ] Java/Node 定向通过后提交 `feat: make assistant history recognizable and manageable`。
+
+### Task 10：已选 ID 的权威校验及筛选计数
+
+**Files:** `service/MealWorkspacePlanner.java`、`service/DishCandidateQueryService.java`、`mapper/DishMapper.java` 及现有契约测试；新增 `service/SelectedMealValidationTest.java`。
+
+**Interfaces:** 将随机自动排名与 `selected/locked IDs` 的读取分离，使用同一硬条件解析器和现有 recipe/version/lock 校验。菜单事务中的锁定读取仍为权威，不从早期快照替代。
+
+- [ ] 先写失败测试：指定少量菜确认不调用全目录排名；早餐手选/自动来源差异、保留菜、缺失/私有/下架、硬忌口、用时未知、数量及版本冲突仍与旧规则等价。
+- [ ] 自动推荐继续完整候选路径；手选和确认只读取指定 IDs 及必要食材事实，不打乱用户顺序、不改旧请求合同。
+- [ ] 检查复杂筛选精确 total 的实现。把能保持完全相同语义的条件下推 SQL；无法下推的排除保留精确计数，但流式遍历且不为 total 加载完整正文或重复缓存。不得改成估计值或截断。
+- [ ] 做受影响路径的规则等价测试与单路径读取次数/耗时记录；不跑全负载矩阵、不宣称生产提速比例。提交 `perf: validate selected meals without ranking the catalog`。
+
+### Task 11：食物与阅读层级精修
+
+**Files:** `pages/index/*`、`pages/dish-detail/*`、`pages/meal-cooking/*` 及对应 dish card 样式，按实查仅改有问题的文件；新增定向几何/组件行为检查。
+
+**Interfaces:** 继续使用现有图片源与图片失败身份、点击处理和 A/F token；不改菜谱数据或交互路由。
+
+- [ ] 对照原截图与当前源码确认重复标题、照片比例及主要阅读/操作位置，先记录待改变的具体状态。
+- [ ] 推荐结果与详情适度突出照片，320 宽度避免挤掉菜名/主动作；普通长列表保留紧凑缩略图。合并确实重复的标题，减少不帮助决策的说明，保留必要失败/同步信息。
+- [ ] 做法切换、食材和下一步保持稳定，按钮触区、加载/禁用和返回来源不变；不新增无用装饰和动效。
+- [ ] 仅检查修改页面的 320/390 宽度与大字号，图片有/无/失败状态；提交 `style: emphasize food and simplify reading hierarchy`。
+
+### Task 12：报告改进完整流程验收与本轮汇总
+
+- [ ] 将 T7 的定向流程扩展到选一餐、改日历、准备采购、恢复中断，并串联 T8–T11；记录起点、实际结果、卡点、额外点击和所需提示。
+- [ ] 在开发工具完成能执行的操作；无需手机二维码。无真实参与者时如实保留用户研究缺口，不以代操作冒充真实用户体验。
+- [ ] T2–T11 全部改动完成后只做一次独立范围复审，修确认问题后仅重跑原症状与必要相邻检查；不重跑全量。
+- [ ] 更新本轮验收记录与可读汇总，逐项列出报告六项措施的实施事实和证据；保留旧报告及旧评分，不用主观加分替代验收。

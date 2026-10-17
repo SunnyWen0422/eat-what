@@ -85,14 +85,25 @@ public final class AssistantV4Contract {
     @Data public static class ConversationFrame {private String role,content;}
     @Data public static class StepInput {
         private String schemaVersion=SCHEMA_VERSION;private ModelContext context;private String message;
+        @JsonInclude(JsonInclude.Include.NON_NULL) private String replyContract;
+        @JsonInclude(JsonInclude.Include.NON_NULL) private AnswerBasis answerBasis;
         private List<ConversationFrame> conversationFrames=new ArrayList<>();private List<ReadResult> readResults=new ArrayList<>();
         private ProviderContinuation providerContinuation;private boolean finalRound;private double timeoutSeconds=10;private Long deadlineEpochMillis;
     }
     @Data public static class StepOutput {
+        @JsonInclude(JsonInclude.Include.NON_NULL) private AnswerDraft answer;
         private String type,question,reply,factSource,clarificationKind;private List<ToolRead> readCalls=new ArrayList<>();private ActionProposal actionProposal;
         private ProviderContinuation providerContinuation;
         private Map<String,Object> navigationIntent;
     }
+    @Data public static class AnswerBasis {private List<EvidenceItem> items=new ArrayList<>();}
+    @Data public static class EvidenceItem {
+        private String key,entityType,sourceVersion;private Long entityId;
+        private Map<String,Object> fields=new LinkedHashMap<>();private List<String> unknownFields=new ArrayList<>();
+    }
+    @Data public static class AnswerDraft {private List<AnswerSegment> segments=new ArrayList<>();private List<String> cardRefs=new ArrayList<>();}
+    @Data public static class AnswerSegment {private String text;private List<String> evidenceKeys=new ArrayList<>();private List<AnswerClaim> claims=new ArrayList<>();}
+    @Data @JsonInclude(JsonInclude.Include.NON_NULL) public static class AnswerClaim {private String op,left,right,field;private Object value;}
     @Data public static class WorkflowStep {
         private String stepId,requestId,kind;private Map<String,Object> arguments=new LinkedHashMap<>();
         private List<String> dependsOn=new ArrayList<>();private String status="pending",taskId,receiptRef;
