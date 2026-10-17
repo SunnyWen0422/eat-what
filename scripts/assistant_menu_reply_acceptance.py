@@ -40,7 +40,7 @@ class MenuExecution(live.LiveExecution):
         return [{'id':key,'scenario':mode} for key,mode in (
             ('MENU01','generate'),('MENU02','replace'),('MENU03','read'),
             ('MENU04','compare'),('MENU05','temporary'),('MENU06','save'),
-            ('MENU07','shopping'),('MENU08','vague'))]
+            ('MENU07','shopping'),('MENU08','vague'),('MENU09','compound'))]
     def run_case(self,a,case,index):
         original=a.turn
         def observed(*args,**kwargs):
@@ -58,7 +58,7 @@ class MenuExecution(live.LiveExecution):
                     if len(candidate.get('draft',{}).get('dishes',[]))>=2:
                         self.workspace=a.workspace(candidate,910001)
                         self.session=a.http('/assistant/v4/sessions',{'requestId':runner.uid(),'workspaceId':self.workspace['id']},910001)['sessionId'];break
-            if mode not in ('compare','temporary','vague'):
+            if mode not in ('compare','temporary','vague','compound'):
                 return super().run_case(a,case,index)
             runner.require(self.workspace is not None,'Generation prerequisite not completed')
             self.workspace=a.workspace(self.workspace,910001);w=self.workspace
@@ -67,13 +67,20 @@ class MenuExecution(live.LiveExecution):
             messages={
                 'compare':f"只比较{dishes[0]['name']}和{dishes[1]['name']}，哪道更省时？用现有数据简短解释，给出真实菜品卡，不要修改菜单。",
                 'temporary':'仅这餐不吃鸡蛋，请调整当前菜单，长期偏好不变，不保存日历。',
-                'vague':'这餐想吃得简单一点。先问我需要明确的条件，不要自行设定用时。'}
+                'vague':'这餐想吃得简单一点。先问我需要明确的条件，不要自行设定用时。',
+                'compound':'仅这餐不吃香菜和葱，请分别排除这两种食材，长期偏好不变。'}
             turn=a.turn(910001,w,self.session,messages[mode])
             after=a.workspace(w,910001)
             runner.require(a.counts(910001)==before,'Read or draft unexpectedly wrote business records')
             runner.require(a.sql('SELECT * FROM user_preference WHERE USER_ID=910001')==prefs,'Temporary request changed long-term preferences')
             runner.require(not turn.get('pendingAction'),'Read or draft unexpectedly created confirmation task')
-            if mode=='temporary':
+            if mode=='compound':
+                r=turn['status'];runner.require(r in ('completed','needs_input') and not turn.get('retryable'),'Compound requirement did not apply or clarify')
+                excluded=after['context']['criteria']['excludedIngredients']
+                runner.require('香菜和葱' not in excluded,'Compound exclusion silently became one ineffective filter')
+                if r=='completed':runner.require({'香菜','葱'}<=set(excluded),'Compound ingredients not both excluded')
+                else:runner.require(after==w,'Clarification changed menu')
+            elif mode=='temporary':
                 runner.require(turn['status']=='completed','Temporary requirement was not applied')
                 runner.require('鸡蛋' in after['context']['criteria']['excludedIngredients'],'Temporary excluded ingredient missing')
                 for dish in after['draft']['dishes']:

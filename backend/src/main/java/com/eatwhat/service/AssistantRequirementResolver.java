@@ -19,7 +19,7 @@ public final class AssistantRequirementResolver {
      Matcher exclusion=Pattern.compile("(?:这餐|本餐)?(?:不吃|不要)([\\p{IsHan}]{1,8})").matcher(text);
      Matcher minutes=Pattern.compile("(?:这餐)?每道菜(?:最多|不超过)([1-9][0-9]{0,2})分钟").matcher(text);
      Matcher people=Pattern.compile("(?:这餐|本餐)?(?:改成|安排)?([1-9]|[1-4][0-9]|50)人(?:用餐)?").matcher(text);
-     if(exclusion.matches()&&!Pattern.compile("或|一点|永久|油量|盐量").matcher(exclusion.group(1)).find()&&!Arrays.asList("辣","油","盐").contains(exclusion.group(1))){
+     if(exclusion.matches()&&!Pattern.compile("或|一点|永久|油量|盐量|和|与|及|并|都|但|除了|除外").matcher(exclusion.group(1)).find()&&!Arrays.asList("辣","油","盐").contains(exclusion.group(1))){
       LinkedHashSet<String> excluded=new LinkedHashSet<>();Object hard=context.getConstraints().get("hard");if(hard instanceof Map)addStrings(excluded,((Map<?,?>)hard).get("excludedIngredients"));addStrings(excluded,criteria.get("excludedIngredients"));excluded.add(exclusion.group(1));
       if(excluded.size()>30)return clarify(result);criteria.put("excludedIngredients",new ArrayList<>(excluded));patch.put("criteria",criteria);
      }else if(minutes.matches()&&Integer.parseInt(minutes.group(1))<=240){criteria.put("maxCookMinutes",Integer.valueOf(minutes.group(1)));patch.put("criteria",criteria);}

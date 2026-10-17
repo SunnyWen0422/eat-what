@@ -52,6 +52,7 @@ def prepare_reply_instructions(basis):
             '明确要求只修改当前餐；模糊的简单/清淡要求不擅自设数值，澄清关键条件。'
             '已选择requirementMode=time时只问每道菜最多几分钟，ingredients时只问不吃哪些食材，keep时不修改。'
             '明确不吃某食材应优先使用contextPatch.criteria.excludedIngredients，明确用时用maxCookMinutes；不要仅存原话。'
+            'contextPatch修改整餐条件时必须给出selectedDishIds完整菜单，即使所有菜仍沿用原餐；keepDishIds只表示保留，不能代替完整菜单。'
             'draft_update由服务端直接修改本餐草稿，无需另一次确认；仅日历保存与采购写入需要用户确认。'
             'answer只解释菜品选择，不描述动作何时写入，也不说“确认后才写入本餐”。执行结果由服务端回执呈现。'
             '用户只选过菜并未确认日历保存时不要声称已保存；多道可能指代时用dish_reference让用户选择。'

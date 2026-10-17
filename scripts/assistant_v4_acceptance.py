@@ -391,7 +391,7 @@ def schema_checks(a):
 def run_owned(manifest,jar,output,case_ids=None,execution=None):
     reply_flags,expected_reads=reply_execution_settings(execution)
     mode='mock' if execution is None else execution.provider_mode
-    require(execution is None or mode=='live','Unknown execution mode')
+    require(execution is None or mode in ('live','mock'),'Unknown execution mode')
     validate_manifest(manifest,mode)
     if execution is not None: execution.ledger.validate()
     jar=Path(jar).resolve();require(sha(jar)==manifest['jarSha256'],'JAR hash changed')
@@ -500,6 +500,10 @@ def run_owned(manifest,jar,output,case_ids=None,execution=None):
         if connection is not None:
             try:
                 with connection.cursor() as cursor:cursor.execute('SHUTDOWN')
+            except pymysql.Error:
+                # Still release all owned Popen handles if the verified DB
+                # connection died during the failing scenario.
+                report['databaseShutdown']='connection-unavailable'
             finally:connection.close()
         for process in reversed(processes):
             if process.poll() is None: process.terminate();process.wait(timeout=20)

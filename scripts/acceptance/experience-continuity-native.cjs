@@ -276,7 +276,16 @@ async function capture(o,manifest,session) {
     // Bottom reachability evidence is separate from screenshot quantity.
     const scroll=await bounded(page.$('scroll-view.mobile-scroll'))
     if(scroll){await bounded(scroll.scrollTo(0,999999));await sleep(100);item.scroll={height:await bounded(scroll.scrollHeight()),viewport:await bounded(scroll.size())}}
-    else await bounded(mini.pageScrollTo(999999))
+    else {
+     // Some simulator pages never deliver pageScrollTo's success callback to
+     // the SDK. Issue the native operation and measure the actual scroll,
+     // rather than interpreting an RPC callback as proof of reachability.
+     item.pageScroll=await bounded(mini.evaluate(()=>new Promise(resolve=>{
+      wx.pageScrollTo({scrollTop:999999,duration:0});setTimeout(()=>{
+       const q=wx.createSelectorQuery();q.selectViewport().scrollOffset();q.exec(v=>resolve({actualScrollTop:v[0]?.scrollTop??null,source:'native viewport after pageScrollTo'}))
+      },250)
+     })))
+    }
     if(name==='shopping-list'){
      await sleep(250)
      item.bottomMetrics=await bounded(mini.evaluate(()=>new Promise(resolve=>{const q=wx.createSelectorQuery();q.selectViewport().scrollOffset();q.select('.shopping-page').boundingClientRect();q.select('#shopping-price-details').boundingClientRect();q.select('.shopping-bottom').boundingClientRect();q.exec(v=>resolve({scroll:v[0],page:v[1],lastContentButton:v[2],footer:v[3]}))})))
