@@ -47,7 +47,7 @@ for(const name of ['login','checkSession','uploadFile','downloadFile','connectSo
 if(wx.cloud)for(const name of ['init','callFunction','uploadFile','downloadFile','getTempFileURL','connectContainer','callContainer','database'])install(wx.cloud,name,deny('cloud.'+name));
 const memory={getStorageSync:k=>state.storage[k]==null?'':state.storage[k],setStorageSync:(k,v)=>{state.storage[k]=v},removeStorageSync:k=>{delete state.storage[k]},clearStorageSync:()=>{state.storage={}},getStorageInfoSync:()=>({keys:Object.keys(state.storage),currentSize:0,limitSize:10240})};for(const name of Object.keys(memory))install(wx,name,memory[name]);
 for(const name of ['getStorage','setStorage','removeStorage','clearStorage','getStorageInfo'])install(wx,name,function(o={}){let r={errMsg:name+':ok'};if(name==='getStorage')r.data=wx.getStorageSync(o.key);if(name==='setStorage')wx.setStorageSync(o.key,o.data);if(name==='removeStorage')wx.removeStorageSync(o.key);if(name==='clearStorage')wx.clearStorageSync();if(name==='getStorageInfo')Object.assign(r,wx.getStorageInfoSync());Promise.resolve().then(()=>{if(o.success)o.success(r);if(o.complete)o.complete(r)})});
-const base=wx.getAppBaseInfo;install(wx,'getAppBaseInfo',function(){return Object.assign({},base?base.call(wx):{},{fontSizeScaleFactor:state.fontScale})});
+const base=wx.getAppBaseInfo;install(wx,'getAppBaseInfo',function(){const actual=base?base.call(wx):{};return state.fontScale==null?actual:Object.assign({},actual,{fontSizeScaleFactor:state.fontScale})});
 const originalPage=Page;Page=function(def){for(const name of ['onLoad','onShow','onReady','onHide','onUnload'])if(typeof def[name]==='function'||name==='onLoad'){const fn=def[name];def[name]=function(...args){state.lifecycle.push({route:this.route,name});if(state.lifecycleEnabled){if(fn)return fn.apply(this,args)}}}return originalPage(def)};module.exports=state;\n`
 }
 function assess({measurements,errors=[]}) {
@@ -88,7 +88,7 @@ function prepare(o,session) {
  const source=read(path.join(project,'source-manifest.json')),api=o.mode==='service'?session.api:'http://127.0.0.1:9/api',runId=path.basename(o.out)+'-'+crypto.createHash('sha256').update(o.out).digest('hex').slice(0,12)
  const sourceSha=cp.execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim()
  if(o.mode==='service'&&o.scales.length!==1)throw Error('Each service export must use one cold font factor; coordinator splits scales')
- write(path.join(project,'native-guard.js'),guardSource({mode:o.mode,runId,api,fontScale:o.scales[0]}))
+ write(path.join(project,'native-guard.js'),guardSource({mode:o.mode,runId,api,fontScale:o.remote?null:o.scales[0]}))
  let app=fs.readFileSync(path.join(project,'app.js'),'utf8')
  app="const e18=require('./native-guard');\n"+app.replace('App({','App({\n nativeAcceptance:e18,')
  if(o.mode==='fixture')app="const e18=require('./native-guard');App({nativeAcceptance:e18,globalData:{userInfo:null,loginReady:true,isLoggedIn:false},waitForLogin(){return Promise.resolve()}})"
@@ -156,7 +156,9 @@ async function fontStyles(page,scale) {
   styles.push({selector,fontSize,lineHeight,...size,...offset,padding,computedWidth:width,boxSizing})
  }))
  const root=styles.find(s=>['.ew-page','.connected-assistant','.container'].includes(s.selector))
- return {fontBase,requestedScale:scale,styles,rootMatches:root&&Number.isFinite(fontBase)?Math.abs(parseFloat(root.fontSize)-fontBase*scale)<.5:null,scope:'Actual native computed styles via official SDK; export font adapter, not OS font responsiveness'}
+ const ratios={'.workspace-requirements-entry':1,'.requirements-label':.8125,'.requirements-summary':.8125,'.connected-input':1,'.connected-welcome .ew-title':1.125}
+ const controls=styles.filter(s=>ratios[s.selector]).map(s=>({selector:s.selector,expected:fontBase*scale*ratios[s.selector],observed:parseFloat(s.fontSize),matches:Math.abs(parseFloat(s.fontSize)-fontBase*scale*ratios[s.selector])<.5}))
+ return {fontBase,requestedScale:scale,styles,controls,controlsMatch:controls.length?controls.every(c=>c.matches):null,rootMatches:root&&Number.isFinite(fontBase)?Math.abs(parseFloat(root.fontSize)-fontBase*scale)<.5:null,scope:'Actual native computed styles via official SDK; export font adapter, not OS font responsiveness'}
 }
 async function actualViewport(mini) {
  const stage=async(name,work)=>{try{return await bounded(work())}catch(e){throw Error(name+': '+e.message)}}
@@ -200,6 +202,8 @@ async function capture(o,manifest,session) {
    if(report.remote.serviceRead.statusCode!==200||report.remote.serviceRead.userId!==session.accounts.ordinary.user.id)throw Error('Android reached tool but owned mock service/account read was not verified')
    report.remote.status='service-read-verified; physical tasks remain not-run';report.physical.android='connection and owned synthetic read only; gestures not-run';save()
    await bounded(mini.reLaunch('/pages/index/index'))
+   const remotePage=await bounded(mini.currentPage()),observedScale=await bounded(remotePage.data('fontScale'))
+   report.remote.font={adapter:'disabled; original device base-info preserved',observedScale,styles:await fontStyles(remotePage,observedScale)}
    report.remote.observationWindowSeconds=180;report.status='remote-entry-only';save();console.log(JSON.stringify({status:'android-owned-mock-entry-ready',seconds:180}))
    await sleep(180000);return report
   }
@@ -244,6 +248,7 @@ async function capture(o,manifest,session) {
     item.fontScaleObserved=await bounded(page.data('fontScale'))
     item.fontStyles=await fontStyles(page,scale)
     if(item.fontStyles.rootMatches===false)throw Error('Actual page font factor differs from native computed size')
+    if(item.fontStyles.controlsMatch===false)throw Error('Actual control font factor differs from native computed size')
     if(item.fontScaleObserved!==scale){item.status='failed';item.fontScaleMismatch={requested:scale,observed:item.fontScaleObserved};throw Error('Actual page font factor differs from requested; remaining scale claims rejected')}
     item.lifecycle=await bounded(mini.evaluate(()=>getApp().nativeAcceptance.lifecycle.slice(-12)))
     row.states[row.role==='ordinary'&&name.startsWith('admin')?'permission':'normal'].evidence.push(...item.evidence)
@@ -300,7 +305,7 @@ async function exercise(mini,page,name,out,width,assistantCards=null) {
    await bounded(input.input('合成未发送文字'));await sleep(150)
    result.inputObserved=await bounded(page.data('conversationInput'))
    result.inputScreenshot=path.join(out,'assistant-unsent-input-w'+width+'-f2.png');await bounded(mini.screenshot({path:result.inputScreenshot}))
-   await bounded(input.input(''));result.restored=await bounded(page.data('conversationInput'))===''
+   await bounded(input.input(''));await sleep(200);result.restored=await bounded(page.data('conversationInput'))===''
    result.status=result.inputObserved==='合成未发送文字'&&result.restored?'observed':'failed'
    if(assistantCards){result.cards=await assistantCardEvidence(mini,page,call,out,width,assistantCards);if(result.cards.status!=='observed')result.status='failed'}
   }else if(name==='customize'){

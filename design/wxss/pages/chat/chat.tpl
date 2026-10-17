@@ -79,6 +79,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-context-details { display:flex; flex-direction:column; gap:8px; padding:12px; margin-bottom:12px; font-size:1em; line-height:1.5; overflow-wrap:anywhere; }
 .connected-context-details .ew-title { font-size:1em; }
 .connected-welcome { padding:12px 0; }
+.connected-welcome .ew-title { max-width:100%; box-sizing:border-box; padding-right:{{space.1.px}}; }
 .connected-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
 .connected-shortcuts .connected-shortcut { width:auto; min-width:44px; margin:0; padding:8px 12px; border:1px solid {{border}}; border-radius:14px; background:{{glassSurface}}; color:{{brand}}; font-size:.8125em; line-height:1.5; }
 .connected-composer { max-height:55%; overflow-y:auto; }

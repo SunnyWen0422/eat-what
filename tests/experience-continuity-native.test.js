@@ -86,6 +86,14 @@ test('guard installation fails closed when native request replacement is rejecte
   Object.defineProperty(wx,'request',{value(){throw Error('real transport reached')},writable:false})
   assert.throws(()=>vm.runInNewContext(native.guardSource({mode:'service',runId:'test',api:'http://127.0.0.1:18780/api'}),{wx,Page(){},module:{exports:{}},Promise}),/GUARD_INSTALL/)
 })
+
+test('remote entry preserves original device font information', () => {
+  const wx={cloud:{},request(){},getAppBaseInfo:()=>({fontSizeScaleFactor:1.7,fontSizeSetting:27})}
+  const context={wx,Page(){},module:{exports:{}},Promise}
+  vm.runInNewContext(native.guardSource({mode:'service',runId:'remote',api:'http://127.0.0.1:18780/api',fontScale:null}),context)
+  assert.equal(wx.getAppBaseInfo().fontSizeScaleFactor,1.7)
+  assert.equal(wx.getAppBaseInfo().fontSizeSetting,27)
+})
 test('service read delay preserves the actual response and remains limited to owned catalog GET', async () => {
   let received, calls=0
   const wx={cloud:{},getAppBaseInfo:()=>({}),request:o=>{calls++;o.success?.({statusCode:200,data:{actual:true}})}}
