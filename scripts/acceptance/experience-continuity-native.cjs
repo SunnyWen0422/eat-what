@@ -225,6 +225,11 @@ async function capture(o,manifest,session) {
     const name=row.route.split('/')[1],query=o.mode==='service'?(session.queries[name]||''):''
     const page=await bounded(mini.reLaunch('/'+row.route+query));await sleep(200)
     if(o.mode==='fixture')await bounded(page.setData(fixtureData(name,scale)))
+    if(o.mode==='service'&&name==='index'&&session.assistantNativeCards){
+     const context=await bounded(page.data('context')),draft=await bounded(page.data('draft')),expected=session.assistantNativeCards.currentTarget
+     item.actualMenu={date:context?.date,mealType:context?.mealType,dishIds:(draft?.dishes||[]).map(d=>d.id||d.dishId),source:'Existing date/meal entry reads owned service public draft; no injected page menu state'}
+     if(context?.date!==expected.date||context?.mealType!==expected.mealType||!item.actualMenu.dishIds.length)throw Error('Actual current-meal entry did not load its prepared public draft')
+    }
     item.actualViewport=await actualViewport(mini);if(item.actualViewport.windowWidth!==width||item.actualViewport.viewportRect&&item.actualViewport.viewportRect.width!==width)throw Error('Actual width changed during route capture; remaining width claims rejected')
     item.heightValidation={status:item.actualViewport.windowMatches?'measured':'blocked',reason:item.actualViewport.windowMatches?'Window API and native viewport agree':'Live window info and native viewport disagree or a read is unavailable; no whole-page height acceptance'}
     item.geometry=await geometry(mini,page,item.actualViewport.windowWidth);Object.assign(item,assess(item.geometry))
