@@ -188,12 +188,21 @@ async function capture(o,manifest,session) {
   if(o.remote){
    report.phase='enable-remote';report.remote={status:'requesting-qr',providerMode:'mock'};save()
    const connected=new Promise(r=>mini.connection.once('Tool.onRemoteDebugConnected',r))
-   const qr=await bounded(mini.send('Tool.enableRemoteDebug',{auto:false}),55000)
-   report.phase='qr-return';save()
-   if(!qr.qrCode)throw Error('Official remote debug returned no QR; device entry blocked')
-   const data=qr.qrCode.replace(/^data:image\/\w+;base64,/,''),file=path.join(o.out,'android-remote-qr.png');fs.writeFileSync(file,Buffer.from(data,'base64'))
-   report.remote={status:'awaiting-device',qr:file,providerMode:'mock',network:'NOT VERIFIED: phone loopback must never be assumed PC loopback'};save();console.log(JSON.stringify(report.remote))
-   await bounded(connected,180000);await sleep(1000)
+   let qr,uiConnected=false
+   try{qr=await bounded(mini.send('Tool.enableRemoteDebug',{auto:false}),55000)}catch(error){
+    // Keep only this verified owned IDE available for one manual official UI
+    // observation. No device/service claim follows from the SDK timeout.
+    report.phase='enable-remote-sdk-blocked-official-ui-window'
+    report.remote={status:'blocked-sdk; official UI observation window only',sdkError:error.message,providerMode:'mock',uiWindowSeconds:180,network:'NOT VERIFIED'};save();console.log(JSON.stringify(report.remote))
+    await bounded(connected,180000);uiConnected=true
+   }
+   if(qr){
+    report.phase='qr-return';save()
+    if(!qr.qrCode)throw Error('Official remote debug returned no QR; device entry blocked')
+    const data=qr.qrCode.replace(/^data:image\/\w+;base64,/,''),file=path.join(o.out,'android-remote-qr.png');fs.writeFileSync(file,Buffer.from(data,'base64'))
+    report.remote={status:'awaiting-device',qr:file,providerMode:'mock',network:'NOT VERIFIED: phone loopback must never be assumed PC loopback'};save();console.log(JSON.stringify(report.remote))
+   }
+   if(!uiConnected)await bounded(connected,180000);await sleep(1000)
    report.remote.status='connected';report.remote.actualDevice=await bounded(mini.systemInfo());save()
    if(report.remote.actualDevice.platform!=='android')throw Error('Connected remote is not an observed Android device')
    report.remote.serviceRead=await bounded(mini.evaluate((account,expected)=>new Promise(resolve=>{
