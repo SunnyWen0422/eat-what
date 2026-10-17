@@ -21,3 +21,8 @@
 .dish-more::after { border:0; }
 
 .dish-row.is-large-text .dish-main { flex-basis:100%; }
+
+/* Current-meal presentation emphasizes food; browsing lists retain 56px images. */
+.dish-row.is-prominent .dish-thumbnail, .dish-row.is-prominent .dish-image { width:72px; height:72px; border-radius:16px; }
+.dish-row.is-prominent .dish-thumbnail { flex-basis:72px; }
+@media(max-width:360px) { .dish-row.is-prominent .dish-main { flex-basis:100%; } }

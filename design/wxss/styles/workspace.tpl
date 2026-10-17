@@ -68,3 +68,5 @@
 .workspace-notice.success,.workspace-notice.info { background:{{brandSoft}}; color:{{brand}}; }
 .workspace-notice.loading { background:{{card}}; color:{{muted}}; }
 .workspace-screen .workspace-notice .ew-link { flex:0 1 auto; padding:0 4px; margin:0; border:0; background:transparent; font-size:{{font.secondary.em}}; white-space:normal; text-align:left; }
+
+.workspace-menu-heading > button { margin-left:auto; }

@@ -14,3 +14,9 @@
 .history-meal { padding:16px; margin:16px 0; }
 .history-entry { margin:16px 0; }
 .history-entry > ui-button { display:block; margin-top:8px; }
+
+.history-summary { min-width:0; flex:1; }
+.history-preview { margin:6px 0; color:{{muted}}; font-size:0.875em; line-height:1.6; overflow-wrap:anywhere; }
+.history-entry { display:flex; align-items:center; gap:{{space.1.px}}; }
+.ew-page .history-entry > button.history-session { flex:1; width:auto; min-width:0; }
+.history-more { flex:none; width:44px; min-width:44px; min-height:44px; font-size:1.25em; }

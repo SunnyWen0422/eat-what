@@ -69,3 +69,5 @@
 .workspace-notice.success,.workspace-notice.info { background:#EDF3ED; color:#28634E; }
 .workspace-notice.loading { background:#FFFFFF; color:#56645B; }
 .workspace-screen .workspace-notice .ew-link { flex:0 1 auto; padding:0 4px; margin:0; border:0; background:transparent; font-size:0.8125em; white-space:normal; text-align:left; }
+
+.workspace-menu-heading > button { margin-left:auto; }

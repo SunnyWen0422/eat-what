@@ -407,3 +407,7 @@ button.share-btn { left:auto; bottom:auto; width:44px; max-width:44px; box-sizin
 .recipe-reading-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
 .recipe-reading-heading .section-title-text { margin:0; }
 .container .recipe-reading-heading .detail-cooking-link { flex:0 0 auto; }
+
+/* Follow viewport width, with a stable compact fallback when no photo is available. */
+.container .dish-image-container { height:calc((100vw - 32px) * 0.72); min-height:180px; max-height:280px; }
+.container .dish-image-container.is-placeholder { height:144px; min-height:144px; max-height:144px; }
