@@ -363,14 +363,17 @@ async function assistantCardEvidence(mini,page,call,out,width,expected) {
  await call('onConversationCurrentMenu');await sleep(300)
  cards=await inspect();const current=cards.find(c=>c.card.id==='current-menu')
  if(!current)throw Error('Current meal anchor failed to render actual workspace card')
- const currentTitle=await bounded(current.host.$('.card-title'));await reach(currentTitle);await capture('current-menu-anchor')
- result.current={target:current.view.targetLabel,current:!!current.view.menuActions?.current,actionsEnabled:!!current.view.menuActions?.enabled,scrollTarget:await bounded(page.data('conversationScrollTarget'))}
+ const currentTitle=await bounded(current.host.$('.card-title')),anchorBox=await box(currentTitle)
+ result.current={target:current.view.targetLabel,current:!!current.view.menuActions?.current,actionsEnabled:!!current.view.menuActions?.enabled,scrollTarget:await bounded(page.data('conversationScrollTarget')),anchorBox,
+  anchorReached:anchorBox.top>=viewport.top-1&&anchorBox.top+anchorBox.height<=viewport.top+viewport.height+1,
+  scope:'Measured after original current-menu handler, before any further harness scroll; scroll event may correctly clear its transient target'}
+ await capture('current-menu-anchor')
  const label=(target)=>target.date+' '+({lunch:'午餐',dinner:'晚餐',breakfast:'早餐'}[target.mealType])
  result.targetsDistinguished=result.cards[0].target===label(expected.historicalTarget)&&result.cards[1].target===label(expected.previewTarget)&&result.current.target===label(expected.currentTarget)
  const expectedFont=Number(await bounded(page.data('fontBase')))*Number(await bounded(page.data('fontScale')))
  result.fontMatches=result.cards.every(c=>Math.abs(parseFloat(c.fontSize)-expectedFont)<.5)&&Math.abs(parseFloat(result.confirmFontSize)-expectedFont)<.5
  result.previewNeverConfirmed=true;result.viewport=viewport
- result.status=result.targetsDistinguished&&result.confirmReachable&&result.fontMatches&&result.current.current&&!result.current.actionsEnabled&&result.current.scrollTarget==='conversation-current-menu'?'observed':'failed'
+ result.status=result.targetsDistinguished&&result.confirmReachable&&result.fontMatches&&result.current.current&&!result.current.actionsEnabled&&result.current.anchorReached?'observed':'failed'
  return result
 }
 function fixtureData(name,fontScale) {

@@ -133,7 +133,11 @@ def run(args):
                               'admin':'?legacy=1','admin-user-detail':'?id=910002',
                               'calendar-detail':'?date='+day+'&mealType=dinner',
                               'result':'?date='+day+'&mealType=dinner'}}
-        if card_query:session['queries']['chat']=card_query;session['assistantNativeCards']=card_evidence
+        if card_query:
+            session['queries']['chat']=card_query;session['assistantNativeCards']=card_evidence
+            # Existing date/meal entry reads the actual prepared public draft;
+            # do not manufacture a saved-menu state through page.setData.
+            session['queries']['index']='?date='+card_evidence['currentTarget']['date']+'&mealType='+card_evidence['currentTarget']['mealType']
         session_file = out / 'private-native-session.json'
         session_file.write_text(json.dumps(session), encoding='utf-8')
         command = [args.node,args.driver,'--mode','service','--config',args.config,
