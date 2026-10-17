@@ -86,7 +86,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 /* Native font-2 evidence: keep labels whole and reserve the stacked footer. */
 .shopping-page button.compact { max-width:none; white-space:nowrap; }
-.shopping-large > .ew-between > view { flex:1 0 100%; }
+.shopping-page.shopping-large > .ew-between > view:first-child { flex:0 0 100%; width:100%; }
 .shopping-large .shopping-bottom { flex-direction:column; align-items:stretch; }
 .shopping-page.shopping-large .shopping-bottom > ui-button { flex:none; width:100%; }
 .shopping-page.shopping-large { padding-bottom:calc(3em + 96px + env(safe-area-inset-bottom)); }

@@ -7,7 +7,7 @@
   <view wx:if="{{drafts.length}}" class="ew-card"><view class="ew-title">待确认草稿 {{drafts.length}}</view><view class="ew-muted">修改尚未确认保存，请查看后重试。</view><view wx:for="{{drafts}}" wx:key="operationId" class="ew-between"><button class="ew-hit-target ew-link" data-id="{{item.operationId}}" bindtap="onReviewDraft">{{item.conflict ? '查看冲突并确认' : '查看草稿'}} · {{item.label || '清单修改'}}</button><button class="ew-hit-target ew-link danger" data-id="{{item.operationId}}" bindtap="onDiscardDraft">丢弃</button></view><ui-button label="重试草稿" loading="{{busy}}" bind:action="onRetryDrafts" /></view>
   <view class="ew-tabs"><button class="ew-hit-target {{statusFilter === 'pending' ? 'active' : ''}}" data-status="pending" bindtap="onFilterChange">待买 {{pendingCount}} 项</button><button class="ew-hit-target {{statusFilter === 'checked' ? 'active' : ''}}" data-status="checked" bindtap="onFilterChange">已买 {{checkedCount}} 项</button></view>
   <view class="ew-tabs"><button class="ew-hit-target {{viewMode === 'summary' ? 'active' : ''}}" data-mode="summary" bindtap="onViewMode">食材汇总</button><button class="ew-hit-target {{viewMode === 'byDish' ? 'active' : ''}}" data-mode="byDish" bindtap="onViewMode">按菜查看</button></view>
-  <view wx:if="{{viewMode === 'summary'}}" class="ew-muted view-count">已合并为 {{summaryRowCount}} 行</view>
+  <view wx:if="{{viewMode === 'summary' && summaryRowCount > 0}}" class="ew-muted view-count">已合并为 {{summaryRowCount}} 行</view>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取清单" />
   <view wx:elif="{{viewMode === 'summary'}}">
     <view wx:for="{{summaryRows}}" wx:key="key" class="shopping-row {{item.justChecked ? 'just-checked' : ''}}">

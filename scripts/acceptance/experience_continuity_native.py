@@ -60,6 +60,49 @@ def temporary_semantics(runtime):
             'persistentCountsUnchanged':True}
 
 
+def assistant_native_cards(runtime):
+    """Real owned MOCK setup: one historical receipt, one UNCONFIRMED preview."""
+    from datetime import timedelta
+    from urllib.parse import urlencode
+    from assistant_v4_acceptance import require
+    a=runtime.api;user=910002;today=date.today()
+    context={'date':str(today),'mealType':'lunch','people':2,'compositionMode':'manual',
+             'counts':{'meat':1,'veg':1,'soup':1},'requirements':'','ownedIngredients':[]}
+    w=a.http('/meal-workspaces',{'requestId':str(uuid.uuid4()),'expectedWorkspaceRevision':0,'context':context},user)
+    a.http('/meal-workspaces/'+w['id']+'/commands',{'requestId':str(uuid.uuid4()),'command':'generate',
+           'expectedWorkspaceRevision':w['revision'],'planVersion':w['draft']['planVersion']},user)
+    until=time.monotonic()+30
+    while True:
+        w=a.workspace(w,user)
+        if w['status']!='generating':break
+        require(time.monotonic()<until,'Native assistant prerequisite timed out');time.sleep(.1)
+    require(w['status']=='draft','Native assistant prerequisite missing public draft')
+    session=a.http('/assistant/v4/sessions',{'requestId':str(uuid.uuid4()),'workspaceId':w['id']},user)['sessionId']
+    historical={'date':str(today-timedelta(days=1)),'mealType':'dinner'}
+    preview={'date':str(today+timedelta(days=1)),'mealType':'lunch'}
+    before=a.counts(user)
+    old=a.turn(user,w,session,'合成历史准备：明确保存昨天晚餐计划',steps=[{'kind':'calendar_save',
+        'arguments':{'targetDate':historical['date'],'targetMealType':historical['mealType']}}])
+    require(old['status']=='awaiting_confirmation','Historical setup did not produce explicit preview')
+    a.confirm(user,old);old=a.poll(user,old['turnId'])
+    require(old['status']=='completed' and any(c.get('receiptRef') for c in old.get('cards',[])),
+            'Historical setup lacks actual receipt')
+    after_history=a.counts(user)
+    require(after_history['recipe_records']==before['recipe_records']+1,'Historical setup plan was not stored exactly once')
+    require(all(after_history[k]==v for k,v in before.items() if k!='recipe_records'),'Historical plan setup changed shopping or actual')
+    w=a.workspace(w,user)
+    pending=a.turn(user,w,session,'合成预览：明天午餐计划，保持待确认',steps=[{'kind':'calendar_save',
+        'arguments':{'targetDate':preview['date'],'targetMealType':preview['mealType']}}])
+    require(pending['status']=='awaiting_confirmation' and pending.get('pendingAction'),'Native card preview missing')
+    require(a.counts(user)==after_history,'Unconfirmed native preview wrote business data')
+    evidence={'providerMode':'mock','workspaceId':w['id'],'sessionId':session,'currentTarget':context,
+              'historicalTarget':historical,'previewTarget':preview,'pendingTurnId':pending['turnId'],'historicalReceiptPresent':True,
+              'historicalSetupExplicitlyConfirmed':True,'previewConfirmed':False,'before':before,
+              'afterHistoricalReceipt':after_history,'afterUnconfirmedPreview':a.counts(user)}
+    query='?'+urlencode({'date':context['date'],'mealType':context['mealType'],'workspaceId':w['id'],'sessionId':session})
+    return query,evidence
+
+
 def run(args):
     if Path(args.driver).resolve() != ROOT / 'scripts/acceptance/experience-continuity-native.cjs':
         raise ValueError('Only the canonical E18 driver is allowed')
@@ -81,6 +124,8 @@ def run(args):
         for user_id in [910001, 910002]:
             runtime.api.http('/recipe-records', {'recordDateString':day,'mealType':'dinner','recipeName':'E18合成验收餐','dishIds':ids,'people':2}, user=user_id)
         nonce = secrets.token_urlsafe(32)
+        card_query,card_evidence=assistant_native_cards(runtime) if args.assistant_cards else ('',None)
+        if card_evidence:(out/'assistant-native-cards.json').write_text(json.dumps(card_evidence,indent=2),encoding='utf-8')
         session = {'purpose':'E18-new-owned-native','sourceSha':config['sourceSha'],'ownerPid':os.getpid(),'nonce':nonce,
                    'api':config['loopbackApi'],'accounts':accounts,
                    'fingerprints':{k:config[k] for k in ['sourceSha','jarSha256','datasetHash','buildSourceFingerprint']},
@@ -88,6 +133,7 @@ def run(args):
                               'admin':'?legacy=1','admin-user-detail':'?id=910002',
                               'calendar-detail':'?date='+day+'&mealType=dinner',
                               'result':'?date='+day+'&mealType=dinner'}}
+        if card_query:session['queries']['chat']=card_query;session['assistantNativeCards']=card_evidence
         session_file = out / 'private-native-session.json'
         session_file.write_text(json.dumps(session), encoding='utf-8')
         command = [args.node,args.driver,'--mode','service','--config',args.config,
@@ -97,6 +143,7 @@ def run(args):
             if getattr(args,key): command += ['--'+key,getattr(args,key)]
         if args.prepare_only: command += ['--prepare-only']
         if args.remote: command += ['--remote']
+        if args.manual_confirm: command += ['--manual-confirm']
         before = {str(u):int(runtime.api.sql('SELECT COUNT(*) FROM food WHERE user_id=%s',(u,))[0][0]) for u in [910001,910002]}
         # Page modules and administrative reset snapshots cache initial data.
         # A distinct cold export per factor prevents an acceptance adapter from
@@ -116,6 +163,12 @@ def run(args):
             font_runs.append({'fontScale':float(factor),'exitCode':result,'evidence':single[single.index('--out')+1]})
             if result: code=result; break
         after = {str(u):int(runtime.api.sql('SELECT COUNT(*) FROM food WHERE user_id=%s',(u,))[0][0]) for u in [910001,910002]}
+        if card_evidence:
+            card_evidence['afterNative']=runtime.api.counts(910002)
+            card_evidence['previewFinalStatus']=runtime.api.poll(910002,card_evidence['pendingTurnId'])['status']
+            (out/'assistant-native-cards.json').write_text(json.dumps(card_evidence,indent=2),encoding='utf-8')
+            if card_evidence['afterNative']!=card_evidence['afterUnconfirmedPreview'] or card_evidence['previewFinalStatus']=='completed':
+                raise AssertionError('Native observation unexpectedly confirmed preview or changed business counts')
         receipt = {'sourceSha':config['sourceSha'],'fingerprints':session['fingerprints'],
                    'lifecycleEnabled':True,'providerMode':'mock','authentication':'local-v4 synthetic, not WeChat SSO',
                    'copyCountsBefore':before,'copyCountsAfter':after,'nativeExitCode':code,'fontRuns':font_runs,
@@ -129,4 +182,5 @@ if __name__ == '__main__':
     for key in ['config','out','node','driver','python','port','width','widths','scales']:p.add_argument('--'+key,required=True)
     for key in ['sdk','cli','cases']:p.add_argument('--'+key)
     p.add_argument('--prepare-only',action='store_true');p.add_argument('--remote',action='store_true')
+    p.add_argument('--manual-confirm',action='store_true');p.add_argument('--assistant-cards',action='store_true')
     sys.exit(run(p.parse_args()))

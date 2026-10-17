@@ -10,6 +10,7 @@ test('native modes are explicit and fixture cannot claim service lifecycle', () 
   assert.throws(() => native.options(['--mode', 'service', '--out', 'x']), /config/)
   assert.throws(() => native.options(['--mode', 'live', '--out', 'x']), /mode/)
   assert.equal(native.options(['--mode', 'fixture', '--out', 'x']).mode, 'fixture')
+  assert.throws(()=>native.options(['--mode','fixture','--out','x','--remote']),/service mode/)
 })
 test('all 27 routes register eight states and both admin roles without invented passes', () => {
   const routes = require('../app.json').pages, matrix = native.matrix(routes)
@@ -23,6 +24,23 @@ test('all 27 routes register eight states and both admin roles without invented 
     }
   }
   assert.equal(matrix.filter(row => row.role === 'ordinary' && row.route.includes('/admin')).length, 6)
+  const logs=matrix.find(row=>row.route==='pages/logs/logs')
+  assert.equal(logs.states.empty.status,'not-run')
+  assert.equal(logs.states.completed.status,'not-run')
+  assert.equal(matrix.find(row=>row.route==='pages/about/about').states.empty.status,'not-applicable')
+})
+
+test('native output refuses Windows case variants and real junction ancestors before creation', () => {
+  const os=require('node:os'),root=path.resolve(__dirname,'..'),missing='new-native-output'
+  assert.throws(()=>native.outside(path.join(root,missing)),/Canonical/)
+  if(process.platform==='win32')assert.throws(()=>native.outside(path.join(root.toUpperCase(),missing)),/Canonical/)
+  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'eatwhat-native-boundary-')),link=path.join(temp,'canonical-link')
+  try {
+    fs.symlinkSync(root,link,process.platform==='win32'?'junction':'dir')
+    assert.throws(()=>native.outside(path.join(link,missing)),/Canonical/)
+    assert.equal(native.outside(path.join(temp,'safe-output')),path.join(temp,'safe-output'))
+    assert.equal(fs.existsSync(path.join(root,missing)),false)
+  } finally {fs.unlinkSync(link);fs.rmdirSync(temp)}
 })
 test('native page content stays reachable requires measurements; screenshots are not passes', () => {
   assert.equal(native.assess({measurements:[]}).status, 'blocked')

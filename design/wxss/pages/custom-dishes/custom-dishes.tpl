@@ -28,3 +28,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .personal-page-heading { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .personal-page-heading .ew-heading { flex:1; min-width:0; }
 .personal-page-heading button { flex:0 0 auto; margin:0; font-size:{{font.secondary.em}}; }
+.personal-edit-actions-large { flex-direction:column; align-items:stretch; }
+.ew-page .personal-edit-actions-large > ui-button { flex:none; width:100%; }
