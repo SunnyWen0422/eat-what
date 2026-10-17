@@ -15,6 +15,9 @@ class AssistantReplyTest(unittest.TestCase):
         prompt=calls[0]['json']['messages'][0]['content']
         self.assertIn('不念接口命中数',prompt)
         self.assertIn('answer',prompt)
+        self.assertIn('left/right必须填写evidenceKeys中的key，不能填写菜名',prompt)
+        self.assertIn('less_than的value是left的实际值',prompt)
+        self.assertIn('draft_update由服务端直接修改本餐草稿',prompt)
         self.assertEqual(1,len(calls))
 
     def test_basis_is_user_data_not_system_instruction(self):

@@ -41,6 +41,11 @@ def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def require(condition, message):
     if not condition: raise AssertionError(message)
 
+def reply_execution_settings(execution):
+    enabled=getattr(execution,'natural_replies',False)
+    require(type(enabled) is bool,'Natural reply opt-in must be explicit boolean')
+    return (['--assistant-v4.natural-reply-enabled=true','--assistant-v4.extensions-enabled=true'],11) if enabled else ([],8)
+
 def validate_manifest(value, provider_mode='mock'):
     """Fail closed before opening any socket or launching any process."""
     require(value.get('purpose') == 'assistant-v4-synthetic-acceptance', 'Explicit synthetic purpose required')
@@ -198,6 +203,7 @@ class Acceptance:
         self.model.register(message,steps,reads,question,delay,unavailable)
         body={'requestId':request_id or uid(),'message':message,'workspaceId':w['id'],
             'expectedWorkspaceRevision':w['revision'],'expectedPlanVersion':w['draft']['planVersion'],'entryScene':ENTRY_SCENE}
+        if getattr(self,'ui_features',None):body['uiFeatures']=self.ui_features
         accepted=self.http('/assistant/v4/sessions/'+session+'/turns',body,user)
         return accepted['turnId'],body
     def poll(self,user,turn_id):
@@ -383,6 +389,7 @@ def schema_checks(a):
     return {'ownerForeignKey':True,'jsonRetention':True,'transactionRollback':True,'rowLock':True,'sessionCascade':True,'aliasJsonExpression':True}
 
 def run_owned(manifest,jar,output,case_ids=None,execution=None):
+    reply_flags,expected_reads=reply_execution_settings(execution)
     mode='mock' if execution is None else execution.provider_mode
     require(execution is None or mode=='live','Unknown execution mode')
     validate_manifest(manifest,mode)
@@ -451,7 +458,7 @@ def run_owned(manifest,jar,output,case_ids=None,execution=None):
                 require(time.monotonic()<deadline,'Owned FastAPI startup timeout');time.sleep(.05)
             env={k:v for k,v in os.environ.items() if k.upper() not in ('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','JAVA_OPTS') and not k.upper().startswith(('SPRING_','SERVER_','SECURITY_TOKEN_','MEAL_WORKSPACE_','RECOMMEND_SERVICE_'))};env['ASSISTANT_V4_ENABLED']='true';env['TENCENT_ASR_ENABLED']='false'
             with (data/'acceptance-java.log').open('ab') as log:
-                java=subprocess.Popen([state['javaExecutable'],'-jar',str(jar),'--spring.profiles.active=local-v4','--spring.config.location='+(data/'application-local.yml').as_uri(),'--assistant.v4.enabled=true'],cwd=data,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=runtime.FLAGS)
+                java=subprocess.Popen([state['javaExecutable'],'-jar',str(jar),'--spring.profiles.active=local-v4','--spring.config.location='+(data/'application-local.yml').as_uri(),'--assistant-v4.enabled=true']+reply_flags,cwd=data,env=env,stdout=log,stderr=subprocess.STDOUT,creationflags=runtime.FLAGS)
             processes.append(java);deadline=time.monotonic()+45
             while True:
                 require(java.poll() is None,'Owned Java exited')
@@ -460,7 +467,11 @@ def run_owned(manifest,jar,output,case_ids=None,execution=None):
                     if a.http('/users/info')['user']['id']==910001: break
                 except OSError:
                     require(time.monotonic()<deadline,'Private authenticated Java readiness failed');time.sleep(.2)
-            caps=a.http('/assistant/v4/capabilities');require(caps['enabled'] and len(caps['reads'])==8 and caps['draftCommands']==['draft_update'] and set(caps['previewActions'])=={'calendar_save','shopping_preview'},'Final capability registry mismatch')
+            caps=a.http('/assistant/v4/capabilities');require(caps['enabled'] and len(caps['reads'])==expected_reads and caps['draftCommands']==['draft_update'] and set(caps['previewActions'])=={'calendar_save','shopping_preview'},'Final capability registry mismatch')
+            if reply_flags:
+                a.ui_features=caps.get('supportedUiFeatures',[])
+                require('meal_requirements_v1' in a.ui_features,'Natural reply UI capability missing')
+            report['naturalRepliesEnabled']=bool(reply_flags)
             report['schema']=schema_checks(a);report['ddlRerunnable']=True
             for index,case in enumerate(load_fixtures() if execution is None else execution.cases()):
                 if case_ids and case['id'] not in case_ids: continue
@@ -482,9 +493,14 @@ def run_owned(manifest,jar,output,case_ids=None,execution=None):
             output.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
             return report
     finally:
-        if connection is not None: connection.close()
         if server is not None: server.should_exit=True
         if server_thread is not None: server_thread.join(timeout=5)
+        # Windows mysqld can own a worker child beyond its launcher Popen.
+        # Shutdown through the already verified dedicated connection first.
+        if connection is not None:
+            try:
+                with connection.cursor() as cursor:cursor.execute('SHUTDOWN')
+            finally:connection.close()
         for process in reversed(processes):
             if process.poll() is None: process.terminate();process.wait(timeout=20)
 

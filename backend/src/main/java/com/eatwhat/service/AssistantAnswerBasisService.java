@@ -10,13 +10,14 @@ public final class AssistantAnswerBasisService {
  public AssistantAnswerBasisService(ObjectMapper json){this.json=json;}
  public AnswerBasis build(ModelContext context,List<ReadResult> reads){
   LinkedHashMap<Long,EvidenceItem> items=new LinkedHashMap<>();
+  LinkedHashSet<Long> priority=new LinkedHashSet<>();
   for(Map<String,Object> row:rows(context.getActiveMeal().get("currentDishes")))add(items,row,String.valueOf(context.getActiveMeal().get("planVersion")));
   for(ReadResult read:reads){
-   if("read_current_meal".equals(read.getName())){items.clear();for(Map<String,Object> meal:read.getItems())for(Map<String,Object> row:rows(meal.get("currentDishes")))add(items,row,read.getSourceVersion());}
-   else if(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods","read_favorites").contains(read.getName()))for(Map<String,Object> row:read.getItems())add(items,row,read.getSourceVersion());
+   if("read_current_meal".equals(read.getName())){items.clear();priority.clear();for(Map<String,Object> meal:read.getItems())for(Map<String,Object> row:rows(meal.get("currentDishes")))add(items,row,read.getSourceVersion());}
+   else if(Arrays.asList("search_dishes","search_by_ingredients","get_dish_details","get_dish_methods","read_favorites").contains(read.getName())){LinkedHashSet<Long> recent=new LinkedHashSet<>();for(Map<String,Object> row:read.getItems()){add(items,row,read.getSourceVersion());if(row.get("id") instanceof Number)recent.add(((Number)row.get("id")).longValue());}recent.addAll(priority);priority=recent;}
   }
   AnswerBasis basis=new AnswerBasis();
-  for(EvidenceItem item:items.values()){if(basis.getItems().size()==10)break;basis.getItems().add(item);}
+  priority.addAll(items.keySet());for(Long id:priority){if(basis.getItems().size()==10)break;if(items.containsKey(id))basis.getItems().add(items.get(id));}
   // Optional ingredient details are removed before core identity/time facts.
   for(int i=basis.getItems().size()-1;size(basis)>8000&&i>=0;i--)basis.getItems().get(i).getFields().remove("ingredients");
   if(size(basis)>8000)throw new IllegalArgumentException("回答依据过多，请缩小菜品范围");return basis;

@@ -11,6 +11,7 @@ public final class AssistantAnswerPolicy {
  private static final Set<String> FIELDS=new HashSet<>(Arrays.asList("name","type","cookMinutes","ingredients","verifiedTags"));
  private static final Pattern UNSAFE=Pattern.compile("https?://|www\\.|<[^>]*>|javascript:|已(?:经)?(?:保存|采购|加入|记录|修改|更新)|低脂|低盐|低油|保证|肯定|足够|够.{0,5}[人份]|全部符合|一定满足|营养均衡|卡路里|千卡|元[钱]?|¥|￥");
  private static final Pattern NUMBER=Pattern.compile("[0-9]+(?:\\.[0-9]+)?");
+ private static final Pattern UNVERIFIED_PROSE=Pattern.compile("[零〇一二两三四五六七八九十百半]+(?:分钟|小时|元|克|毫升)|一刻钟|(?:昨天|上次|之前|已经|曾经).{0,8}吃|吃过|确认后.{0,12}(?:写入|修改|更新|保存)");
  @Data public static class Decision {private boolean accepted;private String reply,reasonCode;private List<String> cardRefs=Collections.emptyList();}
  public Decision evaluate(AnswerDraft draft,AnswerBasis basis){
   try{
@@ -20,7 +21,7 @@ public final class AssistantAnswerPolicy {
    List<String> lines=new ArrayList<>();int size=0;
    for(AnswerSegment segment:draft.getSegments()){
     if(segment==null||segment.getText()==null||segment.getText().trim().isEmpty()||segment.getEvidenceKeys()==null||segment.getClaims()==null||segment.getEvidenceKeys().size()>24||segment.getClaims().size()>8)return reject("segment");
-    String text=segment.getText().trim();size+=text.length();if(size>280||UNSAFE.matcher(text).find())return reject("unsupported_text");
+    String text=segment.getText().trim();size+=text.length();if(size>280||UNSAFE.matcher(text).find()||UNVERIFIED_PROSE.matcher(text).find())return reject("unsupported_text");
     if(!evidence.keySet().containsAll(segment.getEvidenceKeys()))return reject("reference");
     Set<String> numbers=new HashSet<>();boolean comparison=false;
     for(String key:segment.getEvidenceKeys()){Object name=evidence.get(key).getFields().get("name");if(name instanceof String){Matcher digits=NUMBER.matcher((String)name);while(digits.find())numbers.add(digits.group());}}

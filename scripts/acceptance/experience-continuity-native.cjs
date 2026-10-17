@@ -22,6 +22,11 @@ function captureStatus(report) {
  return report.widths.some(w=>w.status==='blocked')?'blocked-width-mismatch':report.exceptions.length||report.cases.some(c=>['failed','blocked'].includes(c.status))?'captured-with-failures':report.cases.some(c=>c.heightValidation?.status==='blocked')?'captured-height-blocked':'captured-requires-inspection'
 }
 function resultExitCode(report){return ['blocked','blocked-width-mismatch','captured-with-failures'].includes(report.status)?2:0}
+function shoppingFooterEvidence(presentation,button,footer){
+ if(typeof presentation?.showExpenses!=='boolean')return {status:'blocked',reason:'Page presentation was not loaded'}
+ if(!presentation.showExpenses&&!button)return {status:'not-applicable',reason:'Empty shopping intentionally omits expenses'}
+ return {status:button&&footer&&button.bottom<=footer.top+1?'measured':'failed'}
+}
 const bounded=(promise,ms=25000)=>new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('Native operation timed out; remaining items not-run')),ms);promise.then(v=>{clearTimeout(t);resolve(v)},e=>{clearTimeout(t);reject(e)})})
 function options(argv) {
  const value=name=>{const i=argv.indexOf('--'+name);return i<0?undefined:argv[i+1]}
@@ -277,8 +282,9 @@ async function capture(o,manifest,session) {
      item.bottomMetrics=await bounded(mini.evaluate(()=>new Promise(resolve=>{const q=wx.createSelectorQuery();q.selectViewport().scrollOffset();q.select('.shopping-page').boundingClientRect();q.select('#shopping-price-details').boundingClientRect();q.select('.shopping-bottom').boundingClientRect();q.exec(v=>resolve({scroll:v[0],page:v[1],lastContentButton:v[2],footer:v[3]}))})))
      const root=await bounded(page.$('.shopping-page'));item.bottomMetrics.paddingBottom=await bounded(root.style('padding-bottom'))
      const b=item.bottomMetrics;item.bottomMetrics.lastButtonAboveFooter=!!(b.lastContentButton&&b.footer&&b.lastContentButton.bottom<=b.footer.top+1)
-     if(!item.bottomMetrics.lastButtonAboveFooter){item.status='failed';item.errors.push('Last content button remains behind fixed footer at actual maximum scroll')}
-     else {const button=await bounded(page.$('#shopping-price-details'));const before=!!await bounded(page.data('detailsExpanded'));await bounded(button.tap());await sleep(250);item.bottomMetrics.tap={before,after:!!await bounded(page.data('detailsExpanded'))};if(item.bottomMetrics.tap.after===before){item.status='failed';item.errors.push('Visible final price action did not open details')};await bounded(button.tap())}
+     item.bottomMetrics.assessment=shoppingFooterEvidence(await bounded(page.data('pagePresentation')),b.lastContentButton,b.footer)
+     if(['failed','blocked'].includes(item.bottomMetrics.assessment.status)){item.status=item.bottomMetrics.assessment.status;item.errors.push('Expected shopping action missing or behind footer')}
+     else if(item.bottomMetrics.assessment.status==='measured'){const button=await bounded(page.$('#shopping-price-details'));const before=!!await bounded(page.data('detailsExpanded'));await bounded(button.tap());await sleep(250);item.bottomMetrics.tap={before,after:!!await bounded(page.data('detailsExpanded'))};if(item.bottomMetrics.tap.after===before){item.status='failed';item.errors.push('Visible final price action did not open details')};await bounded(button.tap())}
     }
     const bottom=file.replace('.png','-bottom.png');await bounded(mini.screenshot({path:bottom}));item.evidence.push(bottom)
     if(o.mode==='service'&&scale===2&&name!=='custom-dishes'){
@@ -418,6 +424,8 @@ async function assistantCardEvidence(mini,page,call,out,width,expected) {
 function fixtureData(name,fontScale) {
  // Only the data below are fixture claims. Missing route/state examples remain not-run.
  const common={fontScale,loading:false,error:false,errorMessage:'',loadingMore:false,busy:false}
+ if(name==='shopping-list')return {...common,pendingCount:0,checkedCount:0,dishes:[],drafts:[],sourceMeals:[],statusFilter:'pending',pagePresentation:require('../../utils/shopping-page-presentation').shoppingPagePresentation({})}
+ if(name==='dish-detail')return {...common,dish:{id:1,name:'合成验收·番茄炒蛋',type:'meat',typeLabel:'荤菜',cookTimeDisplay:'15分钟',ingredientsList:['番茄','鸡蛋'],steps:['食材洗净切块。','鸡蛋炒熟后加入番茄。']},dishPlaceholderIcon:'recipe'}
  if(name==='recommend-filter')return {...common,featureEnabled:true,tagMode:'include',criteria:{cuisineCodes:[],includeTagCodes:[],excludeTagCodes:[],excludedIngredients:['花生','香菜'],maxCookMinutes:null},durationOptions:[{label:'不限',value:null},{label:'30分钟',value:30}],groupViews:[{key:'flavor',label:'口味',items:[{code:'LIGHT',label:'清淡',selected:true}]}]}
  if(name==='meal-cooking')return {...common,recipeMode:true,dishName:'夹具 · 番茄炒蛋',dishes:[{id:1,name:'夹具 · 番茄炒蛋'}],steps:['番茄洗净后切块，将鸡蛋打散。热锅后翻炒鸡蛋，加入番茄炒熟。'.repeat(5)],stepIndex:0,ingredients:['番茄 300克','鸡蛋 2个'],cookingActionHeight:176}
  return common
@@ -433,4 +441,4 @@ async function main(argv=process.argv.slice(2)) {
  const result=await capture(o,manifest,session);process.exitCode=resultExitCode(result)
 }
 if(require.main===module)main().catch(e=>{console.error(e.message);process.exitCode=1})
-module.exports={options,matrix,guardSource,assess,validate,prepare,fingerprint,outside,aggregateInteraction,captureStatus,resultExitCode}
+module.exports={options,matrix,guardSource,assess,validate,prepare,fingerprint,outside,aggregateInteraction,captureStatus,resultExitCode,shoppingFooterEvidence,fixtureData}
