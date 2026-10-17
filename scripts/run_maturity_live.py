@@ -58,8 +58,8 @@ def require_temporary_filter(turn, before, after, preferences_before, preference
 
 
 class Execution(LiveExecution):
-    def __init__(self,fields,budget,authorization_date):
-        self.fields=fields;self.ledger=ProviderBudget(budget,authorization_date=authorization_date)
+    def __init__(self,fields,budget,authorization_date,approved_http_limit=20,authorization_ref=None):
+        self.fields=fields;self.ledger=ProviderBudget(budget,authorization_date=authorization_date,request_limit=approved_http_limit,authorization_ref=authorization_ref)
         self.initial_used=self.ledger.validate()['used'];self.turn_diagnostics=[]
 
 
@@ -103,7 +103,7 @@ class Cases:
             self.plan_revision=plan['revision'];self.saved={'fixture':'direct API confirmed plan'}
 
     def turn(self,message,choice=None):
-        if self.execution.budget_used()>=20:raise BudgetExhausted('No supplier budget remains')
+        if self.execution.budget_used()>=self.execution.ledger.request_limit:raise BudgetExhausted('No supplier budget remains')
         self.w=self.current();w=self.w;before=self.signature();denied=self.r.model.denied_reservations
         self.r.model.register(message)
         body={'requestId':str(uuid.uuid4()),'message':message,'workspaceId':w['id'],'expectedWorkspaceRevision':w['revision'],
@@ -203,16 +203,16 @@ class Cases:
         return {'temporaryPeanutExclusionApplied':True,'ownedWorkspaceReceipt':True,'oldExclusionsRetained':True,'longTermPreferencesUnchanged':True,'calendarAndShoppingUnchanged':True}
 
 
-def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
+def run(config,out,budget,authorization_date,approved_live=False,case_ids=None,approved_http_limit=20,authorization_ref=None):
     require(approved_live,'Explicit approved-live invocation required')
     require(case_ids is None or set(case_ids)<={'discovery','adjust','clarify','save','shopping','actual','handoff','temporary','temporary_filter'},'Unknown live cases')
     date.fromisoformat(authorization_date)
-    execution=Execution(approved_provider_fields(Path(__file__).resolve().parents[1]/'recommend-service/.env'),budget,authorization_date)
+    execution=Execution(approved_provider_fields(Path(__file__).resolve().parents[1]/'recommend-service/.env'),budget,authorization_date,approved_http_limit,authorization_ref)
     require(config.get('providerMode')=='live' and Path(config['modelBudgetLedger']).resolve()==execution.ledger.path,'Live mode and atomic ledger must match')
     preflight(config,out,execution=execution)
     out=new_output(out);out.mkdir(parents=True)
     report={'sourceSha':config['sourceSha'],'jarSha256':config['jarSha256'],'datasetHash':config['datasetHash'],'providerMode':'live','productionTouched':False,'cases':[],
-            'authorizationDate':authorization_date,'authorizationLimit':20,'actualAppBuildSource':json.loads(Path(config['buildManifest']).read_text(encoding='utf-8'))['sourceSha'],
+            'authorizationDate':authorization_date,'authorizationLimit':approved_http_limit,'authorizationRef':authorization_ref,'actualAppBuildSource':json.loads(Path(config['buildManifest']).read_text(encoding='utf-8'))['sourceSha'],
             'harnessHashes':{name:digest(Path(__file__).parent/name) for name in ('run_maturity_live.py','maturity_runtime.py','assistant_v4_provider_budget.py','assistant_v4_live_acceptance.py')},
             'limits':['Public recipe snapshot and synthetic test identities only','Real Java/FastAPI/owned MySQL; local completion forwarder reaches real supplier','The external forwarder uses sync HTTPX; this does not prove production async DNS/TLS timing','Page handoff is verified as authorized data; native page gestures and physical devices are separate','Finite task samples do not estimate population success rate']}
     with owned_runtime(config,out/'owned-runtime',execution=execution) as runtime:
@@ -229,11 +229,11 @@ def run(config,out,budget,authorization_date,approved_live=False,case_ids=None):
         report['domainFinalCounts']=runtime.api.counts(cases.user);report['budgetNotReset']=True
     report['passed']=sum(c['passed'] for c in report['cases']);report['total']=len(report['cases'])
     report['requestsByGroup']={g:sum(c['providerHttpAttempts'] for c in report['cases'] if c['group']==g) for g in {c['group'] for c in report['cases']}}
-    report['plannedGroupAllocation']=4;report['allocationRule']='Unused group allocation may move within the global 20 HTTP attempt limit; no automatic retry.'
+    report['plannedGroupAllocation']=4;report['allocationRule']='All supplier HTTP attempts remain within the explicitly approved ledger cap; no automatic retry.'
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');return report
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--out',required=True);p.add_argument('--budget',required=True);p.add_argument('--authorization-date',required=True);p.add_argument('--approved-live',action='store_true');p.add_argument('--cases');args=p.parse_args()
-    report=run(json.loads(Path(args.config).read_text(encoding='utf-8')),args.out,args.budget,args.authorization_date,args.approved_live,args.cases.split(',') if args.cases else None)
+    p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--out',required=True);p.add_argument('--budget',required=True);p.add_argument('--authorization-date',required=True);p.add_argument('--approved-live',action='store_true');p.add_argument('--cases');p.add_argument('--approved-http-limit',type=int,choices=(4,20),default=20);p.add_argument('--authorization-ref');args=p.parse_args()
+    report=run(json.loads(Path(args.config).read_text(encoding='utf-8')),args.out,args.budget,args.authorization_date,args.approved_live,args.cases.split(',') if args.cases else None,args.approved_http_limit,args.authorization_ref)
     raise SystemExit(0 if report['passed']==report['total'] else 2)

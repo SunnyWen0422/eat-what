@@ -13,14 +13,20 @@ import uuid
 class BudgetExhausted(RuntimeError): pass
 
 class ProviderBudget:
-    def __init__(self,path,authorization_date='2026-10-11'):
+    def __init__(self,path,authorization_date='2026-10-11',request_limit=20,authorization_ref=None):
         self.path=Path(path).resolve();self.authorization_date=authorization_date
+        if (type(request_limit) is not int or request_limit not in (4,20)
+            or request_limit==4 and (not isinstance(authorization_ref,str) or not authorization_ref.startswith('call_'))
+            or request_limit==20 and authorization_ref is not None):
+            raise BudgetExhausted('Explicit approved HTTP cap and authorization reference required')
+        self.request_limit=request_limit;self.authorization_ref=authorization_ref
     def validate(self):
         ledger=json.loads(self.path.read_text(encoding='utf-8'))
-        if (ledger.get('authorizationDate')!=self.authorization_date or ledger.get('limit')!=20
+        if (ledger.get('authorizationDate')!=self.authorization_date or type(ledger.get('limit')) is not int
+            or ledger.get('limit')!=self.request_limit or ledger.get('authorizationRef')!=self.authorization_ref
             or ledger.get('scope')!='new V4 assistant synthetic local integration tests'
             or ledger.get('providerRequestsCountedPerHttpAttempt') is not True
-            or type(ledger.get('used')) is not int or not 0<=ledger['used']<=20):
+            or type(ledger.get('used')) is not int or not 0<=ledger['used']<=self.request_limit):
             raise BudgetExhausted('Explicit approved live budget unavailable or invalid')
         return ledger
     def reserve(self):
@@ -29,7 +35,7 @@ class ProviderBudget:
         except FileExistsError: raise BudgetExhausted('Budget ledger locked; no HTTP attempt sent') from None
         try:
             os.close(fd);ledger=self.validate()
-            if ledger['used']>=20:
+            if ledger['used']>=self.request_limit:
                 raise BudgetExhausted('Explicit approved live budget unavailable or exhausted')
             ledger['used']+=1
             ledger.setdefault('attempts',[]).append({'ordinal':ledger['used'],'reservedAt':time.time(),'status':'reserved'})

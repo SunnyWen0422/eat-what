@@ -14,3 +14,5 @@ python scripts/run_maturity_live.py --config $ExperienceConfig --out $LiveEviden
 本地配置必须使用本次 HEAD、固定 JAR/后端指纹及 E17 固定 6665 道公开菜快照，providerMode 显式 live，ledger 指向原授权。完整 preflight 在输出创建前执行，owned_runtime 再查一次。供应商只读既有 `.env` 中三个必要字段，不输出原始密钥/提示词，不接收产品来源信封，不修改本机凭据。测试账号均为新隔离库中的合成身份。
 
 实际结果与 providerHttpAttempts 见本任务仓库外报告；未跑或未通过的语义必须逐项保留。不以模型成功代替真实前端卡片、微信 SSO、手机操作或生产部署。旧模型样本不冒充当前源指纹的新证明。
+
+原20/20账本封存后，只有用户明确追加的独立授权才可创建新的小额账本；这不是复制、迁移或重置原账本。本轮后续明确批准最多4次HTTP，新增账本limit=4/used=0，授权日期2026-10-17，authorizationRef与对应用户答复标识一致。入口必须同时显式传入 --approved-http-limit 4 和 --authorization-ref；类校验授权日期/ref/上限完全匹配，默认20不接受追加授权ref。失败计入，达到4后不得调用传输。未使用额度不自动重试或转作其他场景，手机MOCK栈结束后才启动独立LIVE栈。
