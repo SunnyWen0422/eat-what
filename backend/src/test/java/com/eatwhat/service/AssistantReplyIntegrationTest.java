@@ -7,6 +7,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantReplyIntegrationTest {
+ @Test void python_validation_signal_is_repaired_once_and_never_accepted_as_a_business_result(){
+  when(f.model.supportsFlexibleReplies()).thenReturn(true);StepOutput invalid=new StepOutput();invalid.setType("action_invalid");
+  when(f.model.step(any())).thenReturn(invalid,output("可以先选这道。"));f.runner.runTurn(1L,f.id);assertEquals("completed",f.store.findTurn(1L,f.id).getStatus());verify(f.model,times(2)).step(any());assertNull(f.store.findTurn(1L,f.id).getContinuation());
+ }
+ @Test void repeated_python_validation_failure_does_not_start_an_unbounded_loop(){
+  when(f.model.supportsFlexibleReplies()).thenReturn(true);StepOutput invalid=new StepOutput();invalid.setType("action_invalid");when(f.model.step(any())).thenReturn(invalid);f.runner.runTurn(1L,f.id);assertEquals("failed",f.store.findTurn(1L,f.id).getStatus());verify(f.model,times(2)).step(any());assertNull(f.store.findTurn(1L,f.id).getContinuation());
+ }
  @Test void v2_invalid_action_shape_is_corrected_before_any_write(){
   when(f.model.supportsFlexibleReplies()).thenReturn(true);java.util.concurrent.atomic.AtomicInteger writes=new java.util.concurrent.atomic.AtomicInteger();
   f.registry.registerDraft("draft_update",(u,s,c)->{writes.incrementAndGet();TurnResult result=new TurnResult();result.setStatus("completed");Card receipt=new Card();receipt.setReceiptRef("real");result.getCards().add(receipt);return result;});

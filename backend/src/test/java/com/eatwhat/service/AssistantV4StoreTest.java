@@ -16,6 +16,26 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class AssistantV4StoreTest {
+    @Test void failed_expired_action_retains_completed_receipt_and_cannot_regress_newer_state(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        Card receipt=new Card();receipt.setType("receipt");receipt.setReceiptRef("calendar-real");
+        store.completeWorkflowStep(1L,id,"step-1","calendar-real",receipt);
+        WorkflowContinuation c=store.continuation(1L,id);c.getSteps().get(1).setStatus("awaiting_confirmation");c.getSteps().get(1).setTaskId("shopping-task");
+        PendingAction pending=new PendingAction();pending.setStepId("step-2");pending.setTaskId("shopping-task");pending.setExpiresAt(now+600000);pending.setPreviewToken("token");
+        Card preview=new Card();preview.setType("shopping_preview");preview.setPreviewToken("token");
+        TurnResult waiting=new TurnResult();waiting.setStatus("awaiting_confirmation");waiting.setContinuation(c);waiting.setPendingAction(pending);waiting.setCards(Arrays.asList(receipt,preview));store.completeTurn(1L,id,"awaiting_confirmation",waiting);
+        assertEquals("awaiting_confirmation",store.failPendingAction(1L,id,"step-1","calendar-task","旧失败").getStatus());
+        AssistantV4Store expired=new AssistantV4Store(db,locks,workspaces,new ObjectMapper(),tx,Clock.fixed(Instant.ofEpochMilli(now+600001),ZoneOffset.UTC));
+        TurnView failed=expired.failPendingAction(1L,id,"step-2","shopping-task","已过期");assertEquals("partially_completed",failed.getStatus());assertFalse(failed.isRetryable());assertNull(failed.getPendingAction());assertEquals(Collections.singletonList(receipt),failed.getCards());
+        assertEquals("completed",failed.getContinuation().getSteps().get(0).getStatus());assertEquals("failed",failed.getContinuation().getSteps().get(1).getStatus());
+        assertEquals(failed,expired.failPendingAction(1L,id,"step-2","shopping-task","重复失败"));assertEquals(failed,newStore().findTurn(1L,id));
+    }
+    @Test void failed_action_cancels_future_steps_but_late_failure_cannot_overwrite_cancel(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        TurnView failed=store.failPendingAction(1L,id,"step-1","calendar-task","内容已变化");assertEquals("failed",failed.getStatus());assertTrue(failed.getCards().isEmpty());assertEquals("cancelled",failed.getContinuation().getSteps().get(1).getStatus());
+        String other=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord otherLease=store.acquireTurn(1L,other);initialPreview(other,otherLease);TurnView cancelled=store.cancelTurn(1L,other);
+        assertEquals(cancelled,store.failPendingAction(1L,other,"step-1","calendar-task","旧失败"));
+    }
     @Test void committed_calendar_is_durably_resumable_before_any_postcommit_listener(){
         String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
         store.completeWorkflowStep(1L,id,"step-1","calendar-real",null);

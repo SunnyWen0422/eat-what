@@ -27,7 +27,7 @@ function createAssistantConversation(options = {}) {
  const persist=()=>{if(current()&&key){record.input=view.input;write(key,clone(record))}notify()}
  const exclusive=action=>{if(cancellation)return cancellation;if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
  const workspace=()=>store && store.state().workspace
- const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(!record.sessionId||record.steering||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&record.steering)view.input=record.steering.additions.join('\n');else if(record&&record.pending)view.input=record.pending.body.message;persist();return state()}
+ const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(!record.sessionId||record.steering||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&!record.draftEdited){if(record.steering)view.input=record.steering.additions.join('\n');else if(record.pending)view.input=record.pending.body.message;}persist();return state()}
  const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&((turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct')||!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending')
  function adopt(turn) {
   if(!current())return
@@ -39,7 +39,7 @@ function createAssistantConversation(options = {}) {
    // A partial turn is terminal. Its compound request must not become a resend.
    // Preserve anything the user has typed since sending or restoring the request.
    if(turn.status==='partially_completed'){if(record.pending&&view.input===record.pending.body.message)view.input=''}
-   else view.input=record.pending && record.pending.body.message || view.input
+   else if(!record.draftEdited)view.input=record.pending && record.pending.body.message || view.input
    view.error=turn.status==='cancelled'?'已停止这次请求，输入仍保留':turn.status==='partially_completed'?'这次请求已结束，请查看各项结果。剩余事项需重新核对来源和目标，再由你发送':'这次未完成，输入已保留，可以调整后再发';view.recoverable=false
   }
   else view.error=''
@@ -70,7 +70,7 @@ function createAssistantConversation(options = {}) {
   try{result=await api.sendAssistantV4Turn(record.sessionId,clone(pending.body))}
   catch(error){
    if(current()&&record.pending===pending&&!pending.turnId&&error&&error.statusCode===409){
-    view.input=pending.body.message;record.pending=null;view.busy=false;view.recoverable=false;view.error='本餐已变化，请核对最新菜单后重新说明要调整的菜。输入仍保留';persist()
+    if(!record.draftEdited)view.input=pending.body.message;if(record.steering)record.steering.rejected=true;record.pending=null;view.busy=false;view.recoverable=false;view.error='本餐已变化，请核对最新菜单后重新说明要调整的菜。输入仍保留';persist()
     try{
      const local=store.state()
      if(local.dirty||local.pending){view.error='本餐已变化，还有内容未同步，请回到今天核对。输入仍保留';persist();return state()}
@@ -83,7 +83,7 @@ function createAssistantConversation(options = {}) {
   }
   if(!current())return state()
   if(!result || !result.turnId)throw Error('missing turn')
-  pending.turnId=result.turnId;persist();return poll(result.turnId)
+  pending.turnId=result.turnId;if(record.steering&&(!record.steering.requestId||record.steering.requestId===pending.body.requestId))record.steering.turnId=result.turnId;persist();return poll(result.turnId)
  }
  async function loadRecord(workspaceRef) {
   const w=workspace(),id=workspaceRef && workspaceRef.workspaceId || w && w.id
@@ -104,8 +104,8 @@ function createAssistantConversation(options = {}) {
      // A definitive owner-scoped session absence expires only the binding. Keep
      // recovery evidence, but never replay its old business intent in a new session.
      record.expiredBindings=record.expiredBindings || []
-     record.expiredBindings.push(clone({sessionId:record.sessionId,sessionBody:record.sessionBody,pending:record.pending,renewal:record.renewal,confirmation:record.confirmation,lastTurn:record.lastTurn,confirmedTasks:record.confirmedTasks,steering:record.steering}))
-     view.input=record.steering?record.steering.additions.join('\n'):view.input || record.pending&&record.pending.body.message || '';record.steering=null
+     record.expiredBindings.push(clone({sessionId:record.sessionId,sessionBody:record.sessionBody,pending:record.pending,renewal:record.renewal,confirmation:record.confirmation,lastTurn:record.lastTurn,confirmedTasks:record.confirmedTasks,steering:record.steering,input:view.input,draftEdited:record.draftEdited}))
+     view.input=record.steering?[record.steering.original,...record.steering.additions,record.draftEdited?view.input:''].filter(Boolean).join('\n'):view.input || record.pending&&record.pending.body.message || '';record.steering=null;record.draftEdited=true
      record.sessionId=null;record.sessionBody={workspaceId:id,requestId:makeId()};record.pending=null;record.renewal=null;record.confirmation=null;record.lastTurn=null;record.confirmedTasks=[]
      record.bindingExpired=true;view.sessionId=null;view.turn=null;view.recoverable=false;persist()
     }
@@ -123,7 +123,7 @@ function createAssistantConversation(options = {}) {
     if(record.pending&&record.pending.turnId!==result.latestTurn.turnId)view.turn=clone(record.lastTurn||null)
     else {adopt(result.latestTurn);await refreshWorkspace(result.latestTurn);if(!current())return state()}
    }
-   if(record.steering){view.input=record.steering.additions.join('\n');view.recoverable=true}else if(record.pending)view.input=record.pending.body.message
+   if(record.steering){if(!record.draftEdited)view.input=record.steering.additions.join('\n');view.recoverable=true}else if(record.pending&&!record.draftEdited)view.input=record.pending.body.message
    if(record.bindingExpired)view.error='原对话已过期，输入仍保留。请先核对日历和清单，再重新说明要办理的内容'
    persist();return state()
   }catch(error){return fail('对话暂未连接，输入已保留，请重新进入或重试')}
@@ -133,9 +133,9 @@ function createAssistantConversation(options = {}) {
  function send(text,choice) {
   if(!choice&&current()&&actionsEnabled&&record&&(record.steering||record.pending&&(!record.pending.turnId||!view.turn||['queued','running'].includes(view.turn.status)))){
    const addition=String(text||'').trim();if(!addition)return Promise.resolve(state())
-   const queued=record.steering||{original:record.pending.body.message,additions:[],turnId:record.pending.turnId||null}
+   const queued=record.steering||{original:record.pending.body.message,requestId:record.pending.body.requestId,additions:[],turnId:record.pending.turnId||null}
    if((queued.original+'\n'+queued.additions.join('\n')+'\n'+addition).length>1800)return Promise.resolve(fail('补充内容较长，请缩短后再发送'))
-   queued.additions.push(addition);record.steering=queued;view.input='';persist();return flushSteering()
+   queued.additions.push(addition);record.steering=queued;record.draftEdited=false;view.input='';persist();return flushSteering()
   }
   return sendFresh(text,choice)
  }
@@ -149,10 +149,15 @@ function createAssistantConversation(options = {}) {
     // An unknown initial send must be reconciled using its original UUID first.
     if(record.pending&&!record.pending.turnId){try{await exclusive(()=>dispatch())}catch(_){return fail('原请求结果还待核对，补充内容已保留')} }
     if(!current()||record!==origin)return state()
+    if(queued.rejected){
+     const draft=record.draftEdited?view.input:'';view.input=[queued.original,...queued.additions,draft].filter(Boolean).join('\n');record.draftEdited=true;record.steering=null;view.recoverable=false;view.busy=false;view.error='本餐已变化，请核对最新菜单后再发送。原要求和补充均已保留';persist();return state()
+    }
+    if(!queued.turnId)return fail('原请求结果还待核对，补充内容已保留')
+    if(view.turn&&view.turn.turnId!==queued.turnId)return fail('原请求结果还待核对，补充内容已保留')
     await cancelTurn()
     if(!current()||record!==origin)return state()
     const turn=view.turn
-    if(!turn||!['completed','cancelled','failed','partially_completed','needs_input'].includes(turn.status)){view.input=queued.additions.join('\n');persist();return fail('原请求还待核对，补充内容已保留')}
+    if(!turn||turn.turnId!==queued.turnId||!['completed','cancelled','failed','partially_completed','needs_input'].includes(turn.status)){if(!record.draftEdited)view.input=queued.additions.join('\n');persist();return fail('原请求还待核对，补充内容已保留')}
     await refreshWorkspace(turn)
     if(!current())return state()
     const applied=(turn.cards||[]).some(card=>card.receiptRef)||turn.status==='completed'||turn.status==='partially_completed'
@@ -185,7 +190,7 @@ function createAssistantConversation(options = {}) {
   const negotiated=capabilities.get(scope)
   if(negotiated&&negotiated.enabled&&negotiated.until>Date.now()&&negotiated.uiFeatures&&negotiated.uiFeatures.length)record.pending.body.uiFeatures=negotiated.uiFeatures.slice()
   if(selected)record.pending.body.clarificationChoice=selected
-  record.bindingExpired=false;view.input='';view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
+  record.bindingExpired=false;if(!queued||!record.draftEdited){view.input='';record.draftEdited=false}view.error='';view.busy=true;view.messages.push({id:record.pending.body.requestId,role:'user',text:message,cards:[]});record.messages=clone(view.messages);persist()
   try{return await dispatch()}catch(error){return fail()}
  })}
  function recover(turnId) {if(record&&record.steering&&!turnId)return flushSteering();return exclusive(async()=>{
@@ -315,7 +320,7 @@ function createAssistantConversation(options = {}) {
    view.messages=combined.filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true});view.nextCursor=page.nextCursor || null;record.messages=clone(view.messages);persist();return state()
   }catch(error){return fail('先前的对话暂未读到，请稍后再试')}
  })}
- function setInput(input){if(current()){view.input=String(input || '');if(record)persist()}}
+ function setInput(input){if(current()){view.input=String(input || '');if(record){record.draftEdited=true;persist()}}}
  function dispose(){active=false}
  return {chooseClarification:(cardId,optionId,date)=>send('',{cardId,optionId,date}),setActionsEnabled(value){actionsEnabled=value===true;notify()},load,loadOlder,send,confirm,selectShopping,cancelTurn,recover,state,setInput,dispose}
 }

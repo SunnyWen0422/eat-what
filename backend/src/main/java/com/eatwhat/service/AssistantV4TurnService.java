@@ -2,6 +2,7 @@ package com.eatwhat.service;
 
 import com.eatwhat.dto.AssistantV4Contract;
 import com.eatwhat.dto.AssistantV4Contract.*;
+import com.eatwhat.dto.ControlledToolTask;
 import com.eatwhat.entity.Dish;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,6 +116,10 @@ public class AssistantV4TurnService {
                 input.setTimeoutSeconds(outerMillis/1000.0);input.setDeadlineEpochMillis(now+outerMillis);
                 StepOutput output=model.step(input);active(user,lease);
                 validateOutput(output);
+                if("action_invalid".equals(output.getType())){
+                    if(!correctedAction&&requestActionCorrection(input)){correctedAction=true;continue;}
+                    throw new IllegalArgumentException("操作参数未能纠正");
+                }
                 if("read_calls".equals(output.getType())){
                     List<ToolRead> calls=output.getReadCalls();if(input.isFinalRound()||calls==null||calls.isEmpty()||calls.size()>4||readCount+calls.size()>8)throw new IllegalArgumentException("查询超出本次范围");
                     validateContinuation(output.getProviderContinuation(),calls,input.getProviderContinuation(),input.getReadResults());
@@ -162,9 +167,7 @@ public class AssistantV4TurnService {
                 catch(IllegalArgumentException invalid){
                     // Correct model-authored parameters before checkpointing any business action.
                     // Same lease and four-call budget; never repair by changing the user's intent.
-                    if("meal_reply.v2".equals(input.getReplyContract())&&!correctedAction&&!input.isFinalRound()&&input.getMessage().length()<=1800){
-                        correctedAction=true;input.setMessage(input.getMessage()+"\n本次动作参数尚未执行。请按工具schema重新检查必要参数、动作顺序和已授权的真实菜品编号；需要数据时先查询，不得自行编造。临时条件用criteria等结构化字段，不只复制原话；无法执行的条件应简短解释或询问必要信息。保持用户原意，不让用户填写内部参数。");continue;
-                    }throw invalid;
+                    if(!correctedAction&&requestActionCorrection(input)){correctedAction=true;continue;}throw invalid;
                 }
                 // Raw wording is not a proven executable constraint. Keep the
                 // workspace guard unchanged and give a deterministic next step
@@ -178,6 +181,10 @@ public class AssistantV4TurnService {
             }
             throw new IllegalArgumentException("本次查询未完成");
         }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);LOG.info("assistant_turn provider_calls={} read_calls={} read_cache_hits={} workflow_outcome={} duration_ms={}",providerCalls,readCalls,cacheHits,observedOutcome,clock.millis()-observedStart);}}
+    }
+    private boolean requestActionCorrection(StepInput input){
+        if(!"meal_reply.v2".equals(input.getReplyContract())||input.isFinalRound()||input.getMessage().length()>1800)return false;
+        input.setMessage(input.getMessage()+"\n本次动作参数尚未执行。请按工具schema重新检查必要参数、动作顺序和已授权的真实菜品编号；需要数据时先查询，不得自行编造。临时条件用criteria等结构化字段，不只复制原话；无法执行的条件应简短解释或询问必要信息。保持用户原意，不让用户填写内部参数。");return true;
     }
     private String failRunning(Long user,TurnRecord lease){try{TurnRecord current=store.turnRecord(user,lease.getId());if(!"running".equals(current.getStatus()))return "cancelled".equals(current.getStatus())?"cancel":"error";if(current.getLeaseUntil()<=clock.millis()){store.recoverExpired(user,lease.getId());return "timeout";}TurnResult r=result("failed","本次处理未完成，请重新发送；已有内容仍保留",true);r.setContinuation(store.continuation(user,lease.getId()));r.setWorkspaceRef(store.findTurn(user,lease.getId()).getWorkspaceRef());finish(user,lease,r);}catch(RuntimeException stale){/* Cancellation/deletion wins over a late result. */}return "error";}
     private boolean changesUninterpretedRequirements(ActionProposal proposal,ModelContext context){
@@ -208,10 +215,15 @@ public class AssistantV4TurnService {
                 registry.requireEnabled();registry.requireUiFeatures(request.getUiFeatures());TurnView pending=store.findTurn(user,turnId);PendingAction action=pending.getPendingAction();
                 if(action==null||!Objects.equals(action.getTaskId(),c.getSteps().get(c.getCursor()).getTaskId()))return pending;
                 String key=user+":"+turnId;resuming.get().add(key);
-                try{directHarness.confirm(user,action.getTaskId(),action.getPreviewToken());}
+                ControlledToolTask confirmed;
+                try{confirmed=directHarness.confirm(user,action.getTaskId(),action.getPreviewToken());}
                 catch(RuntimeException failure){return directUnresolved(user,turnId,action);}
                 finally{resuming.get().remove(key);if(resuming.get().isEmpty())resuming.remove();}
                 TurnView after=store.findTurn(user,turnId);
+                if(confirmed!=null&&Objects.equals(action.getTaskId(),confirmed.id)&&!confirmed.retryable&&Arrays.asList("failed","partial_failed","cancelled").contains(confirmed.status)){
+                    String message="PREVIEW_EXPIRED".equals(confirmed.errorCode)?"这次操作已过期，请重新提出要求":"WORKFLOW_VERSION_CONFLICT".equals(confirmed.errorCode)?"本餐或目标安排已变化，请查看最新内容后重新提出要求":"这次操作未能完成，请查看当前内容后重新提出要求";
+                    return store.failPendingAction(user,turnId,action.getStepId(),action.getTaskId(),message);
+                }
                 if(after.getPendingAction()!=null&&Objects.equals(action.getTaskId(),after.getPendingAction().getTaskId()))return directUnresolved(user,turnId,action);
                 continue;
             }
@@ -266,7 +278,11 @@ public class AssistantV4TurnService {
     private String encode(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalArgumentException("数据无效");}}
     private void boundContext(ModelContext context){List<Map<String,Object>> text=new ArrayList<>(rows(context.getConversation().get("recentText")));while(encode(context).length()>6000&&!text.isEmpty()){text.remove(0);context.getConversation().put("recentText",text);context.getEvidence().put("truncated",true);}if(encode(context).length()>6000)throw new IllegalArgumentException("本餐必要信息较多，请缩小请求范围");}
     private void validateOutput(StepOutput output){
-        if(output==null||!Arrays.asList("read_calls","final","need_input","navigation").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");
+        if(output==null||!Arrays.asList("read_calls","final","need_input","navigation","action_invalid").contains(output.getType())||output.getReadCalls()==null)throw new IllegalArgumentException("结果类型无效");
+        if("action_invalid".equals(output.getType())){
+            if(output.getActionProposal()!=null||output.getAnswer()!=null||output.getQuestion()!=null||output.getReply()!=null||output.getFactSource()!=null||output.getClarificationKind()!=null||output.getNavigationIntent()!=null||output.getProviderContinuation()!=null||!output.getReadCalls().isEmpty())throw new IllegalArgumentException("内部纠正结果无效");
+            return;
+        }
         if(output.getFactSource()!=null&&(!"final".equals(output.getType())||!"recent_actual".equals(output.getFactSource())||output.getActionProposal()!=null))throw new IllegalArgumentException("查询来源无效");
         if("navigation".equals(output.getType())){
             if(output.getNavigationIntent()==null||output.getActionProposal()!=null||output.getQuestion()!=null||output.getReply()!=null||!output.getReadCalls().isEmpty()||output.getProviderContinuation()!=null)throw new IllegalArgumentException("交接内容冲突");

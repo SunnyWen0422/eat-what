@@ -2,6 +2,22 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const { createAssistantConversation, probeAssistantCapability, clearCapabilityCache } = require('../utils/assistant-conversation')
 const confirmationTurn=()=>({turnId:'t1',status:'awaiting_confirmation',cards:[{id:'save',type:'calendar_save',taskId:'task1',previewToken:'token1',expiresAt:Date.now()+60000}],pendingAction:{taskId:'task1',previewToken:'token1'}})
+test('expired steering session preserves original addition and independent unsent draft without repost',async()=>{
+ const f=fixture({getAssistantV4Session:async()=>{throw{statusCode:404}},getAssistantV4Turn:async()=>({turnId:'t1',status:'running',cards:[]}),cancelAssistantV4Turn:async()=>{throw Error('offline')}})
+ await f.conversation.load();await f.conversation.send('安排晚饭');await f.conversation.send('不要辣');f.conversation.setInput('我还想加一道汤');f.conversation.dispose()
+ const restored=f.recreate();await restored.load();assert.equal(restored.state().input,'安排晚饭\n不要辣\n我还想加一道汤');assert.equal(f.bodies.length,1);assert.equal(restored.state().recoverable,false)
+ const saved=[...f.persisted.values()][0];assert.equal(saved.expiredBindings[0].input,'我还想加一道汤');assert.equal(saved.steering,null);await restored.recover();assert.equal(f.bodies.length,1)
+})
+test('steering must preserve newly typed unsent text while cancellation is waiting',async()=>{
+ let release,cancelled=false,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);return{turnId:'t'+(++seq)}},getAssistantV4Turn:async id=>({turnId:id,status:id==='t1'?(cancelled?'cancelled':'running'):'completed',cards:[]}),cancelAssistantV4Turn:()=>new Promise(r=>release=()=>{cancelled=true;r()})});
+ await f.conversation.load();await f.conversation.send('安排晚饭');const extra=f.conversation.send('不要辣');await new Promise(setImmediate);f.conversation.setInput('我还想加一道汤');release();await extra;
+ assert.equal(f.conversation.state().input,'我还想加一道汤');assert.equal(f.bodies.length,2);assert.doesNotMatch(f.bodies[1].message,/我还想加一道汤/)
+})
+test('steering cannot continue a rejected send using an older completed turn',async()=>{
+ let reject,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);seq++;if(seq===2)return new Promise((resolve,r)=>reject=r);return{turnId:'t'+seq}},getAssistantV4Turn:async id=>({turnId:id,status:'completed',cards:[]})});
+ await f.conversation.load();await f.conversation.send('查找青菜');const sending=f.conversation.send('保存明晚菜单');await new Promise(setImmediate);const extra=f.conversation.send('不要辣');reject({statusCode:409});await Promise.all([sending,extra]);
+ assert.equal(f.bodies.length,2);assert.match(f.conversation.state().input,/保存明晚菜单/);assert.match(f.conversation.state().input,/不要辣/)
+})
 test('new instruction cancels old turn and keeps original goal with the addition',async()=>{
  let cancelled=false,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);return{turnId:'t'+(++seq)}},getAssistantV4Turn:async id=>({turnId:id,status:id==='t1'?(cancelled?'cancelled':'running'):'completed',cards:[]}),cancelAssistantV4Turn:async id=>{assert.equal(id,'t1');cancelled=true}})
  await f.conversation.load();await f.conversation.send('安排两个人晚饭');await f.conversation.send('不要鸡蛋');

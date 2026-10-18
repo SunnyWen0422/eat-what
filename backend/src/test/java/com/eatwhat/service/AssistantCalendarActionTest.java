@@ -13,6 +13,15 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class AssistantCalendarActionTest {
+ @Test void direct_permanent_failure_is_terminal_and_never_reconfirmed() throws Exception {
+  for(boolean expired:Arrays.asList(false,true)){
+   Fixture f=new Fixture();ControlledToolTask task=f.workflowPreview(true);
+   if(expired)f.initialize(f.persistence.now+600001);else{RecipeRecord changed=new RecipeRecord();changed.setRevision(1L);f.domain.slots.put("2027-01-01|lunch",changed);}
+   AssistantCapabilityService capabilities=new AssistantCapabilityService(true);capabilities.configureExtensions(true,()->true);capabilities.registerUiFeature("direct_execution_v1");capabilities.registerRead("read_current_meal",(u,c,s)->new ReadResult());
+   ControlledToolHarnessService harness=spy(f.harness);AssistantV4TurnService service=new AssistantV4TurnService(f.persistence.store,mock(AssistantV4ContextService.class),capabilities,mock(AssistantV4ModelGateway.class),mock(AiProtectionService.class),mock(DishQueryService.class),f.domain.json,Clock.fixed(Instant.ofEpochMilli(f.persistence.now),ZoneOffset.UTC),Runnable::run);service.setDirectHarness(harness);
+   TurnView result=service.resumeWorkflow(1L,f.turnId);assertEquals("failed",result.getStatus());assertNull(result.getPendingAction());assertFalse(result.isRetryable());assertTrue(result.getReply().contains(expired?"过期":"变化"));service.resumeWorkflow(1L,f.turnId);verify(harness,times(1)).confirm(1L,task.id,task.previewToken);verify(f.domain.plans,never()).insert(any());
+  }
+ }
  static class Fixture {
   WorkspaceTargetSaveTest.Fixture domain=new WorkspaceTargetSaveTest.Fixture();
   AssistantV4StoreTest persistence=new AssistantV4StoreTest();

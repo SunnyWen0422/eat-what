@@ -122,6 +122,25 @@ public class AssistantV4Store {
         });
     }
     public TurnView findTurn(Long user,String id){return view(turnRecord(user,id));}
+    /** Settle a known failed task, including expired previews. This never authorizes a write. */
+    public TurnView failPendingAction(Long user,String id,String stepId,String taskId,String message){return tx.execute(t->{
+        lock(user);TurnRecord row=turnRecord(user,id);
+        if(!"awaiting_confirmation".equals(row.getStatus()))return view(row);
+        TurnResult result=decode(row.getResultJson(),TurnResult.class);PendingAction pending=result.getPendingAction();
+        WorkflowContinuation c=continuation(user,id);
+        if(pending==null||!Objects.equals(stepId,pending.getStepId())||!Objects.equals(taskId,pending.getTaskId())||c==null||c.getCursor()>=c.getSteps().size())return view(row);
+        WorkflowStep current=c.getSteps().get(c.getCursor());
+        if(!Objects.equals(stepId,current.getStepId())||!Objects.equals(taskId,current.getTaskId())||!"awaiting_confirmation".equals(current.getStatus()))return view(row);
+        current.setStatus("failed");Set<String> receipts=new HashSet<>();
+        for(WorkflowStep step:c.getSteps()){
+            if("completed".equals(step.getStatus())&&step.getReceiptRef()!=null)receipts.add(step.getReceiptRef());
+            else if("pending".equals(step.getStatus()))step.setStatus("cancelled");
+        }
+        List<Card> cards=new ArrayList<>();for(Card card:result.getCards())if(card!=null&&receipts.contains(card.getReceiptRef())&&card.getPreviewToken()==null)cards.add(card);
+        result.setCards(cards);result.setContinuation(c);result.setPendingAction(null);result.setRetryable(false);
+        result.setStatus(receipts.isEmpty()?"failed":"partially_completed");result.setReply(message+(receipts.isEmpty()?"":"；已完成的内容仍保留"));
+        return saveResult(row,row.getStatus(),row.getLeaseToken(),result,true);
+    });}
     public TurnRequest turnRequest(Long user,String id){TurnRecord r=turnRecord(user,id);if(r.getInputJson()==null)throw conflict();return decode(r.getInputJson(),TurnRequest.class);}
     public WorkflowContinuation continuation(Long user,String id){TurnRecord r=turnRecord(user,id);return r.getContinuationJson()==null?null:decode(r.getContinuationJson(),WorkflowContinuation.class);}
     /** Persist validated intents before any adapter mutation; never store provider continuation here. */

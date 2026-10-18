@@ -1,5 +1,11 @@
 # 吃什么：开发者手册
 
+## 当前开发流程入口
+
+首次接手先读 [Agent 项目接手指南](docs/agent-handoff.md)；GitHub、服务器、数据库与发版查 [操作经验与运行手册](docs/operations/agent-runbook.md)。这些入口区分长期规则、历史证据和必须现场核对的状态，不需要先通读全部历史报告。
+
+行为开发与修复遵循 [开发流程与验收规范](docs/development-workflow.md) 和 `AGENTS.md`：先明确用户结果及状态，再实现，按影响验证真实边界，排查同类入口，按最终证据交付。修复默认定向回归，不重复全量；既有 CI、业务契约和发布门槛仍保留。下文带日期的功能、配置、测试和部署记录是历史事实，不等于当前版本状态。2026-10-18 的助手复审见 [当前表现与修复](docs/testing/2026-10-18-assistant-behavior-review.md)。
+
 2026-10-17：本地新增 `meal_reply.v2` 展示别名与 `direct_execution_v1`。协商后的明确保存/采购指令直接经原绑定任务执行，历史预览仍保留原确认方式；处理中补充采用取消核对后续接。用户新决策优先于下文旧版确认说明。实现、验证边界及协调更新要求见[本轮验收](docs/testing/2026-10-17-assistant-flexible-execution.md)。未部署。
 
 2026-10-15：已开始执行[完整成熟度总计划](docs/superpowers/plans/2026-10-15-product-maturity-complete.md)。当前执行事实以[本轮基线](docs/testing/product-maturity-baseline.md)和后续任务验收为准；下文“暂停测试”“默认关闭”和历史通过数均保留原日期范围，不能推断本轮实际开关或完成状态。A/F设计与32项业务细节持续保留，本轮不自动发布。

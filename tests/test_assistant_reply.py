@@ -7,6 +7,21 @@ body=step_fixture.body
 final=step_fixture.final
 
 class FlexibleRouteTest(unittest.TestCase):
+    def test_repair_signal_cannot_be_emitted_by_model_and_v1_remains_compatible(self):
+        from assistant_v4_step import SAFE_QUESTION
+        for contract,output in [('meal_reply.v2',{'type':'action_invalid'}),('meal_reply.v1',{'type':'final','reply':'建议','actionProposal':{'steps':[{'kind':'calendar_save','arguments':{}}]}})]:
+            request=body();request.update(replyContract=contract,answerBasis=basis());request['context']['capabilities'].append('calendar_save')
+            _,result,calls=step_fixture.AssistantV4StepTest().route(final(output),request)
+            self.assertEqual({'type':'need_input','question':SAFE_QUESTION},result);self.assertEqual(1,len(calls))
+
+    def test_invalid_v2_actions_are_internal_repair_results_not_user_questions(self):
+        for kind,args in [('calendar_save',{'targetDate':'2026-10-18'}),('calendar_save',{'targetDate':'2026-10-18','targetMealType':'supper'}),('draft_update',{'operation':'adjust','selectedDishIds':[999]})]:
+            request=body();request.update(replyContract='meal_reply.v2',answerBasis=basis())
+            request['context']['capabilities'].append(kind)
+            output={'type':'final','reply':'建议','actionProposal':{'steps':[{'kind':kind,'arguments':args}]}}
+            _,result,calls=step_fixture.AssistantV4StepTest().route(final(output),request)
+            self.assertEqual({'type':'action_invalid'},result);self.assertEqual(1,len(calls))
+
     def test_model_display_name_and_direct_execution_instructions_survive_route(self):
         request=body();request.update(replyContract='meal_reply.v2',answerBasis=basis())
         request['context']['capabilities'].append('direct_execution_v1')

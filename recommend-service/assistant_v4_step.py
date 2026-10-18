@@ -156,11 +156,18 @@ def _step_result(value,message,history,seen,results,allowed,allowed_actions):
     try:
         return final_output(output, _authorized_ids(value["context"], results), allowed_actions, value.get("replyContract"), value.get("answerBasis"))
     except StepValidationError:
-        if value.get("replyContract") not in ("meal_reply.v1","meal_reply.v2") or not isinstance(output,dict) or "answer" not in output:
-            raise
-        # A bad explanation must not discard a separately valid business proposal.
-        fallback=copy.deepcopy(output);fallback.pop("answer")
-        return final_output(fallback, _authorized_ids(value["context"], results), allowed_actions)
+        if value.get("replyContract") in ("meal_reply.v1","meal_reply.v2") and isinstance(output,dict) and "answer" in output:
+            # A bad explanation must not discard a separately valid business proposal.
+            fallback=copy.deepcopy(output);fallback.pop("answer")
+            try:
+                return final_output(fallback, _authorized_ids(value["context"], results), allowed_actions)
+            except StepValidationError:
+                pass
+        if value.get("replyContract")=="meal_reply.v2" and isinstance(output,dict) and output.get("type")=="final" and isinstance(output.get("actionProposal"),dict):
+            # Internal adapter signal only, never a model output type or executable proposal.
+            # Java owns the single corrective attempt within the original turn budget.
+            return {"type":"action_invalid"}
+        raise
 
 
 
