@@ -4,7 +4,7 @@ const { imageSource, imageIdentity, placeholderIcon } = require('../../utils/dis
 const labels = { meat: '荤菜', veg: '素菜', soup: '汤羹', staple: '主食', dessert: '甜品', side: '配餐' }
 
 Component({
-  properties: { fontScale: { type: Number, value: 1 }, mode: { type: String, value: 'replace' }, prominent: Boolean, selected: Boolean, dish: Object, busy: Boolean, disabled: Boolean, feedback: String, reducedMotion: Boolean },
+  properties: { fontScale: { type: Number, value: 1 }, mode: { type: String, value: 'replace' }, selectionContext: { type: String, value: 'meal' }, compactSummary: Boolean, prominent: Boolean, selected: Boolean, dish: Object, busy: Boolean, disabled: Boolean, feedback: String, reducedMotion: Boolean },
   data: { dishView: { name: '菜品', meta: '', image: '', placeholderIcon: 'recipe' }, imageFailed: false, motionDuration: 0,pressDuration:0 },
   lifetimes: { attached() { this.updateDish(); this.updateMotion() } },
   pageLifetimes: { show() { this.updateMotion() } },
@@ -22,7 +22,8 @@ Component({
       const meta = category + (duration ? ` · ${duration}` : '')
       const image = imageSource(dish.image)
       const identity = imageIdentity(dish)
-      this.setData({ dishView: { id: dish.dishId || dish.id, identity, name: dish.name || '未命名菜品', image, meta, placeholderIcon: placeholderIcon(dish.type) },
+      const shortMeta = duration ? duration.replace('预计 ', '约').replace(' 分钟', '分') : category
+      this.setData({ dishView: { id: dish.dishId || dish.id, identity, name: dish.name || '未命名菜品', image, meta, shortMeta, placeholderIcon: placeholderIcon(dish.type) },
         imageFailed: this._imageIdentity === identity && this.data.imageFailed || false })
       this._imageIdentity = identity
     },

@@ -103,7 +103,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 /* Shared admin density: preserve permission and destructive-action contracts. */
 .ew-page.admin-workspace { padding:20px 16px 28px; background:#F8F7F2; }
 .ew-page.admin-workspace .title, .ew-page.admin-workspace .page-title { font-size:1.5em; color:#25332B; line-height:1.4; }
-.ew-page.admin-workspace .heading, .ew-page.admin-workspace .page-heading { gap:12px; align-items:flex-start; margin-bottom:16px; }
+.ew-page.admin-workspace .heading, .ew-page.admin-workspace .page-heading { gap:8px 12px; align-items:center; margin-bottom:16px; }
 .ew-page.admin-workspace .metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
 .ew-page.admin-workspace .metric { background:#F4E4D5; border:0; border-radius:16px; padding:16px; }
 .ew-page.admin-workspace .metric-value { font-size:1.75em; color:#25332B; line-height:1.4; }
@@ -115,13 +115,16 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .ew-page.admin-workspace .search, .ew-page.admin-workspace .search-bar { display:flex; gap:8px; margin-bottom:14px; }
 .ew-page.admin-workspace .search-field, .ew-page.admin-workspace .search input, .ew-page.admin-workspace .search-bar input { flex:1; min-width:0; }
 .ew-page.admin-workspace .filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
-.ew-page.admin-workspace .filters picker, .ew-page.admin-workspace .filters input { min-width:0; width:100%; box-sizing:border-box; min-height:48px; padding:10px; border:1px solid #7C8E80; border-radius:12px; background:#FFFFFF; overflow-wrap:anywhere; }
+.ew-page.admin-workspace .filters picker, .ew-page.admin-workspace .filters input { min-width:0; width:100%; box-sizing:border-box; height:calc(1.5em + 24px); min-height:48px; padding:0 12px; border:1px solid #7C8E80; border-radius:12px; background:#FFFFFF; font-size:1em; line-height:1.5; }
 .ew-page.admin-workspace .types, .ew-page.admin-workspace .type-row { display:flex; flex-wrap:wrap; gap:8px; }
 .ew-page.admin-workspace .types button, .ew-page.admin-workspace .type-row button { padding:10px 14px; min-height:44px; min-width:44px; border-radius:12px; }
 .ew-page.admin-workspace button { font-size:1em; line-height:1.5; min-width:44px; min-height:44px; border-radius:12px; height:auto; padding:10px 12px; }
 .ew-page.admin-workspace button.primary, .ew-page.admin-workspace .primary-action, .ew-page.admin-workspace .save-button { min-height:48px; background:#28634E; color:#FFFFFF; border-radius:14px; }
 .ew-page.admin-workspace button[disabled] { color:#25332B; background:#E8EBE5; }
 .ew-page.admin-workspace .form input, .ew-page.admin-workspace .form textarea, .ew-page.admin-workspace .form-page input, .ew-page.admin-workspace .form-page textarea { border:1px solid #7C8E80; border-radius:12px; padding:12px; font-size:1em; line-height:1.7; width:100%; box-sizing:border-box; }
+.ew-page.admin-workspace .form input, .ew-page.admin-workspace .form-page input { height:calc(1.5em + 24px); min-height:48px; padding:0 12px; line-height:1.5; }
+.ew-page.admin-workspace .form-title { display:block; font-size:1.125em; line-height:1.5; margin-bottom:12px; }
+.ew-page.admin-workspace .form .label { display:block; font-size:1em; line-height:1.5; font-weight:500; margin:16px 0 8px; }
 .ew-page.admin-workspace .summary, .ew-page.admin-workspace .user-summary { border:0; background:#F4E4D5; border-radius:18px; padding:16px; }
 .ew-page.admin-workspace .badge, .ew-page.admin-workspace .status-badge { white-space:normal; line-height:1.5; flex-shrink:0; }
 .ew-page.admin-workspace .state, .ew-page.admin-workspace .state-block { min-height:160px; border:0; border-radius:16px; line-height:1.7; }
@@ -148,7 +151,9 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .ew-page.admin-workspace .heading > view { flex:1; min-width:0; }
 .ew-page.admin-workspace button.refresh,.ew-page.admin-workspace button.search-btn,.ew-page.admin-workspace .section-head button.add { flex:0 0 auto; width:auto; max-width:88px; padding:10px 16px; }
 .ew-page.admin-workspace .search input { border:1px solid #7C8E80; border-radius:12px; }
-.ew-page.admin-workspace .filters picker > view { border:0; padding:0; }
+.ew-page.admin-workspace .filters .admin-filter-field { display:flex; align-items:center; justify-content:space-between; gap:6px; height:calc(1.5em + 22px); min-height:46px; padding:0; border:0; border-radius:0; background:transparent; font-size:inherit; line-height:1.5; }
+.admin-filter-field > text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-filter-field .picker-chevron { margin-left:0; flex-shrink:0; }
 
 /* F is scoped to dish content and the dining assistant, never to tool forms. */
 .ew-page.ew-dish-surface, .connected-assistant.ew-dish-surface {
@@ -160,3 +165,29 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Focused reading baseline; retain fontScale from the page. */
 .ew-reading { line-height:1.65; overflow-wrap:anywhere; }
+
+/* A title/paragraph is a block; inline facts keep their page-specific layout. */
+text.ew-heading, text.ew-title, text.ew-section-title, text.ew-reading { display:block; }
+.ew-row > ui-icon, .ew-between > ui-icon, button > ui-icon { flex-shrink:0; align-self:center; }
+.ew-actions { align-items:stretch; }
+.ew-actions > ui-button { display:flex; align-self:stretch; }
+.ew-actions > button { display:flex; align-items:center; justify-content:center; line-height:1.5; }
+/* Navigation in a sheet is a list, not a stack of full-width primary controls. */
+.ew-menu-row, .ew-page button.ew-menu-row { display:flex; align-items:center; gap:12px; width:100%; max-width:100%; min-height:48px; margin:0; padding:12px 0; box-sizing:border-box; border:0; border-bottom:1px solid #E6EAE1; border-radius:0; background:transparent; color:#25332B; text-align:left; font-family:inherit; font-size:1em; font-weight:400; line-height:1.5; }
+.ew-menu-row::after { border:0; }
+.ew-menu-label { flex:1; min-width:0; overflow-wrap:anywhere; }
+.ew-menu-value { flex:0 1 auto; max-width:52%; color:#56645B; text-align:right; font-size:0.8125em; overflow-wrap:anywhere; }
+.ew-menu-title,.ew-menu-description { display:block; }
+.ew-menu-description { margin-top:4px; color:#56645B; font-size:0.8125em; line-height:1.5; }
+.ew-page button.ew-menu-row[disabled] { background:transparent; color:#56645B; opacity:.65; }
+.ew-page button.ew-menu-row.danger { color:#A93B30; }
+
+/* One label scale and compact visual chips, with 44px event targets. */
+.ew-page .ew-filter-grid { display:flex; flex-wrap:wrap; gap:0 6px; align-items:center; }
+.ew-page .ew-filter-choice { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; min-width:44px; min-height:44px; max-width:100%; height:auto; margin:0; padding:4px 0; box-sizing:border-box; border:0; background:transparent; border-radius:0; font-size:0.8125em; line-height:1.5; color:#25332B; white-space:normal; }
+.ew-page .ew-filter-chip { display:flex; align-items:center; justify-content:center; gap:4px; min-width:44px; max-width:100%; padding:5px 9px; box-sizing:border-box; border:1px solid #7C8E80; border-radius:10px; background:#E6EAE1; font-size:inherit; line-height:1.5; overflow-wrap:anywhere; }
+.ew-page .ew-filter-count { color:#56645B; font-size:inherit; font-weight:400; }
+.ew-page .ew-filter-choice.selected { background:transparent; border:0; color:#28634E; }
+.ew-page .ew-filter-choice.selected .ew-filter-chip { background:#28634E; color:#FFFFFF; border-color:#28634E; font-weight:600; }
+.ew-page .ew-filter-choice.selected .ew-filter-count { color:#FFFFFF; }
+.ew-page .ew-filter-choice.danger.selected .ew-filter-chip { background:#A93B30; color:#FFFFFF; border-color:#A93B30; }

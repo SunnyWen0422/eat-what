@@ -9,7 +9,7 @@ test('nonempty shopping emphasizes checking', () => {
     assert.equal(result.emptyAction, '')
   }
   assert.equal(shoppingPagePresentation({}).addEmphasis, 'primary')
-  assert.equal(shoppingPagePresentation({}).emptyAction, '从日历准备食材')
+  assert.equal(shoppingPagePresentation({}).emptyAction, '')
 })
 test('source context is derived without inferring eaten or picking a mixed meal', () => {
   const sourceMeals=[{date:'2026-10-16',mealType:'dinner',label:'2026-10-16 晚餐'}]

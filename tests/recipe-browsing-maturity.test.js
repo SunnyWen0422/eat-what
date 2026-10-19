@@ -70,10 +70,10 @@ test('API change invalidates the browse cache even when user identity is unchang
  const f=pageFixture();f.page.data.currentDishes=[{id:8,name:'上一环境的菜'}];f.page.data.searchKeyword='旧搜索';f.switchSource()
  assert.equal(f.page.ensureBrowseOwner(),false);assert.equal(f.page.data.currentDishes.length,0);assert.equal(f.page.data.searchKeyword,'')
 })
-test('detail reads title then image then ingredients steps and optional source, while favorites bar is contextual',()=>{
+test('detail reads title then image then ingredients notes and steps, while favorites bar is contextual',()=>{
  const detail=fs.readFileSync('pages/dish-detail/dish-detail.wxml','utf8')
  assert.ok(detail.indexOf('class="dish-header"')<detail.indexOf('class="dish-image-container'))
- assert.ok(detail.indexOf('食材与用量')<detail.indexOf('烹饪步骤'));assert.ok(detail.indexOf('烹饪步骤')<detail.indexOf('查看用料来源'))
+ assert.ok(detail.indexOf('食材与用量')<detail.indexOf('dish.ingredientRows'));assert.ok(detail.indexOf('dish.ingredientRows')<detail.indexOf('dish.cookingNotes'));assert.ok(detail.indexOf('dish.cookingNotes')<detail.indexOf('烹饪步骤'));assert.doesNotMatch(detail,/查看用料来源/)
  assert.doesNotMatch(detail,/所有步骤图片汇总/)
  const fav=fs.readFileSync('pages/favorite-dishes/favorite-dishes.wxml','utf8');assert.match(fav,/wx:if="{{selectedMeal.count \|\| selectionFeedback.state === 'unknown' \|\| selectionBusy}}" class="favorite-selected-summary"/)
 })

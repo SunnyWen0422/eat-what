@@ -1,4 +1,5 @@
-const totalQuantity = items => items.map(i => i.quantityText || '用量待核对').join(' + ')
+const presentation = require('./shopping-display')
+const totalQuantity = items => items.map(i => presentation.quantityText(i.quantityText, i)).filter(Boolean).join(' + ')
 const CHANNELS = ['叮咚', '盒马', '菜市场', '超市', '其他']
 const hex = value => String(value || '').split('').map(c => c.charCodeAt(0).toString(16).padStart(4, '0')).join('')
 function ingredientKey(item) {
@@ -57,14 +58,22 @@ function buildPricing(list, quotes = {}, today = shanghaiDate()) {
     const expense = saved && saved.amount != null ? saved : null
     if (expense && expense.amount != null) { actualCents += amountCents(expense.amount); recorded++ }
     const q = group.quote
-    return { ...group, quantityText: totalQuantity(group.items), referenceText: group.missing ? '—' : money(group.priced ? group.cents : null),
+    return { ...group, displayName: presentation.ingredientName(group), quantityText: totalQuantity(group.items), referenceText: group.missing ? '—' : money(group.priced ? group.cents : null),
       unitPriceText: q ? '¥' + q.price + '/' + q.unitQuantity + ({ g: '克', kg: '千克', ml: '毫升', l: '升' }[q.unitCode] || q.unitCode) : '—',
       quoteLabel: q ? (q.quoteDate === today ? '报价日期 ' : '最近报价 ') + q.quoteDate : '暂无官方参考价',
       actualText: expense ? money(amountCents(expense.amount)) : '—', channel: expense && expense.channel || '', expense: expense || null }
   })
   return { rows, dishCosts, pendingText: money(pendingPriced ? pendingCents : null), pendingMissing, pendingPriced, actualText: money(recorded ? actualCents : null), recorded, total: rows.length }
 }
-function copyPending(list) {
-  return buildPricing({ ...list, expenses: {}, dishes: (list.dishes || []).map(d => ({ ...d, items: d.items.filter(i => !i.checked) })) }).rows.map(row => row.displayName + (row.normalizedVariant ? '（' + row.normalizedVariant + '）' : '') + ' ' + row.quantityText).join('\n')
+function copyList(list = {}, status = 'pending') {
+  const groups = require('./shopping-view').buildShoppingView(list, status).groups
+  if (!groups.length) return ''
+  const meals = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' }
+  return ['购物清单（' + (status === 'checked' ? '已买' : '待买') + '）', ...groups.map(group => {
+    const date = group.sourceDate ? Number(group.sourceDate.slice(5, 7)) + '月' + Number(group.sourceDate.slice(8)) + '日' : ''
+    const context = [date, meals[group.sourceMealType]].filter(Boolean).join(' ')
+    return [group.dishName || '手动添加', context].filter(Boolean).join(' · ') + '\n' + group.items.map((row, index) => (index + 1) + '. ' + row.name + (row.quantityLabel ? '  ' + row.quantityLabel : '')).join('\n')
+  })].join('\n\n')
 }
-module.exports = { CHANNELS, ingredientKey, amountCents, estimate, buildPricing, copyPending, shanghaiDate, money }
+function copyPending(list) { return copyList(list, 'pending') }
+module.exports = { CHANNELS, ingredientKey, amountCents, estimate, buildPricing, copyPending, copyList, shanghaiDate, money }

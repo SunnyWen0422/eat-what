@@ -18,7 +18,7 @@ Page({
       const byId=new Map((more?this.data.v4Sessions:[]).map(s=>[s.sessionId,s]))
       for(const s of response.sessions||[])byId.set(s.sessionId,require('../../utils/assistant-history').presentHistorySession(s))
       this.setData({v4Sessions:[...byId.values()],v4NextCursor:response.nextCursor||null})
-    }catch(error){if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'餐桌助手记录暂未读到，请重新读取。')})}
+    }catch(error){if(this.current(scope,epoch))this.setData({errorMessage:flow.errorMessage(error,'饮食助手记录暂未读到，请重新读取。')})}
     finally{if(this.current(scope,epoch))this.setData({loading:false})}
   },
   onV4More(){if(this.data.v4NextCursor&&!this.data.loading)return this.readV4(true)},

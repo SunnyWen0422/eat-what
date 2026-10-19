@@ -85,10 +85,10 @@ test('kept dishes remain protected until explicitly released',async t=>{
 test('more operations use a visible sheet and the header offers the contextual assistant',async t=>{
   const f=fixture(),page=f.page;t.after(()=>page.onUnload());await page.initializeWorkspace(target);page.onToggleExtraActions();assert.equal(page.data.moreVisible,true)
   const template=fs.readFileSync('templates/meal-workspace.wxml','utf8');assert.match(template,/<ui-sheet[^>]*visible="\{\{moreVisible\}\}"/);assert.match(template,/<compact-dish-row/);assert.match(template,/<action-feedback/)
-  assert.doesNotMatch(template,/workspace-keep-control/);assert.match(template,/bindtap="onOpenConnectedAssistant"[^>]*>餐桌助手/)
+  assert.doesNotMatch(template,/workspace-keep-control/);assert.match(template,/bindtap="onOpenConnectedAssistant"[^>]*>[\s\S]*?<text[^>]*>饮食助手<\/text>/)
   const requirements=template.slice(template.indexOf('<ui-sheet visible="{{requirementsVisible}}"'),template.indexOf('<ui-sheet visible="{{settingsVisible}}"'))
   assert.match(requirements,/继续本餐对话/)
-  assert.match(template,/<ui-sheet[^>]*moreVisible[\s\S]*预览保存计划与周回顾/)
+  assert.match(template,/<ui-sheet[^>]*moreVisible[\s\S]*bindtap="onSaveAndReview"[\s\S]*保存计划与周回顾/)
 })
 test('late receipt cannot replace next account menu or feedback',async t=>{
   const f=fixture(),page=f.page,waiting=deferred();t.after(()=>page.onUnload());await page.initializeWorkspace(target);f.wait(waiting)

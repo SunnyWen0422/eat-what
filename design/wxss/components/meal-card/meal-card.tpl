@@ -19,11 +19,11 @@
 .card { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
 
 /* Calendar navigation belongs to the whole row, not a second filled CTA. */
-button.card-navigation { display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; max-width:100%; min-height:72px; margin:0 0 12px; padding:14px 16px; box-sizing:border-box; text-align:left; white-space:normal; font-family:inherit; font-size:1em; font-weight:400; line-height:1.5; color:{{text}}; }
-button.card-navigation::after { border:0; }
+.card.card-navigation { display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; max-width:100%; min-height:72px; margin:0 0 12px; padding:14px 16px; box-sizing:border-box; text-align:left; white-space:normal; font-family:inherit; font-size:1em; font-weight:400; line-height:1.5; color:{{text}}; }
+.card.card-navigation::after { border:0; }
 .card-copy { flex:1; min-width:0; }
 .card-navigation .heading { align-items:baseline; justify-content:flex-start; flex-wrap:wrap; gap:4px 12px; }
 .card-navigation .meal-title { flex:0 0 auto; }
 .card-navigation .name { margin:6px 0 0; font-size:{{font.body.em}}; font-weight:400; }
 .card-action { display:flex; align-items:center; flex:0 0 auto; gap:4px; color:{{brand}}; font-size:{{font.secondary.em}}; font-weight:400; background:transparent; }
-.card-action > ui-icon { flex:0 0 auto; }
+.card-action-icon { flex:0 0 auto; }

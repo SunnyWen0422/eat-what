@@ -4,13 +4,13 @@ page { background:{{background}}; }
 .profile-page .ew-heading { margin-bottom:{{space.1.px}}; }
 .profile-page button.ew-hit-target { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:{{font.body.em}}; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
 .profile-page button::after { border:0; }
-.user-card { display:flex; align-items:center; flex-wrap:wrap; gap:{{space.2.px}}; padding:{{space.3.px}} 0; background:transparent; color:{{text}}; border-bottom:1px solid {{divider}}; border-radius:0; }
+.user-card { display:flex; align-items:center; flex-wrap:nowrap; gap:12px; padding:16px; margin:8px 0 16px !important; background:{{brandSoft}}; color:{{text}}; border-radius:18px; }
 .user-avatar { width:48px; height:48px; flex:0 0 48px; }
 .avatar, .avatar-fallback { width:48px; height:48px; border-radius:{{radius.2.px}}; }
-.avatar-fallback { display:flex; align-items:center; justify-content:center; background:{{warmSoft}}; color:{{warm}}; font-size:{{font.page.em}}; }
+.avatar-fallback { display:flex; align-items:center; justify-content:center; background:{{card}}; color:{{brand}}; font-size:1em; }
 .user-info { flex:1; min-width:0; text-align:left; }
 .nickname, .level { display:block; overflow-wrap:anywhere; }
-.nickname { font-size:{{font.section.em}}; font-weight:600; color:{{text}}; }
+.nickname { font-size:1em; font-weight:600; line-height:1.4; color:{{text}}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .level { margin-top:2px; color:{{muted}}; font-size:{{font.secondary.em}}; }
 .profile-edit-label { color:{{brand}}; font-size:{{font.secondary.em}}; overflow-wrap:anywhere; }
 .shopping-shortcut { display:flex; align-items:center; gap:{{space.2.px}}; margin:{{space.2.px}} 0 !important; padding:{{space.2.px}}; background:{{brandSoft}}; border-radius:{{radius.2.px}}; }
@@ -27,3 +27,5 @@ page { background:{{background}}; }
 .version-text { display:block; color:{{muted}}; font-size:{{font.caption.em}}; overflow-wrap:anywhere; }
 
 .profile-section-label { display:block; font-size:.8125em; color:{{muted}}; margin:20px 0 4px; line-height:1.5; }
+
+.user-card > ui-icon { flex:0 0 auto; }

@@ -21,12 +21,12 @@ const event = (key, detail = {}) => ({ currentTarget: { dataset: { key } }, deta
 function pageHarness({ list = eightSources(), check, patch, readList, mutate, reducedMotion = false, drafts = [] } = {}) {
   let owner = 'A', server = plain(list), page
   const storage = new Map([['A:shoppingListPendingOps', plain(drafts)]])
-  const calls = [], modals = [], timers = new Map(), scrolls = [], navigations = []
+  const calls = [], modals = [], timers = new Map(), scrolls = [], navigations = [], clipboard = [], toasts = []
   let timerId = 0, priceReads = 0, capabilityReads = 0
   const util = { getUserStorageKey: key => `${owner}:${key}` }
   const wx = {
     getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, plain(value)), removeStorageSync: key => storage.delete(key),
-    showToast() {}, switchTab() {}, setClipboardData() {},
+    showToast(options) {toasts.push(options)}, switchTab() {}, setClipboardData(options) {clipboard.push(options)},
     pageScrollTo: options => scrolls.push(plain(options)),
     navigateTo: options => navigations.push(plain(options)),
     showModal: options => modals.push(options),
@@ -68,7 +68,7 @@ function pageHarness({ list = eightSources(), check, patch, readList, mutate, re
     page.applyList(store.loadLocalShoppingList())
     return page
   }
-  return { page: createPage(), createPage, store, calls, modals, scrolls, storage,navigations,
+  return { page: createPage(), createPage, store, calls, modals, scrolls, storage,navigations,clipboard,toasts,
     answer: (confirm = true) => { const modal = modals.shift(); assert.ok(modal, 'a real confirmation must be pending'); modal.success({ confirm }) },
     settle: () => { const work = [...timers.values()]; timers.clear(); work.forEach(fn => fn()) },
     switchOwner: () => { owner = 'B' }, priceReads: () => priceReads, capabilityReads: () => capabilityReads,
@@ -490,7 +490,7 @@ test('merged quantity remains unknown after overflow even when later sources are
   const list = { version: 2, dishes: [group('overflow', '', [item(1, '盐', { quantityValue: Number.MAX_VALUE }), item(2, '盐', { quantityValue: Number.MAX_VALUE }), item(3, '盐', { quantityValue: 1 })])] }
   const row = shoppingView().buildShoppingView(list).rows[0]
   assert.equal(row.quantityValue, null)
-  assert.equal(row.quantityLabel, '用量待确认')
+  assert.equal(row.quantityLabel, '')
   assert.deepEqual(row.itemIds, [1, 2, 3])
 })
 
@@ -709,4 +709,119 @@ for(const change of ['version','account','missing'])test('conflict reapproval st
  if(change==='version')h.page.applyList({...h.page._full,version:10});if(change==='account')h.switchOwner()
  if(h.modals.length)h.answer();await new Promise(setImmediate);if(h.modals.length)h.answer();await pending
  assert.equal(h.calls.length,0);if(change!=='account')assert.equal(h.store.loadPendingOperations()[0].payload.requestId,'old')
+})
+
+
+test('delete mode only changes presentation until an exact visible ingredient is confirmed',async()=>{
+ const h=pageHarness(),before=plain(h.page._full)
+ h.page.onToggleDelete();assert.equal(h.page.data.deleteMode,true);assert.deepEqual(plain(h.page._full),before)
+ const row=h.page.data.summaryRows.find(r=>r.itemIds.length===2)
+ const pending=h.page.onDeleteRow(event(row.key));assert.match(h.modals[0].content,/2 处来源/)
+ h.answer(false);await pending;assert.equal(h.calls.length,0);assert.deepEqual(plain(h.page._full),before)
+})
+test('confirmed merged ingredient deletes only its displayed sources in sequential versioned requests',async()=>{
+ let list=eightSources(),sent=[]
+ const h=pageHarness({list,mutate:async(method,id,payload)=>{
+   assert.equal(method,'deleteShoppingItemConfirmed');assert.equal(payload.expectedListVersion,list.version)
+   sent.push({id,payload:plain(payload)});list={...list,version:list.version+1,dishes:list.dishes.map(d=>({...d,items:d.items.filter(i=>i.id!==id)}))};return list
+ }})
+ h.page.onToggleDelete();const row=h.page.data.summaryRows.find(r=>r.itemIds.length===2)
+ const work=h.page.onDeleteRow(event(row.key));h.answer();await work
+ assert.deepEqual(sent.map(s=>s.id),plain(row.itemIds));assert.notEqual(sent[0].payload.requestId,sent[1].payload.requestId)
+ assert.equal(h.store.loadPendingOperations().length,0);assert.equal(h.page.data.pendingCount,6)
+ assert.equal(h.page.data.feedback.message,'已删除这项食材')
+})
+test('partial delete stops on unknown result, retains the original request and remaining source',async()=>{
+ let list=eightSources(),sent=[]
+ const h=pageHarness({list,mutate:async(method,id,payload)=>{
+   sent.push({id,payload:plain(payload)});if(sent.length===2)throw {isNetworkError:true}
+   list={...list,version:list.version+1,dishes:list.dishes.map(d=>({...d,items:d.items.filter(i=>i.id!==id)}))};return list
+ }})
+ h.page.onToggleDelete();const row=h.page.data.summaryRows.find(r=>r.itemIds.length===2)
+ const work=h.page.onDeleteRow(event(row.key));h.answer();await work
+ assert.equal(sent.length,2);assert.equal(h.page.data.pendingCount,7);assert.equal(h.page.data.feedback.state,'unknown')
+ assert.match(h.page.data.errorMessage,/已移除 1 处来源/)
+ assert.deepEqual(plain(h.store.loadPendingOperations()[0].payload),sent[1].payload)
+ assert.ok(h.page.findItem(sent[1].id));assert.equal(h.page._deletingRow,null)
+})
+for(const change of ['version','account'])test('delete confirmation is bound to original '+change,async()=>{
+ const h=pageHarness();h.page.onToggleDelete();const row=h.page.data.summaryRows[0]
+ const work=h.page.onDeleteRow(event(row.key))
+ if(change==='version')h.page.applyList({...h.page._full,version:50});else h.switchOwner()
+ h.answer();await work;assert.equal(h.calls.length,0);assert.equal(h.page._deletingRow,null)
+})
+test('by-dish delete removes only one source even when the ingredient exists in another meal',async()=>{
+ const list=eightSources(),sent=[]
+ const h=pageHarness({list,mutate:async(method,id,payload)=>{sent.push(id);return {...list,version:3,dishes:list.dishes.map(d=>({...d,items:d.items.filter(i=>i.id!==id)}))}}})
+ h.page.onToggleDelete();h.page.onViewMode({currentTarget:{dataset:{mode:'byDish'}}})
+ const row=h.page.data.dishes[0].items[0],work=h.page.onDeleteRow(event(row.key));h.answer();await work
+ assert.deepEqual(sent,[row.id]);assert.ok(h.page.findItem(5))
+})
+test('delete receipt must prove the ingredient is absent and reject double taps while confirmation is open',async()=>{
+ let sent=0;const list=eightSources(),h=pageHarness({list,mutate:async()=>{sent++;return {...list,version:3}}})
+ h.page.onToggleDelete();const row=h.page.data.summaryRows[0]
+ const work=h.page.onDeleteRow(event(row.key));await h.page.onDeleteRow(event(row.key));assert.equal(h.modals.length,1)
+ h.answer();await work;assert.equal(sent,1);assert.equal(h.page.data.feedback.state,'unknown');assert.equal(h.store.loadPendingOperations().length,1)
+})
+
+test('clipboard action uses the selected purchase state and reports local copy failure without a write',()=>{
+ const h=pageHarness();h.page.onCopyList();assert.match(h.clipboard[0].data,/购物清单（待买）/);assert.match(h.clipboard[0].data,/番茄炒蛋/)
+ h.clipboard[0].fail();assert.match(h.toasts[0].title,/复制未完成/);assert.equal(h.calls.length,0)
+ h.page.onFilterChange({currentTarget:{dataset:{status:'checked'}}});h.page.onCopyList();assert.equal(h.clipboard.length,1)
+ h.switchOwner();h.page.onCopyList();assert.equal(h.clipboard.length,1)
+})
+test('delete retry retains unresolved receipt and resolves only when the target is absent',async()=>{
+ const list=eightSources(),draft={operationId:'delete-unknown',scope:'A:shoppingList',type:'delete',itemId:1,payload:{expectedListVersion:1,requestId:'original-delete'}}
+ let valid=false;const sent=[]
+ const h=pageHarness({list,drafts:[draft],mutate:async(method,id,payload)=>{sent.push(plain(payload));return {...list,version:3,dishes:list.dishes.map(d=>({...d,items:valid?d.items.filter(i=>i.id!==id):d.items}))}}})
+ const first=await h.store.flushShoppingOperations();assert.equal(first.remaining,1);assert.equal(h.store.loadPendingOperations()[0].payload.requestId,'original-delete')
+ valid=true;const next=await h.store.flushShoppingOperations();assert.equal(next.remaining,0);assert.deepEqual(sent[0],sent[1]);assert.equal(h.store.loadLocalShoppingList().dishes[0].items.some(i=>i.id===1),false)
+})
+
+function bulkPurchaseHarness(options) {
+ const h=pageHarness(options);h.page.setData({loading:false,refreshing:false});return h
+}
+test('bulk purchase confirms all pending sources across views while retaining already checked items and expenses',async()=>{
+ const list=changedList(eightSources(),[1,3],true,2),h=bulkPurchaseHarness({list});h.page.setData({statusFilter:'checked',viewMode:'byDish'});h.page.renderList()
+ const run=h.page.onCheckAll();assert.equal(h.modals[0].title,'是否全部已购？');assert.equal(h.modals[0].confirmText,'是');assert.equal(h.calls.length,0)
+ h.answer();await run;h.settle();assert.equal(h.calls.length,1);assert.deepEqual(h.calls[0].payload.itemIds,[2,4,5,6,7,8]);assert.equal(h.calls[0].payload.checked,true);assert.equal(h.calls[0].payload.expectedListVersion,2)
+ assert.equal(h.page.data.pendingCount,0);assert.equal(h.page.data.checkedCount,8);assert.deepEqual(plain(h.page._full.expenses),list.expenses)
+ assert.equal(h.page.data.feedback.state,'success');assert.equal(h.page._checkingAll,null)
+})
+test('bulk purchase cancel and repeated click never write or duplicate the dialog',async()=>{
+ const h=bulkPurchaseHarness(),before=plain(h.page._full);const run=h.page.onCheckAll();await h.page.onCheckAll();assert.equal(h.modals.length,1)
+ h.answer(false);await run;assert.equal(h.calls.length,0);assert.deepEqual(plain(h.page._full),before);assert.equal(h.page._checkingAll,null)
+})
+for(const change of ['version','account','hide','unload','refresh'])test('bulk purchase old confirmation does not write after '+change,async()=>{
+ const h=bulkPurchaseHarness();const run=h.page.onCheckAll()
+ if(change==='version')h.page.applyList({...h.page._full,version:9})
+ if(change==='account')h.switchOwner()
+ if(change==='hide')h.page.onHide()
+ if(change==='unload')h.page.onUnload()
+ if(change==='refresh')h.page._epoch=(h.page._epoch||0)+1
+ h.answer();await run;assert.equal(h.calls.length,0)
+})
+test('bulk purchase disabled while busy, loading or without pending ingredients',async()=>{
+ for(const state of [{busy:true},{loading:true},{refreshing:true}]){const h=bulkPurchaseHarness();h.page.setData(state);await h.page.onCheckAll();assert.equal(h.modals.length,0);assert.equal(h.calls.length,0)}
+ const h=bulkPurchaseHarness({list:changedList(eightSources(),[1,2,3,4,5,6,7,8],true)});await h.page.onCheckAll();assert.equal(h.modals.length,0);assert.equal(h.calls.length,0)
+})
+test('bulk purchase unknown outcome retains exact request for retry and does not claim success',async()=>{
+ let tries=0;const h=bulkPurchaseHarness({check:(payload,server)=>{if(++tries===1)throw {isNetworkError:true};return changedList(server,payload.itemIds,true)}})
+ const run=h.page.onCheckAll();h.answer();await run;assert.equal(h.page.data.pendingCount,8);assert.equal(h.page.data.feedback.state,'unknown')
+ const original=plain(h.calls[0].payload);assert.deepEqual(plain(h.store.loadPendingOperations()[0].payload),original)
+ const retry=h.page.onCheckAll();h.answer();await retry;h.settle();assert.deepEqual(h.calls[1].payload,original);assert.equal(h.page.data.pendingCount,0)
+})
+test('bulk purchase respects the 500-item API limit and stops after a partial failure',async()=>{
+ const list={listId:1,version:2,dishes:[group('many','2026-10-19',Array.from({length:501},(_,i)=>item(i+1,'食材'+i)))]}
+ let attempts=0;const h=bulkPurchaseHarness({list,check:(payload,server)=>{assert.ok(payload.itemIds.length<=500);if(++attempts===2)throw {isNetworkError:true};return changedList(server,payload.itemIds,true)}})
+ const run=h.page.onCheckAll();h.answer();await run;h.settle();assert.equal(h.calls.length,2);assert.equal(h.calls[0].payload.expectedListVersion,2);assert.equal(h.calls[1].payload.expectedListVersion,3)
+ assert.equal(h.page.data.checkedCount,500);assert.equal(h.page.data.pendingCount,1);assert.match(h.page.data.errorMessage,/500/);assert.equal(h.page.data.feedback.state,'unknown')
+ assert.deepEqual(plain(h.store.loadPendingOperations()[0].payload),h.calls[1].payload)
+})
+
+test('bulk purchase completes a long list and undo only reverts the explicitly labelled final batch',async()=>{
+ const list={listId:1,version:2,dishes:[group('many','2026-10-19',Array.from({length:501},(_,i)=>item(i+1,'食材'+i)))]}
+ const h=bulkPurchaseHarness({list,reducedMotion:true});const run=h.page.onCheckAll();h.answer();await run
+ assert.equal(h.calls.length,2);assert.equal(h.page.data.pendingCount,0);assert.equal(h.page.data.feedback.message,'全部待买食材已标为已买');assert.equal(h.page.data.feedback.undoLabel,'撤销最近 1 项')
+ await h.page.onUndoCheck({detail:{requestId:h.page.data.feedback.requestId}});assert.deepEqual(h.calls[2].payload.itemIds,[501]);assert.equal(h.page.data.pendingCount,1);assert.equal(h.page.data.checkedCount,500)
 })

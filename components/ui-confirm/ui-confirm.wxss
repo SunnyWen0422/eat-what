@@ -5,6 +5,7 @@
 .actions { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
 .confirm-action { flex:1 1 120px; min-width:44px; min-height:48px; height:auto; margin:0; padding:12px; border:1px solid transparent; border-radius:14px; font-size:1em; line-height:1.5; font-family:inherit; font-weight:500; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box;  background:#EDF3ED;}
 .confirm-action::after { border:0; }
+.confirm-action { display:flex; align-items:center; justify-content:center; }
 .cancel { background:#EDF3ED; color:#28634E; }
 .confirm { background:#28634E; color:#FFFFFF; border-color:#28634E; }
 .is-disabled { background:#E8EBE5; color:#56645B; border-color:#D9E1D5; }

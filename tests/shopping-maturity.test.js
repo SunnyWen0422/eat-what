@@ -24,7 +24,7 @@ test('unknown and unconvertible quantities stay missing while actual spend remai
  const view=pricing.buildPricing(list,quotes,'2026-10-15');assert.equal(view.rows.length,2);assert.equal(view.pendingMissing,2);assert.equal(view.pendingText,'—');assert.ok(view.rows.every(r=>r.referenceText==='—'))
 })
 test('costs stay folded and ingredient names retain variants in the optional expense editor',()=>{
- const template=fs.readFileSync('pages/shopping-list/shopping-list.wxml','utf8');assert.match(template,/wx:if="\{\{detailsExpanded\}\}"/);assert.match(template,/bind:confirm="saveExpense"/);assert.match(template,/从日历准备食材/)
+ const template=fs.readFileSync('pages/shopping-list/shopping-list.wxml','utf8');assert.match(template,/wx:if="\{\{pagePresentation.showExpenses && detailsExpanded\}\}"/);assert.match(template,/bind:confirm="saveExpense"/);assert.match(template,/bind:action="onAddManual"/);assert.doesNotMatch(template,/onAddFromCalendar|onAddFromRecipe|onAddOptions/)
 })
 test('a missing expense amount stays empty instead of breaking the shopping page',()=>{
  const item={id:1,canonicalName:'鸡蛋'},key=pricing.ingredientKey({...item,sourceDishId:7})

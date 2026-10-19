@@ -9,7 +9,8 @@ function shoppingPagePresentation({ pendingCount = 0, checkedCount = 0, sourceMe
     contextLabel: meal ? meal.label || `${meal.date} ${mealNames[meal.mealType] || meal.mealType}` : sourceMeals.length > 1 ? `来自${sourceMeals.length}个餐次 · 选择查看` : '',
     showViews: nonempty, showExpenses: nonempty || hasExpense, showMore: nonempty,
     addEmphasis: nonempty ? 'secondary' : 'primary',
-    emptyAction: !nonempty && !loading && !offline && !errorMessage && !drafts.length ? '从日历准备食材' : '',
+    // Empty and populated lists share the single footer action for custom ingredients.
+    emptyAction: '',
   }
 }
 module.exports = { shoppingPagePresentation }

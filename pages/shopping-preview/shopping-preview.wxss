@@ -81,3 +81,10 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .shopping-preview-page button.owned-action { background:transparent; border:0; border-radius:0; font-size:0.8125em; padding:4px; }
 .shopping-preview-page .view-tabs button.ew-link { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; color:#56645B; }
 .shopping-preview-page .view-tabs button.active { border-bottom-color:#28634E; color:#28634E; }
+
+.shopping-preview-page .ingredient-row { flex-wrap:nowrap; align-items:center; min-height:52px; font-size:.875em; gap:4px; }
+.shopping-preview-page .ingredient-row .ew-grow { flex:1; min-width:0; line-height:1.45; }
+.shopping-preview-page .ingredient-copy { padding:8px 0; }
+.shopping-preview-page .quantity-readonly { display:flex; align-items:center; justify-content:flex-end; font-size:.92857em; max-width:34%; line-height:1.45; }
+.shopping-preview-page .owned-action { font-size:.92857em; }
+.shopping-preview-page .source-item { font-size:.875em; line-height:1.45; }

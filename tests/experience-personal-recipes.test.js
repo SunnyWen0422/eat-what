@@ -363,10 +363,10 @@ test('menu edit cancel confirms only actual changes and retain leaves draft inta
   await f.page.onEditMenu(event('id', 3)); f.page.onMenuInput(event('menuName', '新晚餐')); f.page.onExitMenuEdit()
   assert.equal(f.dialogs.length, 1); f.dialogs[0].success({ confirm: false }); assert.equal(f.page.data.menuName, '新晚餐')
 })
-test('editor optional panels, focus binding, three save labels and ignorable guide are wired', () => {
+test('editor optional panels, focus binding and three save labels are wired', () => {
   const create = fs.readFileSync('pages/customize/customize.wxml', 'utf8'), edit = fs.readFileSync('pages/custom-dishes/custom-dishes.wxml', 'utf8'), workspace = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
   assert.match(create, /customExtrasVisible/); assert.match(edit, /editExtrasVisible/); assert.match(create, /customFocus === 'name'/); assert.match(edit, /formFocus === 'steps'/)
-  assert.match(create, /保存菜谱/); assert.match(create, /保存常用菜单/); assert.match(workspace, /存为常用菜单/); assert.match(create, /onOpenCatalogHelp/); assert.match(create, /onCloseCatalogHelp/)
+  assert.match(create, /保存菜谱/); assert.match(create, /保存常用菜单/); assert.match(workspace, /存为常用菜单/); assert.doesNotMatch(create, /CatalogHelp|菜谱使用说明/)
 })
 
 test('menu naming opens with pinned target and loads the destination templates', async () => {
@@ -461,6 +461,45 @@ function visibleCondition(source, pattern, data) {
   const match = source.match(pattern); assert.ok(match, 'expected rendered entry is present')
   return !!vm.runInNewContext(match[1], data)
 }
+
+test('new menu starts with dish selection, then names and saves without changing the meal or calendar', async () => {
+  const f = fixture('customize', { getDishes: async () => ({ list: [plain(dish)], total: 1 }) }, true)
+  await f.page.onShow(); const mealBefore = plain(f.page.data.selectedMeal)
+  f.page.data.recipeSource = 'mine'; f.page.data.showMenus = true
+  await f.page.onStartNewMenu()
+  assert.equal(f.page.data.showMenus, false); assert.equal(f.page.data.menuFormVisible, true)
+  assert.equal(f.page.data.recipeSource, 'all'); assert.deepEqual(plain(f.page.data.selectedIds), [])
+  await f.page.onResumeMenuForm(); assert.equal(f.page.data.showMenus, false, 'empty selection stays in picking')
+  await f.page.onToggleSelect({ detail: { id: 7 } }); await f.page.onResumeMenuForm()
+  assert.equal(f.page.data.showMenus, true); assert.equal(f.page.data.menuName, '')
+  f.page.onMenuInput(event('menuName', '清爽晚餐')); await f.page.onSaveMenu()
+  assert.deepEqual(f.sent[0].dishIds, [7]); assert.equal(f.sent[0].name, '清爽晚餐')
+  assert.equal(f.calendarWrites.length, 0); assert.deepEqual(plain(f.page.data.selectedMeal), mealBefore)
+})
+
+test('new menu entry resumes existing editing and unknown saves instead of replacing them', async () => {
+  const f = fixture('customize', { createPersonalMenu: async () => { throw { isNetworkError: true } } })
+  f.page.beginMenuForm([7], 3, [dish]); f.page.onMenuInput(event('menuName', '保留输入'))
+  await f.page.onStartNewMenu(); assert.equal(f.page.data.showMenus, true)
+  assert.equal(f.page.data.menuName, '保留输入'); assert.deepEqual(plain(f.page.data.selectedIds), [7])
+  await f.page.onSaveMenu(); const original = plain(f.page.writeJournal().pending('menu:create'))
+  await f.page.onStartNewMenu(); f.page.onAdjustMenuDishes()
+  assert.equal(f.page.data.menuPending, true); assert.equal(f.page.data.showMenus, true)
+  assert.deepEqual(plain(f.page.writeJournal().pending('menu:create')), original)
+  assert.deepEqual(plain(f.page.data.selectedIds), [7])
+})
+
+test('adjusting menu dishes retains naming and cancel keeps the original menu', async () => {
+  const f = fixture('customize', { getDishes: async () => ({ list: [plain(dish)], total: 1 }) }, true)
+  await f.page.onShow(); const mealBefore = plain(f.page.data.selectedMeal)
+  await f.page.onEditMenu(event('id', 3)); f.page.onMenuInput(event('menuName', '新的组合'))
+  await f.page.onAdjustMenuDishes(); assert.equal(f.page.data.showMenus, false)
+  f.page.onRemoveSelected(event('id', 8)); await f.page.onResumeMenuForm()
+  assert.equal(f.page.data.menuName, '新的组合'); assert.equal(f.page.data.menuEditingId, 3)
+  f.page.onCloseMenus(); f.page.onExitMenuEdit(); await f.dialogs.at(-1).success({ confirm: true })
+  assert.equal(f.sent.length, 0); assert.equal(f.calendarWrites.length, 0)
+  assert.deepEqual(plain(f.page.data.selectedMeal), mealBefore)
+})
 test('review F1: reachable template selected-list repairs deleted dish and saves same template', async () => {
   const f = fixture('customize', { getDishById: async id => { if (id === 8) throw { statusCode: 404 }; return plain(dish) } }, true)
   await f.page.onEditMenu(event('id', 3)); f.page.onCloseMenus()
@@ -472,19 +511,18 @@ test('review F1: reachable template selected-list repairs deleted dish and saves
   const panel = source.slice(source.indexOf('class="panel-list'), source.indexOf('<ui-sheet visible="{{showMenus}}"'))
   const remove = panel.match(/data-id="\{\{item.id\}\}"[^>]*bindtap="([^"]+)"/)[1]
   f.page[remove](event('id', 8)); assert.deepEqual(plain(f.page.data.selectedIds), [7]); assert.equal(f.page.data.menuReviewDishes.some(row => row.id === 8), false)
-  f.page.onHideSelected(); const resume = bottom.match(/bindtap="([^"]+)">继续命名与保存/)[1]; await f.page[resume](); assert.equal(f.page.data.menuEditingId, 3)
+  f.page.onHideSelected(); const resume = bottom.match(/bindtap="(onResumeMenuForm)"/)[1]; await f.page[resume](); assert.equal(f.page.data.menuEditingId, 3)
   await f.page.onSaveMenu(); assert.deepEqual(f.sent[0].dishIds, [7]); assert.equal(f.sent[0].expectedVersion, 2); assert.equal(f.calendarWrites.length, 0)
 })
-test('review F2: explicit new-menu entry asks before replacing edited name, people, IDs and identity', async () => {
+test('review F2: legacy new-menu handler asks before replacing edited name, people, IDs and identity', async () => {
   const f = fixture(); await f.page.onEditMenu(event('id', 3)); f.page.onMenuInput(event('menuName', '周五晚餐')); f.page.onMenuInput(event('menuPeople', '6')); f.page.onCloseMenus()
-  const source = fs.readFileSync('pages/customize/customize.wxml', 'utf8'), handler = source.match(/bindtap="([^"]+)">把已选菜品存为新菜单/)[1]
-  await f.page[handler](); assert.equal(f.dialogs.length, 1); await f.dialogs[0].success({ confirm: false }); assert.equal(f.page.data.menuName, '周五晚餐'); assert.equal(Number(f.page.data.menuPeople), 6); assert.equal(f.page.data.menuEditingId, 3); assert.deepEqual(plain(f.page.data.selectedIds), [7, 8])
+  await f.page.onOpenMenuForm(); assert.equal(f.dialogs.length, 1); await f.dialogs[0].success({ confirm: false }); assert.equal(f.page.data.menuName, '周五晚餐'); assert.equal(Number(f.page.data.menuPeople), 6); assert.equal(f.page.data.menuEditingId, 3); assert.deepEqual(plain(f.page.data.selectedIds), [7, 8])
 })
 for (const confirm of [false, true]) test(`review F2: actual workspace naming entry ${confirm ? 'discard opens meal IDs' : 'keep preserves editor'}`, async () => {
   const f = fixture('customize', {}, true); await f.page.onShow(); await f.page.onEditMenu(event('id', 3)); f.page.onMenuInput(event('menuName', '未保存名称'))
   const create = f.moduleFrom(path.resolve('utils/meal-workspace-page.js')), def = create({ mode: 'result' }), workspace = { ...def, data: plain(def.data), setData: f.page.setData, _alive: true }
   await workspace.initializeWorkspace(target)
-  const source = fs.readFileSync('templates/meal-workspace.wxml', 'utf8'), handler = source.match(/label="存为常用菜单"[^>]*bind:action="([^"]+)"/)[1]
+  const source = fs.readFileSync('templates/meal-workspace.wxml', 'utf8'), handler = source.match(/bindtap="(onSaveReusableMenu)"/)[1]
   workspace[handler](); await f.page.onShow(); assert.equal(f.dialogs.length, 1); assert.equal(f.page.data.menuName, '未保存名称'); assert.equal(f.page.data.menuEditingId, 3)
   await f.dialogs[0].success({ confirm })
   if (confirm) {

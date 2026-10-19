@@ -8,6 +8,6 @@ test('empty shopping deliberately omits expenses; missing expected controls stil
  assert.equal(native.shoppingFooterEvidence({showExpenses:true},{bottom:502},{top:500}).status,'failed')
 })
 test('fixture pages declare actual empty shopping and a readable recipe rather than absent data',()=>{
- assert.equal(native.fixtureData('shopping-list',1).pagePresentation.emptyAction,'从日历准备食材')
+ assert.equal(native.fixtureData('shopping-list',1).pagePresentation.emptyAction,'')
  assert.equal(native.fixtureData('dish-detail',1).dish.name,'合成验收·番茄炒蛋')
 })

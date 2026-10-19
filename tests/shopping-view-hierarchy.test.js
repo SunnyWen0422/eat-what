@@ -8,7 +8,7 @@ test('aggregate overflow remains uncertain without losing source quantities or m
   {selectionKey:'second',sourceDate:'2026-10-17',sourceMealType:'lunch',items:[safe(2,Number.MAX_VALUE,'第二餐原量MAX克'),safe(3,1,'第三行原量1克'),{...safe(4,Number.MAX_VALUE,'我确认半袋'),userOverride:true}]},
  ]}
  const before=structuredClone(list),view=buildShoppingView(list),row=view.rows.find(row=>row.sourceCount===3)
- assert.equal(row.quantityValue,null);assert.equal(row.quantityLabel,'用量待确认');assert.equal(row.quantityUncertain,true)
+ assert.equal(row.quantityValue,null);assert.equal(row.quantityLabel, '');assert.equal(row.quantityUncertain,true)
  assert.deepEqual(row.itemIds,[1,2,3]);assert.equal(new Set(row.sources.map(source=>source.sourceKey)).size,3)
  assert.deepEqual(row.sources.map(source=>source.sourceQuantityText),['第一餐原量MAX克','第二餐原量MAX克','第三行原量1克'])
  assert.deepEqual(row.sources.map(source=>source.sourceDate),['2026-10-16','2026-10-17','2026-10-17'])
@@ -27,7 +27,7 @@ test('missing trusted quantity metadata remains uncertain while explicit manual 
 })
 test('purchase hierarchy puts provenance before tabs and keeps add secondary when nonempty',()=>{
  const markup=fs.readFileSync('pages/shopping-list/shopping-list.wxml','utf8')
- assert.ok(markup.indexOf('bindtap="onOpenSourceMeal"')<markup.indexOf('class="ew-tabs"'))
+ assert.ok(markup.indexOf('bindtap="onOpenSourceMeal"')<markup.indexOf('class="ew-tabs shopping-status-tabs"'))
  assert.match(markup,/variant="\{\{pagePresentation.addEmphasis\}\}"/)
  const preview=fs.readFileSync('pages/shopping-preview/shopping-preview.wxml','utf8')
  assert.match(preview,/bindtap="onOwnedRow"/)
@@ -45,6 +45,6 @@ test('shopping sources hide internal statistics without changing identity, origi
  const {buildShoppingView}=require('../utils/shopping-view')
  const raw={id:7,displayName:'豆腐',sourceQuantityText:'豆腐|460|克|主料|切块||2名成年人总量+15%冗余',quantityText:'用量待确认',calculationStatus:'NEEDS_ADJUSTMENT',warnings:['2名成年人总量+15%冗余','原使用量仅供参考','请按人数调整用量'],checked:false}
  const before=JSON.stringify(raw),row=buildShoppingView({dishes:[{dishId:8,dishName:'豆腐汤',items:[raw]}]}).rows[0]
- assert.equal(row.sourceDisplayText,'豆腐 460克（切块）');assert.deepEqual(row.displayWarnings,['请按人数调整用量'])
+ assert.equal(row.sourceDisplayText,'豆腐 460克（切块）');assert.deepEqual(row.displayWarnings,[])
  assert.equal(row.quantityUncertain,true);assert.equal(row.sourceQuantityText,raw.sourceQuantityText);assert.equal(JSON.stringify(raw),before);assert.ok(raw.warnings.every(warning=>row.warnings.includes(warning)))
 })

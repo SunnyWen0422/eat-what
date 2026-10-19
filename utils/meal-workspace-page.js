@@ -315,7 +315,7 @@ module.exports = function workspacePage(options = {}) {
       const w=this.store && this.store.state().workspace
       this._requirementsBinding={scope:this._scope,store:this.store,date:this.data.context.date,meal:this.data.context.mealType,id:w && w.id}
       this.onCloseComposition();this.onClosePeople();this.onCloseMealSettings();
-      this.setData({requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false,errorMessage:''})
+      this.setData({moreVisible:false,requirementsVisible:true,requirementsDraft:this.data.context.requirements || '',requirementsSaving:false,errorMessage:''})
     },
     async onContinueMealConversation() {
       if(!this.current() || this.data.contextLocked || this.data.requirementsSaving)return

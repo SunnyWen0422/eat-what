@@ -31,3 +31,9 @@
 .card-dish-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
 .assistant-card .card-dish-line .card-dish { flex:1 1 140px; width:auto; min-width:0; }
 .card-dish-line .favorite-control { display:flex; align-items:stretch; width:44px; min-height:44px; flex:0 0 44px; }
+/* Keep current-menu actions on the same centerline, including narrow screens. */
+.card-dish-line.has-menu-actions { flex-wrap:nowrap; }
+.assistant-card .has-menu-actions .card-dish { flex:1 1 0; gap:8px; }
+.has-menu-actions .card-picture { width:40px; height:40px; border-radius:12px; }
+.has-menu-actions .card-name-text { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; line-height:1.4; }
+.has-menu-actions .card-menu-controls { margin-left:0; align-items:center; }

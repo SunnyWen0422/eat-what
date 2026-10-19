@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "餐桌助手",
+  "navigationBarTitleText": "饮食助手",
   "usingComponents": {
     "assistant-card": "/components/assistant-card/index",
     "compact-dish-row": "/components/compact-dish-row/index"

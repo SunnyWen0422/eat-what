@@ -13,7 +13,7 @@ const clone = value => JSON.parse(JSON.stringify(value))
 const operationSignature = (type, payload, itemId) => { const { requestId, expectedListVersion, ...body } = payload; return JSON.stringify([type, body, itemId]) }
 Page({
   onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
-  data: { sourceMeals:[],sourceMealsVisible:false,feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
+  data: { deleteMode:false,sourceMeals:[],sourceMealsVisible:false,feedback:emptyFeedback(),reducedMotion:false,summaryRowCount:0,pricingRows:[],pendingPrice:'—',actualSpend:'—',priceNotice:'',expensesEnabled:false,expenseVisible:false,expenseAmount:'',expenseChannel:'',channels:pricing.CHANNELS,moreVisible:false, fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(), loading: true, refreshing: false, busy: false, errorMessage: '', offline: false, statusFilter: 'pending', viewMode: 'summary', dishes: [], summaryRows: [], drafts: [], pendingCount: 0, checkedCount: 0, version: 0, formVisible: false, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' },
   onLoad(options={}){this._assistantHandoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['edit_shopping'],{storage:wx,storageKey:getUserStorageKey}):null},
   async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this); await this.loadList();this.applyAssistantHandoff() },
   applyAssistantHandoff(){
@@ -22,8 +22,8 @@ Page({
     if(String(this.data.version)!==p.sourceVersion||!this.findItem(p.ref.itemId))return this.setData({errorMessage:'这条采购内容已变化，请重新选择要调整的条目'})
     this.onEditItem({currentTarget:{dataset:{id:p.ref.itemId}}})
   },
-  onHide() { this.finishTransition() },
-  onUnload() { this._unloaded = true; this._epoch = (this._epoch || 0) + 1; this.finishTransition() },
+  onHide() { this._checkingAll = null; this.finishTransition() },
+  onUnload() { this._checkingAll = null; this._unloaded = true; this._epoch = (this._epoch || 0) + 1; this.finishTransition() },
   onPageScroll(e) { this._scrollTop = Number(e.scrollTop) || 0 },
   restoreScroll(top = this._scrollTop || 0) { if (wx.pageScrollTo) wx.pageScrollTo({ scrollTop: top, duration: 0 }) },
   finishTransition() { if (this._transitionTimer) clearTimeout(this._transitionTimer); this._transitionTimer = null; this._settlingCheck = null; if (this._full && !this._unloaded) this.renderList() },
@@ -37,7 +37,7 @@ Page({
     const scope = getUserStorageKey('shoppingList'), epoch = this._epoch = (this._epoch || 0) + 1
     this.finishTransition(); this.invalidateUndo()
     this.setData({ reducedMotion: experiencePreferences().get().reducedMotion })
-    if (this._scope !== scope) { this._quotes={};this._priceEpoch=(this._priceEpoch||0)+1;this._undo=null;this._expandedDishes=[];this._expandedSources=[];this.setData({feedback:emptyFeedback(),statusFilter:'pending',viewMode:'summary'});this.setData({sourceMealsVisible:false,detailsExpanded:false,moreVisible:false,addVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ priceLoading:false,expensesEnabled:false,priceNotice:'',expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
+    if (this._scope !== scope) { this._quotes={};this._priceEpoch=(this._priceEpoch||0)+1;this._undo=null;this._expandedDishes=[];this._expandedSources=[];this.setData({deleteMode:false,feedback:emptyFeedback(),statusFilter:'pending',viewMode:'summary'});this.setData({sourceMealsVisible:false,detailsExpanded:false,moreVisible:false});this._signature = null; this._pendingMutation = null; this.setData({ priceLoading:false,expensesEnabled:false,priceNotice:'',expenseVisible:false,pricingRows:[],actualSpend:'—',formVisible: false, formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', busy: false }) }
     this._scope = scope
     this.applyList(store.loadLocalShoppingList())
     this.setData({ loading: !this._full.dishes.length, refreshing: true, errorMessage: '', drafts: store.loadPendingOperations() })
@@ -65,16 +65,16 @@ Page({
       return { ...row, sourceExpanded: (this._expandedSources || []).includes(row.key), justChecked, checkedState: justChecked ? 'all' : row.checkedState }
     }
     const dishes = display.groups.map(group => ({ ...group,contextLabel:group.sourceDate?`${Number(group.sourceDate.slice(5,7))}月${Number(group.sourceDate.slice(8,10))}日 ${flow.mealNames[group.sourceMealType] || ''}`.trim():'手动添加', expanded: (this._expandedDishes || []).includes(group.key), items: group.items.map(decorate) }))
-    const sourceMeals=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes).map(t=>({...t,label:t.date+' '+flow.mealNames[t.mealType]}))
+    const sourceMeals=require('../../utils/meal-next-step').distinctMealSources((this._full || {}).dishes).map(t=>({...t,label:t.date+' '+flow.mealNames[t.mealType],dateLabel:Number(t.date.slice(5,7))+'月'+Number(t.date.slice(8))+'日',mealLabel:flow.mealNames[t.mealType]}))
     // Expenses belong to remaining ingredients; empty lists cannot retain detached spend.
     const pagePresentation=shoppingPagePresentation({...this.data,hasExpense:false,pendingCount:view.pendingCount,checkedCount:view.checkedCount,sourceMeals})
-    this.setData({ pagePresentation,sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
+    this.setData({ deleteMode:view.pendingCount+view.checkedCount>0 && !!this.data.deleteMode,pagePresentation,sourceMeals,pendingCount: view.pendingCount, checkedCount: view.checkedCount, summaryRowCount: view.summaryRowCount,
       dishes, summaryRows: decorateShoppingRows(display.rows.map(decorate), [], this._expandedSources || []) })
   },
   refreshPricing(){
     if(!this._full)return
     const view=pricing.buildPricing(this._full,this._quotes||{})
-    this.setData({pricingRows:view.rows.map(row=>({...row,displayName:row.displayName+(row.normalizedVariant&&!row.displayName.includes(row.normalizedVariant)?'（'+row.normalizedVariant+'）':'')})),pendingPrice:view.pendingText,actualSpend:view.actualText,pendingMissing:view.pendingMissing})
+    this.setData({pricingRows:view.rows,pendingPrice:view.pendingText,actualSpend:view.actualText,pendingMissing:view.pendingMissing})
   },
   async loadPrices(scope,epoch){
     if(!this.data.detailsExpanded||!this.current(scope)||epoch!==this._epoch)return
@@ -114,10 +114,20 @@ Page({
     this.setData({sourceMealsVisible:false});wx.navigateTo({url:require('../../utils/meal-next-step').mealSourceUrl(target)})
   },
   onCloseSourceMeals(){this.setData({sourceMealsVisible:false})},
-  onCopyList(){wx.setClipboardData({data:pricing.copyPending(this._full)})},
+  onCopyList(){
+    const scope=this._scope
+    if(!this.current(scope)||this.data.busy)return
+    const text=pricing.copyList(this._full,this.data.statusFilter)
+    if(!text)return wx.showToast({title:'当前没有可复制的食材',icon:'none'})
+    wx.setClipboardData({data:text,fail:()=>{if(this.current(scope))wx.showToast({title:'复制未完成，请重试',icon:'none'})}})
+  },
+  onToggleDelete(){
+    if(!this.current(this._scope)||this.data.busy||this._deletingRow)return
+    this.finishTransition();this._expandedSources=[]
+    this.setData({deleteMode:!this.data.deleteMode});this.renderList()
+  },
   onMore(){this.setData({moreVisible:!this.data.moreVisible})},
   async onPriceDetails(){if(!this.current(this._scope)||this.data.busy)return;this.setData({detailsExpanded:!this.data.detailsExpanded});if(this.data.detailsExpanded)return this.loadPrices(this._scope,this._epoch)},
-  onAddFromCalendar(){this.setData({addVisible:false});wx.switchTab({url:'/pages/calendar/calendar'})},
   onSourceDetails(e){const key=e.detail && e.detail.key || e.currentTarget.dataset.key;this._expandedSources=this._expandedSources||[];this._expandedSources=this._expandedSources.includes(key)?this._expandedSources.filter(k=>k!==key):[...this._expandedSources,key];this.renderList()},
   onFilterChange(e) { const status=e.currentTarget.dataset.status; if (!['pending','checked'].includes(status)) return; this.finishTransition(); this.setData({ statusFilter: status }); this.renderList() },
   onViewMode(e) { const mode=e.currentTarget.dataset.mode; if (!['summary','byDish'].includes(mode)) return; this.finishTransition(); this.setData({ viewMode: mode }) },
@@ -129,13 +139,16 @@ Page({
     if (row.itemIds.length===1) return this.onEditItem({currentTarget:{dataset:{id:row.itemIds[0]}}})
     if (!(this._expandedSources || []).includes(row.key)) this.onSourceDetails({currentTarget:{dataset:{key:row.key}}})
   },
-  onAddOptions() { if(!this.data.busy)this.setData({addVisible:!this.data.addVisible}) },
-  onAddManual() { this.setData({ addVisible:false, formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' }) },
+  onAddManual() {
+    if (this.data.busy) return
+    this.setData({ formVisible: true, formMode: 'manual', formName: '', formQuantity: '', formQuantityEdited: false, formNote: '', formError: '' })
+  },
   onEditItem(e) {
     const item = this.findItem(e.currentTarget.dataset.id)
     if (!item) return
     this._editId = item.id
-    this.setData({ formVisible: true, formMode: 'edit', formName: item.displayName, formQuantity: item.quantityText || '', formQuantityEdited: false, formNote: '', formError: '' })
+    const display=buildShoppingView({dishes:[{items:[item]}]},item.checked?'checked':'pending').rows[0]
+    this.setData({ formVisible: true, formMode: 'edit', formName: item.displayName, formQuantity: display ? display.quantityLabel : '', formQuantityEdited: false, formNote: '', formError: '' })
   },
   findItem(id) { for (const group of this._full.dishes) { const item = (group.items || []).find(row => String(row.id) === String(id)); if (item) return item } },
   onName(e) { this.setData({ formName: e.detail.value }) },
@@ -184,6 +197,7 @@ Page({
         const afterItems = new Map(list.dishes.flatMap(group => group.items || []).map(item => [String(item.id), item.checked]))
         if (operation.payload.itemIds.some(id => afterItems.get(String(id)) !== operation.payload.checked)) throw { isNetworkError: true, message: '勾选结果尚未确认' }
       }
+      if (operation.type === 'delete' && list.dishes.some(group => (group.items || []).some(item => String(item.id) === String(operation.itemId)))) throw { isNetworkError: true, message: '删除结果尚未确认' }
       if (!stale) {
         const reducedMotion = experiencePreferences().get().reducedMotion
         this.setData({ reducedMotion })
@@ -198,6 +212,7 @@ Page({
       this.setData({ expenseVisible: false, formVisible: false, offline: false, drafts: store.loadPendingOperations(), feedback: { requestId: operation.payload.requestId, state: 'success', message, undoAvailable: !!undo, undoLabel: '撤销勾选' } })
       if (this._settlingCheck) this._transitionTimer = setTimeout(() => { if (this.current(scope)) { this.finishTransition(); this.restoreScroll() } }, tokens.motion.row)
       if (operation.isUndo && !stale) this.restoreScroll(operation.restoreScroll == null ? scrollTop : operation.restoreScroll)
+      return true
     } catch (error) {
       if (!this.current(scope) || !stillPending()) return
       if (error.isNetworkError || !error.statusCode || error.statusCode >= 500 || [401, 403, 408, 429].includes(error.statusCode)) {
@@ -234,10 +249,47 @@ Page({
   saveForm() {
     const name = this.data.formName.trim(), quantityText = this.data.formQuantity.trim()
     const manual = this.data.formMode === 'manual', quantityConfirmed = manual || this.data.formQuantityEdited
-    if (!name || name.length > 255 || quantityConfirmed && (!quantityText || quantityText.length > 255)) return this.setData({ formError: '请填写食材名称和用量，两者各不超过 255 字。' })
+    if (!name || name.length > 255 || quantityConfirmed && (!quantityText || quantityText.length > 255)) return this.setData({ formError: '请填写食材名称和分量，两者各不超过 255 字。' })
     const body = manual ? { name, quantityText, note: this.data.formNote.trim() } : { displayName: name }
     if (!manual && quantityConfirmed) body.quantityText = quantityText
     return this.perform(this.stableOperation(this.data.formMode === 'manual' ? 'manual' : 'patch', body, this.data.formMode === 'edit' ? this._editId : undefined))
+  },
+  async onCheckAll() {
+    if (this.data.busy || this.data.loading || this.data.refreshing || this._checkingAll || !this.current(this._scope)) return
+    const ids = [...new Set((this._full.dishes || []).flatMap(group => (group.items || []).filter(item => item.checked !== true).map(item => item.id)))]
+    if (!ids.length) return
+    const scope = this._scope, epoch = this._epoch, run = {}
+    let version = this.data.version, completed = 0
+    this._checkingAll = run
+    const active = () => this._checkingAll === run && this.current(scope) && this._epoch === epoch
+    try {
+      if (!await confirm('是否全部已购？', `将 ${ids.length} 项待买食材标为已买。`, '是')) return
+      if (!active()) return
+      this.setData({ deleteMode: false })
+      // The existing service accepts at most 500 source IDs per atomic mutation.
+      // Fix the target at confirmation; stop on failure rather than widening it.
+      for (let offset = 0; offset < ids.length; offset += 500) {
+        if (!active()) return
+        if (this.data.version !== version || this.data.busy || this.data.refreshing) {
+          this.setData({ errorMessage: completed ? `已标记 ${completed} 项；清单已变化，其余请重新确认。` : '清单已变化，请重新确认是否全部已购。' })
+          return
+        }
+        const batch = ids.slice(offset, offset + 500)
+        const saved = await this.perform(this.stableOperation('check', { itemIds: batch, checked: true }))
+        if (!active()) return
+        if (!saved) {
+          if (completed) this.setData({ errorMessage: `已标记 ${completed} 项，其余尚未完成。${this.data.errorMessage || '请核对后重试。'}` })
+          return
+        }
+        completed += batch.length
+        if (ids.length > 500 && this.data.feedback.undoAvailable) this.setData({ feedback: { ...this.data.feedback, undoLabel: `撤销最近 ${batch.length} 项` } })
+        // A newer read can arrive while this request is in flight; never silently
+        // adopt its version as permission to continue the remaining batches.
+        if (this.data.version !== version + 1) return
+        version = this.data.version
+      }
+      if (ids.every(id => { const item = this.findItem(id); return item && item.checked === true })) this.setData({ feedback: { ...this.data.feedback, message: '全部待买食材已标为已买' } })
+    } finally { if (this._checkingAll === run) this._checkingAll = null }
   },
   onToggleItem(e) {
     const item = this.findItem(e.currentTarget.dataset.id)
@@ -249,7 +301,33 @@ Page({
     const visible = row.itemIds.filter(id => { const item = this.findItem(id); return item && (item.checked === true) === (this.data.statusFilter === 'checked') })
     if (visible.length) return this.perform(this.stableOperation('check', { itemIds: visible, checked: this.data.statusFilter === 'pending' }))
   },
-  async onDeleteItem(e) { const id = Number(e.currentTarget.dataset.id), origin = this._scope; if (await confirm('删除这项食材？', '删除后可重新从菜谱或手动添加。', '删除') && this.current(origin)) this.perform(this.stableOperation('delete', {}, id)) },
+  onDeleteItem(e) { return this.deleteIngredientIds([Number(e.currentTarget.dataset.id)]) },
+  onDeleteRow(e) {
+    if(!this.data.deleteMode)return
+    const key=e.detail && e.detail.key || e.currentTarget.dataset.key
+    const rows=this.data.viewMode==='summary'?this.data.summaryRows:this.data.dishes.flatMap(d=>d.items)
+    const row=rows.find(item=>item.key===key)
+    if(row && !row.justChecked)return this.deleteIngredientIds(row.itemIds)
+  },
+  async deleteIngredientIds(input) {
+    if(this.data.busy||this._deletingRow||!this.current(this._scope))return
+    const scope=this._scope,version=this.data.version,ids=[...new Set(input)].filter(id=>this.findItem(id))
+    if(!ids.length)return
+    const run={};this._deletingRow=run
+    try {
+      if(!await confirm('删除这项食材？',ids.length>1?`将移除这项汇总食材的 ${ids.length} 处来源。`:'删除后可重新添加。','删除'))return
+      if(!this.current(scope)||this.data.version!==version||this.data.busy){if(this.current(scope))this.setData({errorMessage:'清单已变化，请重新选择要删除的食材。'});return}
+      let removed=0
+      for(const id of ids) {
+        if(!this.current(scope)||!this.findItem(id))return
+        const saved=await this.perform(this.stableOperation('delete',{},id))
+        if(!this.current(scope))return
+        if(!saved){if(removed)this.setData({errorMessage:`已移除 ${removed} 处来源；其余尚未完成。${this.data.errorMessage || '请核对后重试。'}`});return}
+        removed++
+      }
+      this.setData({feedback:{...this.data.feedback,message:'已删除这项食材'}})
+    } finally { if(this._deletingRow===run)this._deletingRow=null }
+  },
   async clear(scope) {
     if (this.data.busy || !['all','checked'].includes(scope)) return
     const origin=this._scope, version=this.data.version
@@ -301,5 +379,4 @@ Page({
   },
   async onDiscardDraft(e) { const scope = this._scope; if (await confirm('丢弃本地草稿？', '只移除待确认草稿；云端可能已保存的内容请刷新查看。', '丢弃') && this.current(scope)) { store.removePendingOperation(e.currentTarget.dataset.id); this.setData({ drafts: store.loadPendingOperations() }) } },
   onBackToToday() { wx.switchTab({ url: '/pages/index/index' }) },
-  onAddFromRecipe() { this.setData({addVisible:false}); wx.switchTab({ url: '/pages/customize/customize' }) },
 })

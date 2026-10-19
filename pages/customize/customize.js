@@ -53,7 +53,7 @@ Page({
     selectedTotal: 0,
     selectedList: [],
     showSelectedPanel: false,
-    catalogHelpVisible:false, showBrowseFilters: false,
+    showBrowseFilters: false,
     browseCriteria: emptyBrowseCriteria(),
     browseFilterGroups: [],
     browseDurationOptions: BROWSE_DURATIONS,
@@ -196,8 +196,6 @@ Page({
     return this.ensureBrowseOwner() && identity === this._browseIdentity && epoch === (this._privateEpoch || 0)
   },
   onRetryPage() { return this.loadPage(this.data.activeTab,this.data.browseErrorPage>1?this.data.browseErrorPage:1) },
-  onOpenCatalogHelp() { if(this.ensureBrowseOwner())this.setData({catalogHelpVisible:true}) },
-  onCloseCatalogHelp() { this.setData({catalogHelpVisible:false}) },
   onDismissPersonalGuide() { if (this.ensureBrowseOwner()) { wx.setStorageSync(getUserStorageKey('personalRecipeGuideDismissed'), true); this.setData({ personalGuideVisible: false }) } },
   onToggleCustomExtras() { if (this.ensureBrowseOwner()) this.setData({ customExtrasVisible: !this.data.customExtrasVisible }) },
   syncCustomLeaveAlert() {
@@ -703,8 +701,24 @@ Page({
   },
   onResumeMenuForm() {
     if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    if (!this.data.selectedTotal && !this.data.menuPending && !this.writeJournal().pending('menu:create')) return
     if (this.data.menuFormVisible || this.data.menuEditingId || this.data.menuPending) return this.onOpenMenus()
     return this.onOpenMenuForm()
+  },
+  onStartNewMenu() {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy) return
+    // A pending write or an existing editor always resumes with its original identity.
+    if (this.data.menuFormVisible || this.data.menuEditingId || this.data.menuPending || this.writeJournal().pending('menu:create')) return this.onOpenMenus()
+    if (this.data.showCustomForm) return this.onCancelCustom(() => this.onStartNewMenu())
+    this.beginMenuForm([], this.data.selectedMeal && this.data.selectedMeal.people || 2)
+    return this.onAdjustMenuDishes()
+  },
+  onAdjustMenuDishes() {
+    if (!this.ensureBrowseOwner() || this.data.menuBusy || this.data.menuPending) return
+    if (!this.data.menuFormVisible && !this.data.menuEditingId) return
+    clearTimeout(this.searchTimer)
+    this.setData({ showMenus: false, showSelectedPanel: false, recipeSource: 'all', activeTab: 'meat', searchKeyword: '', personalSaveMessage: '' })
+    return this.loadPage('meat', 1)
   },
   onOpenMenuForm() {
     if (!this.ensureBrowseOwner() || this.data.menuBusy) return
@@ -748,7 +762,7 @@ Page({
     try {
       await this.writeJournal().run(action, { name: String(this.data.menuName).trim(), people, dishIds: ids, dishVersions, expectedVersion: id ? this._menuVersion : 0 }, body => id ? api.updatePersonalMenu(id, body) : api.createPersonalMenu(body))
       if (!this.isBrowseCurrent(identity, epoch)) return
-      this.setData({ showMenus: true, personalSaveMessage: '已保存到常用菜单，可在这里用作本餐菜单。尚未写入日历。', menuFormVisible:false, menuName: '', menuPeople: 2, menuEditingId: null, menuPending: false }); this._menuVersion = null
+      this.setData({ showMenus: true, personalSaveMessage: '已保存到常用菜单', menuFormVisible:false, menuName: '', menuPeople: 2, menuEditingId: null, menuPending: false }); this._menuVersion = null
       if(this._recipeSelection)require('../../utils/dish-workspace-handoff').renderSelectionPage(this)
       wx.showToast({ title: '常用菜单已保存', icon: 'success' }); await this.loadMenus()
     } catch (error) { if (this.isBrowseCurrent(identity, epoch)) this.setData({ menuError: require('../../utils/meal-workflow').errorMessage(error, '保存结果未确认，重试会使用原内容') }) }
@@ -787,7 +801,7 @@ Page({
       const recipeText = require('../../utils/personal-recipes').editableRecipeText
       const menuReviewDishes = refreshed.map(d => ({ ...d, reviewIngredients: require('../../utils/recipe-display').presentRecipeIngredients(d).lines, reviewSteps: recipeText(d.steps || d.step) }))
       const unavailable = refreshed.some(d => d.unavailable), changed = refreshed.some(d => d.changed)
-      const menuReviewNotice = pending ? '上次保存结果未确认，重试会使用原内容。' : unavailable ? '部分菜品已不可用，仍保留在已选中。请移除或替换后再保存。' : changed ? '菜单菜谱内容有变化，以下为最新内容。请核对后点保存菜单，确认更新快照。' : '已读取当前菜谱。保存菜单后才会更新组合和快照。'
+      const menuReviewNotice = pending ? '' : unavailable ? '部分菜品已不可用，请移除或替换后保存。' : changed ? '菜谱内容有变化，请核对后保存。' : ''
       this._menuVersion = pending ? pending.expectedVersion : menu.version
       this.setData({ menuFormVisible: true, activeMenu: null, showMenuTarget: false, menuEditingId: id, menuName: pending ? pending.name : menu.name, menuPeople: pending ? pending.people : menu.people, menuPending: !!pending, menuReviewDishes, menuReviewNotice, selectedIds: ids, selectedTotal: ids.length, selectedList: this.buildSelectedList(ids), selectionMode: true, currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: ids.includes(d.id) })) })
       this._menuInitial = this.menuFormSnapshot(); this.syncCustomLeaveAlert()
@@ -799,7 +813,7 @@ Page({
     const recipeText = require('../../utils/personal-recipes').editableRecipeText
     const dishes = this.data.selectedIds.map(id => this.allDishesMap[id] || { id, name: '菜品 ' + id })
     this.setData({ menuReviewDishes: dishes.map(d => ({ ...d, reviewIngredients: require('../../utils/recipe-display').presentRecipeIngredients(d).lines, reviewSteps: recipeText(d.steps || d.step) })),
-      menuReviewNotice: dishes.some(d => d.unavailable) ? '部分菜品不可用，请从已选组合移除或替换后再保存。' : '已选组合已调整，保存常用菜单后才会更新模板；历史餐食保留。' })
+      menuReviewNotice: dishes.some(d => d.unavailable) ? '部分菜品不可用，请移除或替换后保存。' : dishes.some(d => d.changed) ? '菜谱内容有变化，请核对后保存。' : '' })
     this.syncCustomLeaveAlert()
   },
   menuFormSnapshot() { return JSON.stringify({ name: this.data.menuName, people: Number(this.data.menuPeople), ids: this.data.selectedIds }) },
@@ -816,7 +830,7 @@ Page({
     this._menuVersion = null
     const selectedIds = [...ids], dishes = selectedIds.map(id => sourceDishes.find(d => Number(d.id) === Number(id)) || this.allDishesMap[id] || { id, name: '菜品 ' + id })
     this.addToGlobalCache(dishes)
-    this.setData({ menuFormVisible:true,activeMenu:null,showMenuTarget:false,menuEditingId: null, menuName: '', menuPeople: people, selectedIds, selectedTotal: selectedIds.length, selectedList: dishes, menuReviewDishes: dishes, menuReviewNotice: '这些已选菜品仅保存为可复用模板，不写入日历。', currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: selectedIds.includes(Number(d.id)) })) })
+    this.setData({ menuFormVisible:true,activeMenu:null,showMenuTarget:false,menuEditingId: null, menuName: '', menuPeople: people, selectedIds, selectedTotal: selectedIds.length, selectedList: dishes, menuReviewDishes: dishes, menuReviewNotice: '', menuError: '', currentDishes: this.data.currentDishes.map(d => ({ ...d, isSelected: selectedIds.includes(Number(d.id)) })) })
     this._menuInitial = this.menuFormSnapshot(); this.syncCustomLeaveAlert()
   },
   onNewMenu() {

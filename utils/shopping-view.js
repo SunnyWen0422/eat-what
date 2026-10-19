@@ -1,6 +1,8 @@
 const { normalizeQuantitySafety, formatShoppingQuantity, isSafeQuantity } = require('./shopping-ingredients')
 const { cleanRecipeText, recipeSourceText } = require('./recipe-display')
 
+const presentation = require('./shopping-display')
+
 const mealNames = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' }
 const identity = (kind, parts) => `${kind}:${JSON.stringify(parts)}`
 
@@ -38,11 +40,11 @@ function buildShoppingView(list = {}, status = 'pending') {
       const origin = { ...source, key: itemKey, sourceKey: itemKey, itemId: item.id, sourceLabel: sourceLabel(source), quantityText: item.quantityText || '用量待确认', sourceQuantityText: item.sourceQuantityText || item.sourceText || item.quantityText || '用量待确认', warnings:item.warnings || [], userOverride: item.userOverride === true, note: !source.dishId && !source.sourceDate && source.dishName === '手动添加' ? item.sourceQuantityText || '' : '' }
       // Presentation only: source text, warnings, IDs and calculation safety remain unchanged.
       origin.sourceDisplayText = recipeSourceText(origin.sourceQuantityText)
-      origin.quantityDisplayText = recipeSourceText(origin.quantityText)
-      origin.displayWarnings = [...new Set(origin.warnings.map(cleanRecipeText).map(text=>/^(原始数量或份数需要核对|原始份数不明|请按人数调整用量)$/.test(text)?'请按人数调整用量':text).filter(text=>text && !/^[A-Z_]+$/.test(text)))]
-      const quantityLabel = recipeSourceText(item.userOverride ? item.quantityText || '用量待确认' : formatShoppingQuantity(item))
-      const name=item.displayName || '未命名食材'
-      const value = { ...item, sourceDisplayText:origin.sourceDisplayText, displayWarnings:origin.displayWarnings, key: itemKey, sourceKey:itemKey, rowKey: itemKey, name: item.normalizedVariant && !name.includes(item.normalizedVariant) ? `${name}（${item.normalizedVariant}）` : name, quantityUncertain:!item.userOverride && (!isSafeQuantity(item) || !!(item.warnings || []).length), quantityLabel, itemIds: item.id == null ? [] : [item.id], sources: [origin], sourceCount: 1, sourceLabel: origin.sourceLabel, checkedState: checked ? 'all' : 'none' }
+      origin.quantityDisplayText = presentation.quantityText(origin.quantityText, item)
+      origin.displayWarnings = [...new Set(origin.warnings.map(cleanRecipeText).map(text=>/^(原始数量或份数需要核对|原始份数不明|请按人数调整用量)$/.test(text)?'请按人数调整用量':text).filter(text=>text && !/^[A-Z_]+$/.test(text) && !/^(用量待核对|用量待确认|用量待核实|原始份数不明|请按人数调整用量)$/.test(text)))]
+      const quantityLabel = presentation.quantityText(item.userOverride ? item.quantityText : formatShoppingQuantity(item), item)
+      const name=presentation.ingredientName(item)
+      const value = { ...item, sourceDisplayText:origin.sourceDisplayText, displayWarnings:origin.displayWarnings, key: itemKey, sourceKey:itemKey, rowKey: itemKey, name, quantityUncertain:!item.userOverride && (!isSafeQuantity(item) || !!(item.warnings || []).length), quantityLabel, itemIds: item.id == null ? [] : [item.id], sources: [origin], sourceCount: 1, sourceLabel: origin.sourceLabel, checkedState: checked ? 'all' : 'none' }
       items.push(value)
       const safe = isSafeQuantity(item)
       const key = safe ? identity('ingredient', [item.canonicalName || item.displayName, item.unitFamily, item.unitCode, item.normalizedVariant || '']) : itemKey
@@ -54,7 +56,8 @@ function buildShoppingView(list = {}, status = 'pending') {
         const row = mergeable.get(key)
         // An overflow is unknown, never a believable quantity or an implicit zero.
         row.quantityValue = Number.isFinite(row.quantityValue) && Number.isFinite(row.quantityValue + item.quantityValue) ? row.quantityValue + item.quantityValue : null
-        row.quantityText = row.quantityLabel = row.quantityValue == null ? '用量待确认' : formatShoppingQuantity(row)
+        row.quantityText = row.quantityValue == null ? '用量待确认' : formatShoppingQuantity(row)
+        row.quantityLabel = presentation.quantityText(row.quantityText, row)
         row.itemIds.push(...value.itemIds)
         row.sources.push(origin)
         row.sourceCount = row.sources.length

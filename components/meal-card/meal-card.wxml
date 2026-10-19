@@ -1,5 +1,5 @@
 <button wx:if="{{actionLabel}}" class="card card-navigation ew-hit-target" disabled="{{!clickable}}" aria-label="{{(accessibleLabel || title) + '，' + actionLabel}}" bindtap="open">
   <view class="card-copy"><view class="heading"><text class="meal-title">{{title}}</text><text wx:if="{{status}}" class="status">{{status}}</text></view><text wx:if="{{name}}" class="name">{{name}}</text><text wx:if="{{description}}" class="description">{{description}}</text></view>
-  <view class="card-action" aria-hidden="true"><text>{{actionLabel}}</text><ui-icon name="chevron-right" tone="muted" size="16" /></view>
+  <view class="card-action" aria-hidden="true"><text>{{actionLabel}}</text><ui-icon class="card-action-icon" name="chevron-right" tone="muted" size="16" /></view>
 </button>
 <view wx:else class="card"><view class="heading"><text class="meal-title">{{title}}</text><text wx:if="{{status}}" class="status">{{status}}</text></view><button wx:if="{{clickable}}" class="ew-hit-target name meal-link" bindtap="open">{{name || '还没有安排'}}</button><text wx:elif="{{name}}" class="name">{{name}}</text><text wx:if="{{description}}" class="description">{{description}}</text><slot /></view>

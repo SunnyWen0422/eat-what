@@ -30,7 +30,7 @@ function describeShoppingOperation(operation, list) {
     return {text:p.remove?`移除 ${label(row)} 的实际花费记录。`:`将 ${label(row)} 的实际花费设为 ${require('./shopping-prices').money(require('./shopping-prices').amountCents(p.amount))}，购买渠道：${p.channel||'未填写'}。参考价保持独立。`}
   }
   if(!target)return {error:'这项食材已不存在，请核对最新清单；原草稿保留。'}
-  if(operation.type==='delete')return {text:`删除 ${label(target)}（${target.quantityText||'用量待核对'}）这一项食材。`}
+  if(operation.type==='delete')return {text:`删除 ${require('./shopping-display').ingredientName(target)} 这一项食材。`}
   if(operation.type==='patch')return {text:`修改 ${label(target)}：`+['displayName','quantityText','note'].filter(k=>Object.prototype.hasOwnProperty.call(p,k)).map(k=>({displayName:'名称',quantityText:'用量',note:'备注'}[k])+'改为“'+(p[k]||'空')+'”').join('；')}
   return {error:'该草稿需重新核对，请保留原请求。'}
 }

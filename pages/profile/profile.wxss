@@ -5,13 +5,13 @@ page { background:#F8F7F2; }
 .profile-page .ew-heading { margin-bottom:8px; }
 .profile-page button.ew-hit-target { width:100%; min-width:44px; min-height:48px; height:auto; margin:0; font-family:inherit; font-size:1em; line-height:1.5; text-align:left; border:0; box-sizing:border-box; }
 .profile-page button::after { border:0; }
-.user-card { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 0; background:transparent; color:#25332B; border-bottom:1px solid #E6EAE1; border-radius:0; }
+.user-card { display:flex; align-items:center; flex-wrap:nowrap; gap:12px; padding:16px; margin:8px 0 16px !important; background:#EDF3ED; color:#25332B; border-radius:18px; }
 .user-avatar { width:48px; height:48px; flex:0 0 48px; }
 .avatar, .avatar-fallback { width:48px; height:48px; border-radius:14px; }
-.avatar-fallback { display:flex; align-items:center; justify-content:center; background:#F4E4D5; color:#854A2F; font-size:1.5em; }
+.avatar-fallback { display:flex; align-items:center; justify-content:center; background:#FFFFFF; color:#28634E; font-size:1em; }
 .user-info { flex:1; min-width:0; text-align:left; }
 .nickname, .level { display:block; overflow-wrap:anywhere; }
-.nickname { font-size:1.125em; font-weight:600; color:#25332B; }
+.nickname { font-size:1em; font-weight:600; line-height:1.4; color:#25332B; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .level { margin-top:2px; color:#56645B; font-size:0.8125em; }
 .profile-edit-label { color:#28634E; font-size:0.8125em; overflow-wrap:anywhere; }
 .shopping-shortcut { display:flex; align-items:center; gap:12px; margin:12px 0 !important; padding:12px; background:#EDF3ED; border-radius:14px; }
@@ -28,3 +28,5 @@ page { background:#F8F7F2; }
 .version-text { display:block; color:#56645B; font-size:0.75em; overflow-wrap:anywhere; }
 
 .profile-section-label { display:block; font-size:.8125em; color:#56645B; margin:20px 0 4px; line-height:1.5; }
+
+.user-card > ui-icon { flex:0 0 auto; }

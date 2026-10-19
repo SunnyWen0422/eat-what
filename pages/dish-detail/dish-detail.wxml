@@ -112,9 +112,9 @@
     <ui-button label="{{mealPrimaryLabel}}" loading="{{selectionBusy}}" disabled="{{selectionLoading || (!isAddedToMeal && selectionBlocked)}}" bind:action="onAddToCurrentMeal" />
   </view>
   <ui-sheet visible="{{showDetailMore}}" title="更多菜谱操作" bind:close="onHideDetailMore">
-    <ui-button label="准备食材" variant="secondary" bind:action="onAddToShoppingList" />
-    <ui-button label="复制为我的菜谱" variant="secondary" bind:action="onCopyPersonal" />
-    <button wx:if="{{canEditCustom}}" class="ew-hit-target ew-link" bindtap="onEditCustom">编辑我的菜谱</button>
+    <button class="ew-hit-target ew-menu-row" bindtap="onAddToShoppingList"><text class="ew-menu-label">准备食材</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
+    <button class="ew-hit-target ew-menu-row" bindtap="onCopyPersonal"><text class="ew-menu-label">复制为我的菜谱</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
+    <button wx:if="{{canEditCustom}}" class="ew-hit-target ew-menu-row" bindtap="onEditCustom"><text class="ew-menu-label">编辑我的菜谱</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
   </ui-sheet>
   <ui-sheet visible="{{showCopyPreview}}" title="复制为我的菜谱" busy="{{copyBusy}}" bind:close="onCancelCopyPersonal">
     <view class="ew-title">{{copyPreview.name}}</view>

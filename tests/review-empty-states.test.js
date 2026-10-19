@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict')
 const presentation=require('../utils/shopping-page-presentation'),pricing=require('../utils/shopping-prices')
-test('genuinely empty shopping removes switches and expenses but keeps one preparation action',()=>{
- const p=presentation.shoppingPagePresentation({});assert.equal(p.showViews,false);assert.equal(p.showExpenses,false);assert.equal(p.showMore,false);assert.equal(p.emptyAction,'从日历准备食材')
+test('genuinely empty shopping removes switches and expenses but keeps one footer add action',()=>{
+ const p=presentation.shoppingPagePresentation({});assert.equal(p.showViews,false);assert.equal(p.showExpenses,false);assert.equal(p.showMore,false);assert.equal(p.emptyAction,'')
 })
 test('checked items, zero expenses and recovery remain accessible',()=>{
  assert.equal(presentation.shoppingPagePresentation({checkedCount:2}).showViews,true)

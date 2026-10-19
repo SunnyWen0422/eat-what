@@ -75,7 +75,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-header { padding:8px 16px; }
 .connected-header .ew-heading { font-size:1.125em; }
 .connected-messages { padding:8px 16px 16px; }
-.connected-context { display:block; width:100%; margin:0 0 8px; padding:8px 0; background:transparent; color:{{muted}}; border:0; text-align:left; font-size:.8125em; line-height:1.5; white-space:normal; }
+.connected-assistant button.connected-context { display:block; width:100%; max-width:100%; margin:0 0 8px; padding:8px 0; background:transparent; color:{{muted}}; border:0; text-align:left; font-size:.8125em; font-weight:400; line-height:1.5; white-space:normal; }
 .connected-context-details { display:flex; flex-direction:column; gap:8px; padding:12px; margin-bottom:12px; font-size:1em; line-height:1.5; overflow-wrap:anywhere; }
 .connected-context-details .ew-title { font-size:1em; }
 .connected-welcome { padding:12px 0; }

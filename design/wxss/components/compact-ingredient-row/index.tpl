@@ -1,12 +1,12 @@
-.ingredient-row { display:flex; flex-wrap:wrap; align-items:center; min-height:52px; min-width:0; border-bottom:1px solid {{divider}}; font-size:inherit; }
-.ingredient-row .ingredient-check, .ingredient-row .ingredient-quantity, .ingredient-row .ingredient-sources { width:auto; min-width:44px; min-height:44px; margin:0; padding:{{space.0.px}}; display:flex; align-items:center; justify-content:center; background:transparent; border:0; color:{{text}}; font-family:inherit; font-size:inherit; font-weight:400; line-height:1.5; box-sizing:border-box; }
-.ingredient-check, .ingredient-sources { flex:0 0 44px; }
-.ingredient-copy { flex:1 1 80px; min-width:0; padding:{{space.1.px}} 0; }
-.ingredient-name { display:block; min-width:0; font-size:{{font.body.em}}; line-height:1.5; overflow-wrap:anywhere; }
-.ingredient-note { display:block; font-size:{{font.caption.em}}; color:{{muted}}; line-height:1.5; margin-top:2px; }
-.ingredient-row .ingredient-quantity { flex:0 1 auto; max-width:55%; overflow-wrap:anywhere; text-align:right; font-size:{{font.secondary.em}}; color:{{muted}}; }
-.check-box { width:18px; height:18px; box-sizing:border-box; border:1px solid {{controlBorder}}; border-radius:4px; display:flex; align-items:center; justify-content:center; }
-.is-checked .check-box { border-color:{{brand}}; background:{{brandSoft}}; }
-.is-checked .ingredient-name { color:{{muted}}; }
-.ingredient-control.is-disabled { background:transparent; color:{{muted}}; }
+.ingredient-row { display:flex; align-items:center; min-height:52px; color:{{text}}; }
+.ingredient-control { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; height:auto; padding:0; margin:0; border:0; background:transparent; border-radius:8px; font-family:inherit; font-size:inherit; font-weight:400; line-height:1.4; box-sizing:border-box; }
 .ingredient-control::after { border:0; }
+.ingredient-check,.ingredient-sources,.ingredient-remove { flex:0 0 44px; width:44px; }
+.check-box { width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:1px solid {{controlBorder}}; border-radius:5px; }
+.is-checked .check-box { background:{{brandSoft}}; border-color:{{brand}}; }
+.ingredient-main { flex:1; min-width:0; gap:12px; padding:8px 0; text-align:left; justify-content:space-between; color:{{text}}; }
+.ingredient-name { flex:1; min-width:0; overflow-wrap:anywhere; font-size:.875em; line-height:1.45; }
+.ingredient-quantity { flex:0 1 auto; max-width:45%; text-align:right; overflow-wrap:anywhere; font-size:.8125em; line-height:1.45; color:{{muted}}; }
+.remove-disc { width:20px; height:20px; border-radius:50%; background:{{danger}}; display:flex; align-items:center; justify-content:center; }
+.remove-line { width:10px; height:2px; border-radius:1px; background:#fff; }
+.ingredient-row .ingredient-control.ingredient-inactive { background:transparent; color:{{text}}; opacity:1; }

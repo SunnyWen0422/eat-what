@@ -30,3 +30,5 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .personal-page-heading button { flex:0 0 auto; margin:0; font-size:{{font.secondary.em}}; }
 .personal-edit-actions-large { flex-direction:column; align-items:stretch; }
 .ew-page .personal-edit-actions-large > ui-button { flex:none; width:100%; }
+
+.ew-page .personal-page-heading button, .ew-page button.private-dish-manage { min-height:44px; font-size:{{font.secondary.em}}; padding:6px 8px; background:transparent; border:0; }

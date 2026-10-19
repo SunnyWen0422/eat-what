@@ -1,5 +1,5 @@
 <view class="ew-page ew-dish-surface" style="font-size:{{fontBase * fontScale}}px">
-  <view class="ew-heading">餐桌助手记录</view>
+  <view class="ew-heading">饮食助手记录</view>
   <ui-state wx:if="{{errorMessage}}" kind="error" title="历史暂未读到" description="{{errorMessage}}" action-label="重新读取" bind:action="onShow" />
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取历史" />
   <ui-state wx:if="{{!loading && !errorMessage && !v4Sessions.length && !legacyVisible}}" kind="empty" title="还没有餐桌对话" action-label="回到今天" bind:action="onCurrentMeal" />

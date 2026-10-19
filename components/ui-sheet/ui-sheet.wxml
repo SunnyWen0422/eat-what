@@ -3,7 +3,7 @@
     <scroll-view class="sheet-scroll" scroll-y="{{overflowChrome}}" style="max-height:{{sheetHeight}}px;height:{{overflowChrome ? sheetHeight + 'px' : 'auto'}}">
       <view class="sheet-layout {{overflowChrome ? 'overflow-chrome' : ''}}" style="max-height:{{overflowChrome ? 'none' : sheetHeight + 'px'}};padding-bottom:{{keyboardHeight ? 16 : 16 + safeInset}}px">
         <view class="sheet-handle" aria-hidden="true"></view>
-        <view class="ew-between sheet-header"><text class="ew-title">{{title}}</text><ui-icon-button name="close" label="关闭面板" disabled="{{busy}}" bind:press="close" /></view>
+        <view class="ew-between sheet-header"><text class="ew-title">{{title}}</text><view class="sheet-header-actions"><slot name="header-actions" /><ui-icon-button name="close" label="关闭面板" disabled="{{busy}}" bind:press="close" /></view></view>
         <scroll-view class="sheet-body" scroll-y="{{!overflowChrome}}" style="max-height:{{overflowChrome ? 'none' : bodyHeight + 'px'}}"><slot /></scroll-view>
         <view class="sheet-footer"><slot name="footer" /></view>
       </view>

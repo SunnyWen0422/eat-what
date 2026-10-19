@@ -7,6 +7,7 @@
 .sheet-handle { width:48px; height:4px; border-radius:2px; margin:0 auto {{space.1.px}}; background:{{border}}; flex-shrink:0; }
 .sheet-header { min-width:0; flex-shrink:0; gap:{{space.1.px}}; }
 .sheet-header .ew-title { flex:1; min-width:0; overflow-wrap:anywhere; font-size:{{font.section.em}}; }
+.sheet-header-actions { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
 .sheet-body { flex:0 1 auto; min-height:0; min-width:0; overflow:hidden; padding:{{space.2.px}} 0 {{space.3.px}}; box-sizing:border-box; }
 .sheet-footer { flex-shrink:0; min-width:0; }
 @keyframes sheet-in { from { transform:translateY(12px); } to { transform:translateY(0); } }

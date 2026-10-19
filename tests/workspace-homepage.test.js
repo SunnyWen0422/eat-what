@@ -13,18 +13,22 @@ function emptyMeal(f) {
 
 // These assertions fail if the shared template restores duplicate first-screen
 // inputs/navigation, or if the people control is moved back into advanced settings.
-test('shared homepage keeps one optional requirements entry and an independent people control', () => {
+test('shared homepage has one compact tools row and keeps people and recovery controls', () => {
   const template = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
   const firstScreen = template.split('<ui-sheet')[0]
   assert.match(firstScreen, /<meal-composition-summary[^>]*bind:people="onOpenPeople"/)
   const peopleSheet = template.split('visible="{{peopleVisible}}"')[1].split('</ui-sheet>')[0]
   assert.match(peopleSheet, /bindinput="onPeopleInput"/)
   assert.match(peopleSheet, /bindtap="onPeopleStep"/)
-  assert.match(firstScreen, /本餐要求（选填）/)
-  assert.equal((firstScreen.match(/bindtap="onOpenRequirements"/g) || []).length, 2)
-  assert.match(firstScreen, /workspaceNotice.action !== 'requirements'/); assert.match(firstScreen, /workspaceNotice.action === 'requirements'/)
+  assert.doesNotMatch(firstScreen, /workspace-requirements-entry/)
+  assert.equal((firstScreen.match(/bindtap="onOpenRequirements"/g) || []).length, 1)
+  assert.match(firstScreen, /workspaceNotice.action === 'requirements'/)
+  const tools = firstScreen.split('class="workspace-meal-tools"')[1].split('midnightNotice')[0]
+  for (const action of ['onOpenFilter', 'onChooseDishes', 'onOpenMealSettings']) assert.match(tools, new RegExp('bindtap="'+action+'"'))
+  assert.match(tools, /aria-label="用时与食材"/)
+  assert.match(template, /wx:if="\{\{context.requirements\}\}"[^>]*bindtap="onOpenRequirements"/)
   assert.equal((firstScreen.match(/bindtap="onChooseDishes"/g) || []).length, 2)
-  assert.match(firstScreen, /workspaceNotice.action !== 'choose'/); assert.match(firstScreen, /workspaceNotice.action === 'choose'/)
+  assert.match(firstScreen, /workspaceNotice.action === 'choose'/)
   assert.doesNotMatch(firstScreen, /<textarea|助手历史|bindtap="onQuickActual"/)
   assert.match(firstScreen, /hardExclusionSummary/)
   assert.doesNotMatch(firstScreen, /bindchange="onDateTarget"|bind:action="onOpenMealSettings"/)
@@ -403,7 +407,7 @@ test('the homepage shows saved exclusions and failed reads but hides a confirmed
   assert.equal(page.data.hardExclusionsUnavailable, true)
   assert.match(page.data.hardExclusionSummary, /未读到/)
   const template = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
-  assert.match(template, /wx:if="\{\{hardExclusionsUnavailable\}\}" class="workspace-exclusions"/); assert.match(template, /wx:if="\{\{hasHardExclusions\}\}" class="workspace-exclusions"/); assert.match(template, /本餐设置\{\{hasHardExclusions/)
+  assert.match(template, /wx:if="\{\{hardExclusionsUnavailable\}\}" class="workspace-exclusions"/); assert.match(template, /wx:if="\{\{hasHardExclusions\}\}" class="workspace-exclusions"/)
 })
 
 test('a new draft can be saved after independently recording actual food without changing that record', async t => {

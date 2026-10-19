@@ -42,10 +42,10 @@ function shoppingPage({ item = unresolved(), patch, drafts = [] } = {}) {
 }
 
 function warningsInBothViews(page, expected) {
-  const expressions = [...read('pages/shopping-list/shopping-list.wxml').matchAll(/<button wx:if="([^"]+)" class="[^"]*quantity-warning"/g)].map(match => match[1].slice(2, -2))
-  assert.equal(expressions.length, 2)
+  // Presentation is quiet; the safety flag must still survive edits and cache reentry.
   const rows = [page.data.summaryRows[0], page.data.dishes[0].items[0]]
-  expressions.forEach((expression, index) => assert.equal(vm.runInNewContext(expression, { item: rows[index] }), expected))
+  rows.forEach(row => assert.equal(row.quantityUncertain, expected))
+  assert.doesNotMatch(read('pages/shopping-list/shopping-list.wxml'), /用量待核对/)
 }
 
 test('real shopping name-only edit sends no prefilled quantity and preserves both warnings through cache reentry', async () => {
@@ -130,6 +130,9 @@ for (const item of [unresolved({ calculationStatus: 'CALCULATED', servingsVerifi
 test('manual add keeps explicit quantity and note fields', async () => {
   const view = shoppingPage()
   view.page.onAddManual()
+  assert.equal(view.page.data.formVisible, true)
+  assert.equal(view.page.data.formMode, 'manual')
+  assert.equal(view.sent.length, 0)
   view.page.onName({ detail: { value: '鸡蛋' } })
   view.page.onQuantity({ detail: { value: '2个' } })
   view.page.onNote({ detail: { value: '小包装' } })
@@ -138,6 +141,46 @@ test('manual add keeps explicit quantity and note fields', async () => {
   assert.equal(view.sent[0].payload.name, '鸡蛋')
   assert.equal(view.sent[0].payload.quantityText, '2个')
   assert.equal(view.sent[0].payload.note, '小包装')
+})
+
+test('custom ingredient cancellation writes nothing and the next form accepts an optional empty note', async () => {
+  const view = shoppingPage()
+  view.page.onAddManual()
+  view.page.onName({ detail: { value: '取消的食材' } })
+  view.page.onQuantity({ detail: { value: '半袋' } })
+  view.page.onNote({ detail: { value: '取消的备注' } })
+  view.page.closeForm()
+  assert.equal(view.page.data.formVisible, false)
+  assert.equal(view.sent.length, 0)
+  view.page.onAddManual()
+  for (const field of ['formName', 'formQuantity', 'formNote']) assert.equal(view.page.data[field], '')
+  await view.page.saveForm()
+  assert.equal(view.sent.length, 0)
+  assert.ok(view.page.data.formError)
+  view.page.onName({ detail: { value: ' 鸡蛋 ' } })
+  view.page.onQuantity({ detail: { value: ' 2个 ' } })
+  await view.page.saveForm()
+  assert.equal(view.sent.length, 1)
+  assert.equal(view.sent[0].type, 'manual')
+  assert.equal(view.sent[0].payload.name, '鸡蛋')
+  assert.equal(view.sent[0].payload.quantityText, '2个')
+  assert.equal(view.sent[0].payload.note, '')
+})
+
+test('opening add again while saving cannot clear the form being submitted', () => {
+  const view = shoppingPage()
+  view.page.onAddManual()
+  view.page.onName({ detail: { value: '鸡蛋' } })
+  view.page.onQuantity({ detail: { value: '2个' } })
+  view.page.onNote({ detail: { value: '小包装' } })
+  view.page.data.busy = true
+  view.page.onAddManual()
+  view.page.closeForm()
+  assert.equal(view.page.data.formVisible, true)
+  assert.equal(view.page.data.formName, '鸡蛋')
+  assert.equal(view.page.data.formQuantity, '2个')
+  assert.equal(view.page.data.formNote, '小包装')
+  assert.equal(view.sent.length, 0)
 })
 
 test('new metadata-only drafts preserve old pending payloads and retain their own original key/version on retry', async () => {
@@ -157,4 +200,12 @@ test('new metadata-only drafts preserve old pending payloads and retain their ow
   assert.equal(replay.conflict, true)
   assert.deepEqual(view.sent[2].payload, old.payload)
   assert.deepEqual(plain(view.store.loadPendingOperations()[0]), old)
+})
+
+test('source metadata is cleaned in the editor without confirming a quantity the user did not edit',async()=>{
+ const item=unresolved({displayName:'洋葱（去皮切丝）',quantityText:'洋葱|290|克|主料|去皮切丝|2名成年人总量+15%冗余|步骤',sourceQuantityText:'洋葱|290|克|主料|去皮切丝|2名成年人总量+15%冗余|步骤'})
+ const h=shoppingPage({item});h.page.onEditItem({currentTarget:{dataset:{id:5}}})
+ assert.equal(h.page.data.formQuantity,'290克');assert.equal(h.page.data.formQuantityEdited,false)
+ h.page.onName({detail:{value:'洋葱'}});await h.page.saveForm();assert.equal(Object.hasOwn(h.sent[0].payload,'quantityText'),false)
+ assert.equal(h.page._full.dishes[0].items[0].sourceQuantityText,item.sourceQuantityText)
 })

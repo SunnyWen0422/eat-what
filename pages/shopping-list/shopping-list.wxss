@@ -64,7 +64,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .dish-chevron.expanded { transform:rotate(90deg); }
 
 /* Secondary view controls and source text reflow without reducing touch targets. */
-.shopping-page > .ew-between { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; }
+.shopping-page > .ew-between { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .shopping-page > .ew-between > view { flex:1 1 180px; min-width:0; }
 .shopping-page .ew-heading { font-size:1.5em; }
 .shopping-page .ew-tabs { display:flex; flex-wrap:wrap; gap:4px; }
@@ -98,3 +98,39 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .shopping-page .shopping-view-tabs button.ew-hit-target { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; }
 .shopping-page .shopping-view-tabs button.active { border-bottom-color:#28634E; color:#28634E; }
 .shopping-ingredients { background:#FFFFFF; border-radius:18px; overflow:hidden; padding:0 8px; }
+
+/* Compact shopping reading: no raw source/provenance in the primary rows. */
+.shopping-page .shopping-row { padding:0; }
+.shopping-page .shopping-delete-toggle { flex:0 0 auto; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; margin:0; padding:0 10px; border:0; border-radius:12px; background:#EDF3ED; color:#28634E; font-size:.875em; line-height:1.4; }
+.shopping-delete-toggle.selected { background:#28634E; color:#FFFFFF; }
+.shopping-page .shopping-context { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:6px 10px; margin:8px 0 12px; border-radius:10px; background:#F5F6F0; border:0; color:#56645B; font-size:.8125em; line-height:1.4; }
+.context-primary { flex:1; min-width:0; text-align:left; }
+.context-count { flex:0 0 auto; color:#28634E; }
+.shopping-page .source-meal-choice { display:flex; align-items:center; gap:10px; width:100%; margin:0; padding:10px 0; text-align:left; border-radius:0; border-bottom:1px solid #E6EAE1; background:transparent; font-size:.875em; line-height:1.4; }
+.source-meal-date { flex:1; min-width:0; }
+.source-meal-type { color:#28634E; font-size:.92857em; padding:5px 10px; border-radius:8px; background:#EDF3ED; }
+.shopping-page .dish-header { font-size:.875em; padding:10px 12px; }
+.dish-header .ew-muted { font-size:.92857em; }
+.shopping-page .cost-toggle { display:flex; align-items:center; margin:8px 0 0; padding:0; background:transparent; font-size:.8125em; color:#28634E; }
+.shopping-costs { padding:10px 12px; border:0; border-radius:14px; margin:4px 0 20px; }
+.cost-totals { display:flex; flex-wrap:nowrap; gap:16px; padding:4px 0 8px; }
+.cost-totals > view { flex:1; min-width:0; }
+.cost-caption { display:block; font-size:.75em; color:#56645B; line-height:1.5; }
+.cost-total-value { display:block; font-size:1.125em; font-weight:600; line-height:1.5; }
+.cost-note { display:block; color:#56645B; font-size:.75em; line-height:1.45; margin-bottom:6px; }
+.cost-row { gap:8px; padding:4px 0; min-height:44px; }
+.cost-name { font-size:.875em; line-height:1.45; font-weight:400; }
+.cost-reference { font-size:.75em; line-height:1.45; color:#56645B; }
+.shopping-page .cost-row button { min-height:44px; margin:0; padding:0 10px; font-size:.8125em; line-height:1.4; background:#EDF3ED; }
+.ingredient-details { margin:0 0 6px; padding:8px 10px; }
+.source-row { font-size:.8125em; }
+.source-row .ew-muted { font-size:1em; }
+.shopping-page .source-row button { min-height:44px; font-size:1em; padding:0 6px; background:transparent; }
+
+/* Paired purchase/delete actions share the same touch area and center line. */
+.shopping-page > .shopping-header > .shopping-title { flex:1 1 150px; min-width:0; }
+.shopping-page > .shopping-header > .shopping-header-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }
+.shopping-page .shopping-complete-toggle { display:flex; align-items:center; justify-content:center; flex:0 0 44px; width:44px; min-height:44px; padding:0; margin:0; border:0; border-radius:12px; background:#EDF3ED; color:#28634E; }
+.shopping-complete-toggle[disabled] { opacity:.4; }
+.purchase-icon { display:flex; align-items:center; justify-content:center; position:relative; width:26px; height:26px; }
+.purchase-check { position:absolute; right:-3px; bottom:-2px; display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:#EDF3ED; }

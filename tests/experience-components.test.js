@@ -86,6 +86,19 @@ test('dish detail tap and busy replacement obey the command boundary', () => {
   f.view.onView?.()
   assert.deepEqual(f.events, [{ type: 'view', detail: { id: 7 } }])
 })
+
+test('compact catalog summary retains estimated or verified time evidence and never invents missing time', () => {
+  for (const [quality, minutes, expected] of [
+    [{ timeStatus: 'ESTIMATED' }, 15, '约15分'],
+    [{ timeStatus: 'VERIFIED', reviewStatus: 'VERIFIED' }, 15, '15分'],
+    [{}, 15, '荤菜'],
+    [{ timeStatus: 'ESTIMATED' }, null, '荤菜'],
+  ]) {
+    const f = component('compact-dish-row', { compactSummary: true, dish: { id: 7, name: '清蒸鱼', type: 'meat', cookMinutes: minutes, quality } })
+    assert.equal(f.view.data.dishView.shortMeta, expected)
+    assert.equal(f.view.data.dishView.name, '清蒸鱼')
+  }
+})
 test('broken image retains the same dish name and a category placeholder', () => {
   const f = component('compact-dish-row', { dish: { id: 7, name: '很长的清蒸鱼菜名', type: 'meat', image: 'https://example.com/fish.png' } })
   f.view.onImageError?.()
@@ -397,12 +410,15 @@ test('settings reloads local motion preference when the account changes', async 
   assert.equal(view.data.reducedMotion, false)
   assert.equal(view.data.dirty, false)
 })
-test('compact rows flow with long text and keep scalable body text and real hit areas', () => {
+test('compact recipe summaries retain full detail labels while feedback rows wrap and real hit areas stay intact', () => {
   for (const name of ['compact-dish-row', 'compact-ingredient-row', 'meal-composition-summary', 'action-feedback']) {
     const css = read(`components/${name}/index.wxss`)
     assert.match(css, /min-width:\s*0/)
     assert.match(css, /overflow-wrap:\s*(anywhere|break-word)/)
-    assert.doesNotMatch(css, /line-clamp|text-overflow:\s*ellipsis|white-space:\s*nowrap/)
+    if (name === 'compact-dish-row') {
+      assert.match(read('components/compact-dish-row/index.wxml'), /aria-label="查看\{\{dishView.name\}\}的做法"/)
+      assert.match(css, /\.dish-feedback\s*\{[^}]*overflow-wrap:\s*anywhere/)
+    } else assert.doesNotMatch(css, /line-clamp|text-overflow:\s*ellipsis|white-space:\s*nowrap/)
     assert.match(css, /min-height:\s*44px/)
   }
   assert.match(read('components/compact-dish-row/index.wxss'), /min-height:\s*80px/)
