@@ -9,16 +9,14 @@
 .dish-meta { font-size:{{font.secondary.em}}; color:{{muted}}; line-height:1.5; margin-top:2px; }
 .dish-feedback { color:{{brand}}; font-size:{{font.secondary.em}}; line-height:1.5; }
 .dish-selected { color:{{brand}}; font-size:{{font.secondary.em}}; line-height:1.5; margin-left:auto; }
-.dish-row .dish-replace { flex:0 1 auto; width:auto; min-width:44px; min-height:44px; margin:0 0 0 auto; padding:{{space.1.px}}; border:1px solid {{controlBorder}}; border-radius:{{radius.1.px}}; background:{{glassChrome}}; color:{{brand}}; font-family:inherit; font-size:{{font.secondary.em}}; font-weight:400; line-height:1.5; overflow-wrap:anywhere; box-sizing:border-box; }
+.dish-actions { display:flex; align-items:stretch; flex:0 0 auto; gap:{{space.1.px}}; margin-left:auto; max-width:100%; }
+.dish-row .dish-replace { flex:0 1 auto; width:auto; min-width:44px; min-height:44px; margin:0; padding:{{space.1.px}}; border:1px solid transparent; border-radius:{{radius.1.px}}; background:{{brandSoft}}; color:{{brand}}; font-family:inherit; font-size:{{font.secondary.em}}; font-weight:400; line-height:1.5; overflow-wrap:anywhere; box-sizing:border-box; }
 .dish-replace.is-disabled { color:{{muted}}; background:transparent; }
 .dish-main::after, .dish-replace::after { border:0; }
-.dish-main, .dish-replace, .dish-more { transition:background-color {{motion.press.ms}} ease-out; }
-.dish-row .dish-main:active, .dish-row .dish-replace:active, .dish-row .dish-more:active { background:{{brandSoft}}; }
-.dish-row .dish-replace.is-disabled, .dish-row .dish-more.is-disabled { color:{{muted}}; background:transparent; }
+.dish-main, .dish-replace { transition:background-color {{motion.press.ms}} ease-out; }
+.dish-row .dish-main:active, .dish-row .dish-replace:active { background:{{brandSoft}}; }
+.dish-row .dish-replace.is-disabled { color:{{muted}}; background:transparent; }
 @keyframes dish-appear { from { opacity:0; } to { opacity:1; } }
-
-.dish-row .dish-more { flex:0 0 44px; width:44px; min-height:44px; margin:0; padding:8px; background:transparent; display:flex; align-items:center; justify-content:center; }
-.dish-more::after { border:0; }
 
 .dish-row.is-large-text .dish-main { flex-basis:100%; }
 
@@ -26,3 +24,5 @@
 .dish-row.is-prominent .dish-thumbnail, .dish-row.is-prominent .dish-image { width:72px; height:72px; border-radius:16px; }
 .dish-row.is-prominent .dish-thumbnail { flex-basis:72px; }
 @media(max-width:360px) { .dish-row.is-prominent .dish-main { flex-basis:100%; } }
+
+.dish-row .favorite-control { display:flex; align-items:stretch; width:44px; min-height:44px; flex:0 0 44px; }

@@ -1,4 +1,5 @@
 const { normalizeQuantitySafety, formatShoppingQuantity, isSafeQuantity } = require('./shopping-ingredients')
+const { cleanRecipeText, recipeSourceText } = require('./recipe-display')
 
 const mealNames = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' }
 const identity = (kind, parts) => `${kind}:${JSON.stringify(parts)}`
@@ -35,9 +36,13 @@ function buildShoppingView(list = {}, status = 'pending') {
       const stableId = item.id != null ? item.id : item.clientKey || (item.sourceLineNo != null ? item.sourceLineNo : [item.sourceText, item.displayName, item.quantityText])
       const itemKey = identity('item', [source.key, stableId])
       const origin = { ...source, key: itemKey, sourceKey: itemKey, itemId: item.id, sourceLabel: sourceLabel(source), quantityText: item.quantityText || '用量待确认', sourceQuantityText: item.sourceQuantityText || item.sourceText || item.quantityText || '用量待确认', warnings:item.warnings || [], userOverride: item.userOverride === true, note: !source.dishId && !source.sourceDate && source.dishName === '手动添加' ? item.sourceQuantityText || '' : '' }
-      const quantityLabel = item.userOverride ? item.quantityText || '用量待确认' : formatShoppingQuantity(item)
+      // Presentation only: source text, warnings, IDs and calculation safety remain unchanged.
+      origin.sourceDisplayText = recipeSourceText(origin.sourceQuantityText)
+      origin.quantityDisplayText = recipeSourceText(origin.quantityText)
+      origin.displayWarnings = [...new Set(origin.warnings.map(cleanRecipeText).map(text=>/^(原始数量或份数需要核对|原始份数不明|请按人数调整用量)$/.test(text)?'请按人数调整用量':text).filter(text=>text && !/^[A-Z_]+$/.test(text)))]
+      const quantityLabel = recipeSourceText(item.userOverride ? item.quantityText || '用量待确认' : formatShoppingQuantity(item))
       const name=item.displayName || '未命名食材'
-      const value = { ...item, key: itemKey, sourceKey:itemKey, rowKey: itemKey, name: item.normalizedVariant && !name.includes(item.normalizedVariant) ? `${name}（${item.normalizedVariant}）` : name, quantityUncertain:!item.userOverride && (!isSafeQuantity(item) || !!(item.warnings || []).length), quantityLabel, itemIds: item.id == null ? [] : [item.id], sources: [origin], sourceCount: 1, sourceLabel: origin.sourceLabel, checkedState: checked ? 'all' : 'none' }
+      const value = { ...item, sourceDisplayText:origin.sourceDisplayText, displayWarnings:origin.displayWarnings, key: itemKey, sourceKey:itemKey, rowKey: itemKey, name: item.normalizedVariant && !name.includes(item.normalizedVariant) ? `${name}（${item.normalizedVariant}）` : name, quantityUncertain:!item.userOverride && (!isSafeQuantity(item) || !!(item.warnings || []).length), quantityLabel, itemIds: item.id == null ? [] : [item.id], sources: [origin], sourceCount: 1, sourceLabel: origin.sourceLabel, checkedState: checked ? 'all' : 'none' }
       items.push(value)
       const safe = isSafeQuantity(item)
       const key = safe ? identity('ingredient', [item.canonicalName || item.displayName, item.unitFamily, item.unitCode, item.normalizedVariant || '']) : itemKey

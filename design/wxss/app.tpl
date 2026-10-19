@@ -100,6 +100,21 @@ page{background:{{background}};color:{{text}};font-size:{{font.body.px}}}
 /* Shared actual-record content is rendered by three pages. */
 .actual-plan { margin:16px 0; }
 .actual-choices { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
-.actual-choice { margin:0; padding:12px; min-width:44px; min-height:44px; background:{{card}}; color:{{text}}; font-size:{{font.body.em}}; text-align:left; border:1px solid {{controlBorder}}; border-radius:14px; line-height:1.5; }
+.actual-choice { margin:0; padding:12px; min-width:44px; min-height:44px; background:{{brandSoft}}; color:{{text}}; font-size:{{font.body.em}}; text-align:left; border:1px solid transparent; border-radius:14px; line-height:1.5; }
 .actual-choice.selected { border-color:{{brand}}; background:{{brandSoft}}; font-weight:600; }
+
+/* Administrative routes use the same secondary and dish-surface vocabulary. */
+.admin-workspace .status-btn, .admin-workspace .status, .admin-workspace .clear,
+.admin-workspace .more, .admin-workspace .form-actions button,
+.admin-workspace .buttons button, .admin-workspace .actions button {
+  background:{{brandSoft}}; color:{{brand}}; border:1px solid transparent; border-radius:{{radius.1.px}};
+}
+.admin-workspace .form-actions .primary, .admin-workspace .buttons .primary {
+  background:{{brand}}; color:{{card}};
+}
+.admin-workspace .actions button.danger { background:{{dangerSoft}}; color:{{danger}}; }
+.admin-workspace .tabs button { background:transparent; color:{{muted}}; }
+.admin-workspace .tabs button.active { background:{{brand}}; color:{{card}}; }
+.admin-workspace.ew-dish-surface .list { background:transparent; }
+.admin-workspace.ew-dish-surface .dish { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:{{radius.3.px}}; margin-bottom:{{space.2.px}}; }
 .actual-choice::after { border:0; }

@@ -41,20 +41,20 @@ Page({
         url: '/pages/statistics/statistics'
       },
       {
-        icon: 'heart',
+        icon: 'star',
         title: '收藏菜品',
         desc: '我收藏的美味好菜',
         url: '/pages/favorite-dishes/favorite-dishes'
       },
       {
         icon: 'chef',
-        title: '我的私房菜',
+        title: '我的菜谱',
         desc: '我的私房菜',
         url: '/pages/custom-dishes/custom-dishes'
       },
       {
         icon: 'settings',
-        section:'偏好设置', title: '偏好设置',
+        title: '偏好设置',
         desc: '个性化推荐偏好',
         url: '/pages/settings/settings'
       },

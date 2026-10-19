@@ -1,5 +1,7 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
+
+.avatar-tip { text-align:center; }
 .avatar-btn { width:160rpx;height:160rpx;margin:0 0 20rpx;padding:0;border-radius:80rpx;background:#EDF3ED;display:flex;align-items:center;justify-content:center; }
 .avatar-img { width:160rpx;height:160rpx; }
 .avatar-placeholder { color:#28634E;font-size:1.500015em; }

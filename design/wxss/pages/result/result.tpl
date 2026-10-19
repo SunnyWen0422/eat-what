@@ -180,3 +180,6 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
+
+/* Keep compatibility results on the same rounded dish rows as the current workspace. */
+.legacy-dish-row { display:block; margin-bottom:12px; }

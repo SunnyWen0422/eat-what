@@ -5,4 +5,4 @@
 <view class="help-step"><text class="ew-title">记录与回顾</text><text class="ew-subtitle">吃完后打开“记录饮食”确认，实际吃过的内容才计入饮食回顾；可在“我的”查看。</text></view>
 <view class="ew-notice">有本机草稿或保存结果待核对时，可在“我的 → 待核对与同步”查看。资料与偏好未保存的输入，离开前请确认。</view>
 <view class="help-step"><text class="ew-title">管理自己的偏好</text><text class="ew-subtitle">在“我的 → 偏好设置”调整菜系、忌口和用时限制。</text></view>
-<view class="help-step"><text class="ew-title">助手与数据</text><text class="ew-subtitle">使用助手时，当前餐、相关偏好、必要的查询结果和近期对话会交给模型服务处理。保存日历、加入清单等操作需要你确认；修改长期偏好会先打开设置页面。</text><text class="ew-subtitle">语音输入暂未开放。菜品图片来自菜谱资料，图片暂时无法读取时会显示分类图标。</text></view></view>
+<view class="help-step"><text class="ew-title">助手与数据</text><text class="ew-subtitle">使用助手时，当前餐、相关偏好、必要的查询结果和近期对话会交给模型服务处理。按你的明确指令保存日历或加入清单，需要补充信息时会先询问；长期偏好在设置页修改。</text><text class="ew-subtitle">语音输入暂未开放。菜品图片来自菜谱资料，图片暂时无法读取时会显示分类图标。</text></view></view>

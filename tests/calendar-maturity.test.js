@@ -38,7 +38,7 @@ test('mixed day retains both plan and actual meaning',()=>{
  assert.equal(day.hasPlan,true);assert.equal(day.hasActual,true)
  assert.match(day.accessibleLabel,/有安排/);assert.match(day.accessibleLabel,/部分餐次已记录/);assert.doesNotMatch(day.accessibleLabel,/完成|三餐已/)
  assert.equal(page.data.mealCards[2].status,'unrecorded')
- assert.equal(page.data.mealCards[1].statusLabel,'已安排 · 没有实际记录')
+ assert.equal(page.data.mealCards[1].statusLabel,'已安排')
  const source=fs.readFileSync('pages/calendar/calendar.wxml','utf8')
  assert.match(source,/wx:if="\{\{item.hasPlan\}\}"[^>]*>排</)
  assert.match(source,/wx:if="\{\{item.hasActual\}\}"[^>]*>记</)
@@ -58,4 +58,18 @@ test('skipped is an explicit actual mark and mixed actual kinds remain audible',
  const day=page.data.days.find(d=>d.fullDate===date)
  assert.equal(day.hasActual,true);assert.match(day.accessibleLabel,/吃过/);assert.match(day.accessibleLabel,/这餐没吃/)
  assert.equal(calendarDayLabel({date,hasActual:true}),'2026年10月15日，部分餐次已记录实际情况')
+})
+
+test('calendar keeps only useful visible status and never substitutes a plan for an empty actual record',()=>{
+ const date='2026-10-15',plan={recordDate:date,mealType:'dinner',recipeName:'原安排',dishDetails:[{id:2,name:'计划中的鱼'}]}
+ for(const withPlan of [null,plan]){
+  const shown=calendarMealPresentation({plan:withPlan,actual:{status:'eaten',actualDishes:[{name:'实际吃的粥'}]},date,today:date})
+  assert.equal(shown.statusLabel,'');assert.equal(shown.summary,'实际吃的粥')
+  const skipped=calendarMealPresentation({plan:withPlan,actual:{status:'skipped'},date,today:date})
+  assert.equal(skipped.statusLabel,'这餐没吃');assert.doesNotMatch(skipped.summary,/这餐没吃/)
+ }
+ const page=calendarPage({plans:[plan],consumptions:[{mealDate:date,mealType:'dinner',status:'eaten',actualDishes:[]}]})
+ assert.equal(page.data.mealCards[2].dishSummary,'暂无菜品明细')
+ assert.match(page.data.mealCards[2].accessibleLabel,/实际用餐/)
+ assert.equal(page.data.mealCards[2].statusLabel,'')
 })

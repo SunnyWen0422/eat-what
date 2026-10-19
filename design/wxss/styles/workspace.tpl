@@ -39,7 +39,7 @@
 .mode-today .ew-bottom { padding-bottom:12px; }
 .workspace-people { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:12px 0; }
 .workspace-stepper { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
-.workspace-screen .workspace-stepper button.ew-link { min-width:44px; min-height:44px; margin:0; padding:0; font-size:{{font.section.em}}; background:{{card}}; border:1px solid {{border}}; border-radius:10px; }
+.workspace-screen .workspace-stepper button.ew-link { min-width:44px; min-height:44px; margin:0; padding:0; font-size:{{font.section.em}}; background:{{brandSoft}}; border:1px solid transparent; border-radius:10px; }
 .workspace-people-input { width:3em; min-width:44px; min-height:44px; padding:4px; font-size:{{font.body.em}}; text-align:center; border:0; border-radius:10px; background:{{background}}; color:{{text}}; box-sizing:border-box; }
 .workspace-composition-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; min-height:52px; padding:8px 0; border-bottom:1px solid {{divider}}; }
 .workspace-composition-row > text { flex:1; min-width:0; overflow-wrap:anywhere; }

@@ -1,4 +1,6 @@
 @import "../../styles/theme.wxss";
+
+.avatar-tip { text-align:center; }
 .avatar-btn { width:160rpx;height:160rpx;margin:0 0 {{space.1.rpx*1.25}};padding:0;border-radius:{{radius.4.rpx*1.6666667}};background:{{brandSoft}};display:flex;align-items:center;justify-content:center; }
 .avatar-img { width:160rpx;height:160rpx; }
 .avatar-placeholder { color:{{brand}};font-size:{{font.page.em*1.00001}}; }

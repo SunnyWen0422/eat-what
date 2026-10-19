@@ -18,4 +18,4 @@ button { min-width:{{controls.touchSize.px}}; min-height:{{controls.primaryHeigh
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.primaryHeight.px}}; }
 
 /* Warm table v2: sync */
- .sync-draft { background:{{card}}; border-bottom:1px solid {{divider}}; padding:16px; }.sync-draft .ew-title { font-size:{{font.reading.em}}; }.sync-draft ui-button { display:block; margin-top:12px; }.ew-section-title { margin-top:24px; }.ew-muted { line-height:1.7; }
+ .sync-draft { background:{{card}}; border:1px solid {{divider}}; border-radius:{{radius.2.px}}; margin-bottom:{{space.2.px}}; padding:16px; }.sync-draft .ew-title { font-size:{{font.reading.em}}; }.sync-draft ui-button { display:block; margin-top:12px; }.ew-section-title { margin-top:24px; }.ew-muted { line-height:1.7; }

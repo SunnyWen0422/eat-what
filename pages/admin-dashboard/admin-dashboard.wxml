@@ -3,7 +3,6 @@
   <view class="heading">
     <view>
       <text class="title">管理工作台</text>
-      <text class="subtitle">数据、用户与菜品状态一目了然</text>
     </view>
     <button class="ew-hit-target refresh" bindtap="load" loading="{{loading}}" aria-label="刷新">刷新</button>
   </view>
@@ -25,9 +24,9 @@
 
     <view class="section-title">快捷管理</view>
     <view class="action-list">
-      <view class="ew-hit-target action" bindtap="openUsers"><view><text class="action-title">用户管理</text><text>搜索用户、调整状态、查看自定义菜品</text></view><ui-icon class="arrow" name="chevron-right" tone="muted" size="16" /></view>
-      <view class="ew-hit-target action" bindtap="openDishes"><view><text class="action-title">菜品管理</text><text>编辑系统菜品、控制发布状态</text></view><ui-icon class="arrow" name="chevron-right" tone="muted" size="16" /></view>
-      <view class="ew-hit-target action" bindtap="openAudit"><view><text class="action-title">审计日志</text><text>追踪所有管理员变更与结果</text></view><ui-icon class="arrow" name="chevron-right" tone="muted" size="16" /></view>
+      <view aria-role="button" class="ew-hit-target action" bindtap="openUsers"><view><text class="action-title">用户管理</text><text>搜索用户、调整状态、查看自定义菜品</text></view><ui-icon class="arrow" name="chevron-right" tone="muted" size="16" /></view>
+      <view aria-role="button" class="ew-hit-target action" bindtap="openDishes"><view><text class="action-title">菜品管理</text><text>编辑系统菜品、控制发布状态</text></view><ui-icon class="arrow" name="chevron-right" tone="muted" size="16" /></view>
+      <view aria-role="button" class="ew-hit-target action" bindtap="openAudit"><view><text class="action-title">审计日志</text><text>追踪所有管理员变更与结果</text></view><ui-icon class="arrow" name="chevron-right" tone="muted" size="16" /></view>
     </view>
 
     <view class="section-title">最近操作</view>

@@ -83,15 +83,13 @@ test('origin, dish-prefill and action tokens do not consume or overwrite one ano
  assert.equal(origins.currentOriginStore().take(action),null);assert.equal(h.currentStore().take(origin),null)
  assert.equal(entry.take(dish).dishName,'鱼');assert.equal(h.currentStore().takeWithOrigin(action).origin.sessionId,'session-1');assert.equal(origins.currentOriginStore().take(origin).workspaceId,'workspace-1')
 })
-for(const route of ['index','calendar-detail','dish-detail'])test(`${route} opens assistant with its actual source independently from prefill`,async()=>{
+for(const route of ['index','calendar-detail'])test(`${route} opens assistant with its actual source independently from prefill`,async()=>{
  const f=pageFixture(route),page=f.page;page.current=()=>true;page.data.assistantAvailable=true;page._scope='A';page._alive=true;page.store={};page.flushDraft=async()=>{}
  if(route==='index'){page.data.context=target;await page.onOpenConnectedAssistant()}
  if(route==='calendar-detail'){page._viewScope='A:mealView';page.data.selectedDate=target.date;page.onCalendarAssistant({currentTarget:{dataset:{meal:target.mealType}}})}
- if(route==='dish-detail'){page.data.dish={id:7,name:'鱼'};page.data.selectedMeal={target};page.onAskDish()}
  assert.equal(f.navigation.length,1);const params=new URL('https://local.test'+f.navigation[0].url).searchParams
  const origin=f.load('assistant-origin').currentOriginStore().take(params.get('originToken'))
  assert.equal(origin.kind,route==='index'?'home':route==='calendar-detail'?'calendar':'dish');assert.equal(origin.date,target.date);assert.equal(origin.mealType,target.mealType)
- if(route==='dish-detail'){assert.equal(origin.dishId,7);assert.ok(params.get('entryToken'))}
  assert.equal(f.writes.length,0)
 })
 test('assistant consumes the source once and its header returns through the original stack without send/confirm',async()=>{

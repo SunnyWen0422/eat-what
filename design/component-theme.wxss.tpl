@@ -11,7 +11,7 @@
 .ew-sheet { width:100%; max-height:100%; box-sizing:border-box; }
 .ew-button { display:flex; align-items:center; justify-content:center; min-height:48px; padding:12px 16px; border:0; border-radius:14px; background:{{brand}}; color:{{card}}; font-size:{{font.body.em}}; line-height:1.5; box-sizing:border-box; }
 .ew-button::after { border:0; }
-.ew-button.secondary { background:{{card}}; color:{{brand}}; border:1px solid {{controlBorder}}; }
+.ew-button.secondary { background:{{brandSoft}}; color:{{brand}}; border:1px solid transparent; }
 .is-disabled { opacity:1; }
 
 .ew-reading { line-height:1.65; overflow-wrap:anywhere; }

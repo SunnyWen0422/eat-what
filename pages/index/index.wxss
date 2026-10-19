@@ -223,9 +223,9 @@ page {
 /* 按钮区 */
 .cta-area { padding:2px 16px 16px; display: flex; flex-direction: column; align-items: center; gap:12px; }
 .chat-btn {
-  border: 2rpx solid #28634E;
+  border:1px solid transparent;
   color: #28634E;
-}
+ background:#EDF3ED;}
 .chat-btn::after { border: none; }
 .primary-btn {
   width: 80%; height: 48px;
@@ -246,7 +246,7 @@ page {
   justify-content: center;
   gap:6rpx;
 }
-.chat-btn { display: flex; align-items: center; justify-content: center; gap:6rpx; }
+.chat-btn { display: flex; align-items: center; justify-content: center; gap:6rpx;  background:#EDF3ED;}
 .chat-btn .line-icon, .secondary-btn .line-icon { width: 28rpx; height: 28rpx; }
 .secondary-btn::after { border: none; }
 .filter-summary, .dish-tag, .loading-text { word-break: break-word; }

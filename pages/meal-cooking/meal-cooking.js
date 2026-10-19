@@ -2,7 +2,7 @@ const api=require('../../utils/api')
 const flow=require('../../utils/meal-workflow')
 const progress=require('../../utils/cooking-progress')
 const recipe=require('../../utils/recipe-quality')
-function readingDish(dish){const quality=recipe.presentRecipeQuality(dish);return {...dish,stepsList:recipe.presentRecipeLines(dish.steps||dish.step),ingredientsList:quality?quality.ingredientLines:recipe.presentRecipeLines(dish.ingredientsAmounts||dish.cl,true),ingredientNotice:quality?quality.notice:''}}
+function readingDish(dish){const ingredients=require('../../utils/recipe-display').presentRecipeIngredients(dish);return {...dish,stepsList:recipe.presentRecipeLines(dish.steps||dish.step),ingredientsList:ingredients.lines,ingredientNotice:ingredients.basis}}
 const {getUserStorageKey}=require('../../utils/util')
 const actual=require('../../utils/meal-actual-entry').createMealActualEntry({api,onSaved:async function(){await this.onShow()}})
 Page({

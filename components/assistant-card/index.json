@@ -1,1 +1,8 @@
-{"component":true,"usingComponents":{"ui-icon":"/components/ui-icon/ui-icon","ui-button":"/components/ui-button/ui-button"}}
+{
+  "component": true,
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/ui-icon",
+    "ui-button": "/components/ui-button/ui-button",
+    "dish-favorite": "/components/dish-favorite/index"
+  }
+}

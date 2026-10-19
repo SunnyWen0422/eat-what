@@ -19,19 +19,16 @@ function favorites(){
  const page={...definition,data:{...definition.data},_viewScope:'A:favoriteView',_epoch:1,setData:v=>Object.assign(page.data,v),loadFavorites(){},onAddToMeal(){throw Error('menu must never select')}}
  return {page,menus,modals,writes}
 }
-test('favorite menu does not select recipe',async()=>{
- const f=favorites(),event={currentTarget:{dataset:{id:7}}}
- f.page.onFavoriteMore(event);assert.deepEqual(Array.from(f.menus[0].itemList),['取消收藏'])
- assert.equal(f.modals.length,0);assert.equal(f.writes.length,0)
- f.menus[0].success({tapIndex:0});assert.equal(f.modals.length,1)
- await f.modals[0].success({confirm:false});assert.equal(f.writes.length,0)
- await f.modals[0].success({confirm:true});assert.deepEqual(f.writes,[7])
- const markup=fs.readFileSync('pages/favorite-dishes/favorite-dishes.wxml','utf8')
- assert.match(markup,/catchtap="onFavoriteMore"/);assert.doesNotMatch(markup,/bindtap="onRemoveFavorite"/)
+test('confirmed star removal updates favorites without opening a menu or selecting a meal',()=>{
+ const f=favorites();f.page.data.favorites=[{id:7,name:'青菜'},{id:8,name:'鸡蛋'}]
+ f.page.onFavoriteChange({detail:{id:7,favorite:false}})
+ assert.deepEqual(f.page.data.favorites.map(x=>x.id),[8]);assert.equal(f.menus.length,0);assert.equal(f.modals.length,0);assert.equal(f.writes.length,0)
+ f.page.onFavoriteChange({detail:{id:8,favorite:true}});assert.equal(f.page.data.favorites.length,1)
 })
-test('favorite menu ignores callbacks after page ownership changes',()=>{
- const f=favorites();f.page.onFavoriteMore({currentTarget:{dataset:{id:7}}});f.page._epoch++
- f.menus[0].success({tapIndex:0});assert.equal(f.modals.length,0)
+test('favorite changes from a closed page or different owner do not remove visible rows',()=>{
+ const f=favorites();f.page.data.favorites=[{id:7,name:'青菜'}];f.page._viewScope='B:favoriteView'
+ f.page.onFavoriteChange({detail:{id:7,favorite:false}});assert.equal(f.page.data.favorites.length,1)
+ f.page._viewScope='A:favoriteView';f.page._unloaded=true;f.page.onFavoriteChange({detail:{id:7,favorite:false}});assert.equal(f.page.data.favorites.length,1)
 })
 test('personal editor presents one current save state above its fields',()=>{
  const markup=fs.readFileSync('pages/custom-dishes/custom-dishes.wxml','utf8')

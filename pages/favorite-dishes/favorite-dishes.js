@@ -1,4 +1,4 @@
-const { getFavoriteDishes, removeFavoriteDish } = require('../../utils/api')
+const { getFavoriteDishes } = require('../../utils/api')
 const { getUserStorageKey } = require('../../utils/util')
 
 Page({
@@ -83,36 +83,11 @@ Page({
   onSelectedDish(e){if(this.selectionOptions().current())wx.navigateTo({url:'/pages/dish-detail/dish-detail?id='+Number(e.currentTarget.dataset.id)})},
   onContinueSelecting(){if(this.selectionOptions().current())wx.switchTab({url:'/pages/customize/customize'})},
 
-  onFavoriteMore(e) {
-    const id = e.currentTarget.dataset.id, scope = this._viewScope, epoch = this._epoch
-    if (!id || this.data.removingId || this._unloaded || scope !== getUserStorageKey('favoriteView')) return
-    wx.showActionSheet({ itemList: ['取消收藏'], success: result => {
-      if (result.tapIndex !== 0 || this._unloaded || epoch !== this._epoch || scope !== this._viewScope || scope !== getUserStorageKey('favoriteView')) return
-      this.onRemoveFavorite({ currentTarget: { dataset: { id } } })
-    } })
-  },
-
-  async onRemoveFavorite(e) {
-    const dishId = e.currentTarget.dataset.id
-    if (!dishId || this.data.removingId) return
-    const scope = getUserStorageKey('favoriteView')
-    wx.showModal({
-      title: '确认取消收藏',
-      content: '确定要取消收藏这道菜吗？',
-      success: async (res) => {
-        if (res.confirm && scope === getUserStorageKey('favoriteView') && scope === this._viewScope) {
-          this.setData({ removingId: dishId })
-          try {
-            await removeFavoriteDish(dishId)
-            if (scope !== getUserStorageKey('favoriteView')) return
-            wx.showToast({ title: '已取消收藏', icon: 'success' })
-            this.loadFavorites()
-          } catch (err) {
-            if (scope === getUserStorageKey('favoriteView')) wx.showToast({ title: '操作失败', icon: 'none' })
-          } finally { if (scope === getUserStorageKey('favoriteView')) this.setData({ removingId: null }) }
-        }
-      }
-    })
+  onFavoriteChange(event) {
+    if (this._unloaded || this._viewScope !== getUserStorageKey('favoriteView')) return
+    const {id, favorite} = event.detail || {}
+    if (!Number.isSafeInteger(Number(id)) || typeof favorite !== 'boolean') return
+    if (!favorite) { this.setData({favorites:this.data.favorites.filter(dish=>Number(dish.id)!==Number(id))}); this.doFilter() }
   },
 
   onBrowse() { wx.switchTab({ url: '/pages/customize/customize' }) },

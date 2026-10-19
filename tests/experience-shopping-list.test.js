@@ -115,7 +115,7 @@ test('summaryCountsRemainSourceCounts', () => {
   h.page.onViewMode({ currentTarget: { dataset: { mode: 'byDish' } } })
   assert.equal(h.page.data.pendingCount, 8)
   assert.equal(h.page.data.dishes.flatMap(g => g.items).length, 8)
-  assert.match(read('pages/shopping-list/shopping-list.wxml'), /已合并为\s*\{\{summaryRowCount\}\}\s*行/)
+  assert.doesNotMatch(read('pages/shopping-list/shopping-list.wxml'), /已合并为\s*\{\{summaryRowCount\}\}\s*行/)
 })
 test('assistant edits exact shopping item only after latest list version is read',()=>{
  const h=pageHarness();h.page._assistantHandoff={kind:'edit_shopping',ref:{itemId:5},sourceVersion:'2'}
@@ -333,7 +333,7 @@ test('costs stay folded without automatic reads or deleting old expenses', async
   assert.equal(h.priceReads(), 0); assert.equal(h.capabilityReads(), 0)
   assert.deepEqual(plain(h.page._full.expenses), { old: { amount: '9.00' } })
   assert.deepEqual(plain(h.store.loadLocalShoppingList().expenses), { old: { amount: '9.00' } })
-  assert.equal(!!h.page.data.detailsExpanded,false);assert.match(read('pages/shopping-list/shopping-list.wxml'), /wx:if="\{\{detailsExpanded\}\}"/)
+  assert.equal(!!h.page.data.detailsExpanded,false);assert.match(read('pages/shopping-list/shopping-list.wxml'), /wx:if="\{\{pagePresentation\.showExpenses && detailsExpanded\}\}"/)
 })
 
 for (const scope of ['checked', 'all']) test(`clear ${scope} confirms the exact source count and leaves calendar recipe and actual records outside the write`, async () => {

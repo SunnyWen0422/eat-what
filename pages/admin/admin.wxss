@@ -243,8 +243,8 @@ button::after {
   margin-top:20rpx;
   padding:0 32rpx;
   color: #28634E;
-  background: #FFFFFF;
-  border: 2rpx solid #28634E;
+  background:#EDF3ED;
+  border:1px solid transparent;
   border-radius:12rpx;
 }
 

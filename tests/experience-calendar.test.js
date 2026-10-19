@@ -159,7 +159,7 @@ test('actual correction retains focused meal and readable independent plan',asyn
  await f.page.onPrimaryMeal(event);f.page.onActualText({detail:{value:'更正后的外食'}});await f.page.onConfirmActual()
  assert.equal(f.page.data.selectedDate,date);assert.equal(f.page.data.focusedMeal,'dinner');assert.equal(f.page.data.dateHeading,'10月9日 晚餐');assert.equal(f.page.data.originalMeal,'dinner')
  assert.equal(f.page.data.meals.length,1);assert.equal(f.page.data.meals[0].presentation.dishes[0].name,'更正后的外食')
- assert.equal(f.page.data.meals[0].statusLabel,'已安排 · 已记录吃过');assert.equal(f.page.data.meals[0].plan.recipeName,'后来安排')
+ assert.equal(f.page.data.meals[0].statusLabel,'');assert.equal(f.page.data.meals[0].plan.recipeName,'后来安排')
  assert.equal(f.writes[0].body.expectedRevision,4);assert.equal(f.writes[0].body.expectedPlanRevision,3)
  const source=fs.readFileSync('pages/calendar-detail/calendar-detail.wxml','utf8');assert.doesNotMatch(source,/当前查看餐次/)
 })

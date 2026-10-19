@@ -12,8 +12,12 @@ function calendarMealPresentation({plan,actual,date,today}) {
     if(actual&&actual.status!=='unrecorded')actions.push('clearActual')
   }
   const primary=eaten||skipped?{kind:'correctActual',label:'更正实际记录'}:plan?date<=today?{kind:'recordEaten',label:'记录这餐'}:{kind:'prepare',label:'准备食材'}:{kind:'arrange',label:'安排这一餐'}
-  const statusLabel=[plan?'已安排':'',eaten?'已记录吃过':skipped?'已记录这餐没吃':plan?'没有实际记录':'没有记录'].filter(Boolean).join(' · ')
-  return {mode,statusLabel,primary,dishes:eaten?(actual.actualDishes||[]):plan?(plan.dishDetails||[]):[],actions,originalPlan:eaten?(actual.plannedSnapshot||null):null}
+  // Content carries the recorded meal; retain labels only when they distinguish
+  // an arrangement, an explicitly skipped meal, or missing information.
+  const statusLabel=eaten?'':skipped?'这餐没吃':plan?'已安排':'没有记录'
+  const dishes=eaten?(actual.actualDishes||[]):plan?(plan.dishDetails||[]):[]
+  const summary=dishes.map(d=>d.name).filter(Boolean).join('、') || (eaten?'暂无菜品明细':plan?(plan.recipeName||''):'')
+  return {mode,statusLabel,summary,primary,dishes,actions,originalPlan:eaten?(actual.plannedSnapshot||null):null}
 }
 function calendarDayLabel({date,selected,hasPlan,hasActual,eaten,skipped}) {
   const [year,month,day]=date.split('-').map(Number)

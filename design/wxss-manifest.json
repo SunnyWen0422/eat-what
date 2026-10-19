@@ -198,5 +198,9 @@
   {
     "source": "design/wxss/components/assistant-card/index.tpl",
     "output": "components/assistant-card/index.wxss"
+  },
+  {
+    "source": "design/wxss/components/dish-favorite/index.tpl",
+    "output": "components/dish-favorite/index.wxss"
   }
 ]

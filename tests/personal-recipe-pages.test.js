@@ -129,7 +129,7 @@ test('late menu resolve after hiding and changing active meal cannot navigate or
   pending.resolve({ menuId: 3, menuVersion: 2, menuDate: '2026-10-10', menuMealType: 'dinner', people: 2, dishIds: [1] }); await operation
   assert.equal(navigation.length, 0); assert.equal(wx.getStorageSync('A:activeMealTarget').date, '2026-10-11'); assert.equal(wx.getStorageSync('A:workspaceSelectedDishes'), undefined)
 })
-test('dish detail time uses explicit evidence while raw legacy text remains in supplementary content', async () => {
+test('dish detail time uses explicit evidence without duplicate source prose', async () => {
   for (const [dish, expected] of [
     [{ cookMinutes: 10, cookTime: '45分钟' }, ''],
     [{ cookMinutes: 10, cookTime: null }, ''],
@@ -143,7 +143,7 @@ test('dish detail time uses explicit evidence while raw legacy text remains in s
     await page.loadDishDetail(1); assert.equal(page.data.dish.cookTimeDisplay, expected)
   }
   assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /\{\{dish\.cookTimeDisplay\}\}/)
-  assert.match(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /原资料时长说明：\{\{dish\.cookTime/)
+  assert.doesNotMatch(fs.readFileSync('pages/dish-detail/dish-detail.wxml', 'utf8'), /原资料时长说明|onToggleQualitySources|onToggleSupplement/)
 })
 
 for (const kind of ['dish','menu']) test('lost '+kind+' delete receipt remains recoverable after object disappears and reuses exact request',async()=>{
@@ -178,4 +178,15 @@ for(const kind of ['dish','menu'])for(const change of ['account','api'])test('pe
 test('dish detail uses the shared readable legacy ingredient formatter without duplicate raw columns',async()=>{
  const {page}=load('pages/dish-detail/dish-detail',{getDishById:async()=>({id:1,name:'豆腐',cl:'豆腐|460|克|主料|切块|2名成年人总量+15%冗余|菜名+步骤',step:'煮熟'}),checkFavoriteDish:async()=>({})})
  await page.loadDishDetail(1);assert.deepEqual(Array.from(page.data.dish.ingredientsList),['豆腐 460克（切块）']);assert.equal(page.data.dish.cl,'豆腐|460|克|主料|切块|2名成年人总量+15%冗余|菜名+步骤')
+})
+
+for (const scenario of ['unknown','partial','failed']) test('detail preserves original ingredients when scaling is '+scenario,async()=>{
+ const original={id:7,name:'番茄炒蛋',ingredientsAmounts:'番茄|300|克|主料|||2名成年人总量+15%冗余#鸡蛋|2|枚|主料|||2名成年人总量+15%冗余'}
+ const f=load('pages/dish-detail/dish-detail',{getDishById:async()=>JSON.parse(JSON.stringify(original)),createShoppingPreview:async()=>{
+  if(scenario==='failed')throw {statusCode:503}
+  return {dishes:[{items:[{displayName:'番茄',quantityText:'600克',calculationStatus:scenario==='unknown'?'NEEDS_ADJUSTMENT':'CALCULATED'}]}]}
+ }})
+ await f.page.loadDishDetail(7);await new Promise(resolve=>setImmediate(resolve))
+ assert.deepEqual(JSON.parse(JSON.stringify(f.page.data.dish.ingredientsList)),['番茄 300克','鸡蛋 2枚'])
+ assert.equal(f.page.data.dish.ingredientsAmounts,original.ingredientsAmounts);assert.equal(f.page.data.ingredientNotice,'原方用量')
 })

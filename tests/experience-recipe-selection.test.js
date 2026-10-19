@@ -194,7 +194,7 @@ test('same-account different-meal reentry cancels a stale confirmation without l
 })
 test('failed quantity preview never erases real original ingredients', async () => {
   const f=fixture();f.api.getDishById=async()=>({...dishes[2],ingredientsAmounts:'菌菇|200|g#水|500|ml'});const page=f.page('pages/dish-detail/dish-detail')
-  await page.loadDishDetail(3);await settle();assert.ok(page.data.dish.ingredientsList.some(line=>line.includes('菌菇')));assert.match(page.data.ingredientNotice,/核对|原始/)
+  await page.loadDishDetail(3);await settle();assert.ok(page.data.dish.ingredientsList.some(line=>line.includes('菌菇')));assert.equal(page.data.ingredientNotice,'原方用量')
 })
 test('recipe recovery is a real visible button and component actions have reachable handlers', () => {
   for(const route of ['customize/customize','dish-detail/dish-detail','favorite-dishes/favorite-dishes']) {

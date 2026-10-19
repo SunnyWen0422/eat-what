@@ -5,11 +5,11 @@ const { getDishById } = require('../../utils/api')
 Page({
   onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    detailSupplementVisible:false, assistantAvailable:false, dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,qualitySourcesVisible:false,
+    dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,
     showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
     loading: true,
     error: false,
-    isFavorite: false,showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionBusy:false,selectionLoading:false,selectionBlocked:true,mealPrimaryLabel:'加入本餐',showSelectedPanel:false,selectedList:[],detailError:'',errorKind:'',mealAddError:''
+    showMealSelected:false,mealSelectedDishes:[],selectedMeal:null,selectionFeedback:null,selectionBusy:false,selectionLoading:false,selectionBlocked:true,mealPrimaryLabel:'加入本餐',showSelectedPanel:false,selectedList:[],detailError:'',errorKind:'',mealAddError:''
   },
 
   onLoad(options) {
@@ -17,7 +17,7 @@ Page({
     if(handoff)options={...options,id:handoff.ref.dishId}
     this._dishId = options.id
     const people = Number(options.people || 2)
-    this.setData({ targetPeople: Number.isInteger(people) && people >= 1 && people <= 50 ? people : 2, ingredientNotice: '正在读取本餐份量' })
+    this.setData({ targetPeople: Number.isInteger(people) && people >= 1 && people <= 50 ? people : 2, ingredientNotice: '' })
     if (options.id) {
       // 等待登录完成再加载（分享进入时 app.onLaunch 可能未完成）
       this._loadAfterLogin(options.id)
@@ -28,7 +28,6 @@ Page({
 
   async onShow() { if(this._assistantOrigin)require('../../utils/assistant-origin').refreshAssistantOrigin(this);
     this._recipeVisible = true
-    this.probeDetailAssistant()
     // onShow must not await login: login can complete after this lifecycle ends.
     const initialization = this._detailInitialization
     if (initialization) {
@@ -41,23 +40,6 @@ Page({
       return this._loadAfterLogin(this._dishId)
     }
     return this.refreshSelectedMeal()
-  },
-  async probeDetailAssistant() {
-    this.setData({assistantAvailable:false})
-    if(!require('../../utils/api').getAssistantV4Capabilities)return
-    const app=getApp();if(app.waitForLogin)await app.waitForLogin()
-    if(this._unloaded)return
-    const scope=getUserStorageKey('dishView'),id=this._dishId
-    let available=false
-    try{available=await require('../../utils/assistant-conversation').probeAssistantCapability()}catch(error){return}
-    if(!this._unloaded && this.current(scope) && id===this._dishId)this.setData({assistantAvailable:available})
-  },
-  onAskDish() {
-    if(!this.data.assistantAvailable || !this.current(this._scope) || this.data.selectionBusy || this.data.selectionLoading)return
-    const dish=this.data.dish,target=this.data.selectedMeal && this.data.selectedMeal.target
-    if(!dish || !target){wx.showToast({title:'请先核对当前餐次',icon:'none'});return}
-    const token=require('../../utils/assistant-entry').currentEntryStore().put({dishId:Number(dish.id),dishName:dish.name,...target})
-    if(token){const origin=require('../../utils/assistant-origin').originQuery({kind:'dish',dishId:Number(dish.id),...target});wx.navigateTo({url:`/pages/chat/chat?entryScene=chat&entryToken=${encodeURIComponent(token)}&date=${encodeURIComponent(target.date)}&mealType=${encodeURIComponent(target.mealType)}${origin}`})}
   },
   onHide() { this._recipeVisible=false;clearTimeout(this._recipePoll) },
   onReady() { this.measureDetailActions() },
@@ -103,7 +85,7 @@ Page({
   async loadDishDetail(id) {
     const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
     this._copyPreviewBinding = null
-    this.setData({ detailSupplementVisible:false,dish: null, qualityView:null,qualitySourcesVisible:false,isFavorite: false, favoriteBusy: false, canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
+    this.setData({dish: null, qualityView:null,ingredientNotice:'',canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
@@ -114,8 +96,7 @@ Page({
         dish.cookTimeDisplay = require('../../utils/recipe-quality').recipeDurationLabel(dish)
         dish.tagsList = (Array.isArray(dish.tags)?dish.tags:String(dish.tags||'').split(/[,，]/)).filter(t=>typeof t==='string'&&t.trim()).map(t=>t.trim())
         dish.visibleTags=dish.tagsList.slice(0,3)
-        dish.methodsDisplay=require('../../utils/recipe-quality').presentRecipeLines(dish.methods).join('\n')
-        dish.tipsDisplay=require('../../utils/recipe-quality').presentRecipeLines(dish.tips).join('\n')
+        dish.cookingNotes=require('../../utils/recipe-display').recipeNotes(dish)
         // 处理步骤图片（如果是JSON字符串则解析，再按 # 拆分多张图）
         if (dish.stepImages && typeof dish.stepImages === 'string') {
           try {
@@ -139,11 +120,11 @@ Page({
 
         // 处理食材与用量（如果是JSON字符串则解析）
         if (!dish.ingredientsAmounts && dish.cl) dish.ingredientsAmounts = dish.cl
-        dish.ingredientsList=require('../../utils/recipe-quality').presentRecipeLines(dish.ingredientsAmounts,true)
-
+        const ingredients=require('../../utils/recipe-display').presentRecipeIngredients(dish)
+        dish.ingredientsList=ingredients.lines
+        dish.ingredientRows=ingredients.rows
         const qualityView=require('../../utils/recipe-quality').presentRecipeQuality(dish)
-        if(qualityView) {dish.ingredientsList=qualityView.ingredientLines;this.setData({qualityView,ingredientNotice:qualityView.notice})}
-        else this.setData({qualityView:null})
+        this.setData({qualityView,ingredientNotice:ingredients.basis})
         // 处理步骤（兼容 step/steps 两种字段名）
         dish.stepsList=require('../../utils/recipe-quality').presentRecipeLines(dish.steps||dish.step)
         // 展示图片使用已验证的 HTTPS 地址。
@@ -152,7 +133,6 @@ Page({
         const user = wx.getStorageSync('userInfo') || {}
         const canEditCustom = !!user.id && dish.userId != null && String(dish.userId) === String(user.id)
         this.setData({ dish, dishImageFailed: false, dishPlaceholderIcon: require('../../utils/dish-image').placeholderIcon(dish.type), loading: false, canEditCustom }, () => this.measureDetailActions())
-        this.checkFavoriteStatus(id)
         this.loadMealQuantities(id, scope, epoch)
       } else {
         this.setData({ loading: false, error: true, errorKind:'unavailable',detailError:'这份菜谱已不可用，请返回继续选菜' })
@@ -170,48 +150,14 @@ Page({
       const preview = await require('../../utils/api').createShoppingPreview({ dishIds: [Number(id)], targetPeople: this.data.targetPeople })
       if (!this.current(scope) || epoch !== this._epoch) return
       const items = (preview.dishes || []).flatMap(dish => dish.items || [])
-      if(!items.length){this.setData({ingredientNotice:'本餐份量暂未读到，以下原始用料请手动核对'});return}
-      this.setData({ 'dish.ingredientsList': items.map(item => item.displayName + ' ' + (item.quantityText || '需核对')), ingredientNotice: items.every(item => item.calculationStatus === 'CALCULATED') ? `按本餐 ${this.data.targetPeople} 人换算，请按实际情况核对` : `本餐 ${this.data.targetPeople} 人，部分用量需手动核对` })
-    } catch (error) { if (this.current(scope) && epoch === this._epoch) this.setData({ ingredientNotice: this.data.qualityView?'本餐份量暂未读到，用量仍待核实，请手动核对。':'份量换算暂不可用，以下为用户提供的原始用料' }) }
-  },
-
-  onToggleSupplement(){if(this.current(this._scope))this.setData({detailSupplementVisible:!this.data.detailSupplementVisible})},
-
-  async checkFavoriteStatus(dishId) {
-    const scope = this._scope
-    try {
-      const { checkFavoriteDish } = require('../../utils/api')
-      const result = await checkFavoriteDish(dishId)
-      if (!this.current(scope)) return
-      this.setData({ isFavorite: result && result.isFavorite })
-    } catch (err) {
-      console.error('检查收藏状态失败:', err)
-    }
-  },
-
-  async toggleFavorite() {
-    if (this.data.favoriteBusy || !this.data.dish || !this.current(this._scope)) return
-    const scope = this._scope
-    this.setData({ favoriteBusy: true })
-    try {
-      const { addFavoriteDish, removeFavoriteDish } = require('../../utils/api')
-      const dishId = this.data.dish.id
-      
-      if (this.data.isFavorite) {
-        await removeFavoriteDish(dishId)
-        if (!this.current(scope)) return
-        this.setData({ isFavorite: false })
-        wx.showToast({ title: '已取消收藏', icon: 'success' })
-      } else {
-        await addFavoriteDish(dishId)
-        if (!this.current(scope)) return
-        this.setData({ isFavorite: true })
-        wx.showToast({ title: '收藏成功', icon: 'success' })
-      }
-    } catch (err) {
-      console.error('收藏操作失败:', err)
-      wx.showToast({ title: '操作失败', icon: 'none' })
-    } finally { if(this.current(scope))this.setData({ favoriteBusy: false }) }
+      // A partial/unknown procurement calculation must not erase readable original amounts.
+      if(!items.length || !items.every(item=>item.calculationStatus==='CALCULATED' && item.quantityText))return
+      const original=this.data.dish.ingredientRows || []
+      if(original.length !== items.length || !original.every(row=>items.some(item=>item.displayName===row.name)))return
+      const display=require('../../utils/recipe-display')
+      const rows=items.map(item=>display.parseIngredient({name:item.displayName,quantityText:item.quantityText}))
+      this.setData({ 'dish.ingredientRows':rows,'dish.ingredientsList':rows.map(display.ingredientLine), ingredientNotice:`${this.data.targetPeople} 人份` })
+    } catch (error) { /* Reading remains usable with the original recipe if scaling is unavailable. */ }
   },
 
   onShowDetailMore() { if (this.data.dish && this.current(this._scope)) this.setData({ showDetailMore: true }) },
@@ -247,7 +193,6 @@ Page({
     this.setData({ showDetailMore: false }); wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(dish.id) })
   },
   onRetry() { if (this._dishId) return this._loadAfterLogin(this._dishId) },
-  onToggleQualitySources(){this.setData({qualitySourcesVisible:!this.data.qualitySourcesVisible})},
   onDishImageError(event) {
     const source = event && event.currentTarget && event.currentTarget.dataset.url
     const dataset = event && event.currentTarget && event.currentTarget.dataset || {}

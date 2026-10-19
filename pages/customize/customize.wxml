@@ -68,7 +68,7 @@
 
       <input placeholder-class="ew-placeholder" class="form-input" type="number" maxlength="3" id="custom-cookMinutes" focus="{{customFocus === 'cookMinutes'}}" aria-label="烹饪时长，分钟" placeholder="烹饪时长（分钟，可选）" value="{{customForm.cookMinutes}}" data-field="cookMinutes" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
 
-      <view class="ew-label">原配方份数说明（可选）</view><input placeholder-class="ew-placeholder" class="form-input" aria-label="原配方份数说明" placeholder="例如：原配方2人份。不会自动核验或换算。" value="{{customForm.servingDescription}}" maxlength="1000" data-field="servingDescription" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
+      <view class="ew-label">原配方份数说明（可选）</view><input placeholder-class="ew-placeholder" class="form-input" aria-label="原配方份数说明" placeholder="例如：原配方2人份" value="{{customForm.servingDescription}}" maxlength="1000" data-field="servingDescription" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
       <view class="ew-label">图片 HTTPS 地址（可选）</view><input id="custom-image" focus="{{customFocus === 'image'}}" class="form-input" value="{{customForm.image}}" maxlength="2048" data-field="image" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
       </view>
       <view wx:if="{{customPending}}" class="ew-notice">上次保存结果未确认，重试会使用原内容。</view><view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="ew-hit-target save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">{{customPending ? '重试原保存' : '保存菜谱'}}</button><button class="ew-hit-target ew-link custom-form-secondary" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>
@@ -98,7 +98,7 @@
 
       <view wx:if="{{!loading && !loadingMore && !browseError && currentDishes.length === 0}}" class="tip-text">
         {{searchKeyword || browseFilterCount ? '没有符合条件的菜品' : '这个分类暂时没有菜品'}}
-        <view wx:if="{{browseFilterCount}}">可逐个撤回上方的本次筛选，再试一次。更多条件在“更多筛选”中调整。</view>
+        <view wx:if="{{browseFilterCount}}">试着放宽筛选条件。</view>
         <button wx:if="{{searchKeyword}}" class="ew-hit-target ew-link" bindtap="onResetRecipeSearch">只清空搜索“{{searchKeyword}}”</button>
         <button wx:if="{{browseFilterCount}}" class="ew-hit-target ew-link" bindtap="onToggleBrowseFilters">调整本次筛选</button>
       </view>
@@ -120,7 +120,6 @@
         <text class="selected-view-link">查看</text><ui-icon name="chevron-right" tone="muted" size="16" />
       </view>
       <button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && !selectedMeal && selectedTotal}}" class="ew-hit-target save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
-      <button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && selectedMeal && selectedTotal}}" class="ew-hit-target save-btn" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onViewMeal">查看本餐</button>
       <ui-button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" disabled="{{selectionBusy}}" bind:action="onRetrySelection" />
       <button wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-hit-target ew-link" bindtap="onResumeMenuForm">继续命名与保存</button>
     </view>

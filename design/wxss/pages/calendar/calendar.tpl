@@ -32,17 +32,17 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-page .calendar-heading > view:first-child { flex:1 1 160px; min-width:0; }
 .calendar-heading-actions { display:flex; flex-wrap:wrap; gap:4px; }
 .calendar-heading-actions .ew-link { margin:0; padding:0 4px; font-size:0.875em; }
-.calendar-secondary-actions { margin-top:16px; }
-.calendar-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; padding:8px 0; margin:0; white-space:normal; overflow-wrap:anywhere; text-align:left; background:transparent; border-bottom:1px solid #E6EAE1; border-radius:0; font-size:1em; line-height:1.5; color:#28634E; }
-.calendar-action-row::after { border:0; }
-.calendar-action-row > ui-icon { flex:0 0 auto; }
 .calendar-heading .ew-heading { font-size:1.5em; }
-.ew-page button.calendar-action-row { width:100%; max-width:100%; margin:0; font-family:inherit; font-weight:400; box-sizing:border-box; }
 
-.calendar-card button.day { width:100%; max-width:100%; margin:0; padding:8px 0; font-size:1em; font-family:inherit; line-height:1.5; white-space:normal; }
+.calendar-card button.day { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; width:100%; max-width:100%; min-height:44px; margin:0; padding:4px 0; background:transparent; color:{{text}}; border-radius:10px; font-size:1em; font-family:inherit; line-height:1.25; white-space:normal; }
 .calendar-card button.day::after { border:0; }
+.calendar-card .weekday { min-height:0; line-height:1.25; color:{{muted}}; }
+.calendar-card .day-number { display:flex; align-items:center; justify-content:center; min-width:32px; min-height:32px; padding:0 2px; border-radius:50%; box-sizing:border-box; font-size:{{font.reading.em}}; line-height:1.25; }
+.calendar-card .day.selected .day-number { color:{{card}}; background:{{brand}}; }
+.calendar-card .day.selected .weekday { color:{{brand}}; }
+.calendar-legend { font-size:{{font.caption.em}}; line-height:1.5; }
 
 /* Text marks coexist and stay distinct without color. */
-.day-mark { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2px; min-height:20px; font-size:{{font.caption.em}}; line-height:1.5; }
+.calendar-card .day-mark { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2px; min-height:14px; color:{{brand}}; font-size:{{font.caption.em}}; line-height:1.2; }
 .day-plan,.day-actual { display:inline-block; min-width:1em; }
 .day-actual { font-weight:600; }

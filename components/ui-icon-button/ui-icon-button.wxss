@@ -11,6 +11,6 @@
 .ew-placeholder { color:#56645B; }
 
 .ew-hit-target { min-height:48px; }
-.icon-button.ew-hit-target { min-height:44px; }
+.icon-button.ew-hit-target { min-height:44px;  background:#EDF3ED;}
 
-.icon-button.ew-hit-target { width:44px; max-width:44px; background:#FFFFFF; border:1px solid #7C8E80; }
+.icon-button.ew-hit-target { width:44px; max-width:44px; background:#EDF3ED; border:1px solid transparent; }

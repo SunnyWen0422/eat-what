@@ -32,7 +32,7 @@ Page({
     try {
       if (!this.experienceStore) this.experienceStore = experiencePreferences()
       this.experienceStore.setReducedMotion(reducedMotion)
-      this.setData({ reducedMotion, motionStatus: '已保存到当前账号的本机设置' })
+      this.setData({ reducedMotion, motionStatus: '已保存' })
     } catch (error) { this.setData({ motionStatus: '动态效果设置未保存，请重试' }) }
   },
 
@@ -41,7 +41,7 @@ Page({
   syncEditLeaveAlert() {
     const dirty = !!this._editInitial && this.editSnapshot() !== this._editInitial
     this.setData({ dirty })
-    if (!dirty && ['有未保存的更改', '偏好已重置，等待保存'].includes(this.data.statusText)) this.setData({ statusText: '当前输入与已读取内容一致' })
+    if (!dirty && ['有未保存的更改', '偏好已重置，等待保存'].includes(this.data.statusText)) this.setData({ statusText: this.data.synced ? '' : '当前使用本机偏好' })
     if (dirty && wx.enableAlertBeforeUnload) wx.enableAlertBeforeUnload({ message: '偏好输入尚未保存，离开会放弃未提交输入。' })
     else if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload()
   },
@@ -85,7 +85,7 @@ Page({
       synced: preferenceResult.synced,
       loading: false,
       featureEnabled,
-      statusText: preferenceResult.synced ? '已从账号同步' : '当前使用本机偏好',
+      statusText: preferenceResult.synced ? '' : '当前使用本机偏好',
     })
     this._editInitial = JSON.stringify({ preferences: normalizePreferences(preferenceResult.preferences), peopleDraft: String(preferences.defaultPeople), ingredientDraft: '' })
     this.syncEditLeaveAlert()

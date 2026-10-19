@@ -183,11 +183,12 @@ function component(card){
  const c={...definition.methods,properties:{card,active:false,busy:false},data:plain(definition.data),setData(value){Object.assign(this.data,value)},triggerEvent:(name,detail)=>events.push({name,detail})};c.refresh()
  return {c,events,sheet:()=>sheet}
 }
-test('row More emits exact dish action and retires its callback when card changes',()=>{
+test('legacy kept assistant dishes release directly with current identity and busy guards',()=>{
  const expectedRef={workspaceId:'w',workspaceRevision:1,planVersion:1,...target}
- const card={id:'menu',type:'menu',data:{dishes:[{id:7,name:'青菜'}]},menuActions:{enabled:true,expectedRef,rows:[{dishId:7,locked:false,canReplace:true}]}}
- const f=component(card);f.c.onDishMore({currentTarget:{dataset:{dishId:7}}});f.sheet().success({tapIndex:0})
- assert.deepEqual(plain(f.events),[{name:'dishaction',detail:{cardId:'menu',dishId:7,action:'keep',expectedRef}}])
- f.c.onDishMore({currentTarget:{dataset:{dishId:7}}});f.c.properties.card={...card,menuActions:{...card.menuActions,expectedRef:{...expectedRef,workspaceRevision:2}}};f.sheet().success({tapIndex:1});assert.equal(f.events.length,1)
+ const card={id:'menu',type:'menu',data:{dishes:[{id:7,name:'青菜'}]},menuActions:{enabled:true,expectedRef,rows:[{dishId:7,locked:true,canReplace:false}]}}
+ const f=component(card);f.c.onDishRelease({currentTarget:{dataset:{dishId:7}}})
+ assert.deepEqual(plain(f.events),[{name:'dishaction',detail:{cardId:'menu',dishId:7,action:'release',expectedRef}}])
+ assert.equal(f.sheet(),undefined)
+ f.c.properties.card={...card,menuActions:{...card.menuActions,expectedRef:{...expectedRef,workspaceRevision:2}}};f.c.emitDishAction(7,'release',expectedRef,'menu');assert.equal(f.events.length,1)
  f.c.properties.busy=true;f.c.onDishReplace({currentTarget:{dataset:{dishId:7}}});assert.equal(f.events.length,1)
 })

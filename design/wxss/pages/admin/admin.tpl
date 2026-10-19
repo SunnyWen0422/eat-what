@@ -242,8 +242,8 @@ button::after {
   margin-top:{{space.1.rpx*1.25}};
   padding:0 {{space.3.rpx}};
   color: {{brand}};
-  background: {{card}};
-  border: 2rpx solid {{brand}};
+  background:{{brandSoft}};
+  border:1px solid transparent;
   border-radius:{{radius.0.rpx}};
 }
 

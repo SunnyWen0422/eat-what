@@ -24,6 +24,14 @@ test('failed preference read stops loading and does not allow overwriting unread
 test('about states model and voice boundaries without promising automated medical or business success',()=>{
  const text=fs.readFileSync('pages/about/about.wxml','utf8');assert.match(text,/语音输入暂未开放/);assert.match(text,/模型服务/);assert.match(text,/必要的.*对话/);assert.doesNotMatch(text,/营养精准|自动下单|敬请期待/)
 })
+
+test('returning preferences to their saved value removes only redundant normal status',()=>{
+ const f=settings();const p=f.page;p.data.synced=true;p.data.peopleDraft='2';p._editInitial=p.editSnapshot()
+ p.onDefaultPeople({detail:{value:'3'}});assert.equal(p.data.statusText,'有未保存的更改')
+ p.onDefaultPeople({detail:{value:'2'}});assert.equal(p.data.dirty,false);assert.equal(p.data.statusText,'')
+ p.data.synced=false;p.onDefaultPeople({detail:{value:'3'}});p.onDefaultPeople({detail:{value:'2'}});assert.equal(p.data.statusText,'当前使用本机偏好')
+ p.data.statusText='保存失败，请重试';p.syncEditLeaveAlert();assert.equal(p.data.statusText,'保存失败，请重试')
+})
 test('admin diagnostics are collapsed and copy remains an explicit action',()=>{
  const text=fs.readFileSync('pages/admin-audit/admin-audit.wxml','utf8');assert.match(text,/wx:if="\{\{item.detailsExpanded\}\}"/);assert.match(text,/bindtap="onCopyAudit"/);assert.match(text,/item.actionLabel/)
  for(const page of ['admin','admin-dashboard','admin-users','admin-user-detail','admin-dishes','admin-audit'])assert.match(fs.readFileSync('pages/'+page+'/'+page+'.wxml','utf8'),/fontBase \* fontScale/)

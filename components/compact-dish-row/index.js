@@ -35,23 +35,12 @@ Component({
       this.setData({ imageFailed: true })
     },
     onView() { const dish = this.properties.dish || {}; const id = dish.dishId || dish.id; if (id != null) this.triggerEvent('view', { id }) },
-    onFeedback() {
-      if (this.properties.mode !== 'replace' || this.properties.busy || this.properties.disabled || this._feedbackOpen) return
-      const dish = this.properties.dish || {}, dishId = Number(dish.id)
-      if (!Number.isSafeInteger(dishId) || dishId <= 0) return
-      const identity = this._imageIdentity, locked = !!dish.locked
-      const kinds = locked ? ['keep', 'quicker'] : ['keep', 'change', 'quicker']
-      this._feedbackOpen = true
-      wx.showActionSheet({
-        itemList: locked ? ['取消这餐保留', '这餐想省时'] : ['这餐保留', '这次想换', '这餐想省时'],
-        success: result => {
-          if (this._imageIdentity !== identity || this.properties.mode !== 'replace' || this.properties.busy || this.properties.disabled || !!(this.properties.dish || {}).locked !== locked) return
-          const kind = kinds[result.tapIndex]
-          if (kind) this.triggerEvent('feedback', { kind, dishId })
-        },
-        complete: () => { this._feedbackOpen = false },
-      })
+    onFavoriteChange(event) { this.triggerEvent('favoritechange', event.detail) },
+    onReplace() {
+      const dish = this.properties.dish || {}, id = dish.dishId || dish.id
+      if (this.properties.mode === 'read' || this.properties.busy || this.properties.disabled || !id) return
+      if (this.properties.mode === 'replace' && dish.locked) this.triggerEvent('feedback', { kind: 'keep', dishId: id })
+      else this.triggerEvent(this.properties.mode === 'select' ? 'select' : 'replace', { id })
     },
-    onReplace() { const dish = this.properties.dish || {}; if (this.properties.mode !== 'read' && !this.properties.busy && !this.properties.disabled && !(this.properties.mode === 'replace' && dish.locked) && dish.id != null) this.triggerEvent(this.properties.mode === 'select' ? 'select' : 'replace', { id: dish.id }) },
   },
 })

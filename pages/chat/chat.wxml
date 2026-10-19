@@ -12,14 +12,14 @@
    <view wx:for="{{conversationContextSummary.savedRows}}" wx:key="id"><text class="ew-muted">{{item.label}}：</text><text>{{item.text}}</text></view>
    <text wx:if="{{conversationContextSummary.unavailableLabel}}" class="ew-muted">{{conversationContextSummary.unavailableLabel}}</text>
    <button class="ew-hit-target ew-link" bindtap="onConversationPreferences">编辑并保存长期偏好</button>
-   <text class="ew-muted">这里只说明输入来源；每次安排还会核对忌口和可用菜品。临时要求不会自动保存为长期偏好。</text>
+   <text class="ew-muted">临时要求只用于这餐。</text>
   </view>
-  <view id="conversation-current-menu"><assistant-card wx:if="{{conversationCurrentMenu && conversationMenuExpanded}}" card="{{conversationCurrentMenu}}" active="{{false}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" /></view>
+  <view id="conversation-current-menu"><assistant-card class="conversation-dish-card" wx:if="{{conversationCurrentMenu && conversationMenuExpanded}}" card="{{conversationCurrentMenu}}" active="{{false}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" /></view>
   <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="ew-title">说说你这一餐的想法</text><view class="connected-shortcuts"><button wx:for="{{conversationSuggestions}}" wx:key="id" class="ew-hit-target connected-shortcut" data-id="{{item.id}}" disabled="{{conversationBusy || conversationRecoverable}}" bindtap="onConversationSuggestion">{{item.label}}</button></view></view>
   <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">
    <text wx:if="{{item.text}}" class="connected-bubble" user-select>{{item.text}}</text>
    <view wx:if="{{item.workflow.length}}" aria-role="status"><view wx:for="{{item.workflow}}" wx:for-item="step" wx:key="id" class="ew-muted">{{step.label}}</view></view>
-   <assistant-card wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" bind:choice="onConversationChoice" bind:handoff="onConversationHandoff" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
+   <assistant-card class="conversation-dish-card" wx:for="{{item.cards}}" wx:for-item="card" wx:key="id" card="{{card}}" active="{{card.active}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" bind:choice="onConversationChoice" bind:handoff="onConversationHandoff" bind:confirm="onConversationConfirm" bind:undo="onConversationUndo" bind:selection="onConversationSelection" bind:repreview="onConversationRepreview" />
   </view>
   <view wx:if="{{conversationBusy}}" class="connected-progress" aria-role="status"><text>{{conversationProgressLabel}}</text><button class="ew-hit-target ew-link" bindtap="onConversationStop">停止</button></view>
   <view id="conversation-end"></view>
@@ -69,12 +69,7 @@
         <view class="msg-bubble {{item.role === 'user' ? 'bubble-right' : 'bubble-left'}}"><text>{{item.content}}</text></view>
       </view>
       <view wx:if="{{item.role === 'assistant' && item.dishes && item.dishes.length}}" class="dish-cards">
-        <view aria-role="button" class="ew-hit-target dish-card" wx:for="{{item.dishes}}" wx:key="id" wx:for-item="dish" bindtap="onTapDish" data-id="{{dish.id}}">
-          <image wx:if="{{dish.image}}" class="dc-img" src="{{dish.image}}" mode="aspectFill" lazy-load />
-
-          <view class="dc-info"><text class="dc-name">{{dish.name}}</text><text wx:if="{{dish.match_reasons && dish.match_reasons[0]}}" class="dc-reason">{{dish.match_reasons[0]}}</text></view>
-          <text class="dc-arrow">›</text>
-        </view>
+        <compact-dish-row font-scale="{{fontScale}}" wx:for="{{item.dishes}}" wx:key="id" wx:for-item="dish" dish="{{dish}}" mode="read" data-id="{{dish.id}}" bind:view="onTapDish" />
       </view>
     </block>
     <view wx:if="{{plan && plan.meals && plan.meals.length}}" class="plan-block">

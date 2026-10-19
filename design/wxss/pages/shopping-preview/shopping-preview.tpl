@@ -71,3 +71,12 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 /* Source decisions stay visible beside quantities and wrap at enlarged text. */
 .shopping-preview-page .owned-action { flex:0 0 auto; margin:0; padding:0 4px; font-size:0.8125em; white-space:normal; }
 .shopping-preview-page .quantity-warning { display:block; margin:0; padding:0; text-align:left; font-size:0.8125em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+
+/* Readable quantity evidence stays in the row; its source control remains a 44px target. */
+.shopping-preview-page .ingredient-copy { padding:10px 0; }
+.shopping-preview-page .ingredient-name { display:block; }
+.shopping-preview-page .quantity-status { margin-top:2px; font-size:{{font.caption.em}}; }
+.shopping-preview-page .preview-ingredients { border-radius:{{radius.3.px}}; overflow:hidden; padding:0 {{space.1.px}}; }
+.shopping-preview-page button.owned-action { background:transparent; border:0; border-radius:0; font-size:{{font.secondary.em}}; padding:4px; }
+.shopping-preview-page .view-tabs button.ew-link { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; color:{{muted}}; }
+.shopping-preview-page .view-tabs button.active { border-bottom-color:{{brand}}; color:{{brand}}; }

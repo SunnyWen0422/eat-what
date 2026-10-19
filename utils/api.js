@@ -552,7 +552,7 @@ function getStatistics(startDate, endDate) {
  * @param {Number} dishId - 菜品ID
  */
 function addFavoriteDish(dishId) {
-  return request('/favorite-dishes', 'POST', { dishId })
+  return doRequest('/favorite-dishes', 'POST', { dishId }, { silent: true, maxRetries: 0 })
 }
 
 /**
@@ -560,7 +560,7 @@ function addFavoriteDish(dishId) {
  * @param {Number} dishId - 菜品ID
  */
 function removeFavoriteDish(dishId) {
-  return request(`/favorite-dishes/${dishId}`, 'DELETE')
+  return doRequest(`/favorite-dishes/${dishId}`, 'DELETE', null, { silent: true, maxRetries: 0 })
 }
 
 /**
@@ -568,7 +568,7 @@ function removeFavoriteDish(dishId) {
  * @param {Number} dishId - 菜品ID
  */
 function checkFavoriteDish(dishId) {
-  return request(`/favorite-dishes/check?dishId=${dishId}`, 'GET')
+  return doRequest(`/favorite-dishes/check?dishId=${dishId}`, 'GET', null, { silent: true, maxRetries: 0 })
 }
 
 /**
@@ -576,7 +576,7 @@ function checkFavoriteDish(dishId) {
  * @param {Array} dishIds - 菜品ID数组
  */
 function batchCheckFavoriteDishes(dishIds) {
-  return request('/favorite-dishes/batch-check', 'POST', dishIds)
+  return doRequest('/favorite-dishes/batch-check', 'POST', dishIds, { silent: true, maxRetries: 0 })
 }
 
 /**

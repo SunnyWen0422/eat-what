@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "dish-favorite": "/components/dish-favorite/index"
+  },
   "navigationBarTitleText": "食材与做法",
   "navigationBarBackgroundColor": "#F8F7F2",
   "navigationBarTextStyle": "black"

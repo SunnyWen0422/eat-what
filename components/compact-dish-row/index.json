@@ -1,4 +1,7 @@
 {
   "component": true,
-  "usingComponents": { "ui-icon": "/components/ui-icon/ui-icon" }
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/ui-icon",
+    "dish-favorite": "/components/dish-favorite/index"
+  }
 }

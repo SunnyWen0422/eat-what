@@ -79,7 +79,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .ew-row,.ew-between { min-width:0; }
 .ew-link { min-width:44px; min-height:44px; background:transparent; padding:0 4px; margin:0; font-size:0.8125em; font-weight:500; line-height:1.5; }
 .ew-button { border-radius:14px; min-height:48px; padding:12px 16px; flex-shrink:0; }
-.ew-button.secondary { border:1px solid #D9E1D5; background:#FFFFFF; min-height:44px; }
+.ew-button.secondary { border:1px solid transparent; background:#EDF3ED; min-height:44px; }
 .ew-button.tertiary { background:transparent; color:#28634E; min-height:44px; }
 .ew-tabs { flex-wrap:wrap; gap:4px; }
 .ew-tabs button { flex:0 1 auto; min-width:44px; min-height:44px; border-radius:10px; background:transparent; color:#56645B; padding:8px 12px; }
@@ -130,18 +130,18 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Native v2 button defaults must not impose a fixed width on our controls. */
 .ew-page button.ew-hit-target { width:auto; max-width:100%; margin:0; font-family:inherit; font-weight:500; }
-.ew-page button.ew-link { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 12px; background:#FFFFFF; border:1px solid #7C8E80; border-radius:10px; color:#28634E; font-size:1em; line-height:1.45; flex-shrink:0; }
+.ew-page button.ew-link { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 12px; background:#EDF3ED; border:1px solid transparent; border-radius:10px; color:#28634E; font-size:1em; line-height:1.45; flex-shrink:0; }
 .ew-page button.ew-link.danger { color:#A93B30; border-color:#A93B30; background:#FFF0ED; }
 .ew-page button.ew-text-link { background:transparent; border-color:transparent; text-decoration:underline; text-underline-offset:3px; }
 .ew-page button.ew-link[disabled] { background:#E8EBE5; color:#56645B; border-color:#D9E1D5; }
 .ew-page .ew-tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid #D9E1D5; border-radius:12px; background:#F5F6F0; }
 .ew-page .ew-tabs button.ew-hit-target { flex:1; min-width:44px; padding:8px 10px; background:transparent; color:#56645B; font-size:1em; border:1px solid transparent; line-height:1.45; }
-.ew-page .ew-tabs button.active { background:#FFFFFF; border-color:#7C8E80; color:#28634E; font-weight:600; }
+.ew-page .ew-tabs button.active { background:#FFFFFF; border-color:transparent; color:#28634E; font-weight:600; }
 .ew-page .ew-heading { font-size:1.5em; line-height:1.3; }
 .ew-page .ew-between > view:first-child { min-width:0; flex:1; }
 
 
-.ew-page button.period-nav { width:44px; max-width:44px; flex:0 0 44px; padding:10px; border:1px solid #D9E1D5; border-radius:10px; background:#FFFFFF; }
+.ew-page button.period-nav { width:44px; max-width:44px; flex:0 0 44px; padding:10px; border:1px solid transparent; border-radius:10px; background:#EDF3ED; }
 .ew-page .period { gap:8px; }
 .ew-page .period > text { font-size:1em; }
 .ew-page text.ew-link { text-decoration:underline; text-underline-offset:3px; }

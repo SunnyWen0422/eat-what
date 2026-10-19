@@ -537,3 +537,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 .recipe-page-header { flex-wrap:wrap; }
 .ew-page .recipe-page-header .catalog-help { flex:0 0 auto; max-width:100%; width:auto; white-space:nowrap; }
+
+/* Category controls share the pale secondary treatment; selection remains explicit. */
+.page .sidebar-item { background:{{brandSoft}}; border:1px solid transparent; color:{{brand}}; }
+.page .sidebar-item.sidebar-active { background:{{brand}}; color:{{card}}; }

@@ -2,5 +2,9 @@
   "disableScroll": true,
   "navigationBarTitleText": "本餐方案",
   "navigationBarBackgroundColor": "#F8F7F2",
-  "navigationBarTextStyle": "black"
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "dish-favorite": "/components/dish-favorite/index",
+    "compact-dish-row": "/components/compact-dish-row/index"
+  }
 }

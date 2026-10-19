@@ -785,7 +785,7 @@ Page({
       if (!this.isBrowseCurrent(identity, epoch)) return
       this.addToGlobalCache(refreshed)
       const recipeText = require('../../utils/personal-recipes').editableRecipeText
-      const menuReviewDishes = refreshed.map(d => ({ ...d, reviewIngredients: (require('../../utils/recipe-quality').presentRecipeQuality(d) || {}).ingredientLines || recipeText(d.ingredientsAmounts || d.cl), reviewSteps: recipeText(d.steps || d.step) }))
+      const menuReviewDishes = refreshed.map(d => ({ ...d, reviewIngredients: require('../../utils/recipe-display').presentRecipeIngredients(d).lines, reviewSteps: recipeText(d.steps || d.step) }))
       const unavailable = refreshed.some(d => d.unavailable), changed = refreshed.some(d => d.changed)
       const menuReviewNotice = pending ? '上次保存结果未确认，重试会使用原内容。' : unavailable ? '部分菜品已不可用，仍保留在已选中。请移除或替换后再保存。' : changed ? '菜单菜谱内容有变化，以下为最新内容。请核对后点保存菜单，确认更新快照。' : '已读取当前菜谱。保存菜单后才会更新组合和快照。'
       this._menuVersion = pending ? pending.expectedVersion : menu.version
@@ -798,7 +798,7 @@ Page({
     if (!this.data.menuFormVisible && !this.data.menuEditingId && !this.data.menuPending) return
     const recipeText = require('../../utils/personal-recipes').editableRecipeText
     const dishes = this.data.selectedIds.map(id => this.allDishesMap[id] || { id, name: '菜品 ' + id })
-    this.setData({ menuReviewDishes: dishes.map(d => ({ ...d, reviewIngredients: (require('../../utils/recipe-quality').presentRecipeQuality(d) || {}).ingredientLines || recipeText(d.ingredientsAmounts || d.cl), reviewSteps: recipeText(d.steps || d.step) })),
+    this.setData({ menuReviewDishes: dishes.map(d => ({ ...d, reviewIngredients: require('../../utils/recipe-display').presentRecipeIngredients(d).lines, reviewSteps: recipeText(d.steps || d.step) })),
       menuReviewNotice: dishes.some(d => d.unavailable) ? '部分菜品不可用，请从已选组合移除或替换后再保存。' : '已选组合已调整，保存常用菜单后才会更新模板；历史餐食保留。' })
     this.syncCustomLeaveAlert()
   },

@@ -61,11 +61,11 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-bubble { max-width:94%; }.connected-user .connected-bubble { max-width:88%; }
 .connected-composer, .input-bar, .quick-bar, .action-bar { background:{{glassChrome}}; border-top-color:{{glassBorder}}; }
 .connected-input, .chat-input { background:{{card}}; border:1px solid {{controlBorder}}; border-radius:14px; }
-.connected-voice { border:1px solid {{controlBorder}}; border-radius:14px; background:{{glassSurface}}; }
+.connected-voice { border:1px solid transparent; border-radius:14px; background:{{brandSoft}}; }
 .dish-card, .plan-block, .howto-block, .alternatives-block { background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:16px; padding:10px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
 .dc-img, .dc-img-fb { width:56px; height:56px; border-radius:14px; }.dc-name, .plan-dish-name { white-space:normal; }
 .connected-welcome { padding:24px 0; }.connected-welcome .ew-title { font-size:{{font.section.em}}; }
-.connected-header .ew-hit-target { width:auto; flex:0 0 auto; margin:0; padding:8px; border:1px solid {{controlBorder}}; border-radius:10px; background:{{glassSurface}}; font-size:{{font.secondary.em}}; }
+.connected-header .ew-hit-target { width:auto; flex:0 0 auto; margin:0; padding:8px; border:1px solid transparent; border-radius:10px; background:{{brandSoft}}; font-size:{{font.secondary.em}}; }
 .connected-input-row .connected-voice { width:auto; flex:0 0 auto; min-width:48px; min-height:48px; margin:0; padding:8px; font-size:{{font.secondary.em}}; line-height:1.5; white-space:nowrap; }
 .connected-input-row .connected-send { width:auto; flex:0 0 auto; min-width:56px; min-height:48px; margin:0; padding:12px; line-height:1.5; }
 .connected-input-row .connected-input { width:0; flex:1 1 0%; min-width:0; min-height:48px; }
@@ -81,7 +81,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-welcome { padding:12px 0; }
 .connected-welcome .ew-title { max-width:100%; box-sizing:border-box; padding-right:{{space.1.px}}; }
 .connected-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
-.connected-shortcuts .connected-shortcut { width:auto; min-width:44px; margin:0; padding:8px 12px; border:1px solid {{border}}; border-radius:14px; background:{{glassSurface}}; color:{{brand}}; font-size:.8125em; line-height:1.5; }
+.connected-shortcuts .connected-shortcut { width:auto; min-width:44px; margin:0; padding:8px 12px; border:1px solid transparent; border-radius:14px; background:{{brandSoft}}; color:{{brand}}; font-size:.8125em; line-height:1.5; }
 .connected-composer { max-height:55%; overflow-y:auto; }
 .connected-input-row .connected-input { max-height:160px; }
 /* Legacy compatibility uses a static progress indicator; current V4 progress is factual text. */

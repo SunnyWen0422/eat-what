@@ -1,0 +1,3 @@
+<button class="favorite-star {{favorite ? 'is-favorite' : ''}} {{busy ? 'is-busy' : ''}}" disabled="{{busy || !dishId}}" catchtap="onToggle" aria-label="{{favorite ? '取消收藏' : '收藏'}}{{dishName}}" aria-pressed="{{favorite}}" hover-class="favorite-pressed">
+  <ui-icon name="{{favorite ? 'star-filled' : 'star'}}" tone="{{favorite ? 'brand' : 'muted'}}" size="22" />
+</button>

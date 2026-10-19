@@ -10,9 +10,7 @@
           <button class="share-btn ew-hit-target" open-type="share" aria-label="分享{{dish.name}}">
             <ui-icon class="line-icon line-icon-share" name="share" />
           </button>
-          <button aria-label="{{isFavorite ? '取消收藏' : '收藏'}}{{dish.name}}" class="ew-hit-target favorite-btn {{isFavorite ? 'favorited' : ''}}" loading="{{favoriteBusy}}" disabled="{{favoriteBusy}}" bindtap="toggleFavorite">
-            <ui-icon class="line-icon line-icon-heart favorite-icon" name="{{isFavorite ? 'favorite-filled' : 'favorite'}}"  /><text wx:if="{{favoriteBusy}}" class="favorite-status">处理中</text>
-          </button>
+          <dish-favorite class="favorite-control" dish-id="{{dish.id}}" dish-name="{{dish.name}}" />
         </view>
       </view>
       <view class="dish-tags" wx:if="{{dish.tags}}">
@@ -58,14 +56,17 @@
     <view class="section" wx:if="{{dish.ingredientsList && dish.ingredientsList.length > 0}}">
       <view class="section-title">
         <text class="section-title-text">食材与用量</text>
+        <text class="ingredient-basis">{{ingredientNotice}}</text>
       </view>
-      <view class="ew-muted">{{ingredientNotice}}</view>
-      <view class="ingredients-list">
-        <view class="ingredient-item" wx:for="{{dish.ingredientsList}}" wx:key="index">
-          <text class="ingredient-text">{{item}}</text>
+      <view class="ingredient-grid">
+        <view class="ingredient-cell {{item.wide ? 'is-wide' : ''}}" wx:for="{{dish.ingredientRows}}" wx:key="index">
+          <text class="ingredient-name">{{item.name}}</text>
+          <text class="ingredient-amount">{{item.amount || '未注明'}}</text>
+          <text wx:if="{{item.preparation}}" class="ingredient-preparation">{{item.preparation}}</text>
         </view>
       </view>
     </view>
+    <view wx:if="{{dish.cookingNotes.length}}" class="recipe-notes"><text wx:for="{{dish.cookingNotes}}" wx:key="*this" user-select>{{item}}</text></view>
 
     <!-- 烹饪步骤 -->
     <view class="section">
@@ -95,27 +96,7 @@
     </view>
 
     <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤</view>
-    <button wx:if="{{assistantAvailable}}" class="ew-hit-target ew-link detail-cooking-link" disabled="{{selectionBusy || selectionLoading}}" bindtap="onAskDish">问问这道菜</button>
-    <button wx:if="{{dish.methodsDisplay || dish.tipsDisplay || dish.cookTime || dish.cookMinutes || dish.tagsList.length > 3}}" class="ew-hit-target ew-link" aria-expanded="{{detailSupplementVisible}}" bindtap="onToggleSupplement">{{detailSupplementVisible ? '收起补充资料' : '补充做法与提示'}}</button>
-    <view wx:if="{{detailSupplementVisible}}">    <!-- 烹饪方法 -->
-    <view class="section" wx:if="{{dish.methodsDisplay}}">
-      <view class="section-title">
-        <text class="section-title-text">烹饪方法</text>
-      </view>
-      <text class="section-content" user-select>{{dish.methodsDisplay}}</text>
-    </view>
-
-    <!-- 小贴士 -->
-    <view class="section" wx:if="{{dish.tipsDisplay}}">
-      <view class="section-title">
-        <text class="section-title-text">小贴士</text>
-      </view>
-      <view class="tips-content">
-        <text class="tips-text" user-select>{{dish.tipsDisplay}}</text>
-      </view>
-    </view>
-<text wx:if="{{dish.cookTime || dish.cookMinutes}}" class="ew-muted">原资料时长说明：{{dish.cookTime || (dish.cookMinutes + ' 分钟')}}</text><view wx:if="{{dish.tagsList.length > 3}}" class="dish-tags"><text class="tag" wx:for="{{dish.tagsList}}" wx:key="*this">{{item}}</text></view></view>
-    <view wx:if="{{qualityView && (qualityView.nutritionAvailable || qualityView.sourceLines.length)}}" class="section"><text wx:if="{{qualityView.nutritionAvailable}}" class="ew-muted">{{qualityView.nutritionText}}</text><button wx:if="{{qualityView.sourceLines.length}}" class="ew-hit-target ew-link" bindtap="onToggleQualitySources">{{qualitySourcesVisible ? '收起来源' : '查看用料来源'}}</button><view wx:if="{{qualitySourcesVisible}}"><view wx:for="{{qualityView.sourceLines}}" wx:key="name"><text class="ew-muted">{{item.name}} · {{item.status}}</text><text class="section-content" user-select>{{item.text}}</text></view></view></view>
+    <view wx:if="{{qualityView.nutritionAvailable}}" class="section"><text class="ew-muted">{{qualityView.nutritionText}}</text></view>
   </view>
   <view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view>
   <view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view>

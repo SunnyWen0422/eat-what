@@ -1,1 +1,6 @@
-{"component":true}
+{
+  "component": true,
+  "usingComponents": {
+    "dish-favorite": "/components/dish-favorite/index"
+  }
+}

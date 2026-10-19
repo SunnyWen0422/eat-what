@@ -24,7 +24,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 .favorite-row { background:transparent; border:0; padding:0; }
 
-/* Keep the quiet overflow action on the same row as its recipe. */
+/* The recipe component owns its adjacent selection and favorite controls. */
 .favorite-row { display:flex; align-items:center; gap:4px; }
 .favorite-row compact-dish-row { display:block; flex:1; min-width:0; }
-.favorite-row > button { flex:0 0 auto; width:auto; padding:0 8px; margin:0; white-space:nowrap; font-size:{{font.secondary.em}}; }

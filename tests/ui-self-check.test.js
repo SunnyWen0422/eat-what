@@ -64,15 +64,14 @@ test('sheet reopen and keyboard dismissal derive fresh dimensions from the curre
   assert.equal(removed, keyboard)
 })
 
-test('favorite toggles request distinct registered PNG assets on detail and legacy result', () => {
-  const def = component('ui-icon')
-  for (const [file, data] of [['pages/dish-detail/dish-detail.wxml', value => ({ isFavorite: value })], ['pages/result/result.wxml', value => ({ item: { isFavorite: value } })]]) {
-    const tag = read(file).match(/<ui-icon[^>]*line-icon-heart[^>]*>/)[0]
-    const names = [false, true].map(value => binding(tag.match(/name="([^"]+)"/)[1], data(value)))
-    const assets = names.map(name => { let asset; def.properties.name.observer.call({ setData: value => { asset = value.asset } }, name); return asset })
-    assert.deepEqual(assets, ['favorite', 'favorite-filled'])
-    assert.notDeepEqual(fs.readFileSync(`assets/icons/${assets[0]}.png`), fs.readFileSync(`assets/icons/${assets[1]}.png`))
-  }
+test('dish stars use distinct registered assets through the shared favorite component', () => {
+  const markup=read('components/dish-favorite/index.wxml')
+  assert.match(markup, /favorite \? 'star-filled' : 'star'/)
+  const registry=require('../utils/ui-assets')
+  assert.ok(registry.icons.includes('star'));assert.ok(registry.icons.includes('star-filled'))
+  assert.notDeepEqual(fs.readFileSync('assets/icons/star.png'),fs.readFileSync('assets/icons/star-filled.png'))
+  assert.match(read('pages/dish-detail/dish-detail.wxml'), /<dish-favorite/)
+  assert.match(read('components/compact-dish-row/index.wxml'), /<dish-favorite/)
 })
 
 test('legacy assistant send control has a visible label and prevents resubmission while processing', () => {
@@ -84,25 +83,16 @@ test('legacy assistant send control has a visible label and prevents resubmissio
   assert.equal(binding(control.match(/disabled="([^"]+)"/)[1], { loading: false, inputText: '晚餐' }), 'false')
 })
 
-test('result tag list keeps the first three labels in original order for native loop bindings', () => {
-  const source = read('pages/result/result.wxml').match(/<view class="dish-tags"[^>]*>([\s\S]*?)<\/view>/)[1]
-  const loop = source.match(/<(block|text)([^>]*wx:for="[^"]+"[^>]*)>([\s\S]*?)<\/\1>/)
-  const expression = loop[2].match(/wx:for="([^"]+)"/)[1]
-  const itemName = loop[2].match(/wx:for-item="([^"]+)"/)?.[1] || 'item'
-  const indexName = loop[2].match(/wx:for-index="([^"]+)"/)?.[1] || 'index'
-  const text = loop[1] === 'text' ? [loop[2], loop[3]] : loop[3].match(/<text([^>]*)>([\s\S]*?)<\/text>/).slice(1)
-  for (const [tags, want] of [[[], []], [['豆腐'], ['豆腐']], [['鱼', '清蒸', '家常'], ['鱼', '清蒸', '家常']], [['鱼', '清蒸', '家常', '高蛋白', '晚餐'], ['鱼', '清蒸', '家常']]]) {
-    const item = { tags }
-    const values = vm.runInNewContext(expression.slice(2, -2), { item })
-    const rendered = []
-    values.forEach((tag, index) => {
-      const scope = { item, [itemName]: tag, [indexName]: index }
-      const condition = text[0].match(/wx:if="([^"]+)"/)?.[1]
-      if (!condition || binding(condition, scope) === 'true') rendered.push(binding(text[1], scope).trim())
-    })
-    assert.deepEqual(rendered, want)
-    assert.deepEqual(item.tags, tags)
-  }
+test('compatibility result and chat reuse the same dish image and favorite boundary', () => {
+  const result=read('pages/result/result.wxml'),chat=read('pages/chat/chat.wxml')
+  const row=result.match(/<compact-dish-row[^>]+>/)[0]
+  assert.match(row, /data-dish="{{item}}"/)
+  assert.match(row, /data-plan-index="{{planIndex}}"/)
+  assert.match(row, /data-dish-index="{{dishIndex}}"/)
+  assert.match(row, /bind:view="onTapDish"/)
+  assert.match(row, /bind:replace="onRefreshDish"/)
+  assert.match(chat, /<compact-dish-row[^>]+mode="read"[^>]+data-id="{{dish.id}}"[^>]+bind:view="onTapDish"/)
+  assert.doesNotMatch(result, /dish-photo-caption/)
 })
 
 test('page and shared WXML bindings use native data and arithmetic without function calls', () => {
@@ -114,23 +104,24 @@ test('page and shared WXML bindings use native data and arithmetic without funct
   }
 })
 
-test('both shopping views show unresolved quantities even with readable amounts and preserve manual confirmation', () => {
-  const source = read('pages/shopping-list/shopping-list.wxml')
-  const warningTags = [...source.matchAll(/<button\s+wx:if="([^"]+)"\s+class="[^"]*quantity-warning"[^>]*>([^<]+)<\/button>/g)]
-  assert.equal(warningTags.length, 2, 'summary and meal templates both need a visible status')
-  const fixtures = [
-    { calculationStatus: 'NEEDS_ADJUSTMENT', quantityText: '200g', warnings: ['UNKNOWN_SERVINGS'] },
-    { calculationStatus: 'CALCULATED', quantityText: '400g', quantityValue:400, parseStatus:'PARSED', unitFamily:'mass', unitCode:'g', servingsVerified: true, warnings: [] },
-    { calculationStatus: 'CALCULATED', quantityText: '400g' },
-    { calculationStatus: 'USER_OVERRIDE', quantityText: '450g', userOverride: true, warnings: [] },
+test('both shopping views keep uncertainty in the shared row and source access remains reachable', () => {
+  const source=read('pages/shopping-list/shopping-list.wxml'),row=read('components/compact-ingredient-row/index.wxml')
+  assert.equal((source.match(/<compact-ingredient-row[^>]+bind:sources="onSourceDetails"/g)||[]).length,2)
+  assert.doesNotMatch(source, /<button[^>]+quantity-warning/)
+  assert.match(row, /catchtap="onSources"[^>]+来源与原用量/)
+  const marker=row.match(/<text wx:if="([^"]+)" class="ingredient-note">([^<]+)<\/text>/)
+  assert.ok(marker)
+  const fixtures=[
+    {calculationStatus:'NEEDS_ADJUSTMENT',quantityText:'200g',warnings:['UNKNOWN_SERVINGS']},
+    {calculationStatus:'CALCULATED',quantityText:'400g',quantityValue:400,parseStatus:'PARSED',unitFamily:'mass',unitCode:'g',servingsVerified:true,warnings:[]},
+    {calculationStatus:'CALCULATED',quantityText:'400g'},
+    {calculationStatus:'USER_OVERRIDE',quantityText:'450g',userOverride:true,warnings:[]},
   ]
-  for (const tag of warningTags) {
-    fixtures.forEach((fixture, index) => {
-      const item = require('../utils/shopping-view').buildShoppingView({dishes:[{items:[fixture]}]}).rows[0]
-      assert.equal(binding(tag[1], { item }), index === 0 || index === 2 ? 'true' : 'false')
-      if (index === 0 || index === 2) assert.match(binding(tag[2], { item }), /核对|调整/)
-    })
-  }
+  fixtures.forEach((fixture,index)=>{
+    const item=require('../utils/shopping-view').buildShoppingView({dishes:[{items:[fixture]}]}).rows[0]
+    assert.equal(binding(marker[1],{row:item}),index===0||index===2?'true':'false')
+    if(index===0||index===2)assert.match(marker[2],/核对/)
+  })
 })
 
 function legacyResult(api = {}, moduleOverrides = {}) {

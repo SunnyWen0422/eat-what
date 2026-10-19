@@ -90,3 +90,10 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-large .shopping-bottom { flex-direction:column; align-items:stretch; }
 .shopping-page.shopping-large .shopping-bottom > ui-button { flex:none; width:100%; }
 .shopping-page.shopping-large { padding-bottom:calc(3em + 96px + env(safe-area-inset-bottom)); }
+
+/* Keep state selection prominent and the secondary view switch quiet. */
+.shopping-page .shopping-status-tabs button.active { background:{{brand}}; color:{{card}}; }
+.shopping-page .shopping-view-tabs { padding:0; background:transparent; border:0; border-bottom:1px solid {{divider}}; border-radius:0; gap:16px; }
+.shopping-page .shopping-view-tabs button.ew-hit-target { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; }
+.shopping-page .shopping-view-tabs button.active { border-bottom-color:{{brand}}; color:{{brand}}; }
+.shopping-ingredients { background:{{card}}; border-radius:{{radius.3.px}}; overflow:hidden; padding:0 {{space.1.px}}; }

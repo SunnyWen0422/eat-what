@@ -8,24 +8,26 @@ const read = file => fs.readFileSync(file, 'utf8')
 // These tests fail if a visible page label again conflates planning with eating.
 test('calendar directs empty meals to an arrangement without conflating food records', () => {
   const source = read('pages/calendar/calendar.wxml')
-  assert.match(source, /'查看与调整安排' : '安排这一餐'/)
+  assert.match(source, /action-label="\{\{.*\? '查看' : '安排'\}\}"/)
   assert.doesNotMatch(source, /安排 \/ 记录这一餐/)
 })
 
 test('calendar meal entry labels actual records before existing or empty plans', () => {
   const source = read('pages/calendar/calendar.wxml')
-  const expression = source.match(/bindtap="onOpenMeal">\{\{(.*?)\}\}/)
+  const expression = source.match(/action-label="\{\{(.*?)\}\}"/)
   assert.ok(expression, 'calendar retains its single meal-detail entry')
   const cases = [
-    { item: { status: 'eaten', plan: null }, label: '查看饮食记录' },
-    { item: { status: 'eaten', plan: { recipeName: '原安排' } }, label: '查看饮食记录' },
-    { item: { status: 'unrecorded', plan: { recipeName: '明日午餐' } }, label: '查看与调整安排' },
-    { item: { status: 'unrecorded', plan: null }, label: '安排这一餐' },
+    { item: { status: 'eaten', plan: null }, label: '查看' },
+    { item: { status: 'eaten', plan: { recipeName: '原安排' } }, label: '查看' },
+    { item: { status: 'skipped', plan: null }, label: '查看' },
+    { item: { status: 'unrecorded', plan: { recipeName: '明日午餐' } }, label: '查看' },
+    { item: { status: 'unrecorded', plan: null }, label: '安排' },
   ]
   for (const { item, label } of cases) {
     assert.equal(vm.runInNewContext(expression[1], { item }), label)
   }
-  assert.equal((source.match(/bindtap="onOpenMeal"/g) || []).length, 1)
+  assert.equal((source.match(/bind:open="onOpenMeal"/g) || []).length, 1)
+  assert.match(source, /data-meal="\{\{item.mealType\}\}"/)
 })
 
 test('calendar detail labels saving a plan separately from recording food', () => {

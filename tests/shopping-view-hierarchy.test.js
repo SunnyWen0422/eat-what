@@ -40,3 +40,11 @@ test('purchase row references the same single expense while details are collapse
  assert.equal(result[0].ingredientKey,result[1].ingredientKey);assert.equal(result[0].actualText,'¥0.00');assert.equal(result[0].sourceExpanded,false);assert.deepEqual(result[0].warnings,['QUANTITY'])
  assert.equal(decorateShoppingRows(result,costs,['r1'])[0].sourceExpanded,true)
 })
+
+test('shopping sources hide internal statistics without changing identity, original text or quantity safety',()=>{
+ const {buildShoppingView}=require('../utils/shopping-view')
+ const raw={id:7,displayName:'豆腐',sourceQuantityText:'豆腐|460|克|主料|切块||2名成年人总量+15%冗余',quantityText:'用量待确认',calculationStatus:'NEEDS_ADJUSTMENT',warnings:['2名成年人总量+15%冗余','原使用量仅供参考','请按人数调整用量'],checked:false}
+ const before=JSON.stringify(raw),row=buildShoppingView({dishes:[{dishId:8,dishName:'豆腐汤',items:[raw]}]}).rows[0]
+ assert.equal(row.sourceDisplayText,'豆腐 460克（切块）');assert.deepEqual(row.displayWarnings,['请按人数调整用量'])
+ assert.equal(row.quantityUncertain,true);assert.equal(row.sourceQuantityText,raw.sourceQuantityText);assert.equal(JSON.stringify(raw),before);assert.ok(raw.warnings.every(warning=>row.warnings.includes(warning)))
+})

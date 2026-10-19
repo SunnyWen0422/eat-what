@@ -26,6 +26,8 @@ PATHS = {
     "check": 'M4 12l5 5L20 6',
     "favorite": 'M12 21S2 15 2 8a5 5 0 0 1 10-1a5 5 0 0 1 10 1c0 7-10 13-10 13z',
     "favorite-filled": 'M12 21S2 15 2 8a5 5 0 0 1 10-1a5 5 0 0 1 10 1c0 7-10 13-10 13z',
+    "star": 'M12 3l2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.4l-5.6 3 1.1-6.3-4.6-4.5 6.3-.9z',
+    "star-filled": 'M12 3l2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.4l-5.6 3 1.1-6.3-4.6-4.5 6.3-.9z',
     "settings": 'M4 6h16 M4 12h16 M4 18h16 M8 3v6m8 0v6m-6 0v6',
     "info": 'M2 12a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 11v6m0-10h.1',
     "history": 'M4 7a9 9 0 1 1-1 8 M3 3v5h5 M12 7v5l4 2',
@@ -107,13 +109,13 @@ def build():
         for selected in ([False, True] if name in tabs else [False]):
             variant = name + ("-selected" if selected else "")
             color = COLOR["brand"] if selected or name not in tabs else COLOR["muted"]
-            fill = color if name == "favorite-filled" else "none"
+            fill = color if name in ("favorite-filled", "star-filled") else "none"
             selection = f'<rect x="2" y="2" width="20" height="20" rx="6" fill="{COLOR["brandSoft"]}"/>' if selected else ''
             svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">{selection}<path d="{path}" fill="{fill}" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
             (icons / (variant + ".svg")).write_text(svg, encoding="utf-8")
             cairosvg.svg2png(bytestring=svg.encode(), output_width=72, output_height=72, write_to=str(icons / (variant + ".png")))
     for name, path in PATHS.items():
-        fill = COLOR['muted'] if name == 'favorite-filled' else 'none'
+        fill = COLOR['muted'] if name in ('favorite-filled', 'star-filled') else 'none'
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="{path}" fill="{fill}" stroke="{COLOR["muted"]}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
         (icons / (name + '-muted.svg')).write_text(svg, encoding='utf-8')
         cairosvg.svg2png(bytestring=svg.encode(), output_width=72, output_height=72, write_to=str(icons / (name + '-muted.png')))
