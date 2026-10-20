@@ -72,17 +72,32 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-assistant .connected-input-row .connected-send[disabled] { opacity:1; background:{{disabled}}; color:{{muted}}; }
 
 /* The conversation, not a duplicated menu, owns the viewport. */
-.connected-header { padding:8px 16px; }
-.connected-header .ew-heading { font-size:1.125em; }
-.connected-messages { padding:8px 16px 16px; }
-.connected-assistant button.connected-context { display:block; width:100%; max-width:100%; margin:0 0 8px; padding:8px 0; background:transparent; color:{{muted}}; border:0; text-align:left; font-size:.8125em; font-weight:400; line-height:1.5; white-space:normal; }
-.connected-context-details { display:flex; flex-direction:column; gap:8px; padding:12px; margin-bottom:12px; font-size:1em; line-height:1.5; overflow-wrap:anywhere; }
-.connected-context-details .ew-title { font-size:1em; }
-.connected-welcome { padding:12px 0; }
-.connected-welcome .ew-title { max-width:100%; box-sizing:border-box; padding-right:{{space.1.px}}; }
-.connected-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
-.connected-shortcuts .connected-shortcut { width:auto; min-width:44px; margin:0; padding:8px 12px; border:1px solid transparent; border-radius:14px; background:{{brandSoft}}; color:{{brand}}; font-size:.8125em; line-height:1.5; }
-.connected-composer { max-height:55%; overflow-y:auto; }
-.connected-input-row .connected-input { max-height:160px; }
+.connected-header { gap:8px; padding:8px 16px; background:transparent; border-bottom:1px solid rgba(40,99,78,.08); }
+.connected-assistant button.connected-context { display:flex; align-items:center; gap:8px; flex:1 1 0%; min-width:0; width:auto; max-width:100%; min-height:44px; margin:0; padding:6px 0; background:transparent; color:{{muted}}; border:0; border-radius:0; text-align:left; font-size:.8125em; font-weight:400; line-height:1.5; white-space:normal; }
+.connected-context-label { flex:1; min-width:0; word-break:keep-all; overflow-wrap:normal; }
+.connected-context-chevron { display:flex; flex:none; align-items:center; transform:rotate(90deg); }
+.connected-context-chevron.is-expanded { transform:rotate(-90deg); }
+.connected-header button.connected-return { display:flex; align-items:center; justify-content:center; width:44px; min-width:44px; min-height:44px; flex:0 0 44px; margin:0; padding:0; background:transparent; border:0; border-radius:0; }
+.connected-context::after,.connected-return::after,.connected-edit::after,.connected-shortcut::after { border:0; }
+.connected-messages { padding:12px 16px 20px; }
+.connected-context-details { display:flex; flex-direction:column; gap:8px; padding:12px 16px; margin:0 0 16px; background:{{glassSurface}}; border:1px solid {{glassBorder}}; border-radius:20px; font-size:.8125em; line-height:1.6; overflow-wrap:anywhere; }
+.connected-section-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; font-weight:600; }
+.connected-assistant button.connected-edit { display:flex; align-items:center; justify-content:center; flex:none; width:auto; min-width:44px; min-height:44px; margin:0; padding:4px 0 4px 8px; background:transparent; border:0; color:{{brand}}; font-size:1em; font-weight:400; line-height:1.5; }
+.connected-saved-heading { border-top:1px solid {{divider}}; margin-top:4px; padding-top:4px; }
+.connected-context-row { display:flex; align-items:baseline; gap:12px; min-width:0; }
+.connected-row-label { flex:0 0 5.5em; color:{{muted}}; }
+.connected-row-value { flex:1; min-width:0; color:{{text}}; }
+.connected-welcome { align-items:flex-start; gap:16px; padding:24px 0; }
+.connected-welcome-title { font-size:1.25em; line-height:1.45; font-weight:600; text-align:left; }
+.connected-shortcuts { display:flex; flex-direction:column; align-items:stretch; gap:0; width:100%; max-width:100%; }
+.connected-shortcuts button.connected-shortcut { display:flex; align-items:center; justify-content:flex-start; gap:10px; flex:none; min-width:44px; min-height:48px; max-width:100%; width:100%; margin:0; padding:12px 0; border:0; border-bottom:1px solid rgba(40,99,78,.1); border-radius:0; background:transparent; color:{{brand}}; text-align:left; font-size:.875em; font-weight:400; line-height:1.5; white-space:normal; }
+.connected-shortcuts button.connected-shortcut:last-child { border-bottom:0; }
+.connected-shortcut text { flex:1; min-width:0; overflow-wrap:anywhere; }
+.connected-composer { max-height:55%; overflow-y:auto; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:transparent; border-top:0; }
+.connected-input-row { align-items:center; gap:6px; padding:6px; border:1px solid {{glassBorder}}; border-radius:22px; background:{{glassChrome}}; box-shadow:0 4px 18px rgba(30,71,56,.04); }
+.connected-input-row .connected-input { max-height:160px; min-height:44px; padding:10px 8px; border:0; border-radius:0; background:transparent; font-size:.875em; line-height:1.6; }
+.connected-input-row .connected-send { min-width:52px; min-height:44px; padding:8px 10px; border:0; border-radius:16px; font-size:.8125em; font-weight:600; line-height:1.5; }
+.connected-assistant .connected-input-row .connected-send[disabled] { background:{{disabled}}; color:{{muted}}; }
+@media(max-width:360px) { .connected-header,.connected-messages { padding-left:12px; padding-right:12px; }.connected-composer { padding-left:12px; padding-right:12px; }.connected-welcome { padding-top:24px; } }
 /* Legacy compatibility uses a static progress indicator; current V4 progress is factual text. */
 .task-dot-loading,.dot { animation:none; }

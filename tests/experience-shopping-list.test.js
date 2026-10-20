@@ -338,7 +338,7 @@ test('costs stay folded without automatic reads or deleting old expenses', async
 
 for (const scope of ['checked', 'all']) test(`clear ${scope} confirms the exact source count and leaves calendar recipe and actual records outside the write`, async () => {
   const list = changedList(eightSources(), [1, 2, 3], true), h = pageHarness({ list })
-  const waiting = h.page.clear(scope)
+  h.page.setData({loading:false}); const waiting = h.page.clear(scope)
   assert.equal(h.calls.length, 0)
   assert.match(h.modals[0].content, scope === 'all' ? /待买\s*5\s*项.*已买\s*3\s*项.*共\s*8\s*项/ : /3\s*项已买/)
   assert.match(h.modals[0].content, /日历.*菜谱.*实际/)
@@ -376,7 +376,7 @@ test('an unusable check receipt keeps the original request pending and never man
 })
 
 test('a clear confirmation cannot silently authorize a changed count or another account', async () => {
-  const h = pageHarness(), first = h.page.clear('all')
+  const h = pageHarness(); h.page.setData({loading:false}); const first = h.page.clear('all')
   h.page.applyList({ ...eightSources(), version: 4 })
   h.answer(); await first
   assert.equal(h.calls.length, 0)
@@ -824,4 +824,54 @@ test('bulk purchase completes a long list and undo only reverts the explicitly l
  const h=bulkPurchaseHarness({list,reducedMotion:true});const run=h.page.onCheckAll();h.answer();await run
  assert.equal(h.calls.length,2);assert.equal(h.page.data.pendingCount,0);assert.equal(h.page.data.feedback.message,'全部待买食材已标为已买');assert.equal(h.page.data.feedback.undoLabel,'撤销最近 1 项')
  await h.page.onUndoCheck({detail:{requestId:h.page.data.feedback.requestId}});assert.deepEqual(h.calls[2].payload.itemIds,[501]);assert.equal(h.page.data.pendingCount,1);assert.equal(h.page.data.checkedCount,500)
+})
+
+function bulkDeleteHarness(options={}) { const h=pageHarness(options);h.page.setData({loading:false,deleteMode:true});return h }
+
+test('delete-mode clear confirms pending and bought sources and sends one atomic clear',async()=>{
+ const h=bulkDeleteHarness({list:changedList(eightSources(),[1,2],true,2)});h.page.setData({statusFilter:'checked',viewMode:'byDish'});h.page.renderList()
+ const run=h.page.onClearAll();const second=h.page.onClearAll();assert.equal(h.modals.length,1)
+ assert.equal(h.calls.length,0);assert.match(h.modals[0].content,/待买 6 项.*已买 2 项.*共 8 项/);assert.match(h.modals[0].content,/实付/)
+ assert.equal(h.modals[0].confirmText,'全部删除');h.answer();await Promise.all([run,second])
+ assert.equal(h.calls.length,1);assert.equal(h.calls[0].type,'clear');assert.equal(h.calls[0].payload.scope,'all');assert.equal(h.calls[0].payload.expectedListVersion,2)
+ assert.equal(h.page.data.pendingCount+h.page.data.checkedCount,0);assert.equal(h.page.data.deleteMode,false);assert.equal(h.page.data.feedback.message,'已删除全部食材');assert.equal(h.page._clearing,null)
+})
+test('bulk delete cancel preserves the list and remains in delete mode',async()=>{
+ const h=bulkDeleteHarness(),before=plain(h.page._full);const run=h.page.onClearAll();h.answer(false);await run
+ assert.equal(h.calls.length,0);assert.deepEqual(plain(h.page._full),before);assert.equal(h.page.data.deleteMode,true);assert.equal(h.page._clearing,null)
+})
+for(const change of ['version','account','hide','unload','refresh'])test('bulk delete confirmation expires after '+change,async()=>{
+ const h=bulkDeleteHarness();const run=h.page.onClearAll()
+ if(change==='version')h.page.applyList({...h.page._full,version:9})
+ if(change==='account')h.switchOwner()
+ if(change==='hide')h.page.onHide()
+ if(change==='unload')h.page.onUnload()
+ if(change==='refresh')h.page._epoch=(h.page._epoch||0)+1
+ h.answer();await run;assert.equal(h.calls.length,0)
+})
+test('bulk delete is not available outside delete mode, during loading, or for an empty list',async()=>{
+ for(const state of [{deleteMode:false},{busy:true},{loading:true},{refreshing:true}]){const h=bulkDeleteHarness();h.page.setData(state);await h.page.onClearAll();assert.equal(h.modals.length,0)}
+ const h=bulkDeleteHarness({list:{version:2,dishes:[]}});await h.page.onClearAll();assert.equal(h.modals.length,0)
+})
+test('unknown bulk delete retries the original request after page reentry',async()=>{
+ const sent=[];let attempts=0;const h=bulkDeleteHarness({mutate:async(method,payload)=>{sent.push(plain(payload));if(++attempts===1)throw {isNetworkError:true};return {version:3,dishes:[]}}})
+ const run=h.page.onClearAll();h.answer();await run
+ assert.equal(h.page.data.feedback.state,'unknown');assert.equal(h.page.data.deleteMode,true);assert.equal(h.store.loadPendingOperations().length,1)
+ const p=h.createPage();p.setData({loading:false,deleteMode:true});const retry=p.onClearAll();h.answer();await retry
+ assert.deepEqual(sent[1],sent[0]);assert.equal(p.data.pendingCount,0);assert.equal(h.store.loadPendingOperations().length,0)
+})
+for(const replay of [false,true])test('bulk clear receipt retaining an ingredient is not accepted'+(replay?' on journal replay':''),async()=>{
+ const h=bulkDeleteHarness({mutate:async()=>({...eightSources(),version:3})})
+ const run=h.page.onClearAll();h.answer();await run
+ assert.equal(h.page.data.feedback.state,'unknown');assert.equal(h.page.data.pendingCount,8);assert.equal(h.store.loadPendingOperations().length,1)
+ if(replay){const r=await h.store.flushShoppingOperations();assert.equal(r.remaining,1);assert.equal(h.store.loadLocalShoppingList().dishes.length,2)}
+})
+
+test('late clear receipt confirms the old operation without deleting newer ingredients',async()=>{
+ let resolve;const h=bulkDeleteHarness({mutate:()=>new Promise(r=>resolve=r)})
+ const run=h.page.onClearAll();h.answer();await new Promise(r=>setImmediate(r))
+ const newer={version:4,dishes:[group('new','2026-10-20',[item(20,'豆腐')])]};h.page.applyList(h.store.saveLocalShoppingList(newer))
+ resolve({version:3,dishes:[]});await run
+ assert.equal(h.page.data.version,4);assert.equal(h.page.data.pendingCount,1);assert.equal(h.page.findItem(20).displayName,'豆腐')
+ assert.equal(h.store.loadPendingOperations().length,0);assert.match(h.page.data.feedback.message,/清单/);assert.notEqual(h.page.data.feedback.message,'已删除全部食材')
 })

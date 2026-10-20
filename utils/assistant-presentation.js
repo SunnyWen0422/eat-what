@@ -1,11 +1,11 @@
 const suggestions=[
- {id:'arrange',label:'安排这餐',text:'按当前人数和要求安排这餐'},
- {id:'replace',label:'换道菜',text:'帮我换一道菜'},
- {id:'shopping',label:'准备食材',text:'准备这餐的采购清单'},
- {id:'arrangements',label:'看看安排',text:'看看我已有的用餐安排'},
+ {id:'arrange',icon:'recipes',label:'帮我搭配这一餐',text:'按当前人数和要求安排这餐'},
+ {id:'light',icon:'ingredient',label:'推荐清淡一点的',text:'按本餐人数和要求，推荐一份清淡的菜单'},
+ {id:'arrangements',icon:'calendar',label:'查看现有安排',text:'看看我已有的用餐安排'},
+ {id:'health',icon:'nutrition',label:'今天吃得健康吗',text:'看看我今天实际吃得是否均衡，有什么可以调整的？'},
 ]
-function buildAssistantSuggestions({hasMenu,available}) {
- return available?suggestions.filter(s=>hasMenu || ['arrange','arrangements'].includes(s.id)).map(s=>({...s})):[]
+function buildAssistantSuggestions({available}) {
+ return available?suggestions.map(s=>({...s})):[]
 }
 // Source explanation only. Java still resolves and validates effective constraints.
 function buildAssistantContextSummary({workspace,preferencesSnapshot,options,preferencesState}={}) {

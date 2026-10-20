@@ -87,8 +87,8 @@
 /* One steady row for choosing the meal, personalization and time/ingredients. */
 .workspace-meal-tools { display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:8px; margin:0 0 8px; border-bottom:1px solid {{divider}}; }
 .workspace-screen button.workspace-tool { display:flex; align-items:center; justify-content:center; gap:6px; flex:0 1 auto; min-width:44px; min-height:44px; margin:0; padding:8px 0; font-size:{{font.secondary.em}}; line-height:1.5; white-space:nowrap; border:0; background:transparent; color:{{brand}}; }
-.workspace-screen button.workspace-time-button { display:flex; align-items:center; justify-content:center; flex:0 0 44px; width:44px; min-height:44px; padding:0; margin:0; border:0; border-radius:12px; background:{{brandSoft}}; }
-.workspace-tool::after,.workspace-time-button::after { border:0; }
+.workspace-screen button.workspace-time-button,.workspace-screen button.workspace-return-today { display:flex; align-items:center; justify-content:center; flex:0 0 44px; width:44px; min-height:44px; padding:0; margin:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.workspace-tool::after,.workspace-time-button::after,.workspace-return-today::after { border:0; }
 .workspace-filter-dot { width:5px; height:5px; flex:0 0 5px; border-radius:50%; background:{{brand}}; }
 .workspace-alarm { display:flex; align-items:center; justify-content:center; position:relative; width:24px; height:24px; }
 .workspace-alarm::before,.workspace-alarm::after { content:""; position:absolute; top:0; width:7px; height:2px; background:{{brand}}; border-radius:2px; }

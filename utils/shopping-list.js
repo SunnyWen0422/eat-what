@@ -88,6 +88,9 @@ async function flushShoppingOperations() {
       if (operation.type === 'delete' && list.dishes.some(dish => (dish.items || []).some(item => String(item.id) === String(operation.itemId)))) {
         throw { isNetworkError: true, message: '删除结果尚未确认，保留原草稿重试。' }
       }
+      if (operation.type === 'clear' && list.dishes.some(dish => (dish.items || []).some(item => operation.payload.scope === 'all' || item.checked === true))) {
+        throw { isNetworkError: true, message: '清空结果尚未确认，保留原草稿重试。' }
+      }
       const current = loadLocalShoppingList()
       if (list.version >= current.version) saveLocalShoppingList(list)
       removePendingOperation(operation.operationId, operation.payload && operation.payload.requestId)

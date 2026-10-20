@@ -133,3 +133,11 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-complete-toggle[disabled] { opacity:.4; }
 .purchase-icon { display:flex; align-items:center; justify-content:center; position:relative; width:26px; height:26px; }
 .purchase-check { position:absolute; right:-3px; bottom:-2px; display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:{{brandSoft}}; }
+
+/* Delete mode uses the existing header action slot, without an extra toolbar. */
+.shopping-page .shopping-clear-all { display:flex; align-items:center; justify-content:center; flex:0 0 auto; min-width:44px; min-height:44px; margin:0; padding:0 10px; border:0; border-radius:12px; background:{{dangerSoft}}; color:{{danger}}; font-size:.8125em; line-height:1.4; white-space:nowrap; }
+.shopping-clear-all::after { border:0; }
+.shopping-clear-all[disabled] { opacity:.4; }
+
+.shopping-page > .shopping-header > view.shopping-title { flex:1 0 auto; white-space:nowrap; }
+.shopping-page > .shopping-header > .shopping-header-actions { margin-left:auto; }

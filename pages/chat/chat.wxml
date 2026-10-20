@@ -1,21 +1,20 @@
 <block wx:if="{{assistantConnected}}">
 <view class="connected-assistant ew-dish-surface" style="font-size:{{fontBase * fontScale}}px;padding-bottom:{{keyboardHeight}}px">
- <view class="connected-header"><view><text class="ew-heading">饮食助手</text></view><button class="ew-hit-target ew-link" bindtap="onConversationHome">{{assistantReturnLabel || '回到今天'}}</button></view>
+ <view class="connected-header">
+  <button class="ew-hit-target connected-context" bindtap="onToggleConversationMenu" aria-expanded="{{conversationMenuExpanded}}" aria-label="{{conversationContextSummary.targetLabel}}，{{conversationMenuExpanded ? '收起本餐设置和菜单' : '查看本餐设置和菜单'}}"><ui-icon name="calendar" tone="muted" size="17" /><text class="connected-context-label">{{conversationContextSummary.targetLabel}}<text wx:if="{{conversationMenuCount}}"> · {{conversationMenuCount}}道菜</text></text><view class="connected-context-chevron {{conversationMenuExpanded ? 'is-expanded' : ''}}"><ui-icon name="chevron-right" tone="muted" size="14" /></view></button>
+  <button class="ew-hit-target connected-return" bindtap="onConversationHome" aria-label="{{assistantReturnLabel || '回到今天'}}"><ui-icon name="arrow-left" size="22" /></button>
+ </view>
  <scroll-view class="connected-messages" scroll-y enhanced bindscroll="onConversationScroll" bindscrolltolower="onConversationBottom" scroll-into-view="{{conversationScrollTarget}}">
   <button wx:if="{{conversationHasOlder}}" class="ew-hit-target ew-link" bindtap="onConversationOlder">查看更早的对话</button>
-  <button class="ew-hit-target connected-context" bindtap="onToggleConversationMenu" aria-expanded="{{conversationMenuExpanded}}">{{conversationContextSummary.targetLabel}}<text wx:if="{{conversationMenuCount}}"> · {{conversationMenuCount}}道菜</text> · {{conversationMenuExpanded ? '收起' : '查看来源与菜单'}}</button>
   <view wx:if="{{conversationMenuExpanded}}" class="connected-context-details">
-   <text class="ew-title">本餐输入（仅这餐）</text>
-   <view wx:for="{{conversationContextSummary.mealRows}}" wx:key="id"><text class="ew-muted">{{item.label}}：</text><text>{{item.text}}</text></view>
-   <button class="ew-hit-target ew-link" disabled="{{conversationBusy || conversationWorkspaceBlocked || conversationRecoverable || conversationActionsEnabled === false}}" bindtap="onConversationEditRequirements">修改本餐要求</button>
-   <text class="ew-title">已保存的长期偏好</text>
-   <view wx:for="{{conversationContextSummary.savedRows}}" wx:key="id"><text class="ew-muted">{{item.label}}：</text><text>{{item.text}}</text></view>
+   <view class="connected-section-heading"><text>本餐设置</text><button class="ew-hit-target connected-edit" disabled="{{conversationBusy || conversationWorkspaceBlocked || conversationRecoverable || conversationActionsEnabled === false}}" bindtap="onConversationEditRequirements" aria-label="修改本餐要求">修改</button></view>
+   <view class="connected-context-row" wx:for="{{conversationContextSummary.mealRows}}" wx:key="id"><text class="connected-row-label">{{item.label}}</text><text class="connected-row-value">{{item.text}}</text></view>
+   <view class="connected-section-heading connected-saved-heading"><text>长期偏好</text><button class="ew-hit-target connected-edit" bindtap="onConversationPreferences" aria-label="编辑长期偏好">编辑</button></view>
+   <view class="connected-context-row" wx:for="{{conversationContextSummary.savedRows}}" wx:key="id"><text class="connected-row-label">{{item.label}}</text><text class="connected-row-value">{{item.text}}</text></view>
    <text wx:if="{{conversationContextSummary.unavailableLabel}}" class="ew-muted">{{conversationContextSummary.unavailableLabel}}</text>
-   <button class="ew-hit-target ew-link" bindtap="onConversationPreferences">编辑并保存长期偏好</button>
-   <text class="ew-muted">临时要求只用于这餐。</text>
   </view>
   <view id="conversation-current-menu"><assistant-card class="conversation-dish-card" wx:if="{{conversationCurrentMenu && conversationMenuExpanded}}" card="{{conversationCurrentMenu}}" active="{{false}}" busy="{{conversationBusy || busy}}" bind:dishaction="onConversationDishAction" /></view>
-  <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="ew-title">说说你这一餐的想法</text><view class="connected-shortcuts"><button wx:for="{{conversationSuggestions}}" wx:key="id" class="ew-hit-target connected-shortcut" data-id="{{item.id}}" disabled="{{conversationBusy || conversationRecoverable}}" bindtap="onConversationSuggestion">{{item.label}}</button></view></view>
+  <view wx:if="{{!conversationMessages.length}}" class="connected-welcome"><text class="connected-welcome-title">这餐想怎么吃？</text><view class="connected-shortcuts"><button wx:for="{{conversationSuggestions}}" wx:key="id" class="ew-hit-target connected-shortcut" data-id="{{item.id}}" disabled="{{conversationBusy || conversationRecoverable}}" bindtap="onConversationSuggestion"><ui-icon name="{{item.icon}}" size="18" /><text>{{item.label}}</text><ui-icon name="chevron-right" tone="muted" size="14" /></button></view></view>
   <view wx:for="{{conversationMessages}}" wx:key="id" class="connected-message {{item.role === 'user' ? 'connected-user' : ''}}">
    <text wx:if="{{item.text}}" class="connected-bubble" user-select>{{item.text}}</text>
    <view wx:if="{{item.workflow.length}}" aria-role="status"><view wx:for="{{item.workflow}}" wx:for-item="step" wx:key="id" class="ew-muted">{{step.label}}</view></view>
@@ -34,7 +33,7 @@
   <button wx:if="{{conversationWorkflowAction === 'recover'}}" class="ew-hit-target ew-link" disabled="{{conversationBusy}}" bindtap="onConversationRecover">{{conversationWorkflowLabel}}</button>
   <button wx:if="{{conversationWorkflowAction === 'remaining'}}" class="ew-hit-target ew-link" disabled="{{conversationBusy || conversationWorkspaceBlocked || conversationActionsEnabled === false}}" bindtap="onConversationWorkflow">{{conversationWorkflowLabel}}</button>
   <button wx:if="{{conversationCanStop && !conversationBusy}}" class="ew-hit-target ew-link" bindtap="onConversationStop">{{conversationStopLabel}}</button>
-  <view class="connected-input-row"><textarea placeholder-class="ew-placeholder" placeholder-style="font-size:{{fontBase * fontScale}}px" class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="说说想法" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{(!conversationCanSteer && (conversationBusy || conversationRecoverable)) || conversationWorkspaceBlocked || !conversationInput || conversationActionsEnabled === false}}" bindtap="onConversationSend">{{conversationCanSteer ? '补充' : '发送'}}</button></view>
+  <view class="connected-input-row"><textarea placeholder-class="ew-placeholder" placeholder-style="font-size:{{fontBase * fontScale * 0.875}}px" class="connected-input" value="{{conversationInput}}" bindinput="onConversationInput" bindkeyboardheightchange="onConversationKeyboard" adjust-position="{{false}}" auto-height maxlength="2000" placeholder="口味、人数或手边食材…" cursor-spacing="16" aria-label="给助手的消息" /><button class="ew-hit-target connected-send" disabled="{{(!conversationCanSteer && (conversationBusy || conversationRecoverable)) || conversationWorkspaceBlocked || !conversationInput || conversationActionsEnabled === false}}" bindtap="onConversationSend">{{conversationCanSteer ? '补充' : '发送'}}</button></view>
  </view>
 </view>
 </block>

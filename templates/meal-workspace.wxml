@@ -6,7 +6,7 @@
       <view class="workspace-meals" aria-label="选择餐次"><button wx:for="{{mealLabels}}" wx:key="*this" class="workspace-meal {{mealIndex === index ? 'is-active' : ''}}" disabled="{{loading || busy}}" aria-pressed="{{mealIndex === index}}" data-index="{{index}}" bindtap="onMealTab">{{item}}</button></view>
       <meal-composition-summary people="{{context.people}}" summary="{{compositionLabel}}" font-scale="{{fontScale}}" busy="{{loading || contextLocked || compositionSaving}}" bind:people="onOpenPeople" bind:composition="onOpenComposition" />
       <view wx:if="{{peopleError}}" class="ew-error" role="alert">{{peopleError}}</view>
-      <view wx:if="{{context.date !== todayDate}}" class="workspace-other-day"><text>正在安排{{dateLabel}}</text><button class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onReturnToday">回到今天</button></view>
+      <view wx:if="{{context.date !== todayDate}}" class="workspace-other-day"><text>正在安排{{dateLabel}}</text><button class="ew-hit-target workspace-return-today" disabled="{{busy}}" bindtap="onReturnToday" aria-label="回到今天"><ui-icon name="arrow-left" size="22" /></button></view>
       <ui-state wx:if="{{loading}}" kind="loading" density="inline" title="正在读取这一餐" />
       <block wx:else>
         <view wx:if="{{resultNotice}}" class="workspace-notice {{resultNotice.kind}}" aria-role="{{resultNotice.kind === 'error' ? 'alert' : 'status'}}">

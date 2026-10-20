@@ -22,8 +22,8 @@ Page({
     if(String(this.data.version)!==p.sourceVersion||!this.findItem(p.ref.itemId))return this.setData({errorMessage:'这条采购内容已变化，请重新选择要调整的条目'})
     this.onEditItem({currentTarget:{dataset:{id:p.ref.itemId}}})
   },
-  onHide() { this._checkingAll = null; this.finishTransition() },
-  onUnload() { this._checkingAll = null; this._unloaded = true; this._epoch = (this._epoch || 0) + 1; this.finishTransition() },
+  onHide() { this._clearing = null; this._checkingAll = null; this.finishTransition() },
+  onUnload() { this._clearing = null; this._checkingAll = null; this._unloaded = true; this._epoch = (this._epoch || 0) + 1; this.finishTransition() },
   onPageScroll(e) { this._scrollTop = Number(e.scrollTop) || 0 },
   restoreScroll(top = this._scrollTop || 0) { if (wx.pageScrollTo) wx.pageScrollTo({ scrollTop: top, duration: 0 }) },
   finishTransition() { if (this._transitionTimer) clearTimeout(this._transitionTimer); this._transitionTimer = null; this._settlingCheck = null; if (this._full && !this._unloaded) this.renderList() },
@@ -198,6 +198,7 @@ Page({
         if (operation.payload.itemIds.some(id => afterItems.get(String(id)) !== operation.payload.checked)) throw { isNetworkError: true, message: '勾选结果尚未确认' }
       }
       if (operation.type === 'delete' && list.dishes.some(group => (group.items || []).some(item => String(item.id) === String(operation.itemId)))) throw { isNetworkError: true, message: '删除结果尚未确认' }
+      if (operation.type === 'clear' && list.dishes.some(group => (group.items || []).some(item => operation.payload.scope === 'all' || item.checked === true))) throw { isNetworkError: true, message: '清空结果尚未确认' }
       if (!stale) {
         const reducedMotion = experiencePreferences().get().reducedMotion
         this.setData({ reducedMotion })
@@ -208,7 +209,7 @@ Page({
       store.removePendingOperation(null, operation.payload.requestId)
       this._signature = null; this._pendingMutation = null
       this._undo = undo && { ...undo, scope, requestId: operation.payload.requestId, statusFilter: status, viewMode, scrollTop }
-      const message = stale ? '这次修改已确认；清单已有更新，可去已买查看并改回。' : operation.type === 'check' ? operation.isUndo ? '已撤销勾选，回到原来的清单位置。' : operation.payload.checked ? '已标为已买' : '已移回待买' : '已保存到云端' + (invalidatedUndo ? '，撤销已失效，可去已买改回。' : '')
+      const message = operation.type === 'clear' ? stale ? '这次删除已确认，当前显示更新后的清单。' : operation.payload.scope === 'all' ? '已删除全部食材' : '已删除已买食材' : stale ? '这次修改已确认；清单已有更新，可去已买查看并改回。' : operation.type === 'check' ? operation.isUndo ? '已撤销勾选，回到原来的清单位置。' : operation.payload.checked ? '已标为已买' : '已移回待买' : '已保存到云端' + (invalidatedUndo ? '，撤销已失效，可去已买改回。' : '')
       this.setData({ expenseVisible: false, formVisible: false, offline: false, drafts: store.loadPendingOperations(), feedback: { requestId: operation.payload.requestId, state: 'success', message, undoAvailable: !!undo, undoLabel: '撤销勾选' } })
       if (this._settlingCheck) this._transitionTimer = setTimeout(() => { if (this.current(scope)) { this.finishTransition(); this.restoreScroll() } }, tokens.motion.row)
       if (operation.isUndo && !stale) this.restoreScroll(operation.restoreScroll == null ? scrollTop : operation.restoreScroll)
@@ -329,12 +330,19 @@ Page({
     } finally { if(this._deletingRow===run)this._deletingRow=null }
   },
   async clear(scope) {
-    if (this.data.busy || !['all','checked'].includes(scope)) return
-    const origin=this._scope, version=this.data.version
+    if (this.data.busy || this.data.loading || this.data.refreshing || this._clearing || this._deletingRow || this._checkingAll || !this.current(this._scope) || !['all','checked'].includes(scope)) return
+    if (!(scope === 'all' ? this.data.pendingCount + this.data.checkedCount : this.data.checkedCount)) return
+    const origin=this._scope, version=this.data.version, epoch=this._epoch, run={}
+    this._clearing=run
     const count = scope === 'all' ? `待买 ${this.data.pendingCount} 项、已买 ${this.data.checkedCount} 项，共 ${this.data.pendingCount + this.data.checkedCount} 项` : `${this.data.checkedCount} 项已买食材`
-    if (await confirm(scope === 'all' ? '删除全部食材？' : '移除已买食材？', `将移除${count}。不会改动日历、菜谱或实际饮食记录。`, '移除') && this.current(origin) && this.data.version === version) return this.perform(this.stableOperation('clear', { scope }))
+    try {
+      if (!await confirm(scope === 'all' ? '删除全部食材？' : '移除已买食材？', `将移除${count}${scope === 'all' ? '及对应实付记录' : ''}。日历、菜谱和实际饮食记录保留。`, scope === 'all' ? '全部删除' : '删除')) return
+      if (this._clearing!==run || !this.current(origin) || this._epoch!==epoch) return
+      if (this.data.version!==version || this.data.busy || this.data.refreshing) { this.setData({errorMessage:'清单已变化，请重新确认要删除的食材。'});return }
+      return await this.perform(this.stableOperation('clear', { scope }))
+    } finally { if(this._clearing===run)this._clearing=null }
   },
-  onClearCompleted() { return this.clear('checked') }, onClearAll() { return this.clear('all') },
+  onClearCompleted() { return this.clear('checked') }, onClearAll() { if(this.data.deleteMode)return this.clear('all') },
   async onRetryDrafts() {
     const scope = this._scope
     if (this.data.busy || !await confirm('重试待确认草稿？', '按原请求重试；遇到冲突会停止，不会覆盖最新数据。', '重试') || !this.current(scope)) return
