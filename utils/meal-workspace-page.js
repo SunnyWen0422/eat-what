@@ -140,8 +140,7 @@ module.exports = function workspacePage(options = {}) {
         this.setData({preferencesSnapshot:saved,preferencesState:'ready',hardExclusionSummary:require('./meal-workspace-presentation').hardExclusionSummary(saved,wx.getStorageSync(`recommendationOptionsV${version}`)),hasHardExclusions:!!((saved.excludedIngredients || []).length || (saved.excludedTagCodes || []).length),hardExclusionsUnavailable:false})
       }
       catch (error) { if (!this.current() || initEpoch !== this._initEpoch || initScope !== this._scope) return; this.setData({preferencesSnapshot:null,preferencesState:'unavailable', syncLabel: '常用人数暂未读到，本餐默认两人', hardExclusionSummary:'长期忌口暂未读到，请到“我的”核对',hardExclusionsUnavailable:true }) }
-      let fontScale = 1
-      if (wx.getAppBaseInfo) { const info = wx.getAppBaseInfo(); fontScale = info.fontSizeScaleFactor || (info.fontSizeSetting ? info.fontSizeSetting / 16 : 1) }
+      const fontScale = require('./font-scale')()
       this.store = createWorkspaceStore({canCommand:expectedRef=>!expectedRef || !this.canRunReferencedCommand || this.canRunReferencedCommand(expectedRef)})
       this.setData({ loading: true, busy: false, errorMessage: '', context: normalizeContext({ ...target, people }), draft: { dishes: [], history: [], lockedDishIds: [] }, linkedPlan: null, actual: null, settingsContext: null, settingsVisible: false, confirmationVisible: false, fontScale: Math.max(1, fontScale) })
       this._experiencePreferences = experiencePreferences()
@@ -272,8 +271,13 @@ module.exports = function workspacePage(options = {}) {
       const savedTarget=confirmation && confirmation.date && confirmation.mealType ? {date:confirmation.date,mealType:confirmation.mealType} : null
       const saveState=confirmation ? confirmation.planVersion===draft.planVersion && !state.dirty && w.status!=='needs_regeneration' ? 'saved' : 'changed' : 'unsaved'
       const savedView=savedTarget ? saveTargetView({sourceTarget:source},savedTarget) : null
-      const action=state.lastAction
-      const actionFeedback=action ? deriveActionFeedback({before:action.before,after:{...state,actionReceipt:action.receipt,actionTask:action.task},command:action.command,requestId:action.command.requestId,pending:this.data.busy,error:this._actionError}) : null
+      const action=state.lastAction,receipt=action&&action.receipt
+      // A later authoritative menu or save supersedes a completed notice. Keep
+      // unresolved commands/tasks visible; do not turn an old undo into an error.
+      const actionSuperseded=receipt&&w&&receipt.workspaceId===w.id&&action.command&&receipt.requestId===action.command.requestId&&
+        !state.pending&&state.syncStatus==='synced'&&w.revision>receipt.revision+(receipt.taskId?1:0)&&
+        (!receipt.taskId||action.task&&action.task.status==='draft')
+      const actionFeedback=action&&!actionSuperseded ? deriveActionFeedback({before:action.before,after:{...state,actionReceipt:action.receipt,actionTask:action.task},command:action.command,requestId:action.command.requestId,pending:this.data.busy,error:this._actionError}) : null
       const rowBusy=actionFeedback && actionFeedback.state==='pending' && action.command.command==='replace' ? action.command.dishId : null
       this.setData({actionFeedback,legacyLockNotice:legacyLockNotice(draft)})
       this.setData({ context: state.context || this.data.context, draft: { ...draft, dishes: (draft.dishes || []).map(d => ({ ...d, locked: (draft.lockedDishIds || []).includes(d.id), actionBusy:d.id===rowBusy, actionMessage:actionFeedback && actionFeedback.state==='success' && actionFeedback.dishId===d.id ? actionFeedback.message : '' })) },

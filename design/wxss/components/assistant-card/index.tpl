@@ -1,6 +1,6 @@
 @import "../../styles/component-theme.wxss";
 .assistant-card{background:{{card}};border:1px solid {{border}};border-radius:{{radius.2.px}};padding:{{space.3.px}};min-width:0;box-sizing:border-box;font-size:inherit;color:{{text}};line-height:1.5}
-.card-title{display:block;font-size:1em;font-weight:600}.card-meta{display:block;font-size:{{font.secondary.em}};color:{{muted}};margin-top:{{space.0.px}}}.card-text{display:block;font-size:1em;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:{{space.2.px}}}.card-row{margin-top:{{space.2.px}};min-width:0}.card-dish{display:flex;align-items:center;gap:{{space.2.px}};width:100%;min-width:0;padding:{{space.1.px}} 0;background:transparent;border:0;margin:0;text-align:left;font-size:inherit;color:{{text}};line-height:1.5}.card-dish::after{border:0}.card-dish-disabled{color:{{text}};background:transparent}.card-picture{flex:none;width:64px;height:64px;border-radius:{{radius.1.px}};overflow:hidden}.card-fallback{display:flex;align-items:center;justify-content:center;background:{{surfaceSoft}}}.card-name{flex:1;min-width:0;overflow-wrap:anywhere}.card-name-text{display:block}.card-step{font-size:{{font.secondary.em}}}.card-action{display:block;margin-top:{{space.2.px}}}
+.card-title{display:block;font-size:1em;font-weight:500}.card-meta{display:block;font-size:{{font.secondary.em}};color:{{muted}};margin-top:{{space.0.px}}}.card-text{display:block;font-size:1em;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:{{space.2.px}}}.card-row{margin-top:{{space.2.px}};min-width:0}.card-dish{display:flex;align-items:center;gap:{{space.2.px}};width:100%;min-width:0;padding:{{space.1.px}} 0;background:transparent;border:0;margin:0;text-align:left;font-size:inherit;color:{{text}};line-height:1.5}.card-dish::after{border:0}.card-dish-disabled{color:{{text}};background:transparent}.card-picture{flex:none;width:64px;height:64px;border-radius:{{radius.1.px}};overflow:hidden}.card-fallback{display:flex;align-items:center;justify-content:center;background:{{surfaceSoft}}}.card-name{flex:1;min-width:0;overflow-wrap:anywhere}.card-name-text{display:block}.card-step{font-size:{{font.secondary.em}}}.card-action{display:block;margin-top:{{space.2.px}}}
 
 .card-check-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 0;font-size:inherit;line-height:1.5;min-width:0}
 
@@ -9,7 +9,7 @@
 .card-row { margin-top:{{space.2.px}}; padding-top:{{space.2.px}}; border-top:1px solid {{divider}}; }
 .card-dish { min-height:{{controls.touchSize.px}}; padding:0; background:transparent; border:0; border-radius:{{radius.1.px}}; box-sizing:border-box; white-space:normal; }
 .card-picture { width:56px; height:56px; border-radius:14px; }
-.card-name-text { font-weight:600; }
+.card-name-text { font-weight:500; }
 .card-dish:active { background:{{brandSoft}}; }
 .card-dish.card-dish-disabled { background:transparent; color:{{text}}; }
 .card-check-row + .card-check-row { border-top:1px solid {{divider}}; }
@@ -37,3 +37,9 @@
 .has-menu-actions .card-picture { width:40px; height:40px; border-radius:12px; }
 .has-menu-actions .card-name-text { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; line-height:1.4; }
 .has-menu-actions .card-menu-controls { margin-left:0; align-items:center; }
+
+.card-menu-footer { display:flex; align-items:center; gap:8px; margin-top:16px; }
+.card-menu-footer .card-menu-action { flex:1 1 0; min-width:0; min-height:44px; font-size:1em; }
+.card-menu-footer .card-menu-adopt { color:{{card}}; background:{{brand}}; font-weight:500; }
+.card-menu-footer .card-menu-adopt.is-disabled { background:{{controlSoft}}; color:{{muted}}; }
+.card-menu-footer .card-menu-adopt.is-adopted { background:{{brandSoft}}; color:{{brand}}; }

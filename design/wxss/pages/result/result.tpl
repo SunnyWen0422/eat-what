@@ -29,7 +29,7 @@
 }
 .empty-illustration { margin-bottom:{{space.4.px}}; color: {{brand}}; opacity: 0.72; }
 .empty-illustration .line-icon { width: 78rpx; height: 78rpx; }
-.empty-title { display: block; font-size:{{font.section.em}}; font-weight: bold; color: {{text}}; }
+.empty-title { display: block; font-size:{{font.section.em}}; font-weight: 500; color: {{text}}; }
 .empty-desc { display: block; font-size:{{font.secondary.em}}; color: {{muted}}; margin:{{space.1.px*1.25}} 0 {{space.6.px*0.9375}}; }
 .empty-btn { background: {{brand}}; color: {{card}}; border-radius:{{radius.4.px}}; padding:{{space.1.px*1.25}} {{space.6.px*1.25}}; font-size:{{font.body.em}}; border: none; }
 
@@ -69,7 +69,7 @@
 
 .dish-body { flex: 1; min-width: 0; }
 .dish-top { display: flex; align-items: flex-start; justify-content: space-between; }
-.dish-name { font-size:{{font.body.em}}; font-weight: 600; color: {{text}}; line-height: 1.5; flex: 1; min-width: 0; word-break: break-word; }
+.dish-name { font-size:{{font.body.em}}; font-weight: 500; color: {{text}}; line-height: 1.5; flex: 1; min-width: 0; word-break: break-word; }
 .star-btn { color:{{muted}}; padding:0 {{space.0.px}}; flex-shrink: 0; }
 .star-btn .line-icon { width: 36rpx; height: 36rpx; }
 .star-btn.on { color:{{brand}}; }
@@ -92,7 +92,7 @@
 .act-btn { flex: 1 1 130px; min-width: 0; margin:0; font-size:{{font.body.em}}; border-radius:{{radius.0.rpx}}; height: {{controls.touchSize.px}}; line-height: {{controls.touchSize.px}}; padding:0 {{space.0.px*1.5}}; }
 .act-back { background: {{background}}; color: {{muted}}; }
 .act-regen { background: {{brandSoft}}; color: {{brand}}; border: 1rpx solid {{brand}}; }
-.act-save { background: {{brand}}; color: {{card}}; font-weight: 600; }
+.act-save { background: {{brand}}; color: {{card}}; font-weight: 500; }
 .act-shopping { background: {{brandSoft}}; color: {{brand}}; }
 
 /* ===== 日期选择器 ===== */
@@ -102,7 +102,7 @@
   display: flex; align-items: center; justify-content: center;
 }
 .date-box { width: 86%; max-height: 90%; box-sizing: border-box; overflow-y: auto; background: {{card}}; border-radius:{{radius.3.px}}; padding:{{space.5.px}}; text-align: center; }
-.date-title { font-size:{{font.card.em}}; font-weight: bold; color: {{text}}; display: block; margin-bottom:{{space.5.px}}; }
+.date-title { font-size:{{font.card.em}}; font-weight: 500; color: {{text}}; display: block; margin-bottom:{{space.5.px}}; }
 .date-btn { background: {{brand}}; color: {{card}}; border-radius:{{radius.0.rpx}}; padding:{{space.2.px*1.1666667}}; font-size:{{font.body.em}}; }
 .date-cancel { margin-top:{{space.3.px}}; font-size:{{font.secondary.em}}; color: {{muted}}; }
 .generation-status {
@@ -127,7 +127,7 @@
 .generation-status-title {
   color:{{text}};
   font-size:{{font.body.em}};
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .generation-status-subtitle {

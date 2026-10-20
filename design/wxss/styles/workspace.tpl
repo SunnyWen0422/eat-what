@@ -8,7 +8,7 @@
 .workspace-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
 .workspace-title-row .ew-heading { flex:1; min-width:0; font-size:{{font.page.em}}; line-height:1.4; margin:0; }
 .workspace-title-actions { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
-.workspace-screen button.workspace-assistant { display:flex; align-items:center; justify-content:center; min-height:48px; margin:0; padding:0; font-size:{{font.secondary.em}}; font-weight:600; line-height:1.5; color:{{brand}}; background:transparent; border:0; border-radius:14px; }
+.workspace-screen button.workspace-assistant { display:flex; align-items:center; justify-content:center; min-height:48px; margin:0; padding:0; font-size:{{font.secondary.em}}; font-weight:500; line-height:1.5; color:{{brand}}; background:transparent; border:0; border-radius:14px; }
 .workspace-assistant::after { border:0; }
 .workspace-assistant-face { display:flex; align-items:center; justify-content:center; gap:5px; min-height:36px; padding:6px 10px; box-sizing:border-box; border:1px solid transparent; border-radius:14px; background:linear-gradient(115deg,#EDF7F0 0%,#F4F0FC 55%,#FFF4E9 100%) padding-box,linear-gradient(110deg,#61BCA4 0%,#9C8CDA 56%,#DCAE7C 100%) border-box; box-shadow:0 2px 8px rgba(40,99,78,.07); }
 .workspace-assistant-face text { display:block; }
@@ -23,7 +23,7 @@
 .workspace-menu-picker { display:block; width:100%; }
 .workspace-meals { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:4px 0; }
 .workspace-meals .workspace-meal { flex:0 0 auto; width:auto; min-width:60px; min-height:44px; padding:8px 14px; margin:0; border:0; border-radius:24px; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; font-weight:400; line-height:1.5; box-sizing:border-box; }
-.workspace-meal.is-active { background:{{brand}}; color:{{card}}; font-weight:600; }
+.workspace-meal.is-active { background:{{brand}}; color:{{card}}; font-weight:500; }
 .workspace-other-day { display:flex; align-items:center; justify-content:space-between; gap:8px; color:{{muted}}; font-size:{{font.secondary.em}}; }
 .requirements-label { flex:0 0 auto; font-size:{{font.secondary.em}}; font-weight:500; }
 .requirements-summary { flex:1; min-width:0; color:{{muted}}; font-size:{{font.secondary.em}}; overflow-wrap:anywhere; }
@@ -33,7 +33,7 @@
 .workspace-optional-actions .ew-link text { min-width:0; overflow-wrap:anywhere; }
 .workspace-exclusions { color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.5; padding:4px 0; overflow-wrap:anywhere; }
 .workspace-empty { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:40px 16px; }
-.workspace-empty-title { display:block; margin-top:8px; font-size:{{font.body.em}}; font-weight:600; }
+.workspace-empty-title { display:block; margin-top:8px; font-size:{{font.body.em}}; font-weight:500; }
 .workspace-menu-section { margin:0; }
 .workspace-menu-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; }
 .workspace-screen .workspace-menu-heading button.ew-link { display:flex; gap:6px; margin:0; padding:0 4px; background:transparent; border:0; font-size:{{font.secondary.em}}; }

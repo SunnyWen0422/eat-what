@@ -34,7 +34,7 @@ function page(file, overrides = {}, wx = {}) {
 }
 function preferencesHarness() {
   const file = path.resolve('utils/experience-preferences.js'), memory = new Map()
-  let account = 'A', factory = () => ({ get: () => ({}), setReducedMotion() {}, rememberComposition() {} })
+  let account = 'A', factory = () => ({ get: () => ({}), rememberComposition() {} })
   if (fs.existsSync(file)) factory = require(file)
   const store = factory({ read: key => plain(memory.get(key) || null), write: (key, value) => memory.set(key, plain(value)), key: () => `${account}:experience` })
   return { store, memory, account(value) { account = value } }
@@ -78,6 +78,21 @@ test('replace dispatch is isolated from the dish detail tap', () => {
   assert.equal(eventsAfterReplace.filter(x => x.type === 'view').length, 0)
   assert.deepEqual(eventsAfterReplace, [{ type: 'replace', detail: { id: 7 } }])
   assert.match(read('components/compact-dish-row/index.wxml'), /catchtap="onReplace"/)
+})
+test('selected-meal preview keeps photo identity and separate guarded remove action', () => {
+  const f = component('compact-dish-row', { mode: 'remove', dish: { id: 7, name: '清蒸鱼', image: '/assets/fish.png' } })
+  assert.equal(f.view.data.dishView.image, '/assets/fish.png')
+  f.view.onRemove()
+  f.view.onReplace()
+  assert.deepEqual(f.events, [{ type: 'remove', detail: { id: 7 } }])
+  f.view.properties.disabled = true
+  f.view.onRemove()
+  assert.equal(f.events.length, 1)
+  f.view.onView()
+  assert.equal(f.events[1].type, 'view')
+  f.view.onImageError({ currentTarget: { dataset: { source: '/assets/fish.png', identity: f.view.data.dishView.identity } } })
+  assert.equal(f.view.data.imageFailed, true)
+  assert.equal(f.view.data.dishView.name, '清蒸鱼')
 })
 test('dish detail tap and busy replacement obey the command boundary', () => {
   const f = component('compact-dish-row', { dish: { id: 7, name: '清蒸鱼' }, busy: true })
@@ -316,10 +331,10 @@ test('reduced motion sets dish feedback and sheet dynamic durations to zero', ()
     assert.ok(f.view.data.motionDuration >= 150 && f.view.data.motionDuration <= 240, name)
   }
 })
-test('account B cannot read account A composition or motion preference', () => {
+test('account B cannot read account A composition and retired motion flags are ignored', () => {
   const f = preferencesHarness(), composition = { mode: 'manual', counts: { meat: 2, veg: 1 } }
-  f.store.rememberComposition('dinner', composition); f.store.setReducedMotion(true)
-  assert.deepEqual(f.store.get(), { reducedMotion: true, compositionByMeal: { dinner: composition } })
+  f.store.rememberComposition('dinner', composition); f.memory.set('A:experience',{...f.memory.get('A:experience'),reducedMotion:true})
+  assert.deepEqual(f.store.get(), { reducedMotion: false, compositionByMeal: { dinner: composition } })
   f.account('B')
   assert.deepEqual(f.store.get(), { reducedMotion: false, compositionByMeal: {} })
   f.store.rememberComposition('lunch', { mode: 'manual', counts: { veg: 2 } })
@@ -330,9 +345,8 @@ test('optional preference read failure returns a safe view without overwriting u
   let failRead = true, writes = 0
   const saved = { reducedMotion: false, compositionByMeal: { dinner: { mode: 'manual', counts: { meat: 1 } } } }
   const store = require('../utils/experience-preferences')({ key: () => 'A:experience', read: () => { if (failRead) throw new Error('storage failed'); return saved }, write: () => { writes++ } })
-  assert.deepEqual(store.get(), { reducedMotion: true, compositionByMeal: {} })
+  assert.deepEqual(store.get(), { reducedMotion: false, compositionByMeal: {} })
   assert.equal(store.readFailed(), true)
-  assert.throws(() => store.setReducedMotion(false), /暂未读到/)
   assert.throws(() => store.rememberComposition('dinner', { mode: 'manual', counts: { veg: 1 } }), /暂未读到/)
   assert.equal(writes, 0)
   failRead = false
@@ -343,7 +357,7 @@ test('an optional storage read failure does not abort hidden sheet attachment', 
   const store = require('../utils/experience-preferences')({ key: () => 'A:experience', read: () => { throw new Error('storage failed') } })
   let f
   assert.doesNotThrow(() => { f = component('ui-sheet', { visible: false }, {}, { '../../utils/experience-preferences': () => store }) })
-  assert.equal(f.view.data.motionDuration, 0)
+  assert.ok(f.view.data.motionDuration > 0)
 })
 test('settings finishes loading recommendation preferences when local motion settings cannot be read', async () => {
   const store = require('../utils/experience-preferences')({ key: () => 'A:experience', read: () => { throw new Error('storage failed') } })
@@ -359,8 +373,8 @@ test('settings finishes loading recommendation preferences when local motion set
   assert.equal(recommendationLoads, 1)
   assert.equal(view.data.loading, false)
   assert.equal(view.data.synced, true)
-  assert.equal(view.data.reducedMotion, true)
-  assert.match(view.data.motionStatus, /暂未读到/)
+  assert.equal(view.data.reducedMotion, undefined)
+  assert.equal(view.data.motionStatus, undefined)
 })
 test('preference snapshots cannot mutate persisted compositions and reject invalid values', () => {
   const f = preferencesHarness()
@@ -372,27 +386,23 @@ test('preference snapshots cannot mutate persisted compositions and reject inval
   assert.throws(() => f.store.rememberComposition('dinner', { mode: 'manual', counts: { meat: 11 } }), /搭配/)
   assert.throws(() => f.store.rememberComposition('unknown', { mode: 'manual', counts: { meat: 1 } }), /餐次/)
 })
-test('settings toggles motion separately from long-term recommendation preferences', () => {
-  const f = preferencesHarness(), view = page('pages/settings/settings.js', { '../../utils/experience-preferences': () => f.store, '../../utils/preference-store': { defaultPreferences: () => ({}) } })
-  view.experienceStore = f.store
-  view.onReducedMotionChange?.({ detail: { value: true } })
-  assert.equal(f.store.get().reducedMotion, true)
-  assert.equal(view.data.reducedMotion, true)
-  assert.equal(view.data.dirty, false)
-  assert.match(read('pages/settings/settings.wxml'), /减少动态效果/)
-  assert.doesNotMatch(read('pages/settings/settings.wxml'), /已自动跟随系统/)
-})
-test('motion storage failure preserves the visible setting and announces an unsaved result', () => {
+test('settings has no motion toggle and does not change recommendation data for a display preference', () => {
   const view = page('pages/settings/settings.js', { '../../utils/preference-store': { defaultPreferences: () => ({}) } })
-  view.experienceStore = { setReducedMotion() { throw new Error('storage unavailable') } }
-  view.onReducedMotionChange({ detail: { value: true } })
-  assert.equal(view.data.reducedMotion, false)
-  assert.equal(view.data.motionStatus, '动态效果设置未保存，请重试')
+  assert.equal(view.onReducedMotionChange, undefined)
+  assert.equal(view.data.reducedMotion, undefined)
+  assert.equal(view.data.dirty, false)
+  assert.doesNotMatch(read('pages/settings/settings.wxml'), /减少动态效果|motion-switch|onReducedMotionChange/)
 })
-test('settings reloads local motion preference when the account changes', async () => {
+test('reading a retired disabled-motion flag enables animation without rewriting remembered values', () => {
+  const composition={mode:'manual',counts:{meat:1,veg:1}},saved={reducedMotion:true,compositionByMeal:{dinner:composition}};let writes=0
+  const store=require('../utils/experience-preferences')({read:()=>saved,write:()=>writes++})
+  assert.deepEqual(store.get(),{reducedMotion:false,compositionByMeal:{dinner:composition}})
+  assert.equal(saved.reducedMotion,true);assert.equal(writes,0)
+})
+test('settings still reloads recommendation preferences when the account changes', async () => {
   const f = preferencesHarness()
   let account = 'A'
-  f.store.setReducedMotion(true)
+  f.memory.set('A:experience',{reducedMotion:true})
   const empty = () => ({ preferredCuisineCodes: [], preferredTagCodes: [], excludedTagCodes: [], excludedIngredients: [] })
   const view = page('pages/settings/settings.js', {
     '../../utils/util': { getUserStorageKey: key => `${account}:${key}` },
@@ -401,13 +411,13 @@ test('settings reloads local motion preference when the account changes', async 
     '../../utils/recommendation-options': { loadRecommendationOptions: async () => ({ options: { groups: {} } }) },
   })
   await view.onLoad()
-  assert.equal(view.data.reducedMotion, true)
+  assert.equal(view.data.reducedMotion, undefined)
   account = 'B'; f.account('B')
   const load = view.onLoad.bind(view)
   let reload
   view.onLoad = () => { reload = load(); return reload }
   view.onShow(); await reload
-  assert.equal(view.data.reducedMotion, false)
+  assert.equal(view.data.reducedMotion, undefined)
   assert.equal(view.data.dirty, false)
 })
 test('compact recipe summaries retain full detail labels while feedback rows wrap and real hit areas stay intact', () => {
@@ -428,42 +438,43 @@ test('compact recipe summaries retain full detail labels while feedback rows wra
 })
 
 for (const name of ['compact-dish-row', 'action-feedback']) {
-  test(`${name} refreshes retained motion on visibility and account changes without reattachment`, () => {
+  test(`${name} keeps default motion across legacy flags and account changes`, () => {
     const prefs = preferencesHarness()
     const f = component(name, { dish: { id: 1 }, feedback: { state: 'success' } }, {}, { '../../utils/experience-preferences': () => prefs.store })
     assert.ok(f.view.data.motionDuration > 0)
-    prefs.store.setReducedMotion(true)
-    f.definition.pageLifetimes?.show?.call(f.view)
-    assert.equal(f.view.data.motionDuration, 0)
-    prefs.store.setReducedMotion(false)
+    prefs.memory.set('A:experience',{reducedMotion:true})
     f.definition.pageLifetimes?.show?.call(f.view)
     assert.ok(f.view.data.motionDuration > 0)
-    prefs.store.setReducedMotion(true); prefs.account('B')
+    prefs.memory.set('A:experience',{reducedMotion:false})
+    f.definition.pageLifetimes?.show?.call(f.view)
+    assert.ok(f.view.data.motionDuration > 0)
+    prefs.memory.set('A:experience',{reducedMotion:true}); prefs.account('B')
     f.definition.pageLifetimes?.show?.call(f.view)
     assert.ok(f.view.data.motionDuration > 0)
     prefs.account('A'); f.definition.pageLifetimes?.show?.call(f.view)
-    assert.equal(f.view.data.motionDuration, 0)
+    assert.ok(f.view.data.motionDuration > 0)
   })
-  test(`${name} newly displayed content reads current motion preference`, () => {
+  test(`${name} newly displayed content animates despite a retired disabled flag`, () => {
     const prefs = preferencesHarness()
     const f = component(name, {}, {}, { '../../utils/experience-preferences': () => prefs.store })
-    prefs.store.setReducedMotion(true)
+    prefs.memory.set('A:experience',{reducedMotion:true})
     const property = name === 'compact-dish-row' ? 'dish' : 'feedback'
     f.view.properties[property] = name === 'compact-dish-row' ? { id: 2 } : { state: 'success', message: 'saved' }
     f.observe(property, f.view.properties[property])
-    assert.equal(f.view.data.motionDuration, 0)
+    assert.ok(f.view.data.motionDuration > 0)
   })
 }
 test('selected meal sheet leads to the meal while an empty selection leads to picking', () => {
   const shared = read('templates/recipe-selected-sheet.wxml')
-  assert.match(shared, /<ui-button[^>]*wx:if="\{\{selectedMeal.count\}\}"[^>]*label="查看本餐"[^>]*bind:action="onViewMeal"/)
+  assert.match(shared, /<view[^>]*wx:if="\{\{selectedMeal.count\}\}"[^>]*slot="footer"[^>]*class="recipe-selected-actions"/)
+  assert.match(shared, /<button[^>]*bindtap="onViewMeal">查看本餐/)
   assert.match(shared, /<ui-button[^>]*wx:if="\{\{!selectedMeal.count\}\}"[^>]*label="去选菜"[^>]*bind:action="onContinueSelecting"/)
   const custom = read('pages/customize/customize.wxml')
   assert.match(custom, /class="ew-hit-target selected-wrap"[^>]*bindtap="onShowSelected"/)
   assert.match(custom, /class="selected-num"/)
   assert.match(custom, /class="ew-hit-target selected-wrap"[^>]*bindtap="onShowSelected"/)
   assert.doesNotMatch(custom, /bindtap="onViewMeal">查看本餐<\/button>/)
-  assert.match(shared, /label="查看本餐"[^>]*disabled="{{selectionBusy \|\| selectionLoading \|\| selectionBlocked}}"/)
+  assert.match(shared, /disabled="{{selectionBusy \|\| selectionLoading \|\| selectionBlocked}}"[^>]*bindtap="onViewMeal"/)
 })
 test('help describes replace and undo without offering keep', () => {
   const source = read('pages/about/about.wxml')

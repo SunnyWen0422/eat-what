@@ -50,7 +50,7 @@ test('unknown current step is not presented as an ordinary unconfirmed preview',
 })
 test('an unknown new send takes priority over a prior partial outcome',async()=>{
  const f=fixture(partial());await f.conversation.load();f.api.sendAssistantV4Turn=async()=>{throw Error('lost')};await f.conversation.send('采购来源我想改一下')
- const page=pageFor(f.conversation);page.renderConversation(f.conversation.state());assert.equal(page.data.conversationWorkflowAction,'recover');assert.match(page.data.conversationWorkflowLabel,/原请求/);page.onConversationWorkflow();assert.equal(f.conversation.state().input,'采购来源我想改一下')
+ const page=pageFor(f.conversation);page.renderConversation(f.conversation.state());assert.equal(page.data.conversationWorkflowAction,'recover');assert.equal(page.data.conversationWorkflowLabel,'继续查看结果');page.onConversationWorkflow();assert.equal(f.conversation.state().input,'采购来源我想改一下')
 })
 const previewTurn=(cards)=>({turnId:'restored',status:'awaiting_confirmation',cards,pendingAction:{taskId:'original-preview',previewToken:'original-token',expiresAt:1},continuation:{cursor:1,steps:[{kind:'calendar_save',status:'completed',receiptRef:'saved-real'},{kind:'shopping_preview',taskId:'original-preview',status:'awaiting_confirmation'}]}})
 const expiredPreview=()=>({id:'expired',type:'shopping_preview',taskId:'original-preview',previewToken:'original-token',expiresAt:1})

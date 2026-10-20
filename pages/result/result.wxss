@@ -30,7 +30,7 @@
 }
 .empty-illustration { margin-bottom:20px; color: #28634E; opacity: 0.72; }
 .empty-illustration .line-icon { width: 78rpx; height: 78rpx; }
-.empty-title { display: block; font-size:1.125em; font-weight: bold; color: #25332B; }
+.empty-title { display: block; font-size:1.125em; font-weight: 500; color: #25332B; }
 .empty-desc { display: block; font-size:0.8125em; color: #56645B; margin:10px 0 30px; }
 .empty-btn { background: #28634E; color: #FFFFFF; border-radius:24px; padding:10px 40px; font-size:1em; border: none; }
 
@@ -70,7 +70,7 @@
 
 .dish-body { flex: 1; min-width: 0; }
 .dish-top { display: flex; align-items: flex-start; justify-content: space-between; }
-.dish-name { font-size:1em; font-weight: 600; color: #25332B; line-height: 1.5; flex: 1; min-width: 0; word-break: break-word; }
+.dish-name { font-size:1em; font-weight: 500; color: #25332B; line-height: 1.5; flex: 1; min-width: 0; word-break: break-word; }
 .star-btn { color:#56645B; padding:0 4px; flex-shrink: 0; }
 .star-btn .line-icon { width: 36rpx; height: 36rpx; }
 .star-btn.on { color:#28634E; }
@@ -93,7 +93,7 @@
 .act-btn { flex: 1 1 130px; min-width: 0; margin:0; font-size:1em; border-radius:12rpx; height: 44px; line-height: 44px; padding:0 6px; }
 .act-back { background: #F8F7F2; color: #56645B; }
 .act-regen { background: #EDF3ED; color: #28634E; border: 1rpx solid #28634E; }
-.act-save { background: #28634E; color: #FFFFFF; font-weight: 600; }
+.act-save { background: #28634E; color: #FFFFFF; font-weight: 500; }
 .act-shopping { background: #EDF3ED; color: #28634E; }
 
 /* ===== 日期选择器 ===== */
@@ -103,7 +103,7 @@
   display: flex; align-items: center; justify-content: center;
 }
 .date-box { width: 86%; max-height: 90%; box-sizing: border-box; overflow-y: auto; background: #FFFFFF; border-radius:18px; padding:24px; text-align: center; }
-.date-title { font-size:1em; font-weight: bold; color: #25332B; display: block; margin-bottom:24px; }
+.date-title { font-size:1em; font-weight: 500; color: #25332B; display: block; margin-bottom:24px; }
 .date-btn { background: #28634E; color: #FFFFFF; border-radius:12rpx; padding:14px; font-size:1em; }
 .date-cancel { margin-top:16px; font-size:0.8125em; color: #56645B; }
 .generation-status {
@@ -128,7 +128,7 @@
 .generation-status-title {
   color:#25332B;
   font-size:1em;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .generation-status-subtitle {

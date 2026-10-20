@@ -46,7 +46,7 @@ test('polling direct write can recover a server restart without manual confirmat
 })
 test('cancelled turn with failed workspace refresh keeps an explicit steering recovery entry',async()=>{
  let cancelled=false,broken=true,seq=0;const f=fixture({sendAssistantV4Turn:async(id,body)=>{f.bodies.push(body);return{turnId:'t'+(++seq)}},getAssistantV4Turn:async id=>({turnId:id,status:id==='t1'?(cancelled?'cancelled':'running'):'completed',cards:[],workspaceRef:cancelled?{workspaceId:'w1',workspaceRevision:2,planVersion:2}:undefined}),cancelAssistantV4Turn:async()=>{cancelled=true}});
- f.store.reloadLatest=async()=>{if(broken)throw Error('offline')};await f.conversation.load();await f.conversation.send('安排晚饭');await f.conversation.send('不要辣');assert.equal(f.bodies.length,1);assert.equal(f.conversation.state().recoverable,true);assert.equal(f.conversation.state().canSteer,false);
+ const reload=f.store.reloadLatest;f.store.reloadLatest=async()=>{if(broken)throw Error('offline');return reload()};await f.conversation.load();await f.conversation.send('安排晚饭');await f.conversation.send('不要辣');assert.equal(f.bodies.length,1);assert.equal(f.conversation.state().recoverable,true);assert.equal(f.conversation.state().canSteer,false);
  broken=false;await f.conversation.recover();assert.equal(f.bodies.length,2);assert.equal(f.bodies[1].message.split('不要辣').length,2)
 })
 test('restart with a retained addition and failed session lookup still offers recovery',async()=>{

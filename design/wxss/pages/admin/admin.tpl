@@ -33,7 +33,7 @@ button::after {
 .page-title {
   display: block;
   font-size:{{font.section.em}};
-  font-weight: 700;
+  font-weight: 500;
   color:{{text}};
 }
 
@@ -110,7 +110,7 @@ button::after {
   background: {{brand}};
   color: {{card}};
   border-radius:{{radius.0.rpx}};
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .result-note {
@@ -179,7 +179,7 @@ button::after {
   min-width: 0;
   color:{{text}};
   font-size:{{font.body.em}};
-  font-weight: 650;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -287,7 +287,7 @@ button::after {
 
 .nav-title {
   font-size:{{font.card.em}};
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .nav-spacer {
@@ -313,7 +313,7 @@ button::after {
 
 .section-title {
   font-size:{{font.body.em}};
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .section-count {
@@ -373,7 +373,7 @@ button::after {
   min-width: 0;
   color:{{text}};
   font-size:{{font.body.em}};
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -390,7 +390,7 @@ button::after {
   margin-bottom:{{space.1.rpx*0.875}};
   color:{{text}};
   font-size:{{font.secondary.em}};
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .field-input,
@@ -441,7 +441,7 @@ button::after {
   color:{{brand}};
   background: #e1f2e9;
   border-color: #4d9878;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .split-fields {

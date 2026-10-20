@@ -5,18 +5,18 @@
 .sync-dot { width: 7px; height: 7px; border-radius:50%; background:#28634E; }
 .sync-dot.online { background: #28634E; }
 .section { padding:17px 0; border-bottom: 1px solid #dde3e0; }
-.section-title { margin-bottom:5px; font-size:1em; font-weight: 700; }
+.section-title { margin-bottom:5px; font-size:1em; font-weight: 500; }
 .section-desc { margin-bottom:12px; color:#56645B; font-size:0.75em; line-height: 1.5; }
 .chip-grid { display: flex; flex-wrap: wrap; gap:8px; }
 .choice-chip { min-width: 66px; box-sizing: border-box; padding:9px 12px; border: 1px solid #d5dcd8; border-radius:6px; background: #FFFFFF; color: #56645B; text-align: center; font-size:0.8125em; }
-.choice-chip.selected { border-color: #28634E; background: #EDF3ED; color:#28634E; font-weight: 600; }
+.choice-chip.selected { border-color: #28634E; background: #EDF3ED; color:#28634E; font-weight: 500; }
 .choice-chip.danger.selected { border-color: #bd5143; background: #FFF0ED; color:#A93B30; }
 .ingredient-row { display: flex; gap:8px; }
 .ingredient-input { min-width: 0; flex: 1; height: 42px; box-sizing: border-box; padding:0 12px; border: 1px solid #d5dcd8; border-radius:6px; background: #FFFFFF; font-size:1em; }
 .add-btn { width: 76px; height: 42px; line-height: 42px; padding:0; border-radius:6px; background: #EDF3ED; color:#28634E; font-size:1em; }
 .top-gap { margin-top:10px; }
 .ingredient-chip { padding:7px 10px; border-radius:5px; background: #FFF0ED; color:#28634E; font-size:0.75em; }
-.save-btn { margin-top:24px; height: 46px; line-height: 46px; border-radius:6px; background: #28634E; color: #FFFFFF; font-size:1em; font-weight: 600; }
+.save-btn { margin-top:24px; height: 46px; line-height: 46px; border-radius:6px; background: #28634E; color: #FFFFFF; font-size:1em; font-weight: 500; }
 
 /* 页面共享主题，适用于本页详情、表单和弹层。 */
 
@@ -40,14 +40,14 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 /* Warm table v2: settings */
  .settings-page { padding:20px 16px 28px; background:#F8F7F2; }.sync-row { padding:0 0 16px; color:#56645B; font-size:1em; gap:8px; }.section { border:0; background:#FFFFFF; border-radius:18px; padding:18px 16px; margin-bottom:14px; box-shadow:none; }.section-title { font-size:1.125em; color:#25332B; line-height:1.5; }.section-desc { font-size:1em; line-height:1.7; margin:6px 0 12px; }.chip-grid { display:flex; flex-wrap:wrap; gap:8px; }.choice-chip, .ingredient-chip { min-height:44px; border-radius:12px; padding:10px 12px; background:#F5F6F0; color:#25332B; border:1px solid transparent; box-sizing:border-box; line-height:1.5; font-size:1em; }.choice-chip.selected { background:#EDF3ED; color:#28634E; border-color:#28634E; }.choice-chip.danger.selected { background:#A93B30; color:#FFFFFF; border-color:#A93B30; }.ingredient-row { display:flex; gap:8px; }.ingredient-input { flex:1; min-width:0; background:#FFFFFF; border:1px solid #7C8E80; border-radius:12px; min-height:48px; padding:0 12px; }.add-btn { padding:0 12px; min-height:48px; color:#28634E; background:#EDF3ED; border-radius:12px; }.save-btn { min-height:48px; height:auto; padding:12px 16px; border-radius:14px; background:#28634E; color:#FFFFFF; margin:20px 0; font-size:1em; }.save-btn[disabled] { background:#E8EBE5; color:#25332B; }
 
-/* App-local motion preference remains independent of recommendation persistence. */
-.appearance-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; min-width:0; }
-.appearance-copy { flex:1 1 180px; min-width:0; }
-.appearance-copy .section-title, .appearance-copy .section-desc { overflow-wrap:anywhere; }
-.motion-switch { min-width:44px; min-height:44px; display:flex; align-items:center; }
-.motion-status { display:block; margin-top:8px; font-size:0.8125em; line-height:1.5; color:#56645B; overflow-wrap:anywhere; }
-.settings-page .section-title { font-weight:600; }
-.settings-page button.save-btn { width:100%; max-width:100%; height:auto; line-height:1.5; white-space:normal; margin:20px 0; font-family:inherit; font-weight:600; box-sizing:border-box; }
+.settings-page .default-people-section { padding:10px 16px; }
+.default-people-row { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; }
+.default-people-label { min-width:0; font-size:1em; font-weight:500; line-height:1.5; color:#25332B; }
+.default-people-control { display:flex; align-items:center; gap:6px; flex:none; color:#56645B; font-size:.875em; }
+.settings-page .default-people-control input { width:56px; min-width:44px; height:44px; padding:0 6px; line-height:44px; border:1px solid #7C8E80; border-radius:12px; background:#F5F6F0; color:#28634E; text-align:center; font-family:inherit; font-size:1.142857em; }
+.default-people-error { display:block; margin-top:4px; color:#A93B30; font-size:.8125em; line-height:1.5; }
+.settings-page .section-title { font-weight:500; }
+.settings-page button.save-btn { width:100%; max-width:100%; height:auto; line-height:1.5; white-space:normal; margin:20px 0; font-family:inherit; font-weight:500; box-sizing:border-box; }
 
 .settings-page .ingredient-input { height:calc(1.5em + 24px); font-size:1em; }
 .settings-page .add-btn { width:auto; height:auto; min-width:64px; flex:none; line-height:1.5; padding:8px 12px; }

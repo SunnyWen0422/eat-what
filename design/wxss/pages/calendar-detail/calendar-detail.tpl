@@ -33,7 +33,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .meal-heading .ew-grow { min-width:0; flex:1; }
 .meal-status { display:block; font-size:0.875em; }
 .calendar-dish-row > compact-dish-row { width:100%; min-width:0; }
-.calendar-detail-page .meal-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; margin:0; padding:8px 0; text-align:left; white-space:normal; overflow-wrap:anywhere; background:transparent; border-radius:0; border-bottom:1px solid #E6EAE1; font-size:1em; line-height:1.5; color:#28634E; }
+.calendar-detail-page .meal-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; margin:0; padding:8px 0; text-align:left; white-space:normal; overflow-wrap:anywhere; background:transparent; border-radius:0; border-bottom:1px solid {{divider}}; font-size:1em; line-height:1.5; color:#28634E; }
 .meal-action-row::after { border:0; }
 .meal-action-row > ui-icon { flex:0 0 auto; }
 .meal-status-actions { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:8px; }

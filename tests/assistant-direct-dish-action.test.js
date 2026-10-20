@@ -69,7 +69,8 @@ test('unknown replacement recovers original command',async t=>{
  const result={...f.row(),revision:2,draft:{...f.row().draft,planVersion:2,dishes:[{id:8,name:'豆腐'}]}}
  f.rows.set(result.id,result);f.api.getWorkspaceRequest=async(id,requestId)=>{queries.push({id,requestId});return result}
  await f.page.onConversationWorkspaceRecover();assert.deepEqual(queries,[{id:original.id,requestId:original.body.requestId}]);assert.equal(f.calls.length,1);assert.equal(f.sends(),0)
- assert.deepEqual(f.state.messages,[]);assert.equal(f.page.data.conversationWorkspaceFeedback,'已换为豆腐')
+ assert.deepEqual(f.state.messages,[]);assert.equal(f.page.data.conversationWorkspaceFeedback,'')
+ assert.equal(f.page.data.draft.dishes[0].actionMessage,'已换为豆腐')
 })
 async function conflict(f){
  const command=f.api.commandMealWorkspace;let rejected=0

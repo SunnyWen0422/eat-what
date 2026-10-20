@@ -34,7 +34,7 @@ button::after {
 .page-title {
   display: block;
   font-size:1.125em;
-  font-weight: 700;
+  font-weight: 500;
   color:#25332B;
 }
 
@@ -111,7 +111,7 @@ button::after {
   background: #28634E;
   color: #FFFFFF;
   border-radius:12rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .result-note {
@@ -180,7 +180,7 @@ button::after {
   min-width: 0;
   color:#25332B;
   font-size:1em;
-  font-weight: 650;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -288,7 +288,7 @@ button::after {
 
 .nav-title {
   font-size:1em;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .nav-spacer {
@@ -314,7 +314,7 @@ button::after {
 
 .section-title {
   font-size:1em;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .section-count {
@@ -374,7 +374,7 @@ button::after {
   min-width: 0;
   color:#25332B;
   font-size:1em;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -391,7 +391,7 @@ button::after {
   margin-bottom:14rpx;
   color:#25332B;
   font-size:0.8125em;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .field-input,
@@ -442,7 +442,7 @@ button::after {
   color:#28634E;
   background: #e1f2e9;
   border-color: #4d9878;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .split-fields {

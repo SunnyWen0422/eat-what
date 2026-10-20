@@ -6,7 +6,7 @@ page {
   background-color: {{card}};
   color: {{text}};
   font-size:{{font.body.px}};
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* 原生导航之外的可用窗口；操作栏占据真实高度，滚动区自动让位。 */
@@ -56,7 +56,7 @@ button::after { border: none; }
 .btn-primary {
   background: {{brand}};
   color: {{card}};
-  font-weight: 600;
+  font-weight: 500;
   border-radius:{{radius.0.rpx*1.1666667}};
 }
 
@@ -89,7 +89,7 @@ button::after { border: none; }
   padding:{{space.6.rpx*1.25}} {{space.4.rpx}};
 }
 .empty-icon { font-size:{{font.page.em*1.66664}}; opacity: 0.5; margin-bottom:{{space.1.rpx*1.25}}; }
-.empty-title { font-size:{{font.card.em}}; font-weight: bold; color: {{text}}; }
+.empty-title { font-size:{{font.card.em}}; font-weight: 500; color: {{text}}; }
 .empty-desc { font-size:{{font.caption.em}}; color: {{muted}}; margin-top:{{space.0.rpx*1.25}}; }
 
 page{background:{{background}};color:{{text}};font-size:{{font.body.px}}}
@@ -101,7 +101,7 @@ page{background:{{background}};color:{{text}};font-size:{{font.body.px}}}
 .actual-plan { margin:16px 0; }
 .actual-choices { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
 .actual-choice { margin:0; padding:12px; min-width:44px; min-height:44px; background:{{brandSoft}}; color:{{text}}; font-size:{{font.body.em}}; text-align:left; border:1px solid transparent; border-radius:14px; line-height:1.5; }
-.actual-choice.selected { border-color:{{brand}}; background:{{brandSoft}}; font-weight:600; }
+.actual-choice.selected { border-color:{{brand}}; background:{{brandSoft}}; font-weight:500; }
 
 /* Administrative routes use the same secondary and dish-surface vocabulary. */
 .admin-workspace .status-btn, .admin-workspace .status, .admin-workspace .clear,

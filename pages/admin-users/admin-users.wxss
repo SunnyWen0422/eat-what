@@ -4,7 +4,7 @@ page { min-height: 100%; background: #F8F7F2; color: #25332B; }
 button::after { border: none; }
 .page { min-height: 100vh; padding:24rpx; box-sizing: border-box; }
 .heading { min-height: 78rpx; display: flex; align-items: baseline; gap:14rpx; }
-.title { font-size:1.125em; font-weight: 700; }
+.title { font-size:1.125em; font-weight: 500; }
 .count { color:#56645B; font-size:0.75em; }
 .search { display: grid; grid-template-columns: minmax(0, 1fr) 112rpx; gap:10rpx; margin-bottom:10rpx; }
 .search input { min-width: 0; height: 82rpx; padding:0 18rpx; box-sizing: border-box; background: #FFFFFF; border: 2rpx solid #dbe3de; border-radius:10rpx; font-size:0.8125em; }
@@ -15,7 +15,7 @@ button::after { border: none; }
 .list { display: flex; flex-direction: column; gap:12rpx; }
 .card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap:12rpx; align-items: center; padding:20rpx; background: #FFFFFF; border: 2rpx solid #D9E1D5; border-radius:12rpx; }
 .main { min-width: 0; } .row { display: flex; align-items: center; gap:10rpx; }
-.name { font-size:1em; font-weight: 650; word-break: break-word; }
+.name { font-size:1em; font-weight: 500; word-break: break-word; }
 .badge { padding:5rpx 10rpx; border-radius:7rpx; font-size:0.75em; }
 .badge.on { color: #28634E; background: #EDF3ED; } .badge.off { color: #75501A; background: #FFF1DB; }
 .meta { display: block; margin-top:7rpx; color: #56645B; font-size:0.75em; word-break: break-word; }

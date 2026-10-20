@@ -17,7 +17,15 @@ function presentMenuActions({card,workspace,conversationState={},workspaceState=
   const locked=locks.includes(dishId) || current.locked===true
   return [{dishId,locked,canReplace:enabled&&!locked}]
  })
- return {enabled,rows,expectedRef,current:!!exact,showCurrent:!!card&&card.type==='menu'&&!exact}
+ const writable=enabled&&!workspaceState.dirty&&['draft','planned'].includes(workspace&&workspace.status)
+ const receipt=workspace&&workspace.confirmation
+ const sameMenu=!!expectedRef&&!!workspace&&expectedRef.workspaceId===workspace.id&&expectedRef.planVersion===(workspace.draft&&workspace.draft.planVersion)&&
+  expectedRef.date===(workspace.context&&workspace.context.date)&&expectedRef.mealType===(workspace.context&&workspace.context.mealType)
+ const adopted=!!sameMenu&&!!receipt&&receipt.planVersion===expectedRef.planVersion&&receipt.date===expectedRef.date&&receipt.mealType===expectedRef.mealType&&
+  (!workspaceState.linked||workspaceState.linked.planRevision===receipt.planRevision)
+ const hasHistory=!!(workspace&&workspace.draft&&Array.isArray(workspace.draft.history)&&workspace.draft.history.length)
+ return {enabled,rows,expectedRef,current:!!exact,showCurrent:!!card&&card.type==='menu'&&!exact,
+  canUndo:!!writable&&hasHistory,canAdopt:!!writable&&dishes.length>0&&!adopted,adopted}
 }
 function clarificationOptions(card,now=Date.now()){
  const data=card.data||{},options=data.authorizedOptions,ref=card.workspaceRef
@@ -36,7 +44,7 @@ function presentCard(card={}, now=Date.now()) {
  const date=/^\d{4}-\d{2}-\d{2}$/.test(data.date || '')?data.date:'',meal=meals[data.mealType]?data.mealType:''
  const sourceRows=Array.isArray(data.dishes)?data.dishes:type==='recipe'?[data]:Array.isArray(data.items)?data.items:[]
  const dishes=shoppingReceipt?sourceRows.filter(item=>item.selected===true):sourceRows
- const rows=dishes.map((dish,index)=>({key:String(dish.sourceKey || dish.id || dish.dishId || index),dishId:dish.dishId || dish.id,sourceKey:typeof dish.sourceKey==='string'?dish.sourceKey:'',name:safeText(dish.name || dish.ingredientName),image:imageSource(dish.image),mediaIdentity:imageIdentity(dish),placeholderIcon:placeholderIcon(dish.type),url:typeof (dish.dishId || dish.id)==='number' && (dish.dishId || dish.id)>0 && type!=='shopping_preview'?'/pages/dish-detail/dish-detail?id='+encodeURIComponent(dish.dishId || dish.id):'',quantityLabel:dish.quantity==null?safeText(dish.quantityText):String(dish.quantity)+(safeText(dish.unit)||''),priceLabel:dish.price==null?'':String(dish.price),steps:(Array.isArray(dish.steps)?dish.steps:Array.isArray(dish.methods)?dish.methods:[]).map(safeText).filter(Boolean),ingredients:(Array.isArray(dish.ingredients)?dish.ingredients:[]).map(i=>typeof i==='string'?safeText(i):safeText(i.name)+(i.quantity==null?'':' · '+i.quantity+safeText(i.unit))).filter(Boolean),selected:dish.selected===true}))
+ const rows=dishes.map((dish,index)=>({key:String(dish.sourceKey || dish.id || dish.dishId || index),dishId:dish.dishId || dish.id,sourceKey:typeof dish.sourceKey==='string'?dish.sourceKey:'',name:safeText(dish.name || dish.ingredientName),image:imageSource(dish.image),mediaIdentity:imageIdentity(dish),placeholderIcon:placeholderIcon(dish.type),url:typeof (dish.dishId || dish.id)==='number' && (dish.dishId || dish.id)>0 && type!=='shopping_preview'?'/pages/dish-detail/dish-detail?id='+encodeURIComponent(dish.dishId || dish.id):'',quantityLabel:dish.quantity==null?safeText(dish.quantityText):String(dish.quantity)+(safeText(dish.unit)||''),priceLabel:dish.price==null?'':String(dish.price),steps:(Array.isArray(dish.steps)?dish.steps:Array.isArray(dish.methods)?dish.methods:[]).map(safeText).filter(Boolean).map(require('./recipe-steps').stripStepNumber),ingredients:(Array.isArray(dish.ingredients)?dish.ingredients:[]).map(i=>typeof i==='string'?safeText(i):safeText(i.name)+(i.quantity==null?'':' · '+i.quantity+safeText(i.unit))).filter(Boolean),selected:dish.selected===true}))
  const facts=(Array.isArray(data.meals)?data.meals:[]).map((m,index)=>({key:String(index),label:[/^\d{4}-\d{2}-\d{2}$/.test(m.date || '')?m.date:'',meals[m.mealType] || '',{planned:'已安排',eaten:'已吃',skipped:'这餐没吃',unrecorded:'尚未记录'}[m.status] || ''].filter(Boolean).join(' · '),text:(Array.isArray(m.dishes)?m.dishes:[]).map(d=>safeText(d.name)).filter(Boolean).join('、'),url:/^\d{4}-\d{2}-\d{2}$/.test(m.date || '')&&meals[m.mealType]?`/pages/calendar-detail/calendar-detail?date=${m.date}&mealType=${m.mealType}`:''}))
  let url='',actionLabel=''
  if(shoppingReceipt){url='/pages/shopping-list/shopping-list';actionLabel='查看清单'}

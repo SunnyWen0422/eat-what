@@ -26,12 +26,12 @@ function presentWorkflow({turn,confirmationPending=false,selectionPending=false}
   return{id:step.stepId||String(index),kind:step.kind,status,receiptRef,label:`${labels[step.kind]||'这一步'} · ${statusLabel}`}
  }):[]
  let primaryAction=null,primaryLabel=''
- if(confirmationPending||selectionPending){primaryAction='recover';primaryLabel='核对原请求结果'}
+ if(confirmationPending||selectionPending){primaryAction='recover';primaryLabel='继续查看结果'}
  else if(turn&&turn.status==='awaiting_confirmation'){
   const pending=turn.pendingAction,card=pending&&(turn.cards||[]).filter(c=>c.taskId===pending.taskId&&c.previewToken===pending.previewToken&&['calendar_save','shopping_preview'].includes(c.type)&&!c.receiptRef&&!(c.data&&c.data.kind==='readonly_fact')).slice(-1)[0]
-  if(direct){primaryAction='recover';primaryLabel='核对办理结果'}
+  if(direct){primaryAction='recover';primaryLabel='查看办理结果'}
   else if(card&&card.previewToken&&Number(card.expiresAt)>Date.now()&&(!pending.expiresAt||Number(pending.expiresAt)>Date.now())){primaryAction='preview';primaryLabel='核对当前预览'}
-  else if(pending||steps[turn.continuation&&turn.continuation.cursor]&&steps[turn.continuation.cursor].status==='pending'){primaryAction='recover';primaryLabel=pending?'重新核对过期或缺失的预览':'准备下一步预览'}
+  else if(pending||steps[turn.continuation&&turn.continuation.cursor]&&steps[turn.continuation.cursor].status==='pending'){primaryAction='recover';primaryLabel=pending?'刷新操作方案':'查看下一步'}
  }
  else if(remaining.length){primaryAction='remaining';primaryLabel='填写剩余事项，再核对'}
  return{rows,primaryAction,primaryLabel,remainingKinds:remaining}

@@ -19,10 +19,10 @@ button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
-.ew-page{background:#F8F7F2}.dish-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.dish-links .ew-chip{background:transparent;border:1px solid #D9E1D5;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;padding:8px;font-size:0.8125em}.ew-actions{margin:12px 0;gap:8px}.meal-more{border-top:1px solid #E6EAE1;padding-top:8px}.meal-more-toggle{margin-top:8px}
+.ew-page{background:#F8F7F2}.dish-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.dish-links .ew-chip{background:transparent;border:1px solid #D9E1D5;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;padding:8px;font-size:0.8125em}.ew-actions{margin:12px 0;gap:8px}.meal-more{border-top:1px solid #B8C5B8;padding-top:8px}.meal-more-toggle{margin-top:8px}
 
 /* Read-first meal rows expand for long names and larger text. */
-.calendar-dish-row { min-height:80px; display:flex; align-items:center; border-bottom:1px solid #E6EAE1; padding:8px 0; box-sizing:border-box; }
+.calendar-dish-row { min-height:80px; display:flex; align-items:center; border-bottom:1px solid #B8C5B8; padding:8px 0; box-sizing:border-box; }
 .dish-recipe-link { width:100%; min-height:64px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:8px; text-align:left; white-space:normal; word-break:break-word; background:transparent; font-size:1em; color:#25332B; }
 .dish-recipe-link::after { border:0; }
 .original-plan .ew-reading { display:block; }
@@ -34,7 +34,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .meal-heading .ew-grow { min-width:0; flex:1; }
 .meal-status { display:block; font-size:0.875em; }
 .calendar-dish-row > compact-dish-row { width:100%; min-width:0; }
-.calendar-detail-page .meal-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; margin:0; padding:8px 0; text-align:left; white-space:normal; overflow-wrap:anywhere; background:transparent; border-radius:0; border-bottom:1px solid #E6EAE1; font-size:1em; line-height:1.5; color:#28634E; }
+.calendar-detail-page .meal-action-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; margin:0; padding:8px 0; text-align:left; white-space:normal; overflow-wrap:anywhere; background:transparent; border-radius:0; border-bottom:1px solid #B8C5B8; font-size:1em; line-height:1.5; color:#28634E; }
 .meal-action-row::after { border:0; }
 .meal-action-row > ui-icon { flex:0 0 auto; }
 .meal-status-actions { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:8px; }

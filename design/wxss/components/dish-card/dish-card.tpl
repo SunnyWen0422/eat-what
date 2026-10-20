@@ -5,7 +5,7 @@
 .card { padding:10px; margin:8px 0; border:1px solid {{glassBorder}}; border-radius:16px; background:{{glassSurface}}; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
 .image, .select .image { width:64px; height:64px; border-radius:14px; overflow:hidden; }
 .image-placeholder { display:flex; align-items:center; justify-content:center; background:{{brandSoft}}; }
-.name { font-weight:600; overflow-wrap:anywhere; }.description { margin-top:4px; }.is-selected { border-color:{{brand}}; }
+.name { font-weight:500; overflow-wrap:anywhere; }.description { margin-top:4px; }.is-selected { border-color:{{brand}}; }
 
 .card { flex-wrap:wrap; }
 .card .copy { flex:1 1 96px; }

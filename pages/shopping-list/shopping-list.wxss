@@ -29,7 +29,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Warm table v2: one ingredient, one readable row. */
 .shopping-page { padding-bottom:calc(104px + env(safe-area-inset-bottom)); }
-.shopping-row { background:#FFFFFF; padding:0 8px; border-bottom:1px solid #E6EAE1; }
+.shopping-row { background:#FFFFFF; padding:0 8px; border-bottom:1px solid #B8C5B8; }
 .shopping-row .ew-title { font-size:1em; }
 .shopping-row .ew-row { align-items:flex-start; gap:10px; }
 .shopping-row .ew-link { justify-content:flex-start; text-align:left; }
@@ -43,7 +43,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .shopping-bottom { display:flex; gap:10px; }.shopping-bottom > ui-button:first-child { flex:1; min-width:0; }
 .item-row { flex-wrap:wrap; gap:6px; }.item-row .ew-grow { min-width:110px; }.item-row .ew-link { flex:0 0 auto; }
 
-.shopping-bottom { position:fixed; left:0; right:0; bottom:0; z-index:35; background:#F8F7F2; border-top:1px solid #E6EAE1; }
+.shopping-bottom { position:fixed; left:0; right:0; bottom:0; z-index:35; background:#F8F7F2; border-top:1px solid #B8C5B8; }
 
 .shopping-page button.check { width:44px; max-width:44px; flex:0 0 44px; }
 .shopping-page .ew-tabs { margin:12px 0; }
@@ -76,7 +76,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 .shopping-costs { margin:12px 0 24px; padding:16px; border:1px solid #D9E1D5; border-radius:16px; background:#FFFFFF; }
 .cost-totals { display:flex; flex-wrap:wrap; gap:8px 16px; padding:8px 0; }
-.cost-row { display:flex; gap:8px; align-items:center; padding:12px 0; border-top:1px solid #E6EAE1; }
+.cost-row { display:flex; gap:8px; align-items:center; padding:12px 0; border-top:1px solid #B8C5B8; }
 .cost-row .ew-grow { min-width:0; flex:1; overflow-wrap:anywhere; }
 .cost-row text { display:block; }
 .cost-row button { flex:0 0 auto; max-width:45%; white-space:normal; }
@@ -94,7 +94,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
 /* Keep state selection prominent and the secondary view switch quiet. */
 .shopping-page .shopping-status-tabs button.active { background:#28634E; color:#FFFFFF; }
-.shopping-page .shopping-view-tabs { padding:0; background:transparent; border:0; border-bottom:1px solid #E6EAE1; border-radius:0; gap:16px; }
+.shopping-page .shopping-view-tabs { padding:0; background:transparent; border:0; border-bottom:1px solid #B8C5B8; border-radius:0; gap:16px; }
 .shopping-page .shopping-view-tabs button.ew-hit-target { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; }
 .shopping-page .shopping-view-tabs button.active { border-bottom-color:#28634E; color:#28634E; }
 .shopping-ingredients { background:#FFFFFF; border-radius:18px; overflow:hidden; padding:0 8px; }
@@ -106,7 +106,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .shopping-page .shopping-context { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:6px 10px; margin:8px 0 12px; border-radius:10px; background:#F5F6F0; border:0; color:#56645B; font-size:.8125em; line-height:1.4; }
 .context-primary { flex:1; min-width:0; text-align:left; }
 .context-count { flex:0 0 auto; color:#28634E; }
-.shopping-page .source-meal-choice { display:flex; align-items:center; gap:10px; width:100%; margin:0; padding:10px 0; text-align:left; border-radius:0; border-bottom:1px solid #E6EAE1; background:transparent; font-size:.875em; line-height:1.4; }
+.shopping-page .source-meal-choice { display:flex; align-items:center; gap:10px; width:100%; margin:0; padding:10px 0; text-align:left; border-radius:0; border-bottom:1px solid #B8C5B8; background:transparent; font-size:.875em; line-height:1.4; }
 .source-meal-date { flex:1; min-width:0; }
 .source-meal-type { color:#28634E; font-size:.92857em; padding:5px 10px; border-radius:8px; background:#EDF3ED; }
 .shopping-page .dish-header { font-size:.875em; padding:10px 12px; }
@@ -116,7 +116,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 .cost-totals { display:flex; flex-wrap:nowrap; gap:16px; padding:4px 0 8px; }
 .cost-totals > view { flex:1; min-width:0; }
 .cost-caption { display:block; font-size:.75em; color:#56645B; line-height:1.5; }
-.cost-total-value { display:block; font-size:1.125em; font-weight:600; line-height:1.5; }
+.cost-total-value { display:block; font-size:1.125em; font-weight:500; line-height:1.5; }
 .cost-note { display:block; color:#56645B; font-size:.75em; line-height:1.45; margin-bottom:6px; }
 .cost-row { gap:8px; padding:4px 0; min-height:44px; }
 .cost-name { font-size:.875em; line-height:1.45; font-weight:400; }

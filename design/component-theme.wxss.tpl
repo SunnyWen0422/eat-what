@@ -1,9 +1,9 @@
 /* Components cannot import page, tag or attribute selectors. Keep this vocabulary scoped. */
-:host { font-size:inherit; color:{{text}}; }
+:host { font-size:inherit; color:{{text}}; font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei",-apple-system,BlinkMacSystemFont,sans-serif; font-weight:400; }
 .ew-hit-target { min-width:44px; min-height:44px; box-sizing:border-box; }
 .ew-placeholder { color:{{muted}}; }
 .ew-card { background:{{card}}; border-radius:18px; padding:16px; margin:16px 0; box-sizing:border-box; }
-.ew-title { display:block; font-size:{{font.card.em}}; font-weight:600; line-height:1.5; overflow-wrap:break-word; }
+.ew-title { display:block; font-size:{{font.card.em}}; font-weight:500; line-height:1.5; overflow-wrap:break-word; }
 .ew-muted { display:block; font-size:{{font.secondary.em}}; color:{{muted}}; line-height:1.6; overflow-wrap:break-word; }
 .ew-row,.ew-between { display:flex; align-items:center; gap:8px; min-width:0; }
 .ew-between { justify-content:space-between; }

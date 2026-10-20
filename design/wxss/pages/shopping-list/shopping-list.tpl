@@ -115,7 +115,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .cost-totals { display:flex; flex-wrap:nowrap; gap:16px; padding:4px 0 8px; }
 .cost-totals > view { flex:1; min-width:0; }
 .cost-caption { display:block; font-size:.75em; color:{{muted}}; line-height:1.5; }
-.cost-total-value { display:block; font-size:1.125em; font-weight:600; line-height:1.5; }
+.cost-total-value { display:block; font-size:1.125em; font-weight:500; line-height:1.5; }
 .cost-note { display:block; color:{{muted}}; font-size:.75em; line-height:1.45; margin-bottom:6px; }
 .cost-row { gap:8px; padding:4px 0; min-height:44px; }
 .cost-name { font-size:.875em; line-height:1.45; font-weight:400; }

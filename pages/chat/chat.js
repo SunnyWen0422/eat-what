@@ -133,7 +133,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
       messages: messages.length ? messages.concat(pending) : (pending.length ? pending : [{ id: 'welcome', role: 'assistant', content: '告诉我今晚几个人吃、想吃什么口味，或者把家里的食材发给我。' }]),
       task: state.task || session.task || null, plan: state.plan || session.plan || null,
       taskStage: state.taskStage || (session.task && session.task.status) || '', mode: state.mode || session.mode || '',
-      howto: state.howto || session.howto || null,
+      howto: require('../../utils/recipe-steps').presentHowto(state.howto || session.howto),
       alternatives: state.alternatives || session.alternatives || [],
       canUndo: !!(session.can_undo || state.plan_history && state.plan_history.length > 1),
       actions: session.actions || [], errorMessage: '',
@@ -199,7 +199,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     }) })
     this.addMessage('assistant', result.reply || '我已经整理好一套方案。', { dishes: result.dishes || [] })
     this.stopStageAnimation()
-    this.setData({ sessionId: result.session_id || this.data.sessionId, task: result.task || null, taskStage: (result.task && result.task.status) || 'completed', mode: result.mode || '', plan: result.plan || null, howto: result.howto || null, alternatives: result.alternatives || [], canUndo: !!result.can_undo, actions: result.actions || [], loading: false, errorMessage: '' })
+    this.setData({ sessionId: result.session_id || this.data.sessionId, task: result.task || null, taskStage: (result.task && result.task.status) || 'completed', mode: result.mode || '', plan: result.plan || null, howto: require('../../utils/recipe-steps').presentHowto(result.howto), alternatives: result.alternatives || [], canUndo: !!result.can_undo, actions: result.actions || [], loading: false, errorMessage: '' })
     if (result.task_id) this._activeTaskId = result.task_id
     if (result.session_id) wx.setStorageSync(this.sessionKey, result.session_id)
   },

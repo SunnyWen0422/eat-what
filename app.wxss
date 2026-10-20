@@ -7,7 +7,7 @@ page {
   background-color: #FFFFFF;
   color: #25332B;
   font-size:16px;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* 原生导航之外的可用窗口；操作栏占据真实高度，滚动区自动让位。 */
@@ -57,7 +57,7 @@ button::after { border: none; }
 .btn-primary {
   background: #28634E;
   color: #FFFFFF;
-  font-weight: 600;
+  font-weight: 500;
   border-radius:14rpx;
 }
 
@@ -90,7 +90,7 @@ button::after { border: none; }
   padding:80rpx 40rpx;
 }
 .empty-icon { font-size:2.49996em; opacity: 0.5; margin-bottom:20rpx; }
-.empty-title { font-size:1em; font-weight: bold; color: #25332B; }
+.empty-title { font-size:1em; font-weight: 500; color: #25332B; }
 .empty-desc { font-size:0.75em; color: #56645B; margin-top:10rpx; }
 
 page{background:#F8F7F2;color:#25332B;font-size:16px}
@@ -102,7 +102,7 @@ page{background:#F8F7F2;color:#25332B;font-size:16px}
 .actual-plan { margin:16px 0; }
 .actual-choices { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
 .actual-choice { margin:0; padding:12px; min-width:44px; min-height:44px; background:#EDF3ED; color:#25332B; font-size:1em; text-align:left; border:1px solid transparent; border-radius:14px; line-height:1.5; }
-.actual-choice.selected { border-color:#28634E; background:#EDF3ED; font-weight:600; }
+.actual-choice.selected { border-color:#28634E; background:#EDF3ED; font-weight:500; }
 
 /* Administrative routes use the same secondary and dish-surface vocabulary. */
 .admin-workspace .status-btn, .admin-workspace .status, .admin-workspace .clear,

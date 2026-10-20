@@ -5,6 +5,7 @@ test('dish detail obtains quantities and procurement for the actual meal people'
  const ctx={Page:p=>page=p,wx:{getStorageSync:()=>null,navigateTo(){}},getApp:()=>({globalData:{loginReady:true}}),console,require:name=>{
  if(name.endsWith('/recipe-display'))return require('../utils/recipe-display')
  if(name.endsWith('/recipe-quality'))return require('../utils/recipe-quality')
+ if(name.endsWith('/recipe-steps'))return require('../utils/recipe-steps')
  if(name.endsWith('/dish-image'))return require('../utils/dish-image')
  if(name.endsWith('/api'))return api
  if(name.endsWith('/font-scale'))return ()=>1

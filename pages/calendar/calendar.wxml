@@ -1,5 +1,5 @@
 <view class="ew-page ew-dish-surface ew-screen" style="font-size:{{fontBase * fontScale}}px">
-  <view class="ew-row ew-between calendar-heading"><view><text class="ew-heading">日历</text></view><view class="calendar-heading-actions"><text aria-role="button" class="ew-hit-target ew-link" bindtap="onReview">饮食回顾</text><text aria-role="button" class="ew-hit-target ew-link" bindtap="onToday">今天</text></view></view>
+  <view class="ew-row ew-between calendar-heading"><view><text class="ew-heading ew-page-title">日历</text></view><view class="calendar-heading-actions"><text aria-role="button" class="ew-hit-target ew-link" bindtap="onReview">饮食回顾</text><text aria-role="button" class="ew-hit-target ew-link" bindtap="onToday">今天</text></view></view>
   <view class="ew-tabs"><view aria-role="button" class="ew-hit-target ew-pill {{viewMode === 'week' ? 'active' : ''}}" data-mode="week" bindtap="onModeChange">本周</view><view aria-role="button" class="ew-hit-target ew-pill {{viewMode === 'month' ? 'active' : ''}}" data-mode="month" bindtap="onModeChange">月历</view></view>
   <view class="ew-card calendar-card"><view class="ew-row ew-between period"><button class="ew-hit-target period-nav" bindtap="onPrevMonth" aria-label="上一周期"><ui-icon name="arrow-left" tone="muted" size="20" /></button><text>{{rangeLabel}}</text><button class="ew-hit-target period-nav" bindtap="onNextMonth" aria-label="下一周期"><ui-icon class="rotate-right" name="arrow-left" tone="muted" size="20" /></button></view>
     <view wx:if="{{viewMode === 'month'}}" class="month-weekdays"><text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text></view>
@@ -8,7 +8,7 @@
   </view>
   <ui-state wx:if="{{!authenticated}}" kind="auth" title="登录后查看用餐计划" description="计划与实际记录会保存到你的账号。" action-label="去登录" bind:action="onLogin" />
   <ui-state wx:elif="{{loading && !mealCards.length}}" kind="loading" title="正在读取安排" />
-  <block wx:else><view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}<text aria-role="button" class="ew-hit-target ew-link" bindtap="loadRecipeRecords">重试</text></view><text class="ew-section-title">{{selectedDate}} 的三餐</text>
+  <block wx:else><view wx:if="{{errorMessage}}" class="ew-notice">{{errorMessage}}<text aria-role="button" class="ew-hit-target ew-link" bindtap="loadRecipeRecords">重试</text></view>
     <meal-card class="calendar-meal" wx:for="{{mealCards}}" wx:key="mealType" title="{{item.label}}" name="{{item.dishSummary}}" status="{{item.statusLabel}}" accessible-label="{{item.accessibleLabel}}" action-label="{{(item.status === 'eaten' || item.status === 'skipped' || item.plan) ? '查看' : '安排'}}" data-meal="{{item.mealType}}" bind:open="onOpenMeal" />
   </block>
 </view>

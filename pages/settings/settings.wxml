@@ -1,6 +1,5 @@
 <button wx:if="{{assistantReturnVisible}}" class="ew-hit-target ew-link" bindtap="onAssistantReturn">{{assistantReturnLabel}}</button>
 <view class="ew-page settings-page" style="font-size:{{fontBase * fontScale}}px">
-  <view class="section appearance-section"><view class="appearance-row"><view class="appearance-copy"><view class="section-title">减少动态效果</view><view class="section-desc">减少页面过渡动画，只在这台设备生效。</view></view><switch class="motion-switch" checked="{{reducedMotion}}" color="#28634E" bindchange="onReducedMotionChange" aria-label="减少动态效果" /></view><text wx:if="{{motionStatus}}" class="motion-status" aria-live="polite">{{motionStatus}}</text></view>
   <view wx:if="{{assistantPreferenceProposal}}" class="ew-notice ew-reading"><view class="section-title">助手带来的偏好建议</view><text>{{assistantPreferenceProposal}}</text><view>请核对并在下方调整。这里只修改当前账号的长期偏好，点击“保存偏好”后生效。</view></view>
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取偏好" /><ui-state wx:if="{{preferencesReadFailed}}" kind="error" title="偏好暂未读到" action-label="重新读取" bind:action="onLoad" /><view wx:if="{{statusText}}" class="sync-row">
     <text class="sync-dot {{synced ? 'online' : 'offline'}}"></text>
@@ -13,7 +12,7 @@
   </view>
 
   <block wx:elif="{{!loading && !preferencesReadFailed}}">
-<view class="section"><view class="section-title">常用用餐人数</view><view class="section-desc">用于新建的一餐，本餐人数可单独调整。</view><ui-field label="人数（1–50）" type="number" value="{{peopleDraft}}" error="{{peopleError}}" disabled="{{saving || loading}}" bind:change="onDefaultPeople" /></view>
+  <view class="section default-people-section"><view class="default-people-row"><text class="default-people-label">常用用餐人数</text><view class="default-people-control"><input type="number" value="{{peopleDraft}}" aria-label="常用用餐人数，1至50人" disabled="{{saving || loading}}" bindinput="onDefaultPeople" /><text>人</text></view></view><text wx:if="{{peopleError}}" class="default-people-error" aria-role="alert">{{peopleError}}</text></view>
   <view class="section">
     <view class="section-title">偏好菜系</view>
     <view class="section-desc">优先推荐，不排除其他菜系。</view>

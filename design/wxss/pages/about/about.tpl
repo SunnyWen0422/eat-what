@@ -19,7 +19,7 @@
 
 .app-name {
   font-size:{{font.page.em*1.33332}};
-  font-weight: bold;
+  font-weight: 500;
   margin-bottom:{{space.1.px}};
 }
 
@@ -40,7 +40,7 @@
 /*  section标题 */
 .section-title {
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   color: {{text}};
   padding:{{space.4.px}} {{space.4.px}} {{space.2.px}};
   display: flex;
@@ -74,14 +74,14 @@
   align-items: center;
   justify-content: center;
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   margin-right:{{space.2.px}};
   flex-shrink: 0;
 }
 
 .step-title {
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   color: {{text}};
 }
 

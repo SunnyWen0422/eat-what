@@ -5,7 +5,7 @@
   <view class="container">
     <!-- 标题区 -->
     <view class="header-area">
-      <view class="header-title"><text>今天我们吃什么？</text></view>
+      <view class="header-title ew-page-title"><text>今天我们吃什么？</text></view>
       <text class="header-subtitle">家常菜随手搭，今天吃什么不用想太久</text>
     </view>
 

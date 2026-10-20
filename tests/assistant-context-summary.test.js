@@ -11,6 +11,7 @@ test('context summary separates temporary and saved inputs',()=>{
  assert.match(view.savedRows.map(r=>r.text).join(' '),/花生/);assert.match(view.savedRows.map(r=>r.text).join(' '),/清淡/)
  assert.match(view.mealRows.find(r=>r.id==='total-time').text,/整餐用时上限.*45/);assert.doesNotMatch(view.mealRows.find(r=>r.id==='total-time').text,/预计/)
  assert.match(view.mealRows.find(r=>r.id==='dish-time').text,/单菜.*20/)
+ assert.equal(view.savedRows.find(r=>r.id==='saved-people').text,'4人')
  assert.deepEqual(input,before);assert.equal(view.unavailableLabel,'')
  const lost=buildAssistantContextSummary({...input,preferencesState:'unavailable'})
  assert.match(lost.unavailableLabel,/暂未读到/);assert.deepEqual(lost.savedRows,[])
@@ -26,6 +27,10 @@ test('unset, unavailable and loading preferences remain distinct and row text is
  const bounded=buildAssistantContextSummary({workspace:{context:{...workspace.context,requirements:'字'.repeat(3000)}},preferencesState:'ready',preferencesSnapshot:{excludedIngredients:Array(200).fill('花生')}})
  assert.ok(JSON.stringify(bounded).length<2500)
  assert.match(bounded.mealRows.find(row=>row.id==='requirements').text,/…$/)
+ const concise=buildAssistantContextSummary({workspace:{context:{}},preferencesState:'ready',preferencesSnapshot:{avoidRecentDays:7}})
+ assert.equal(concise.mealRows.find(row=>row.id==='requirements').text,'未添加')
+ assert.deepEqual(concise.savedRows.find(row=>row.id==='saved-recent'),{id:'saved-recent',label:'菜品轮换',text:'最近7天不重复'})
+ assert.equal(buildAssistantContextSummary({preferencesState:'ready',preferencesSnapshot:{avoidRecentDays:0}}).savedRows.find(row=>row.id==='saved-recent').text,'不限制')
 })
 async function pageFixture(t){
  const f=fixture(),page=assistantPage(f.createPage('assistant'),{probe:async()=>true})
@@ -48,10 +53,14 @@ test('an unavailable optional options cache cannot block the live menu or contex
  assert.doesNotThrow(()=>f.page.refreshConversationMenus())
  assert.equal(f.page.data.conversationCurrentMenu.data.dishes[0].id,7);assert.match(JSON.stringify(f.page.data.conversationContextSummary.savedRows),/花生/);assert.equal(f.reads(),1)
 })
-test('temporary edit stays editable and saved preference return rereads without rewriting history',async t=>{
+test('temporary settings use their own editor and saved preference return rereads without rewriting history',async t=>{
  const f=await pageFixture(t),before=plain(f.state.messages)
  f.page.store.edit({...f.page.data.context,requirements:'少油'});f.page.renderWorkspace()
- f.page.onConversationEditRequirements();assert.match(f.state.input,/少油/);assert.equal(f.calls.length,0)
+ f.state.input='尚未发送的问题'
+ f.page.onConversationEditRequirements()
+ assert.equal(f.page.data.conversationMealSettingsVisible,true)
+ assert.equal(f.page.data.conversationMealSettingsDraft.requirements,'少油')
+ assert.equal(f.state.input,'尚未发送的问题');assert.equal(f.calls.length,0)
  f.page.onConversationPreferences();assert.deepEqual(f.navigation,['/pages/settings/settings'])
  f.api.getUserPreferences=async()=>({preferences:{excludedIngredients:['香菜']}})
  await f.page.onShow();assert.match(JSON.stringify(f.page.data.conversationContextSummary.savedRows),/香菜/)
@@ -69,8 +78,9 @@ test('empty preference transport response is unavailable instead of an unset pre
 test('pending or disabled assistant input cannot be replaced by the context edit affordance',async t=>{
  const f=await pageFixture(t);let modals=0;f.wx.showModal=()=>modals++;f.state.input='原文';f.page.data.conversationActionsEnabled=false
  f.page.onConversationEditRequirements();assert.equal(f.state.input,'原文');assert.equal(modals,0)
+ assert.equal(f.page.data.conversationMealSettingsVisible,false)
  f.page.data.conversationActionsEnabled=true;f.state.confirmationPending=true
- f.page.onConversationEditRequirements();assert.equal(f.state.input,'原文')
+ f.page.onConversationEditRequirements();assert.equal(f.state.input,'原文');assert.equal(f.page.data.conversationMealSettingsVisible,false)
 })
 test('late saved preference response cannot pollute a new account or workspace',async t=>{
  const f=await pageFixture(t),wait=deferred();f.api.getUserPreferences=()=>wait.promise

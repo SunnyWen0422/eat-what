@@ -4,18 +4,18 @@
 .sync-dot { width: 7px; height: 7px; border-radius:50%; background:{{brand}}; }
 .sync-dot.online { background: {{brand}}; }
 .section { padding:{{space.3.px*1.0625}} 0; border-bottom: 1px solid #dde3e0; }
-.section-title { margin-bottom:{{space.0.px*1.25}}; font-size:{{font.card.em}}; font-weight: 700; }
+.section-title { margin-bottom:{{space.0.px*1.25}}; font-size:{{font.card.em}}; font-weight: 500; }
 .section-desc { margin-bottom:{{space.2.px}}; color:{{muted}}; font-size:{{font.caption.em}}; line-height: 1.5; }
 .chip-grid { display: flex; flex-wrap: wrap; gap:{{space.1.px}}; }
 .choice-chip { min-width: 66px; box-sizing: border-box; padding:{{space.1.px*1.125}} {{space.2.px}}; border: 1px solid #d5dcd8; border-radius:{{radius.0.px}}; background: {{card}}; color: {{muted}}; text-align: center; font-size:{{font.secondary.em}}; }
-.choice-chip.selected { border-color: {{brand}}; background: {{brandSoft}}; color:{{brand}}; font-weight: 600; }
+.choice-chip.selected { border-color: {{brand}}; background: {{brandSoft}}; color:{{brand}}; font-weight: 500; }
 .choice-chip.danger.selected { border-color: #bd5143; background: {{dangerSoft}}; color:{{danger}}; }
 .ingredient-row { display: flex; gap:{{space.1.px}}; }
 .ingredient-input { min-width: 0; flex: 1; height: 42px; box-sizing: border-box; padding:0 {{space.2.px}}; border: 1px solid #d5dcd8; border-radius:{{radius.0.px}}; background: {{card}}; font-size:{{font.body.em}}; }
 .add-btn { width: 76px; height: 42px; line-height: 42px; padding:0; border-radius:{{radius.0.px}}; background: {{brandSoft}}; color:{{brand}}; font-size:{{font.body.em}}; }
 .top-gap { margin-top:{{space.1.px*1.25}}; }
 .ingredient-chip { padding:{{space.1.px*0.875}} {{space.1.px*1.25}}; border-radius:{{radius.0.px*0.83333333}}; background: {{dangerSoft}}; color:{{brand}}; font-size:{{font.caption.em}}; }
-.save-btn { margin-top:{{space.5.px}}; height: 46px; line-height: 46px; border-radius:{{radius.0.px}}; background: {{brand}}; color: {{card}}; font-size:{{font.body.em}}; font-weight: 600; }
+.save-btn { margin-top:{{space.5.px}}; height: 46px; line-height: 46px; border-radius:{{radius.0.px}}; background: {{brand}}; color: {{card}}; font-size:{{font.body.em}}; font-weight: 500; }
 
 /* 页面共享主题，适用于本页详情、表单和弹层。 */
 
@@ -39,14 +39,14 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 /* Warm table v2: settings */
  .settings-page { padding:20px 16px 28px; background:{{background}}; }.sync-row { padding:0 0 16px; color:{{muted}}; font-size:{{font.body.em}}; gap:8px; }.section { border:0; background:{{card}}; border-radius:18px; padding:18px 16px; margin-bottom:14px; box-shadow:none; }.section-title { font-size:{{font.section.em}}; color:{{text}}; line-height:1.5; }.section-desc { font-size:{{font.body.em}}; line-height:1.7; margin:6px 0 12px; }.chip-grid { display:flex; flex-wrap:wrap; gap:8px; }.choice-chip, .ingredient-chip { min-height:44px; border-radius:12px; padding:10px 12px; background:{{surfaceSoft}}; color:{{text}}; border:1px solid transparent; box-sizing:border-box; line-height:1.5; font-size:{{font.body.em}}; }.choice-chip.selected { background:{{brandSoft}}; color:{{brand}}; border-color:{{brand}}; }.choice-chip.danger.selected { background:{{danger}}; color:{{card}}; border-color:{{danger}}; }.ingredient-row { display:flex; gap:8px; }.ingredient-input { flex:1; min-width:0; background:{{card}}; border:1px solid {{controlBorder}}; border-radius:12px; min-height:48px; padding:0 12px; }.add-btn { padding:0 12px; min-height:48px; color:{{brand}}; background:{{brandSoft}}; border-radius:12px; }.save-btn { min-height:48px; height:auto; padding:12px 16px; border-radius:14px; background:{{brand}}; color:{{card}}; margin:20px 0; font-size:{{font.reading.em}}; }.save-btn[disabled] { background:{{disabled}}; color:{{text}}; }
 
-/* App-local motion preference remains independent of recommendation persistence. */
-.appearance-row { display:flex; align-items:center; flex-wrap:wrap; gap:{{space.2.px}}; min-width:0; }
-.appearance-copy { flex:1 1 180px; min-width:0; }
-.appearance-copy .section-title, .appearance-copy .section-desc { overflow-wrap:anywhere; }
-.motion-switch { min-width:44px; min-height:44px; display:flex; align-items:center; }
-.motion-status { display:block; margin-top:{{space.1.px}}; font-size:{{font.secondary.em}}; line-height:1.5; color:{{muted}}; overflow-wrap:anywhere; }
-.settings-page .section-title { font-weight:600; }
-.settings-page button.save-btn { width:100%; max-width:100%; height:auto; line-height:1.5; white-space:normal; margin:20px 0; font-family:inherit; font-weight:600; box-sizing:border-box; }
+.settings-page .default-people-section { padding:10px 16px; }
+.default-people-row { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; }
+.default-people-label { min-width:0; font-size:1em; font-weight:500; line-height:1.5; color:{{text}}; }
+.default-people-control { display:flex; align-items:center; gap:6px; flex:none; color:{{muted}}; font-size:.875em; }
+.settings-page .default-people-control input { width:56px; min-width:44px; height:44px; padding:0 6px; line-height:44px; border:1px solid {{controlBorder}}; border-radius:12px; background:{{surfaceSoft}}; color:{{brand}}; text-align:center; font-family:inherit; font-size:1.142857em; }
+.default-people-error { display:block; margin-top:4px; color:{{danger}}; font-size:.8125em; line-height:1.5; }
+.settings-page .section-title { font-weight:500; }
+.settings-page button.save-btn { width:100%; max-width:100%; height:auto; line-height:1.5; white-space:normal; margin:20px 0; font-family:inherit; font-weight:500; box-sizing:border-box; }
 
 .settings-page .ingredient-input { height:calc(1.5em + 24px); font-size:1em; }
 .settings-page .add-btn { width:auto; height:auto; min-width:64px; flex:none; line-height:1.5; padding:8px 12px; }

@@ -3,19 +3,19 @@ page { min-height: 100%; background: {{background}}; color: {{text}}; }
 button::after { border: none; }
 .page { min-height: 100vh; padding:{{space.2.rpx*1.1666667}} {{space.2.rpx}} {{space.5.rpx}}; box-sizing: border-box; }
 .heading { display: flex; justify-content: space-between; align-items: center; margin-bottom:{{space.2.rpx}}; }
-.title { display: block; font-size:{{font.section.em}}; font-weight: 700; }
+.title { display: block; font-size:{{font.section.em}}; font-weight: 500; }
 .subtitle { display: block; color: {{muted}}; font-size:{{font.caption.em}}; margin-top:{{space.0.rpx}}; }
 .refresh, .retry { background: {{brand}}; color: {{card}}; border-radius:{{radius.0.rpx*0.83333333}}; min-height: 72rpx; padding:0 {{space.2.rpx}}; font-size:{{font.secondary.em}}; }
 .notice { background: {{brandSoft}}; color: {{brand}}; padding:{{space.1.rpx}} {{space.1.rpx*1.125}}; border-radius:{{radius.0.rpx*0.66666667}}; margin-bottom:{{space.1.rpx}}; font-size:{{font.caption.em}}; }
 .state, .empty { min-height: 240rpx; display: flex; flex-direction: column; justify-content: center; align-items: center; color: {{muted}}; gap:{{space.1.rpx*1.25}}; }
 .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:{{space.0.rpx*1.5}}; }
 .metric { min-height: 140rpx; padding:{{space.1.rpx*1.125}} {{space.0.rpx*1.5}}; box-sizing: border-box; background: {{card}}; border: 2rpx solid {{border}}; border-radius:{{radius.0.rpx}}; display: flex; flex-direction: column; justify-content: center; gap:{{space.0.rpx*0.75}}; color: {{muted}}; font-size:{{font.caption.em}}; }
-.metric-value { font-size:{{font.section.em}}; font-weight: 700; color:{{text}}; }
+.metric-value { font-size:{{font.section.em}}; font-weight: 500; color:{{text}}; }
 .metric-value.green { color: {{brand}}; } .metric-value.amber { color:{{warning}}; }
-.section-title { margin:{{space.3.rpx*0.9375}} 0 {{space.1.rpx*0.875}}; font-size:{{font.body.em}}; font-weight: 650; }
+.section-title { margin:{{space.3.rpx*0.9375}} 0 {{space.1.rpx*0.875}}; font-size:{{font.body.em}}; font-weight: 500; }
 .action-list, .audit-list { display: flex; flex-direction: column; gap:{{space.0.rpx*1.25}}; }
 .action, .audit-row { background: {{card}}; border: 2rpx solid {{border}}; border-radius:{{radius.0.rpx}}; padding:{{space.1.rpx*1.25}}; display: flex; align-items: center; justify-content: space-between; }
-.action-title, .audit-action { display: block; font-size:{{font.body.em}}; font-weight: 650; }
+.action-title, .audit-action { display: block; font-size:{{font.body.em}}; font-weight: 500; }
 .action text:not(.action-title), .audit-meta { display: block; margin-top:{{space.0.rpx}}; font-size:{{font.caption.em}}; color: {{muted}}; }
 .arrow { font-size:{{font.page.em}}; color: {{muted}}; } .audit-target { color: {{muted}}; font-size:{{font.caption.em}}; }
 

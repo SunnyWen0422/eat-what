@@ -22,12 +22,12 @@ function createAssistantConversation(options = {}) {
  let active=true,actionsEnabled=true,key='',record=null,running=null,cancellation=null
  let view={sessionId:null,messages:[],input:'',error:'',busy:false,recoverable:false,turn:null,nextCursor:null}
  const current=()=>active && scope===scopeOf(options)
- const state=()=>current()?clone({...view,canSteer:!!(actionsEnabled&&record&&(record.steering?!!steeringRun:record.pending&&(!record.pending.turnId||!view.turn||['queued','running'].includes(view.turn.status)))),busy:view.busy||!!cancellation,error:cancellation?'正在停止这次请求，请稍候核对结果':view.error,cancelling:!!cancellation,selectionPending:!!(record&&record.renewal),confirmationPending:!!(record&&record.confirmation&&record.confirmation.unknown)}):{sessionId:null,messages:[],input:'',error:'请重新进入这一餐',busy:false,recoverable:false,turn:null}
+ const state=()=>current()?clone({...view,workspaceSyncPending:!!(record&&record.workspaceSyncRef),canSteer:!!(actionsEnabled&&record&&(record.steering?!!steeringRun:record.pending&&(!record.pending.turnId||!view.turn||['queued','running'].includes(view.turn.status)))),busy:view.busy||!!cancellation,error:cancellation?'正在停止这次请求，请稍候核对结果':view.error,cancelling:!!cancellation,selectionPending:!!(record&&record.renewal),confirmationPending:!!(record&&record.confirmation&&record.confirmation.unknown)}):{sessionId:null,messages:[],input:'',error:'请重新进入这一餐',busy:false,recoverable:false,turn:null}
  const notify=()=>{if(current()&&options.onChange)options.onChange(state())}
  const persist=()=>{if(current()&&key){record.input=view.input;write(key,clone(record))}notify()}
  const exclusive=action=>{if(cancellation)return cancellation;if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
  const workspace=()=>store && store.state().workspace
- const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=message;view.recoverable=!!(record&&(!record.sessionId||record.steering||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&!record.draftEdited){if(record.steering)view.input=record.steering.additions.join('\n');else if(record.pending)view.input=record.pending.body.message;}persist();return state()}
+ const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=record&&record.workspaceSyncRef?'最新菜单尚未同步，请继续查看结果':message;view.recoverable=!!(record&&(!record.sessionId||record.workspaceSyncRef||record.steering||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&!record.draftEdited){if(record.steering)view.input=record.steering.additions.join('\n');else if(record.pending)view.input=record.pending.body.message;}persist();return state()}
  const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&((turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct')||!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending')
  function adopt(turn) {
   if(!current())return
@@ -48,12 +48,26 @@ function createAssistantConversation(options = {}) {
   record.messages=clone(view.messages);persist()
  }
  async function refreshWorkspace(turn) {
-  if(!current() || !turn.workspaceRef || !store)return
-  const w=workspace(),ref=turn.workspaceRef
-  if(w && ref.workspaceId===w.id && (ref.workspaceRevision>w.revision || ref.planVersion>(w.draft && w.draft.planVersion || 0))) {
+  if(!current() || !store)return
+  const w=workspace()
+  const refs=[turn.workspaceRef,...(turn.cards||[]).map(card=>card.workspaceRef),record.workspaceSyncRef]
+   .filter(ref=>ref&&w&&ref.workspaceId===w.id&&Number.isInteger(ref.workspaceRevision)&&Number.isInteger(ref.planVersion))
+  if(!refs.length)return
+  const ref=refs.reduce((a,b)=>b.workspaceRevision>a.workspaceRevision?b:a)
+  if(ref.workspaceRevision>w.revision || ref.planVersion>(w.draft&&w.draft.planVersion||0)){
+   // Keep only a read target after a completed turn. Losing this reread must
+   // never authorize resending a generation or discard an unsent local edit.
+   record.workspaceSyncRef=clone(ref);view.recoverable=true;persist()
+   const local=store.state()
+   if(local.dirty||local.pending)throw Error('workspace not ready')
    await store.reloadLatest();if(!current())return
-   if(options.onWorkspaceChange)options.onWorkspaceChange(store.state())
+   const latest=workspace()
+   if(!latest||latest.id!==ref.workspaceId||latest.revision<ref.workspaceRevision||(latest.draft&&latest.draft.planVersion||0)<ref.planVersion)throw Error('workspace not synchronized')
   }
+  const hadSync=!!record.workspaceSyncRef
+  record.workspaceSyncRef=null
+  if(hadSync){view.recoverable=!!(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown||canResume(view.turn));if(view.error==='最新菜单尚未同步，请继续查看结果')view.error='';persist()}
+  if(options.onWorkspaceChange)options.onWorkspaceChange(store.state())
  }
  async function poll(id) {
   const turn=await api.getAssistantV4Turn(id);if(!current())return state()
@@ -94,7 +108,7 @@ function createAssistantConversation(options = {}) {
   const existing=clone(read(key))
   if(requestedSession&&(!existing||existing.sessionId!==requestedSession))key+=`:session:${encodeURIComponent(requestedSession)}`
   record=clone(read(key)) || {sessionBody:{workspaceId:id,requestId:makeId()},sessionId:requestedSession||null,pending:null,messages:[],input:'',confirmedTasks:[]}
-  view.input=record.input || '';view.messages=clone(record.messages || []);view.recoverable=!!(record.pending||record.renewal||record.confirmation&&record.confirmation.unknown)
+  view.input=record.input || '';view.messages=clone(record.messages || []);view.recoverable=!!(record.workspaceSyncRef||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown)
   try {
    let result
    if(record.sessionId){
@@ -123,6 +137,7 @@ function createAssistantConversation(options = {}) {
     if(record.pending&&record.pending.turnId!==result.latestTurn.turnId)view.turn=clone(record.lastTurn||null)
     else {adopt(result.latestTurn);await refreshWorkspace(result.latestTurn);if(!current())return state()}
    }
+   else if(record.workspaceSyncRef){await refreshWorkspace({workspaceRef:record.workspaceSyncRef});if(!current())return state()}
    if(record.steering){if(!record.draftEdited)view.input=record.steering.additions.join('\n');view.recoverable=true}else if(record.pending&&!record.draftEdited)view.input=record.pending.body.message
    if(record.bindingExpired)view.error='原对话已过期，输入仍保留。请先核对日历和清单，再重新说明要办理的内容'
    persist();return state()
@@ -173,6 +188,7 @@ function createAssistantConversation(options = {}) {
   if(!actionsEnabled)return fail('助手暂不可用，输入仍保留')
   if(!record || !record.sessionId)return fail('对话尚未连接，请重新进入这一餐')
   if(record.pending)return fail('刚才的结果还待确认，请先恢复原请求')
+  if(record.workspaceSyncRef)return fail()
   const w=workspace(),local=store.state();let message=String(text||'').trim(),selected
   if(choice){
    const turn=view.turn,card=turn&&(turn.cards||[]).find(c=>c.id===choice.cardId),ref=card&&card.workspaceRef
@@ -196,6 +212,10 @@ function createAssistantConversation(options = {}) {
  function recover(turnId) {if(record&&record.steering&&!turnId)return flushSteering();return exclusive(async()=>{
   if(!record || !record.sessionId)return loadRecord()
   try {
+   if(record.workspaceSyncRef){
+    await refreshWorkspace({workspaceRef:record.workspaceSyncRef})
+    if(!current()||!record.pending&&!record.renewal&&!(record.confirmation&&record.confirmation.unknown)&&!canResume(view.turn))return state()
+   }
    if(record.confirmation && record.confirmation.unknown){
     if(!await resolveConfirmation())return state()
     return await resumeCurrent()

@@ -37,9 +37,14 @@ Component({
     },
     onView() { const dish = this.properties.dish || {}; const id = dish.dishId || dish.id; if (id != null) this.triggerEvent('view', { id }) },
     onFavoriteChange(event) { this.triggerEvent('favoritechange', event.detail) },
+    onRemove() {
+      const dish = this.properties.dish || {}, id = dish.dishId || dish.id
+      if (this.properties.mode !== 'remove' || this.properties.busy || this.properties.disabled || !id) return
+      this.triggerEvent('remove', { id })
+    },
     onReplace() {
       const dish = this.properties.dish || {}, id = dish.dishId || dish.id
-      if (this.properties.mode === 'read' || this.properties.busy || this.properties.disabled || !id) return
+      if (this.properties.mode === 'read' || this.properties.mode === 'remove' || this.properties.busy || this.properties.disabled || !id) return
       if (this.properties.mode === 'replace' && dish.locked) this.triggerEvent('feedback', { kind: 'keep', dishId: id })
       else this.triggerEvent(this.properties.mode === 'select' ? 'select' : 'replace', { id })
     },

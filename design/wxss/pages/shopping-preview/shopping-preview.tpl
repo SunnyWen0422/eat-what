@@ -45,17 +45,17 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .shopping-preview-page .quantity-readonly { flex:0 1 auto; max-width:48%; min-width:44px; min-height:44px; margin:0; padding:4px; color:#56645B; background:transparent; font-size:0.875em; line-height:1.5; white-space:normal; overflow-wrap:anywhere; border-radius:0; }
 .quantity-readonly::after,.source-toggle::after,.dish-header::after { border:0; }
 .shopping-preview-page .source-toggle { display:flex; align-items:center; justify-content:center; flex:0 0 44px; min-width:44px; width:44px; min-height:44px; margin:0; padding:0; background:transparent; }
-.view-tabs { gap:4px; margin:8px 0; border-bottom:1px solid #E6EAE1; }
+.view-tabs { gap:4px; margin:8px 0; border-bottom:1px solid {{divider}}; }
 .view-tabs .ew-link { flex:1; min-width:0; margin:0; font-size:0.875em; color:#56645B; }
 .view-tabs .active { color:#28634E; border-bottom:2px solid #28634E; border-radius:0; }
 .view-count { margin-bottom:8px; font-size:0.8125em; }
 .preview-ingredients { background:#FFFFFF; }
-.preview-dish-group { border-bottom:1px solid #E6EAE1; }
+.preview-dish-group { border-bottom:1px solid {{divider}}; }
 .shopping-preview-page .dish-header { display:flex; align-items:center; gap:8px; width:100%; margin:0; padding:8px 0; text-align:left; background:transparent; font-size:1em; line-height:1.5; white-space:normal; }
 .dish-header .ew-grow { flex:1; min-width:0; overflow-wrap:anywhere; }
 .dish-header .ew-muted { font-size:0.8125em; }
 .dish-chevron { flex:0 0 auto; }.dish-chevron.expanded { transform:rotate(90deg); }
-.source-item { border-bottom:1px solid #E6EAE1; padding:8px 0; overflow-wrap:anywhere; }
+.source-item { border-bottom:1px solid {{divider}}; padding:8px 0; overflow-wrap:anywhere; }
 .source-actions { display:flex; flex-wrap:wrap; align-items:center; gap:4px; }.source-actions .ew-grow { flex:1; min-width:0; }.source-actions .ew-link { padding:0 4px; margin:0; font-size:0.875em; }
 .preparation-hint { display:block; margin:12px 0; font-size:0.8125em; }
 .preview-bottom > ui-button { width:100%; flex:1; min-width:0; }

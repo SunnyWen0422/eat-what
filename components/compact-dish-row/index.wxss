@@ -5,7 +5,7 @@
 .dish-thumbnail { flex:0 0 56px; overflow:hidden; background:#F5F6F0; animation:dish-appear 180ms ease-out; }
 .dish-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#EDF3ED; }
 .dish-copy { flex:1; min-width:0; }
-.dish-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:1em; font-weight:600; line-height:1.25; }
+.dish-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:1em; font-weight:500; line-height:1.25; }
 /* Image, the two-line copy block and action group share the card centerline. */
 .dish-summary { display:flex; align-items:center; gap:4px; min-width:0; margin-top:4px; box-sizing:border-box; }
 .dish-meta { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.8125em; color:#56645B; line-height:1.5; }
@@ -34,3 +34,14 @@
 .dish-row.is-compact-summary.is-reading.is-large-text .dish-actions { width:44px; flex-basis:44px; }
 @media(max-width:360px) { .dish-meta-full { display:none; } .dish-meta-narrow { display:inline; } }
 @keyframes dish-appear { from { opacity:0; } to { opacity:1; } }
+.dish-row.is-selection-preview { min-height:72px; padding:10px; margin:8px 0; box-shadow:none; border-color:#D9E1D5; }
+.dish-row.is-selection-preview .dish-thumbnail, .dish-row.is-selection-preview .dish-image { width:48px; height:48px; border-radius:12px; }
+.dish-row.is-selection-preview .dish-thumbnail { flex-basis:48px; }
+.dish-row.is-selection-preview .dish-main { gap:12px; }
+.dish-row.is-selection-preview .dish-name { font-size:1em; font-weight:400; white-space:normal; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-height:1.45; overflow-wrap:anywhere; }
+.dish-row.is-selection-preview .dish-actions { width:44px; flex-basis:44px; }
+.dish-remove { display:flex; align-items:center; justify-content:center; width:44px; height:44px; margin:0; padding:0; border:0; background:transparent; }
+.dish-remove::after { border:0; }
+.dish-remove-symbol { display:flex; align-items:center; justify-content:center; width:24px; height:24px; border:1px solid #A93B30; border-radius:50%; color:#A93B30; }
+.dish-remove-symbol::before { content:""; display:block; width:10px; height:2px; border-radius:1px; background:currentColor; }
+.dish-remove.is-disabled { opacity:.4; }

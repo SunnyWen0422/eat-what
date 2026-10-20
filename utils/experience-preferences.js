@@ -29,22 +29,17 @@ module.exports = function experiencePreferences({
     catch (error) {
       failedRead = true
       // Optional presentation settings must never prevent a sheet or core page
-      // from opening. Prefer less motion until this account can be read again.
-      return { reducedMotion: true, compositionByMeal: {} }
+      // from opening. Motion is enabled by product policy, independently of storage.
+      return { reducedMotion: false, compositionByMeal: {} }
     }
     const compositionByMeal = {}
     for (const meal of MEALS) {
       const value = saved.compositionByMeal && saved.compositionByMeal[meal]
       if (validComposition(value)) compositionByMeal[meal] = clone(value)
     }
-    return { reducedMotion: saved.reducedMotion === true, compositionByMeal }
-  }
-  function setReducedMotion(value) {
-    if (typeof value !== 'boolean') throw new Error('动态效果设置需要布尔值')
-    const next = { ...get(), reducedMotion: value }
-    if (failedRead) throw new Error('本机体验设置暂未读到，请重试')
-    write(storageKey(), clone(next))
-    return next
+    // Retain the reader shape for shared components, but ignore the retired switch.
+    // Reading an old account must not rewrite or discard its remembered composition.
+    return { reducedMotion: false, compositionByMeal }
   }
   function rememberComposition(mealType, composition) {
     if (!MEALS.includes(mealType)) throw new Error('请选择有效餐次')
@@ -55,5 +50,5 @@ module.exports = function experiencePreferences({
     write(storageKey(), clone(next))
     return next
   }
-  return { get, setReducedMotion, rememberComposition, readFailed: () => failedRead }
+  return { get, rememberComposition, readFailed: () => failedRead }
 }

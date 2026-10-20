@@ -86,7 +86,7 @@ function returnFromPage(page,environment={},fallbackHome=false){
  const resolve=()=>resolveAssistantReturn({origin,pageStack:pageStack(),currentScope:currentOriginScope(environment)})
  const result=resolve()
  if(result.mode==='none'){page._assistantOrigin=null;origin=null;page.setData({assistantReturnVisible:false,assistantReturnLabel:'回到今天'});if(!fallbackHome)return}
- if(returnBlocked(page)){platform.showModal({title:'请先核对当前操作',content:'还有未完成的保存或结果待核对，请在当前页面核对原请求后返回。',showCancel:false});return}
+ if(returnBlocked(page)){platform.showModal({title:'请先查看处理结果',content:'暂未收到刚才操作的结果，请先在当前页面查看结果后再返回。',showCancel:false});return}
  const go=()=>{
   if(page._unloaded||page._assistantAlive===false||page._visible===false||page._recipeVisible===false||page._assistantVisible===false||scope!==currentOriginScope(environment)||origin!==page._assistantOrigin||returnBlocked(page))return
   const latest=resolve()

@@ -3,7 +3,7 @@ page { min-height: 100%; background: {{background}}; color: {{text}}; }
 button::after { border: none; }
 .page { min-height: 100vh; padding:{{space.2.rpx}}; box-sizing: border-box; }
 .heading { min-height: 78rpx; display: flex; align-items: baseline; gap:{{space.1.rpx*0.875}}; }
-.title { font-size:{{font.section.em}}; font-weight: 700; }
+.title { font-size:{{font.section.em}}; font-weight: 500; }
 .count { color:{{muted}}; font-size:{{font.caption.em}}; }
 .search { display: grid; grid-template-columns: minmax(0, 1fr) 112rpx; gap:{{space.0.rpx*1.25}}; margin-bottom:{{space.0.rpx*1.25}}; }
 .search input { min-width: 0; height: 82rpx; padding:0 {{space.1.rpx*1.125}}; box-sizing: border-box; background: {{card}}; border: 2rpx solid #dbe3de; border-radius:{{radius.0.rpx*0.83333333}}; font-size:{{font.secondary.em}}; }
@@ -14,7 +14,7 @@ button::after { border: none; }
 .list { display: flex; flex-direction: column; gap:{{space.0.rpx*1.5}}; }
 .card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap:{{space.0.rpx*1.5}}; align-items: center; padding:{{space.1.rpx*1.25}}; background: {{card}}; border: 2rpx solid {{border}}; border-radius:{{radius.0.rpx}}; }
 .main { min-width: 0; } .row { display: flex; align-items: center; gap:{{space.0.rpx*1.25}}; }
-.name { font-size:{{font.body.em}}; font-weight: 650; word-break: break-word; }
+.name { font-size:{{font.body.em}}; font-weight: 500; word-break: break-word; }
 .badge { padding:{{space.0.rpx*0.625}} {{space.0.rpx*1.25}}; border-radius:{{radius.0.rpx*0.58333333}}; font-size:{{font.caption.em}}; }
 .badge.on { color: {{brand}}; background: {{brandSoft}}; } .badge.off { color: {{warning}}; background: {{warningSoft}}; }
 .meta { display: block; margin-top:{{space.0.rpx*0.875}}; color: {{muted}}; font-size:{{font.caption.em}}; word-break: break-word; }

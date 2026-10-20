@@ -11,6 +11,15 @@ test('structured steps and ingredients remain readable, reopening resumes the cu
 test('unversioned edited steps reset reading with a notice rather than reuse a stale position',async()=>{
  const f=fixture();await f.page.onShow();f.page.onNextStep();f.edit({steps:['新的第一步','新的第二步']});await f.page.onShow();assert.equal(f.page.data.stepIndex,0);assert.match(f.page.data.resumeNotice,/做法已更新/)
 })
+test('numbered source remains the reading fingerprint while the displayed step has only one ordinal',async()=>{
+ const f=fixture();f.edit({steps:['1. 加1.5克盐','2. 烤20分钟']})
+ await f.page.onShow()
+ assert.deepEqual(Array.from(f.page.data.dishes[0].stepsList),['1. 加1.5克盐','2. 烤20分钟'])
+ assert.deepEqual(Array.from(f.page.data.steps),['加1.5克盐','烤20分钟'])
+ f.page.onNextStep();await f.page.onShow()
+ assert.equal(f.page.data.stepIndex,1)
+ assert.equal(f.page.data.resumeNotice,'')
+})
 test('account switch retires old reading and late controls cannot write to either scope',async()=>{
  const f=fixture();await f.page.onShow();f.page.onNextStep();const before=JSON.stringify([...f.memory]);f.switch();f.page.onNextStep();f.page.onChooseDish({currentTarget:{dataset:{index:0}}});assert.equal(JSON.stringify([...f.memory]),before);await f.page.onShow();assert.equal(f.page.data.stepIndex,0)
 })

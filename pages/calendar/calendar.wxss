@@ -1,7 +1,7 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/theme.wxss";
 .period { font-size:0.75em; color:#56645B; gap:8rpx; } .period-nav { margin:0; width:88rpx; padding:0; background:#EDF3ED; color:#28634E; font-size:1.125em; border-radius:20rpx; }
-.day-grid { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; margin:24rpx 0; } .day { min-width:44px; min-height:44px; border-radius:20rpx; text-align:center; padding:8rpx 0; box-sizing:border-box; } .day.selected { background:#28634E; color:#FFFFFF; } .weekday,.day-mark { display:block; font-size:0.75em; min-height:26rpx; } .day-number { display:block; font-size:1em; font-weight:600; } .day-mark { color:#28634E; } .selected .day-mark { color:white; }
+.day-grid { display:grid; grid-template-columns:repeat(7,minmax(44px,1fr)); gap:6rpx; margin:24rpx 0; } .day { min-width:44px; min-height:44px; border-radius:20rpx; text-align:center; padding:8rpx 0; box-sizing:border-box; } .day.selected { background:#28634E; color:#FFFFFF; } .weekday,.day-mark { display:block; font-size:0.75em; min-height:26rpx; } .day-number { display:block; font-size:1em; font-weight:500; } .day-mark { color:#28634E; } .selected .day-mark { color:white; }
 
 /* Shared finish for legacy pages; layout and permission-specific states remain local. */
 .ew-page { background:#F8F7F2; color:#25332B; }
@@ -27,7 +27,7 @@ button { min-width:44px; min-height:48px; }
 
 button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 
-.calendar-card{background:transparent;border:0;border-radius:0;margin-left:-10px;margin-right:-10px;padding:12px 0}.day-grid{grid-template-columns:repeat(7,minmax(44px,1fr));gap:0}.day{min-width:44px;min-height:60px;box-sizing:border-box;padding:8px 0;border:0;border-radius:14px;height:auto}.day.selected{background:#28634E;color:#FFFFFF}.day-number{font-size:1em}.weekday{font-size:0.75em}.period{padding:0 8px}.meal-list .ew-card{border:0}.meal-link{border:0;border-bottom:1px solid #E6EAE1;background:transparent;border-radius:0;box-shadow:none}
+.calendar-card{background:transparent;border:0;border-radius:0;margin-left:-10px;margin-right:-10px;padding:12px 0}.day-grid{grid-template-columns:repeat(7,minmax(44px,1fr));gap:0}.day{min-width:44px;min-height:60px;box-sizing:border-box;padding:8px 0;border:0;border-radius:14px;height:auto}.day.selected{background:#28634E;color:#FFFFFF}.day-number{font-size:1em}.weekday{font-size:0.75em}.period{padding:0 8px}.meal-list .ew-card{border:0}.meal-link{border:0;border-bottom:1px solid #B8C5B8;background:transparent;border-radius:0;box-shadow:none}
 
 .calendar-heading { flex-wrap:wrap; align-items:center; gap:8px; }
 .ew-page .calendar-heading > view:first-child { flex:1 1 160px; min-width:0; }
@@ -46,4 +46,4 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:48px; }
 /* Text marks coexist and stay distinct without color. */
 .calendar-card .day-mark { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2px; min-height:14px; color:#28634E; font-size:0.75em; line-height:1.2; }
 .day-plan,.day-actual { display:inline-block; min-width:1em; }
-.day-actual { font-weight:600; }
+.day-actual { font-weight:500; }

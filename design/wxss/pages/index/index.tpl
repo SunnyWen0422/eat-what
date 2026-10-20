@@ -23,7 +23,7 @@ page {
 .container > view { flex-shrink: 0; min-width: 0; }
 .meal-options { display: flex; gap:{{space.1.px}}; margin:0 {{space.3.px}} {{space.2.px}}; }
 .meal-option { flex: 1; min-width: 0; padding:{{space.2.px}} 0; border-radius:{{radius.0.px*1.3333333}}; text-align: center; background: #f3f9f7; color:{{muted}}; font-size:{{font.body.em}}; }
-.meal-option.active { background: {{brandSoft}}; color: {{brand}}; font-weight: 600; box-shadow: inset 0 0 0 1px {{brand}}; }
+.meal-option.active { background: {{brandSoft}}; color: {{brand}}; font-weight: 500; box-shadow: inset 0 0 0 1px {{brand}}; }
 
 /* 标题区 */
 .header-area {
@@ -32,7 +32,7 @@ page {
 }
 .header-title {
   font-size:{{font.page.em}};
-  font-weight: bold;
+  font-weight: 500;
   color: {{brand}};
   letter-spacing:{{space.0.px*0.25}};
   display: block;
@@ -83,7 +83,7 @@ page {
 }
 .card-num {
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   color: {{brand}};
   min-width: 56rpx;
   text-align: center;
@@ -95,7 +95,7 @@ page {
   background: {{brand}};
   color: {{card}};
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -125,7 +125,7 @@ page {
 .tags-area { margin:0 {{space.3.px}} {{space.1.px*1.25}}; }
 .tags-label {
   font-size:{{font.secondary.em}};
-  font-weight: bold;
+  font-weight: 500;
   color:{{text}};
   margin-bottom:{{space.1.px*1.25}};
   display: block;
@@ -160,7 +160,7 @@ page {
 }
 .filter-more,
 .filter-clear { color: {{brand}}; font-size:{{font.secondary.em}}; }
-.selected-mark { margin-left:{{space.0.px}}; font-size:{{font.caption.em}}; font-weight: 600; }
+.selected-mark { margin-left:{{space.0.px}}; font-size:{{font.caption.em}}; font-weight: 500; }
 .filter-feedback { margin-top:{{space.1.px*1.125}}; padding-top:{{space.1.px}}; border-top: 1px solid {{border}}; }
 .filter-summary { min-width: 0; flex: 1; color:{{text}}; font-size:{{font.caption.em}}; line-height: 1.5; }
 .preference-toggle-row {
@@ -182,8 +182,8 @@ page {
   border-radius:{{radius.1.px}};
 }
 .hint-header { display: flex; align-items: center; margin-bottom:{{space.0.px*1.5}}; }
-.hint-icon { color: {{brand}}; font-size:{{font.body.em}}; font-weight: bold; margin-right:{{space.0.px}}; }
-.hint-title { font-size:{{font.secondary.em}}; font-weight: bold; color:{{brand}}; flex: 1; }
+.hint-icon { color: {{brand}}; font-size:{{font.body.em}}; font-weight: 500; margin-right:{{space.0.px}}; }
+.hint-title { font-size:{{font.secondary.em}}; font-weight: 500; color:{{brand}}; flex: 1; }
 .hint-clear { font-size:{{font.caption.em}}; color: {{muted}}; padding:{{space.0.px*0.5}} {{space.1.px}}; }
 .selected-tags { display: flex; flex-wrap: wrap; gap:{{space.0.px}}; }
 .dish-tag { font-size:{{font.caption.em}}; padding:{{space.0.px*0.5}} {{space.0.px*1.5}}; border-radius:{{radius.0.px*0.66666667}}; }
@@ -195,7 +195,7 @@ page {
 /* 我的菜谱区域 */
 .my-recipes { margin:0 {{space.3.px}} {{space.3.px}}; padding:{{space.2.px*1.1666667}}; background: {{card}}; border: 1px solid {{border}}; border-radius:{{radius.1.px*1.2}}; }
 .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom:{{space.1.px*1.25}}; }
-.section-header-title { font-size:{{font.body.em}}; font-weight: bold; color: {{text}}; }
+.section-header-title { font-size:{{font.body.em}}; font-weight: 500; color: {{text}}; }
 .section-header-title { display: flex; align-items: center; gap:{{space.0.rpx*0.75}}; }
 .section-header-title .line-icon { width: 28rpx; height: 28rpx; color: {{brand}}; }
 .section-header-hint { font-size:{{font.caption.em}}; color:{{muted}}; }
@@ -203,8 +203,8 @@ page {
 .recipe-item { padding:{{space.1.px*1.25}}; background: #fafbfa; border-radius:{{radius.0.px*1.3333333}}; border: 1px solid #eee; position: relative; margin-bottom:{{space.1.px}}; transition: all 0.2s; }
 .recipe-item.selected { background: {{brandSoft}}; border-color: {{brand}}; }
 .recipe-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:{{space.0.px*1.5}}; }
-.recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size:{{font.secondary.em}}; font-weight: bold; color: {{text}}; }
-.delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background:{{danger}}; color: {{card}}; border-radius:50%; font-size:{{font.body.em}}; font-weight: bold; }
+.recipe-name { flex: 1; min-width: 0; word-break: break-word; font-size:{{font.secondary.em}}; font-weight: 500; color: {{text}}; }
+.delete-btn { width: 18px; height: 18px; line-height: 17px; text-align: center; background:{{danger}}; color: {{card}}; border-radius:50%; font-size:{{font.body.em}}; font-weight: 500; }
 .recipe-info { display: flex; gap:{{space.0.px*1.25}}; flex-wrap: wrap; }
 .info-tag { font-size:{{font.caption.em}}; color:{{muted}}; background: {{card}}; padding:{{space.0.px*0.5}} {{space.0.px*1.25}}; border-radius:{{radius.0.px*0.5}}; }
 .recipe-dishes { display: flex; flex-wrap: wrap; gap:{{space.0.px*0.75}}; margin-top:{{space.0.px*1.25}}; }
@@ -229,7 +229,7 @@ page {
 .primary-btn {
   width: 80%; height: {{controls.primaryHeight.px}};
   background: {{brand}};
-  color: {{card}}; font-size:{{font.section.em}}; font-weight: bold;
+  color: {{card}}; font-size:{{font.section.em}}; font-weight: 500;
   border-radius:{{radius.2.rpx}}; border: none;
   box-shadow: none;
   letter-spacing:{{space.0.rpx*0.25}};
@@ -237,7 +237,7 @@ page {
 .primary-btn::after { border: none; }
 .secondary-btn {
   width: 80%; height: 42px;
-  background: {{card}}; color:{{brand}}; font-size:{{font.body.em}}; font-weight: bold;
+  background: {{card}}; color:{{brand}}; font-size:{{font.body.em}}; font-weight: 500;
   border-radius:{{radius.1.rpx*1.2}}; border: 2rpx solid #FFD5BF;
   box-shadow: none;
   display: flex;

@@ -1,7 +1,6 @@
 const { getUserStorageKey } = require('../../utils/util')
 const { createPreferenceStore, defaultPreferences, normalizePreferences, sanitizePreferencesForOptions } = require('../../utils/preference-store')
 const { loadRecommendationOptions } = require('../../utils/recommendation-options')
-const experiencePreferences = require('../../utils/experience-preferences')
 const { preferenceSaveIssue } = require('../../utils/preference-save-presentation')
 
 const DAY_OPTIONS = [0, 3, 7, 14, 30]
@@ -22,18 +21,6 @@ Page({
     durationOptions: DURATION_OPTIONS,
     ingredientDraft: '', ingredientError: '', ingredientFocus: false, assistantPreferenceProposal: '', peopleDraft:'2',peopleError:'',preferencesReadFailed:false,
     featureEnabled: true,
-    reducedMotion: false,
-    motionStatus: '',
-  },
-
-  onReducedMotionChange(e) {
-    if (this._scope && this._scope !== getUserStorageKey('preferencesPage')) return this.onLoad()
-    const reducedMotion = !!e.detail.value
-    try {
-      if (!this.experienceStore) this.experienceStore = experiencePreferences()
-      this.experienceStore.setReducedMotion(reducedMotion)
-      this.setData({ reducedMotion, motionStatus: '已保存' })
-    } catch (error) { this.setData({ motionStatus: '动态效果设置未保存，请重试' }) }
   },
 
   canEditPreferences(){return !this._unloaded&&!this.data.loading&&!this.data.saving&&!this.data.preferencesReadFailed&&this.data.featureEnabled&&this._scope===getUserStorageKey('preferencesPage')},
@@ -60,9 +47,6 @@ Page({
     const handoff=options.handoffToken?require('../../utils/assistant-origin').receiveHandoff(this,options,['edit_preferences'],{storage:wx,storageKey:getUserStorageKey}):null
     const proposal = handoff && handoff.prefill ? handoff.prefill.userText : accountChanged || options.handoffToken ? '' : this.data.assistantPreferenceProposal
     const scope = this._scope = getUserStorageKey('preferencesPage'),epoch=this._loadEpoch=(this._loadEpoch||0)+1
-    this.experienceStore = experiencePreferences()
-    this.setData({ reducedMotion: this.experienceStore.get().reducedMotion,
-      motionStatus: this.experienceStore.readFailed() ? '本机动态效果设置暂未读到，已暂时减少动态效果；推荐偏好仍可使用。' : '' })
     this._editInitial = null
     this.setData({ preferences: defaultPreferences(),peopleDraft:'2',peopleError:'',preferencesReadFailed:false, ingredientDraft: '', ingredientError: '', ingredientFocus: false, assistantPreferenceProposal: proposal || '', loading: true, dirty: false, saving: false })
     this.syncEditLeaveAlert()

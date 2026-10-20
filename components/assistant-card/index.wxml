@@ -21,7 +21,11 @@
   <text wx:for="{{item.ingredients}}" wx:for-item="ingredient" wx:key="index" class="card-meta">{{ingredient}}</text>
   <text wx:for="{{item.steps}}" wx:for-item="step" wx:key="index" class="card-text card-step">{{index+1}}. {{step}}</text>
  </view></block>
- <button wx:if="{{view.type === 'menu' && view.menuActions && !view.menuActions.enabled}}" class="card-menu-action card-action" bindtap="onCurrentMenu">{{view.menuActions.showCurrent ? '查看当前餐' : '查看当前餐或完成当前核对'}}</button>
+ <view wx:if="{{view.type === 'menu' && view.menuActions}}" class="card-menu-footer">
+  <button class="card-menu-action card-menu-view" bindtap="onCurrentMenu" aria-label="查看当前菜单">查看</button>
+  <button wx:if="{{view.menuActions.canUndo}}" class="card-menu-action card-menu-undo" disabled="{{busy}}" bindtap="onUndo" aria-label="撤销最近一次菜单调整">撤销</button>
+  <button class="card-menu-action card-menu-adopt {{busy || !view.menuActions.canAdopt ? 'is-disabled' : ''}} {{view.menuActions.adopted ? 'is-adopted' : ''}}" disabled="{{busy || !view.menuActions.canAdopt}}" bindtap="onAdopt" aria-label="{{view.menuActions.adopted ? '这份菜单已保存到日历' : '采用这份菜单并保存到日历'}}">{{view.menuActions.adopted ? '已采用' : '采用'}}</button>
+ </view>
  <button wx:for="{{view.facts}}" wx:key="key" class="card-dish" data-key="{{item.key}}" bindtap="onFact" disabled="{{!item.url}}"><view class="card-name"><text class="card-name-text">{{item.label}}</text><text class="card-meta">{{item.text}}</text></view><ui-icon wx:if="{{item.url}}" name="chevron-right" size="16" tone="muted" /></button>
  <view wx:if="{{active && view.canClarify}}" class="card-choices"><block wx:for="{{view.choices}}" wx:key="id"><picker class="card-choice-picker" wx:if="{{item.requiresDate}}" mode="date" disabled="{{busy}}" data-option-id="{{item.id}}" bindchange="onChoiceDate"><view class="card-choice">{{item.label}}</view></picker><button wx:else class="card-choice" disabled="{{busy}}" data-option-id="{{item.id}}" bindtap="onChoice">{{item.label}}</button></block></view>
  <text wx:if="{{view.expired}}" class="card-meta">这份预览已过期，请重新核对后再确认。</text>
@@ -29,5 +33,4 @@
  <ui-button class="card-action" wx:if="{{active && view.canConfirm}}" label="{{view.type === 'calendar_save' ? '确认保存计划' : '确认加入清单'}}" disabled="{{busy}}" bind:action="onConfirm" />
  <ui-button class="card-action" wx:if="{{active && view.expired && view.type === 'shopping_preview'}}" label="重新核对食材" variant="secondary" disabled="{{busy}}" bind:action="onRepreview" />
  <ui-button class="card-action" wx:if="{{view.url}}" label="{{view.actionLabel}}" variant="secondary" bind:action="onOpen" />
- <ui-button class="card-action" wx:if="{{active && view.canUndo}}" label="撤销这次草稿调整" variant="tertiary" disabled="{{busy}}" bind:action="onUndo" />
 </view>

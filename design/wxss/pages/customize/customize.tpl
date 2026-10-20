@@ -22,7 +22,7 @@
 .sidebar-active {
   background: {{brandSoft}};
   color: {{brand}};
-  font-weight: bold;
+  font-weight: 500;
   border-bottom-color: {{brand}};
 }
 
@@ -76,7 +76,7 @@
   align-items: center;
 }
 .browse-filter-header { justify-content: space-between; margin-top:{{space.1.px*1.25}}; }
-.browse-filter-command { gap:{{space.1.px}}; color:{{text}}; font-size:{{font.secondary.em}}; font-weight: 600; }
+.browse-filter-command { gap:{{space.1.px}}; color:{{text}}; font-size:{{font.secondary.em}}; font-weight: 500; }
 .browse-filter-arrow { color: {{brand}}; font-size:1em; font-weight:400; }
 .browse-filter-clear { color: {{brand}}; font-size:{{font.secondary.em}}; font-weight:400; }
 .browse-filter-summary { display: block; margin:{{space.0.px*1.5}} 0 {{space.1.px*1.25}}; color:{{muted}}; font-size:{{font.caption.em}}; line-height: 1.5; word-break: break-word; }
@@ -97,7 +97,7 @@
   font-size:{{font.caption.em}};
   box-sizing: border-box;
 }
-.browse-filter-option.selected { border-color: {{brand}}; background: {{brandSoft}}; color:{{brand}}; font-weight: 600; }
+.browse-filter-option.selected { border-color: {{brand}}; background: {{brandSoft}}; color:{{brand}}; font-weight: 500; }
 .browse-filter-option:first-child { margin-left:{{space.0.px*0.5}}; }
 .browse-filter-option:last-child { margin-right:{{space.3.px}}; }
 .browse-filter-count { margin-left:{{space.0.px}}; color:{{muted}}; font-size:{{font.caption.em}}; }
@@ -159,7 +159,7 @@
 .check-tick {
   color: {{card}};
   font-size:{{font.body.em}};
-  font-weight: bold;
+  font-weight: 500;
 }
 
 /* 菜名 */
@@ -203,7 +203,7 @@
 .selected-num {
   font-size:{{font.body.em}};
   color: {{brand}};
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .selected-arrow {
@@ -285,7 +285,7 @@
 
 .panel-title {
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   color: {{text}};
 }
 
@@ -354,7 +354,7 @@
 
 .form-title {
   font-size:{{font.section.em}};
-  font-weight: bold;
+  font-weight: 500;
   color: {{text}};
   margin-bottom:{{space.3.px}};
 }
@@ -411,7 +411,7 @@
 .custom-tag-title { margin:{{space.1.px*1.25}} 0 {{space.1.px}}; color:{{muted}}; font-size:{{font.secondary.em}}; }
 .custom-tag-grid { display: flex; flex-wrap: wrap; gap:{{space.1.px*0.875}}; margin-bottom:{{space.1.px*1.25}}; }
 .custom-tag { padding:{{space.1.px*0.875}} {{space.1.px*1.125}}; border: 1px solid #d8dfdb; border-radius:{{radius.0.px*0.83333333}}; background: {{card}}; color:{{muted}}; font-size:{{font.caption.em}}; }
-.custom-tag.selected { border-color: {{brand}}; background: {{brandSoft}}; color:{{brand}}; font-weight: 600; }
+.custom-tag.selected { border-color: {{brand}}; background: {{brandSoft}}; color:{{brand}}; font-weight: 500; }
 
 @media (min-width: 601px) {
   .page { flex-direction: row; }
@@ -469,7 +469,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .sidebar { flex-direction:row; }
 .sidebar-item { width:auto; }
 
-.personal-recipe-extras { padding:12px 0; border-top:1px solid #E6EAE1; }.personal-recipe-extras input { min-height:48px; }.ew-error { overflow-wrap:anywhere; }
+.personal-recipe-extras { padding:12px 0; border-top:1px solid {{divider}}; }.personal-recipe-extras input { min-height:48px; }.ew-error { overflow-wrap:anywhere; }
 
 /* Browsing has one read action; reusable-menu editing keeps its own selection context. */
 .search-input { height:auto; box-sizing:border-box; padding:10px 12px; line-height:1.5; }
@@ -540,7 +540,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .recipe-catalog .category-scroll { flex:0 0 56px; width:56px; max-width:56px; height:100%; min-height:0; border:0; background:transparent; white-space:normal; }
 .recipe-catalog .sidebar { display:flex; flex-direction:column; width:100%; min-width:0; height:auto; gap:4px; padding:4px 0 12px; }
 .page .recipe-catalog .sidebar-item { display:flex; align-items:center; justify-content:center; width:100%; min-width:44px; min-height:48px; padding:8px 4px; border:0; border-left:3px solid transparent; border-radius:10px; background:transparent; color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.5; font-weight:400; }
-.page .recipe-catalog .sidebar-active { border-left-color:{{brand}}; background:{{brandSoft}}; color:{{brand}}; font-weight:600; }
+.page .recipe-catalog .sidebar-active { border-left-color:{{brand}}; background:{{brandSoft}}; color:{{brand}}; font-weight:500; }
 .recipe-catalog .recipe-browse-scroll { flex:1; width:0; min-width:0; height:100%; min-height:0; }
 .recipe-catalog .dish-list-content { padding:0 0 16px; }
 .recipe-catalog .recipe-item { margin:0; }
@@ -551,17 +551,17 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-page .personal-recipe-entry button { min-height:44px; padding:6px 8px; font-size:inherit; }
 .page .browse-filter-panel { margin:0; padding:0; background:transparent; }
 .browse-filter-group { padding:8px 0 12px; margin:0; border-bottom:1px solid {{divider}}; }
-.page .browse-filter-label { margin:0 0 4px; color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.5; font-weight:600; }
+.page .browse-filter-label { margin:0 0 4px; color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.5; font-weight:500; }
 .page .browse-filter-options { width:100%; white-space:normal; }
 .page .browse-active-filters { gap:2px 6px; padding:0; }
 .ew-page button.browse-active-chip { padding:5px 8px; min-height:44px; font-size:{{font.secondary.em}}; }
-.ew-page .common-menu-summary .ew-title { font-weight:600; }
+.ew-page .common-menu-summary .ew-title { font-weight:500; }
 .ew-page button.menu-target-context { display:flex; justify-content:space-between; background:transparent; padding:10px 0; border:0; border-bottom:1px solid {{divider}}; border-radius:0; font-size:{{font.secondary.em}}; }
 .ew-page .personal-recipe-entry button, .ew-page .custom-form button.custom-form-secondary { background:transparent; }
 
 /* Reusable menus: pick dishes, name the combination, then save once. */
 .menu-edit-context { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; padding:0 10px; margin:0 0 8px; border-radius:10px; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; }
-.menu-edit-context > text { min-width:0; font-weight:600; }
+.menu-edit-context > text { min-width:0; font-weight:500; }
 .ew-page .menu-edit-context button, .ew-page .common-menu-meta button, .ew-page .menu-reload { flex:0 0 auto; width:auto; min-height:44px; padding:6px 4px; margin:0; border:0; border-radius:0; background:transparent; color:{{brand}}; font-size:inherit; line-height:1.5; }
 .ew-page .menu-edit-context button::after, .ew-page .common-menu-meta button::after, .ew-page .menu-reload::after { border:0; }
 .ew-page .bottom-bar .selected-wrap { flex:1 1 0; padding:4px 0; background:transparent; border:0; border-radius:0; gap:4px; }

@@ -1,6 +1,6 @@
 @import "../../styles/theme.wxss";
 .period { font-size:{{font.caption.em}}; color:{{muted}}; gap:{{space.0.rpx}}; } .period-nav { margin:0; width:88rpx; padding:0; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.section.em}}; border-radius:{{radius.1.rpx}}; }
-.day-grid { display:grid; grid-template-columns:repeat(7,minmax({{controls.touchSize.px}},1fr)); gap:{{space.0.rpx*0.75}}; margin:{{space.2.rpx}} 0; } .day { min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; border-radius:{{radius.1.rpx}}; text-align:center; padding:{{space.0.rpx}} 0; box-sizing:border-box; } .day.selected { background:{{brand}}; color:{{card}}; } .weekday,.day-mark { display:block; font-size:{{font.caption.em}}; min-height:26rpx; } .day-number { display:block; font-size:{{font.body.em}}; font-weight:600; } .day-mark { color:{{brand}}; } .selected .day-mark { color:white; }
+.day-grid { display:grid; grid-template-columns:repeat(7,minmax({{controls.touchSize.px}},1fr)); gap:{{space.0.rpx*0.75}}; margin:{{space.2.rpx}} 0; } .day { min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; border-radius:{{radius.1.rpx}}; text-align:center; padding:{{space.0.rpx}} 0; box-sizing:border-box; } .day.selected { background:{{brand}}; color:{{card}}; } .weekday,.day-mark { display:block; font-size:{{font.caption.em}}; min-height:26rpx; } .day-number { display:block; font-size:{{font.body.em}}; font-weight:500; } .day-mark { color:{{brand}}; } .selected .day-mark { color:white; }
 
 /* Shared finish for legacy pages; layout and permission-specific states remain local. */
 .ew-page { background:{{background}}; color:{{text}}; }
@@ -45,4 +45,4 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 /* Text marks coexist and stay distinct without color. */
 .calendar-card .day-mark { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2px; min-height:14px; color:{{brand}}; font-size:{{font.caption.em}}; line-height:1.2; }
 .day-plan,.day-actual { display:inline-block; min-width:1em; }
-.day-actual { font-weight:600; }
+.day-actual { font-weight:500; }

@@ -10,13 +10,13 @@ page { background:{{background}}; }
 .avatar-fallback { display:flex; align-items:center; justify-content:center; background:{{card}}; color:{{brand}}; font-size:1em; }
 .user-info { flex:1; min-width:0; text-align:left; }
 .nickname, .level { display:block; overflow-wrap:anywhere; }
-.nickname { font-size:1em; font-weight:600; line-height:1.4; color:{{text}}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.nickname { font-size:1em; font-weight:500; line-height:1.4; color:{{text}}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .level { margin-top:2px; color:{{muted}}; font-size:{{font.secondary.em}}; }
 .profile-edit-label { color:{{brand}}; font-size:{{font.secondary.em}}; overflow-wrap:anywhere; }
 .shopping-shortcut { display:flex; align-items:center; gap:{{space.2.px}}; margin:{{space.2.px}} 0 !important; padding:{{space.2.px}}; background:{{brandSoft}}; border-radius:{{radius.2.px}}; }
 .shopping-shortcut-body { flex:1; min-width:0; }
 .shopping-shortcut-title, .shopping-shortcut-sync { display:block; overflow-wrap:anywhere; }
-.shopping-shortcut-title { color:{{text}}; font-weight:600; font-size:{{font.body.em}}; }
+.shopping-shortcut-title { color:{{text}}; font-weight:500; font-size:{{font.body.em}}; }
 .shopping-shortcut-sync { color:{{muted}}; font-size:{{font.secondary.em}}; margin-top:2px; }
 .menu-section { margin:{{space.2.px}} 0; padding:0; }
 .menu-list { background:transparent; }

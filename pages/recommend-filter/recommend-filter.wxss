@@ -9,14 +9,14 @@
 .offline-tip { color:#75501A; }
 .mode-row { display:flex; align-items:stretch; gap:4px; padding:3px; margin:12px 0 4px; background:#F5F6F0; border-radius:12px; }
 .mode-btn { flex:1; display:flex; align-items:center; justify-content:center; min-height:44px; padding:6px 10px; box-sizing:border-box; font-size:0.8125em; line-height:1.5; border-radius:9px; color:#56645B; }
-.mode-btn.active { background:#EDF3ED; color:#28634E; font-weight:600; }
-.filter-section { padding:12px 0; margin:0; border-bottom:1px solid #E6EAE1; }
-.section-title { margin:0 0 4px; font-size:0.8125em; font-weight:600; line-height:1.5; color:#56645B; }
+.mode-btn.active { background:#EDF3ED; color:#28634E; font-weight:500; }
+.filter-section { padding:12px 0; margin:0; border-bottom:1px solid #B8C5B8; }
+.section-title { margin:0 0 4px; font-size:0.8125em; font-weight:500; line-height:1.5; color:#56645B; }
 .ingredient-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
 .ingredient-input { flex:1; min-width:0; min-height:44px; height:44px; padding:8px 10px; box-sizing:border-box; background:#FFFFFF; border:1px solid #D9E1D5; border-radius:10px; font-size:0.8125em; }
 .ew-page button.add-btn { width:auto; min-width:44px; min-height:44px; padding:8px 12px; margin:0; font-size:0.8125em; line-height:1.5; background:#EDF3ED; color:#28634E; border:0; border-radius:10px; }
 .add-btn::after,.apply-btn::after { border:0; }
 .ingredient-list { display:flex; flex-wrap:wrap; gap:4px 8px; margin-top:8px; }
 .ingredient-chip { display:flex; align-items:center; min-height:44px; padding:6px 9px; box-sizing:border-box; background:#EDF3ED; color:#28634E; border-radius:10px; font-size:0.8125em; line-height:1.5; }
-.action-bar { flex:0 0 auto; display:flex; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); box-sizing:border-box; background:#F8F7F2; border-top:1px solid #E6EAE1; }
-.ew-page button.apply-btn { width:100%; min-height:48px; padding:12px 16px; margin:0; border:0; border-radius:14px; background:#28634E; color:#FFFFFF; font-size:1em; line-height:1.5; font-weight:600; }
+.action-bar { flex:0 0 auto; display:flex; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); box-sizing:border-box; background:#F8F7F2; border-top:1px solid #B8C5B8; }
+.ew-page button.apply-btn { width:100%; min-height:48px; padding:12px 16px; margin:0; border:0; border-radius:14px; background:#28634E; color:#FFFFFF; font-size:1em; line-height:1.5; font-weight:500; }

@@ -160,6 +160,17 @@ function createWorkspaceStore(options = {}) {
         if (error.statusCode === 409) { pending = null; syncStatus = 'conflict' }
         else if (error.statusCode >= 400 && error.statusCode < 500) { pending = null; syncStatus = 'unsynced' }
         else syncStatus = 'unknown'
+        // Explicit settings forms keep rejected input in their own editor. Restore
+        // only this request's untouched optimistic context; never discard a later
+        // edit, another revision, or an unknown outcome. Keep the snapshot with
+        // pending so the same rule also applies when retrying after page restart.
+        const rollback=operation.rollbackContext
+        if(rollback&&!pending&&error.statusCode>=400&&error.statusCode<500&&operation.type==='context'&&workspace&&
+          workspace.id===operation.id&&workspace.revision===operation.body.expectedWorkspaceRevision&&
+          canonicalContext(context)===canonicalContext(operation.body.context)){
+          context=clone(rollback.context);dirty=!!rollback.dirty
+          syncStatus=error.statusCode===409?'conflict':rollback.syncStatus
+        }
         persist()
       } else throw superseded()
       throw error
@@ -170,6 +181,13 @@ function createWorkspaceStore(options = {}) {
     if (!workspace) return send({ type: 'create', body: { requestId: requestId(), expectedWorkspaceRevision: 0, context: clone(context) } })
     if (!dirty) return state()
     return send({ type: 'context', id: workspace.id, body: { requestId: requestId(), expectedWorkspaceRevision: workspace.revision, context: clone(context) } })
+  }
+  async function saveContext(value) {
+    available()
+    if(!workspace)throw new Error('请先同步本餐，再修改设置')
+    const rollbackContext={context:clone(context),dirty,syncStatus}
+    edit(value)
+    return send({type:'context',id:workspace.id,rollbackContext,body:{requestId:requestId(),expectedWorkspaceRevision:workspace.revision,context:clone(context)}})
   }
   async function command(command, extra = {}, expectedRef = null) {
     const checkReference=()=>{if(expectedRef && (!matchesWorkspaceReference(expectedRef,workspace,context) || options.canCommand && options.canCommand(expectedRef)===false))throw new Error('本餐或待确认操作已变化，请查看当前菜单或完成当前核对')}
@@ -219,11 +237,19 @@ function createWorkspaceStore(options = {}) {
   }
   async function reloadLatest() {
     ensure(); if (pending) throw new Error('上次保存结果待确认，请先查询原请求')
+    const unsaved = dirty ? clone(context) : null
     dirty = false; syncStatus = 'loading'; persist()
-    return load(context.date, context.mealType)
+    const loading = load(context.date, context.mealType), ticket = generation, mutationTicket = mutation
+    try { return await loading }
+    catch (error) {
+      // A failed read is not consent to discard local settings. Restore the
+      // persisted edit only if no newer target, account or write owns it.
+      if (unsaved && !dirty && owns(ticket, mutationTicket)) { context = unsaved; dirty = true; persist() }
+      throw error
+    }
   }
   function dispose() { active = false; generation++ }
-  return { load, edit, save, command, confirm, retry, revalidateConfirmation, reloadLatest, state, dispose }
+  return { load, edit, save, saveContext, command, confirm, retry, revalidateConfirmation, reloadLatest, state, dispose }
 }
 
 module.exports = { resolveActiveTarget, defaultTarget, normalizeContext, createWorkspaceStore, requestId, workspaceReference, matchesWorkspaceReference }

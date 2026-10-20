@@ -1,19 +1,19 @@
 /* Generated token bindings; edit corresponding design/wxss template. */
 @import "../../styles/component-theme.wxss";
 .assistant-card{background:#FFFFFF;border:1px solid #D9E1D5;border-radius:14px;padding:16px;min-width:0;box-sizing:border-box;font-size:inherit;color:#25332B;line-height:1.5}
-.card-title{display:block;font-size:1em;font-weight:600}.card-meta{display:block;font-size:0.8125em;color:#56645B;margin-top:4px}.card-text{display:block;font-size:1em;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.card-row{margin-top:12px;min-width:0}.card-dish{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:8px 0;background:transparent;border:0;margin:0;text-align:left;font-size:inherit;color:#25332B;line-height:1.5}.card-dish::after{border:0}.card-dish-disabled{color:#25332B;background:transparent}.card-picture{flex:none;width:64px;height:64px;border-radius:10px;overflow:hidden}.card-fallback{display:flex;align-items:center;justify-content:center;background:#F5F6F0}.card-name{flex:1;min-width:0;overflow-wrap:anywhere}.card-name-text{display:block}.card-step{font-size:0.8125em}.card-action{display:block;margin-top:12px}
+.card-title{display:block;font-size:1em;font-weight:500}.card-meta{display:block;font-size:0.8125em;color:#56645B;margin-top:4px}.card-text{display:block;font-size:1em;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.card-row{margin-top:12px;min-width:0}.card-dish{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:8px 0;background:transparent;border:0;margin:0;text-align:left;font-size:inherit;color:#25332B;line-height:1.5}.card-dish::after{border:0}.card-dish-disabled{color:#25332B;background:transparent}.card-picture{flex:none;width:64px;height:64px;border-radius:10px;overflow:hidden}.card-fallback{display:flex;align-items:center;justify-content:center;background:#F5F6F0}.card-name{flex:1;min-width:0;overflow-wrap:anywhere}.card-name-text{display:block}.card-step{font-size:0.8125em}.card-action{display:block;margin-top:12px}
 
 .card-check-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 0;font-size:inherit;line-height:1.5;min-width:0}
 
 /* Recommendations use F; committing cards keep a distinct solid action area. */
 .assistant-card { background:rgba(255,255,255,0.66); border:1px solid rgba(255,255,255,0.74); border-radius:16px; box-shadow:0 5px 16px rgba(30,71,56,0.03); }
-.card-row { margin-top:12px; padding-top:12px; border-top:1px solid #E6EAE1; }
+.card-row { margin-top:12px; padding-top:12px; border-top:1px solid #B8C5B8; }
 .card-dish { min-height:44px; padding:0; background:transparent; border:0; border-radius:10px; box-sizing:border-box; white-space:normal; }
 .card-picture { width:56px; height:56px; border-radius:14px; }
-.card-name-text { font-weight:600; }
+.card-name-text { font-weight:500; }
 .card-dish:active { background:#EDF3ED; }
 .card-dish.card-dish-disabled { background:transparent; color:#25332B; }
-.card-check-row + .card-check-row { border-top:1px solid #E6EAE1; }
+.card-check-row + .card-check-row { border-top:1px solid #B8C5B8; }
 .card-confirmation { background:rgba(255,255,255,0.88); border-color:#7C8E80; }
 .card-confirmation .card-title { color:#28634E; }.card-action { margin-top:16px; }
 .assistant-card .card-dish { width:100%; margin:0; font-weight:400; }
@@ -38,3 +38,9 @@
 .has-menu-actions .card-picture { width:40px; height:40px; border-radius:12px; }
 .has-menu-actions .card-name-text { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; line-height:1.4; }
 .has-menu-actions .card-menu-controls { margin-left:0; align-items:center; }
+
+.card-menu-footer { display:flex; align-items:center; gap:8px; margin-top:16px; }
+.card-menu-footer .card-menu-action { flex:1 1 0; min-width:0; min-height:44px; font-size:1em; }
+.card-menu-footer .card-menu-adopt { color:#FFFFFF; background:#28634E; font-weight:500; }
+.card-menu-footer .card-menu-adopt.is-disabled { background:#E6EAE1; color:#56645B; }
+.card-menu-footer .card-menu-adopt.is-adopted { background:#EDF3ED; color:#28634E; }

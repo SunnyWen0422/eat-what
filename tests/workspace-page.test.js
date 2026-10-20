@@ -11,6 +11,7 @@ function fixture(api){let account='A',factory;const ctx={module:{exports:{}},req
  if(name==='./experience-preferences')return require('../utils/experience-preferences')
  if(name==='./api')return api
  if(name==='./ui-tokens')return require('../utils/ui-tokens')
+ if(name==='./font-scale')return require('../utils/font-scale')
  if(name==='./util')return {getCurrentUserIdentity:()=>account,getUserStorageKey:key=>account+':'+key}
  if(name==='./meal-workspace')return {...rules,createWorkspaceStore:()=>({dispose(){},state:()=>({context:{},linked:{}})})}
  if(name==='./shopping-list')return {}

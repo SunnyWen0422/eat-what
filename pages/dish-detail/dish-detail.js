@@ -126,7 +126,7 @@ Page({
         const qualityView=require('../../utils/recipe-quality').presentRecipeQuality(dish)
         this.setData({qualityView,ingredientNotice:ingredients.basis})
         // 处理步骤（兼容 step/steps 两种字段名）
-        dish.stepsList=require('../../utils/recipe-quality').presentRecipeLines(dish.steps||dish.step)
+        dish.stepsList=require('../../utils/recipe-steps').presentRecipeSteps(dish.steps||dish.step)
         // 展示图片使用已验证的 HTTPS 地址。
         dish.image = require('../../utils/dish-image').imageSource(dish.image)
 

@@ -1,14 +1,13 @@
 <ui-sheet visible="{{showMealSelected}}" title="本餐已选菜品" bind:close="onHideMealSelected">
-  <view class="ew-title">{{selectedMeal.targetLabel}} · {{selectedMeal.people}} 人 · {{selectedMeal.count}} 道</view>
-  <view wx:if="{{selectedMeal.count}}" class="ew-muted">{{selectedMeal.message}}</view>
+  <view class="recipe-selected-context"><text>{{selectedMeal.targetLabel}} · {{selectedMeal.people}} 人</text><text class="recipe-selected-count">{{selectedMeal.count}} 道菜</text></view>
+  <view wx:if="{{selectedMeal.count}}" class="recipe-selected-status">{{selectedMeal.message}}</view>
   <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
   <view wx:if="{{selectionError}}" class="ew-error" aria-live="polite">{{selectionError}}</view>
-  <view wx:for="{{mealSelectedDishes}}" wx:key="id" class="recipe-selected-row">
-    <button class="ew-hit-target ew-link recipe-selected-name" data-id="{{item.id}}" bindtap="onSelectedDish">{{item.name}}</button>
-    <button class="ew-hit-target ew-link" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onRemoveMealDish">移除</button>
-  </view>
+  <compact-dish-row wx:for="{{mealSelectedDishes}}" wx:key="id" class="recipe-selected-preview" dish="{{item}}" mode="remove" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bind:view="onSelectedDish" bind:remove="onRemoveMealDish" />
   <view wx:if="{{!selectedMeal.count}}" class="ew-muted">还没选菜</view>
-  <ui-button wx:if="{{selectedMeal.count}}" label="继续选菜" variant="secondary" bind:action="onContinueSelecting" />
-  <ui-button wx:if="{{selectedMeal.count}}" slot="footer" label="查看本餐" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bind:action="onViewMeal" />
+  <view wx:if="{{selectedMeal.count}}" slot="footer" class="recipe-selected-actions">
+    <button class="recipe-selected-continue" bindtap="onContinueSelecting"><ui-icon name="add" size="18" /><text>继续选菜</text></button>
+    <button class="recipe-selected-view {{selectionBusy || selectionLoading || selectionBlocked ? 'is-disabled' : ''}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bindtap="onViewMeal">查看本餐<ui-icon name="chevron-right" size="18" /></button>
+  </view>
   <ui-button wx:if="{{!selectedMeal.count}}" slot="footer" label="去选菜" bind:action="onContinueSelecting" />
 </ui-sheet>

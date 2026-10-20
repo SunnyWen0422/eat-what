@@ -66,7 +66,7 @@ Page({
  onChooseDish(e){
   if(!this._alive||this._scope!==getUserStorageKey('cooking')||!this._reading)return
   const index=Number(e.currentTarget.dataset.index),dish=this.data.dishes[index];if(!Number.isInteger(index)||!dish)return
-  const id=String(dish.id||dish.dishId),steps=dish.stepsList
+  const id=String(dish.id||dish.dishId),steps=dish.stepsList.map(require('../../utils/recipe-steps').stripStepNumber)
   this._ingredientReturnPosition=null;this._positionSerial=(this._positionSerial||0)+1
   this._reading.activeDishId=id;this.persistReading()
   this.setData({ingredientsVisible:false,dishIndex:index,dishName:dish.name,steps,ingredients:dish.ingredientsList,ingredientNotice:dish.ingredientNotice,stepIndex:this._reading.entries[id].stepIndex},()=>this.measureCookingActions())

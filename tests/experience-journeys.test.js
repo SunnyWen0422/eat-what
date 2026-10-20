@@ -121,7 +121,7 @@ test('calendar and reusable menus use readable image-fallback rows without repla
   const h = journey(), row = h.component('compact-dish-row', { mode: 'read', dish: { dishId: 7, name: '历史鱼', type: 'meat' } }); const emitted = []
   row.triggerEvent = (name, detail) => emitted.push({ name, detail }); row.updateDish(); row.onView(); row.onReplace()
   assert.deepEqual(plain(emitted), [{ name: 'view', detail: { id: 7 } }])
-  assert.match(fs.readFileSync('components/compact-dish-row/index.wxml', 'utf8'), /wx:if="\{\{mode !== 'read'\}\}"/)
+  assert.match(fs.readFileSync('components/compact-dish-row/index.wxml', 'utf8'), /wx:elif="\{\{mode !== 'read'\}\}"/)
   assert.match(fs.readFileSync('pages/calendar-detail/calendar-detail.wxml', 'utf8'), /<compact-dish-row[^>]*mode="read"/)
   assert.match(fs.readFileSync('pages/customize/customize.wxml', 'utf8'), /<compact-dish-row[^>]*menuDish[^>]*mode="read"/)
   const recipes = h.page('customize'); recipes.ensureBrowseOwner(); recipes.onMenuDish(event({ id: 7, people: 4 })); assert.match(h.navigation.at(-1), /id=7&people=4/)

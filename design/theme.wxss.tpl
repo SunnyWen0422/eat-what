@@ -1,19 +1,20 @@
 /* 家庭厨房主题；使用普通 WXSS 声明保持微信基础库兼容。 */
-page { background: {{background}}; color: {{text}}; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size:{{font.body.px}}; line-height:1.5; }
+page { background: {{background}}; color: {{text}}; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif; font-size:{{font.body.px}}; font-weight:400; line-height:1.5; }
+button,input,textarea { font-family:inherit; }
 .ew-page { box-sizing: border-box; min-width: 0; color: {{text}}; }
 .ew-screen { padding:{{space.3.rpx}}; padding-bottom:calc({{space.4.rpx}} + env(safe-area-inset-bottom)); min-height: 100%; box-sizing: border-box; }
-.ew-heading { font-size:{{font.page.em*1.00001}}; font-weight: 700; line-height: 1.3; letter-spacing:{{space.0.rpx*0.125}}; }
-.ew-title { font-size:{{font.card.em}}; font-weight: 600; line-height: 1.5; }
+.ew-heading { font-size:{{font.page.em*1.00001}}; font-weight: 500; line-height: 1.3; letter-spacing:{{space.0.rpx*0.125}}; }
+.ew-title { font-size:{{font.card.em}}; font-weight: 500; line-height: 1.5; }
 .ew-subtitle { display: block; font-size:{{font.secondary.em}}; line-height: 1.6; color: {{muted}}; margin-top:{{space.0.rpx*1.5}}; }
-.ew-section-title { font-size:{{font.section.em}}; font-weight: 600; margin:{{space.3.rpx}} 0 {{space.1.rpx*1.25}}; }
+.ew-section-title { font-size:{{font.section.em}}; font-weight: 500; margin:{{space.3.rpx}} 0 {{space.1.rpx*1.25}}; }
 .ew-card { padding:{{space.2.rpx*1.1666667}}; border: 1rpx solid {{border}}; border-radius:{{radius.2.rpx*1.1428571}}; background: {{card}}; margin-bottom:{{space.2.rpx}}; box-sizing: border-box; }
 .ew-row { display: flex; align-items: center; gap:{{space.1.rpx}}; }
 .ew-between { display: flex; align-items: center; gap:{{space.1.rpx}}; justify-content: space-between; }
 .ew-wrap { flex-wrap: wrap; }
 .ew-grow { flex: 1; min-width: 0; }
 .ew-muted { color: {{muted}}; font-size:{{font.secondary.em}}; line-height: 1.6; }
-.ew-link { color: {{brand}}; min-height: {{controls.touchSize.px}}; display: inline-flex; align-items: center; font-weight: 600; }
-.ew-button { min-height: {{controls.primaryHeight.px}}; border-radius:{{radius.1.rpx*1.2}}; padding:{{space.1.rpx*1.25}} {{space.2.rpx*1.1666667}}; font-size:{{font.body.em}}; font-weight: 600; line-height: 1.4; background: {{brand}}; color: {{card}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+.ew-link { color: {{brand}}; min-height: {{controls.touchSize.px}}; display: inline-flex; align-items: center; font-weight: 500; }
+.ew-button { min-height: {{controls.primaryHeight.px}}; border-radius:{{radius.1.rpx*1.2}}; padding:{{space.1.rpx*1.25}} {{space.2.rpx*1.1666667}}; font-size:{{font.body.em}}; font-weight: 500; line-height: 1.4; background: {{brand}}; color: {{card}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
 .ew-button::after { border: 0; }
 .ew-button.secondary { background: {{brandSoft}}; color: {{brand}}; }
 .ew-button.danger { background: {{dangerSoft}}; color: {{danger}}; }
@@ -27,17 +28,17 @@ page { background: {{background}}; color: {{text}}; font-family: -apple-system, 
 .ew-tabs button { flex: 1; margin:0; padding:{{space.1.rpx}} {{space.0.rpx*1.5}}; font-size:{{font.body.em}}; line-height: 1.4; border-radius:{{radius.1.rpx*1.2}}; background: #edf1e9; color: {{muted}}; }
 .ew-tabs button.active { background: {{brand}}; color: {{card}}; }
 .ew-field { margin:{{space.2.rpx}} 0; }
-.ew-label { display: block; font-size:{{font.body.em}}; font-weight: 600; margin-bottom:{{space.0.rpx*1.5}}; }
+.ew-label { display: block; font-size:{{font.body.em}}; font-weight: 500; margin-bottom:{{space.0.rpx*1.5}}; }
 .ew-input { background: #f5f6f0; border: 1rpx solid {{border}}; border-radius:{{radius.1.rpx}}; padding:{{space.1.rpx*1.25}} {{space.2.rpx}}; min-height: {{controls.touchSize.px}}; box-sizing: border-box; font-size:{{font.body.em}}; color: {{text}}; width: 100%; }
 textarea.ew-input { min-height: 200rpx; }
 .ew-error { color: {{danger}}; background: {{dangerSoft}}; padding:{{space.1.rpx*1.25}} {{space.2.rpx}}; border-radius:{{radius.1.rpx}}; font-size:{{font.secondary.em}}; line-height: 1.6; margin:{{space.1.rpx}} 0; }
 .ew-notice { background: {{warningSoft}}; color: {{warning}}; padding:{{space.1.rpx*1.25}} {{space.2.rpx}}; border-radius:{{radius.1.rpx}}; font-size:{{font.secondary.em}}; line-height: 1.6; margin:{{space.1.rpx}} 0; }
 .ew-chip { background: {{brandSoft}}; color: {{brand}}; border-radius:{{radius.0.rpx}}; padding:{{space.0.rpx}} {{space.1.rpx*0.875}}; font-size:{{font.caption.em}}; display: inline-block; }
 .ew-small { font-size:{{font.caption.em}}; }
-.ew-divider { height: 1rpx; background: {{border}}; margin:{{space.2.rpx}} 0; }
+.ew-divider { height: 1px; background: {{divider}}; margin:{{space.2.rpx}} 0; }
 .ew-bottom { padding:{{space.1.rpx*1.25}} {{space.3.rpx}} calc({{space.1.rpx*1.25}} + env(safe-area-inset-bottom)); background: {{background}}; border-top: 1rpx solid {{border}}; box-sizing: border-box; }
 .ew-grid { display: grid; grid-template-columns: 1fr 1fr; gap:{{space.1.rpx*1.25}}; }
-.ew-number { font-size:{{font.page.em*1.00001}}; font-weight: 700; color: {{brand}}; }
+.ew-number { font-size:{{font.page.em*1.00001}}; font-weight: 500; color: {{brand}}; }
 .ew-mask { position: fixed; inset: 0; background: rgba(25,40,30,.45); z-index: 100; display: flex; align-items: flex-end; }
 .ew-sheet { background: {{card}}; border-radius:{{radius.3.rpx}} {{radius.3.rpx}} 0 0; width: 100%; padding:{{space.3.rpx*1.125}} {{space.3.rpx}} calc({{space.3.rpx}} + env(safe-area-inset-bottom)); box-sizing: border-box; max-height: 85vh; overflow-y: auto; }
 .ew-image { width: 100%; height: 240rpx; background: #edf1e9; border-radius:{{radius.1.rpx*1.2}}; }
@@ -69,9 +70,9 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 /* Warm table v2: task containers, continuous lists and restrained controls. */
 .ew-page { color:{{text}}; background:{{background}}; padding:{{space.3.px}}; }
-.ew-heading { font-size:{{font.page.em}}; line-height:1.35; font-weight:600; letter-spacing:0; }
-.ew-title { font-size:{{font.card.em}}; line-height:1.5; font-weight:600; }
-.ew-section-title { font-size:{{font.section.em}}; line-height:1.5; font-weight:600; }
+.ew-heading { font-size:{{font.page.em}}; line-height:1.35; font-weight:500; letter-spacing:0; }
+.ew-title { font-size:{{font.card.em}}; line-height:1.5; font-weight:500; }
+.ew-section-title { font-size:{{font.section.em}}; line-height:1.5; font-weight:500; }
 .ew-subtitle { margin-top:{{space.1.px}}; color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.6; }
 .ew-card { background:{{card}}; border:0; border-radius:{{radius.3.px}}; box-shadow:none; padding:{{space.3.px}}; margin:{{space.3.px}} 0; }
 .ew-reading { font-size:{{font.reading.em}}; line-height:1.65; }
@@ -82,7 +83,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-button.tertiary { background:transparent; color:{{brand}}; min-height:{{controls.secondaryHeight.px}}; }
 .ew-tabs { flex-wrap:wrap; gap:{{space.0.px}}; }
 .ew-tabs button { flex:0 1 auto; min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; border-radius:{{radius.1.px}}; background:transparent; color:{{muted}}; padding:{{space.1.px}} {{space.2.px}}; }
-.ew-tabs button.active { background:{{brandSoft}}; color:{{brand}}; font-weight:600; }
+.ew-tabs button.active { background:{{brandSoft}}; color:{{brand}}; font-weight:500; }
 .ew-input { background:{{card}}; border:1px solid {{controlBorder}}; border-radius:{{radius.2.px}}; font-size:{{font.reading.em}}; line-height:1.5; }
 .ew-notice,.ew-error { border-radius:{{radius.1.px}}; }
 .ew-pill { background:transparent; border-radius:{{radius.1.px}}; min-width:{{controls.touchSize.px}}; color:{{brand}}; font-size:{{font.body.em}}; }
@@ -95,7 +96,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-actions .ew-link { flex:0 1 auto; min-width:{{controls.touchSize.px}}; }
 .ew-page button[disabled] { background:{{disabled}}; color:{{text}}; }
 .ew-page .ew-link[disabled] { background:transparent; color:{{muted}}; }
-.ew-display { font-size:{{font.display.em}}; line-height:1.35; font-weight:600; }
+.ew-display { font-size:{{font.display.em}}; line-height:1.35; font-weight:500; }
 
 .rotate-right { display:inline-flex; transform:rotate(180deg); }.picker-chevron { display:inline-flex; transform:rotate(90deg); margin-left:6px; }.ew-page .period > text { flex:1; min-width:0; text-align:center; line-height:1.5; }
 
@@ -138,7 +139,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .ew-page button.ew-link[disabled] { background:{{disabled}}; color:{{muted}}; border-color:{{border}}; }
 .ew-page .ew-tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid {{border}}; border-radius:12px; background:{{surfaceSoft}}; }
 .ew-page .ew-tabs button.ew-hit-target { flex:1; min-width:44px; padding:8px 10px; background:transparent; color:{{muted}}; font-size:{{font.body.em}}; border:1px solid transparent; line-height:1.45; }
-.ew-page .ew-tabs button.active { background:{{card}}; border-color:transparent; color:{{brand}}; font-weight:600; }
+.ew-page .ew-tabs button.active { background:{{card}}; border-color:transparent; color:{{brand}}; font-weight:500; }
 .ew-page .ew-heading { font-size:{{font.page.em}}; line-height:1.3; }
 .ew-page .ew-between > view:first-child { min-width:0; flex:1; }
 
@@ -184,9 +185,19 @@ text.ew-heading, text.ew-title, text.ew-section-title, text.ew-reading { display
 /* One label scale and compact visual chips, with 44px event targets. */
 .ew-page .ew-filter-grid { display:flex; flex-wrap:wrap; gap:0 6px; align-items:center; }
 .ew-page .ew-filter-choice { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; min-width:44px; min-height:44px; max-width:100%; height:auto; margin:0; padding:4px 0; box-sizing:border-box; border:0; background:transparent; border-radius:0; font-size:{{font.secondary.em}}; line-height:1.5; color:{{text}}; white-space:normal; }
-.ew-page .ew-filter-chip { display:flex; align-items:center; justify-content:center; gap:4px; min-width:44px; max-width:100%; padding:5px 9px; box-sizing:border-box; border:1px solid {{controlBorder}}; border-radius:10px; background:{{divider}}; font-size:inherit; line-height:1.5; overflow-wrap:anywhere; }
+.ew-page .ew-filter-chip { display:flex; align-items:center; justify-content:center; gap:4px; min-width:44px; max-width:100%; padding:5px 9px; box-sizing:border-box; border:1px solid {{controlBorder}}; border-radius:10px; background:{{controlSoft}}; font-size:inherit; line-height:1.5; overflow-wrap:anywhere; }
 .ew-page .ew-filter-count { color:{{muted}}; font-size:inherit; font-weight:400; }
 .ew-page .ew-filter-choice.selected { background:transparent; border:0; color:{{brand}}; }
-.ew-page .ew-filter-choice.selected .ew-filter-chip { background:{{brand}}; color:{{card}}; border-color:{{brand}}; font-weight:600; }
+.ew-page .ew-filter-choice.selected .ew-filter-chip { background:{{brand}}; color:{{card}}; border-color:{{brand}}; font-weight:500; }
 .ew-page .ew-filter-choice.selected .ew-filter-count { color:{{card}}; }
 .ew-page .ew-filter-choice.danger.selected .ew-filter-chip { background:{{danger}}; color:{{card}}; border-color:{{danger}}; }
+
+/* Only the leading page title uses the quieter, book-like table typography. */
+.ew-page .ew-heading.ew-page-title, .ew-page .header-title.ew-page-title {
+  font-family:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","SimSun",serif;
+  font-size:1.5em;
+  font-weight:400;
+  color:#345A46;
+  letter-spacing:.045em;
+  line-height:1.45;
+}
