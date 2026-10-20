@@ -5,8 +5,8 @@ const vm = require('node:vm')
 const { createRequire } = require('node:module')
 const path = require('node:path')
 const read = file => fs.readFileSync(file, 'utf8')
-function component(name, wx = {}) {
-  const file = path.resolve(`components/${name}/${name}.js`)
+function component(name, wx = {}, entry = name) {
+  const file = path.resolve(`components/${name}/${entry}.js`)
   let definition
   vm.runInNewContext(read(file), { Component: value => { definition = value }, wx, require: createRequire(file) })
   return definition
@@ -104,23 +104,46 @@ test('page and shared WXML bindings use native data and arithmetic without funct
   }
 })
 
-test('both shopping views keep uncertainty in the shared row and source access remains reachable', () => {
+test('both shopping views use concise quantities while preserving source access and safety metadata', () => {
   const source=read('pages/shopping-list/shopping-list.wxml'),row=read('components/compact-ingredient-row/index.wxml')
   assert.equal((source.match(/<compact-ingredient-row[^>]+bind:sources="onSourceDetails"/g)||[]).length,2)
   assert.doesNotMatch(source, /<button[^>]+quantity-warning/)
-  assert.match(row, /catchtap="onSources"[^>]+来源与原用量/)
-  const marker=row.match(/<text wx:if="([^"]+)" class="ingredient-note">([^<]+)<\/text>/)
-  assert.ok(marker)
+  assert.doesNotMatch(row,/ingredient-note|用量待核对|用量待确认/)
+  const sources=row.match(/<button[^>]+catchtap="onSources"[^>]+>/)
+  assert.ok(sources)
+  const label=sources[0].match(/aria-label="([^"]+)"/)[1]
+  const quantity=row.match(/<text wx:if="([^"]+)" class="ingredient-quantity">([^<]+)<\/text>/)
+  assert.ok(quantity)
+  const def=component('compact-ingredient-row',{},'index')
   const fixtures=[
     {calculationStatus:'NEEDS_ADJUSTMENT',quantityText:'200g',warnings:['UNKNOWN_SERVINGS']},
     {calculationStatus:'CALCULATED',quantityText:'400g',quantityValue:400,parseStatus:'PARSED',unitFamily:'mass',unitCode:'g',servingsVerified:true,warnings:[]},
     {calculationStatus:'CALCULATED',quantityText:'400g'},
     {calculationStatus:'USER_OVERRIDE',quantityText:'450g',userOverride:true,warnings:[]},
+    {calculationStatus:'NEEDS_ADJUSTMENT',quantityText:'',warnings:['MISSING_QUANTITY']},
   ]
   fixtures.forEach((fixture,index)=>{
-    const item=require('../utils/shopping-view').buildShoppingView({dishes:[{items:[fixture]}]}).rows[0]
-    assert.equal(binding(marker[1],{row:item}),index===0||index===2?'true':'false')
-    if(index===0||index===2)assert.match(marker[2],/核对/)
+    const input={dishes:[{dishId:7,dishName:'番茄炒蛋',items:[{id:42,displayName:'番茄',...fixture}]}]},before=JSON.stringify(input)
+    const item=require('../utils/shopping-view').buildShoppingView(input).rows[0],events=[]
+    assert.equal(JSON.stringify(input),before,'display does not rewrite source quantities')
+    assert.equal(item.quantityUncertain,[0,2,4].includes(index))
+    assert.equal(item.sources[0].itemId,42)
+    assert.equal(item.sources[0].dishId,7)
+    assert.ok(item.sources[0].sourceLabel.includes('番茄炒蛋'))
+    if(fixture.quantityText)assert.equal(item.sources[0].quantityText,fixture.quantityText)
+    const control={properties:{row:item,busy:false,deleting:false},data:{},setData(value){Object.assign(this.data,value)},triggerEvent(name,detail){events.push({name,...detail})}}
+    def.methods.updateRow.call(control)
+    assert.equal(binding(label,{row:item,rowView:control.data.rowView}),'查看番茄的来源')
+    assert.equal(binding(label,{row:{...item,sourceExpanded:true},rowView:control.data.rowView}),'收起番茄的来源')
+    assert.equal(binding(quantity[2],control.data),item.quantityLabel)
+    if(index===4)assert.equal(binding(quantity[1],control.data),'','missing amount stays blank')
+    def.methods.onSources.call(control)
+    assert.deepEqual(events,[{name:'sources',key:item.key}])
+    control.properties.busy=true
+    def.methods.onSources.call(control)
+    control.properties.busy=false;control.properties.deleting=true
+    def.methods.onSources.call(control)
+    assert.equal(events.length,1,'busy and deleting modes cannot open sources')
   })
 })
 

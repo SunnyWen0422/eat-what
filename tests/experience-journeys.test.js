@@ -101,7 +101,20 @@ test('registered ordinary pages have accessible root scaling, including the star
   for (const route of routes) { const text = fs.readFileSync(route + '.wxml', 'utf8'); assert.match(text, /fontBase \* fontScale/, route); assert.doesNotMatch(text, /聊聊这餐|选菜搭一餐|需要确认|本次实付/, route) }
 })
 test('optional shopping reference costs are folded and preserve missing-price disclosure',()=>{
- const text=fs.readFileSync('pages/shopping-list/shopping-list.wxml','utf8');assert.match(text,/wx:if="\{\{detailsExpanded\}\}"/);assert.match(text,/暂无可靠估算/);assert.match(text,/实际支出/)
+ const text=fs.readFileSync('pages/shopping-list/shopping-list.wxml','utf8')
+ const gate=text.match(/<view wx:if="\{\{(.+?)\}\}" class="shopping-costs">/)
+ assert.ok(gate,'reference costs have a conditional section')
+ for(const showExpenses of [false,true])for(const detailsExpanded of [false,true]){
+  assert.equal(require('node:vm').runInNewContext(gate[1],{pagePresentation:{showExpenses},detailsExpanded}),showExpenses&&detailsExpanded)
+ }
+ assert.match(text,/aria-expanded="\{\{detailsExpanded\}\}"[^>]*bindtap="onPriceDetails"/)
+ const note=text.match(/<text wx:if="\{\{pendingMissing\}\}" class="cost-note">\{\{(.+?)\}\}<\/text>/)
+ assert.ok(note)
+ assert.equal(require('node:vm').runInNewContext(note[1],{pendingPrice:'—'}),'暂无可用参考价')
+ assert.equal(require('node:vm').runInNewContext(note[1],{pendingPrice:'¥12.00'}),'参考合计不含未报价食材')
+ assert.match(text,/待买参考[\s\S]*?\{\{pendingPrice\}\}/)
+ assert.match(text,/实际支出[\s\S]*?\{\{actualSpend\}\}/)
+ assert.match(text,/wx:if="\{\{item.quote\}\}" class="cost-reference"/)
 })
 
 test('ordinary tappable views and text expose button semantics to assistive technology', () => {

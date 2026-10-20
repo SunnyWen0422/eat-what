@@ -66,11 +66,14 @@ test('recipe details are clearly ingredients and cooking instructions', () => {
 
 test('diet review separates actual food statistics from plan execution comparisons', () => {
   const source = read('pages/statistics/statistics.wxml')
-  assert.match(source, /饮食统计只计入实际吃过的记录；计划执行单独对照/)
+  assert.doesNotMatch(source, /饮食统计只计入实际吃过的记录；计划执行单独对照/)
+  assert.match(source, /wx:if="\{\{hasActualRecords\}\}"[^>]*data-report-block="overview"/)
+  assert.match(source, /明确吃过的餐次/)
+  assert.match(source, /有实际用餐的天数/)
   assert.match(source, /data-report-block="planExecution"/)
   assert.match(source, /计划执行对照/)
   assert.match(source, /仅对照安排是否执行，不计入饮食统计/)
-  assert.match(source, /action-label="记录饮食"/)
+  assert.match(source, /<ui-state wx:if="\{\{!hasActualRecords\}\}"[^>]*action-label="记录这一餐"[^>]*bind:action="onRecord"/)
 })
 
 test('help distinguishes saving to the calendar from recording food after eating', () => {

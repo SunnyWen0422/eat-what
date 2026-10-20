@@ -53,11 +53,12 @@ test('unknown new request suppresses misleading success',()=>{
  assert.doesNotMatch(source,/class="workspace-saved-result"/)
  assert.match(source,/savedTarget[^\n]+bindtap="onViewSavedMeal"/)
 })
-test('collapsed settings retain important recovery',()=>{
- const source=workspaceTemplate(),settings=source.indexOf('class="workspace-settings-panel"')
- assert.match(source,/wx:if="\{\{hardExclusionsUnavailable\}\}" class="workspace-exclusions"/)
- assert.ok(source.indexOf('wx:if="{{resultNotice}}"')<settings)
- assert.ok(source.indexOf('wx:if="{{hardExclusionsUnavailable}}"')<settings)
+test('recovery and exclusion notices remain in the main content independently of settings sheets',()=>{
+ const source=workspaceTemplate(),main=source.split('</scroll-view>')[0]
+ assert.match(main,/wx:if="\{\{hardExclusionsUnavailable\}\}" class="workspace-exclusions" role="alert"/)
+ assert.match(main,/wx:if="\{\{resultNotice\}\}" class="workspace-notice/)
+ assert.doesNotMatch(main,/wx:if="[^"]*(?:settingsExpanded|mealSettingsVisible|requirementsVisible)/)
+ assert.match(source,/<ui-sheet[^>]*visible="\{\{requirementsVisible\}\}"/)
  assert.match(view({status:'needs_regeneration'}).resultNotice.text,/条件已修改/)
  assert.match(view({syncStatus:'conflict'}).resultNotice.text,/已有更新/)
  for(const [patch,action] of [[{status:'needs_input',draft:{dishes:[{id:8,type:'veg'}]}},'composition'],[{status:'failed'},'choose']]){

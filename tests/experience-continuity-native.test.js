@@ -82,12 +82,14 @@ test('native output refuses Windows case variants and real junction ancestors be
   assert.throws(()=>native.outside(path.join(root,missing)),/Canonical/)
   if(process.platform==='win32')assert.throws(()=>native.outside(path.join(root.toUpperCase(),missing)),/Canonical/)
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'eatwhat-native-boundary-')),link=path.join(temp,'canonical-link')
+  let linkCreated=false
   try {
     fs.symlinkSync(root,link,process.platform==='win32'?'junction':'dir')
+    linkCreated=true
     assert.throws(()=>native.outside(path.join(link,missing)),/Canonical/)
     assert.equal(native.outside(path.join(temp,'safe-output')),path.join(temp,'safe-output'))
     assert.equal(fs.existsSync(path.join(root,missing)),false)
-  } finally {fs.unlinkSync(link);fs.rmdirSync(temp)}
+  } finally {if(linkCreated)fs.unlinkSync(link);fs.rmdirSync(temp)}
 })
 test('native page content stays reachable requires measurements; screenshots are not passes', () => {
   assert.equal(native.assess({measurements:[]}).status, 'blocked')
