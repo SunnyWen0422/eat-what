@@ -26,6 +26,13 @@ public final class MealWorkspaceRules {
         if (c.getOwnedIngredients().size() > 30 || c.getOwnedIngredients().stream().anyMatch(v -> v == null || v.length() > 40))
             throw new IllegalArgumentException("已有食材数量或长度超限");
         if (c.getCriteria() == null) c.setCriteria(new RecommendationCriteria());
+        if(c.getRecommendationPreferences()==null)c.setRecommendationPreferences(new RecommendationCriteria());
+        normalizeLists(c.getCriteria());normalizeLists(c.getRecommendationPreferences());
+        if(c.getRecommendationPolicy()!=null&&!BalancedRecommendationPolicy.enabled(c))throw new IllegalArgumentException("推荐策略版本暂不支持");
+        if(c.getExpectedTotalCookMinutes()!=null&&(c.getExpectedTotalCookMinutes()<1||c.getExpectedTotalCookMinutes()>480))throw new IllegalArgumentException("期望用时应为 1 至 480 分钟");
+        if(!Arrays.asList("all","favorites").contains(c.getCandidateScope()))throw new IllegalArgumentException("候选范围无效");
+        if(!c.getRecommendationPreferences().getExcludeTagCodes().isEmpty()||!c.getRecommendationPreferences().getExcludedIngredients().isEmpty())throw new IllegalArgumentException("排除条件请放入必须满足的条件");
+        if(!BalancedRecommendationPolicy.enabled(c)&&(!c.getRecommendationPreferences().getCuisineCodes().isEmpty()||!c.getRecommendationPreferences().getIncludeTagCodes().isEmpty()||c.getRecommendationPreferences().getMaxCookMinutes()!=null||c.getExpectedTotalCookMinutes()!=null))throw new IllegalArgumentException("请先更新推荐能力");
         if (c.getTotalCookMinutes() != null && (c.getTotalCookMinutes() < 1 || c.getTotalCookMinutes() > 480))
             throw new IllegalArgumentException("整餐用时应为 1 至 480 分钟");
         if ("auto".equals(c.getCompositionMode())) {
@@ -61,8 +68,17 @@ public final class MealWorkspaceRules {
     }
 
     public static String contextFingerprint(MealContext c) {
-        try { return com.eatwhat.util.WorkflowRequestHash.sha256(JSON.writeValueAsString(c)); }
+        try {
+            Map<String,Object> values=JSON.convertValue(c,Map.class);
+            // Legacy drafts were signed before these optional fields existed.
+            if(c.getRecommendationPolicy()==null){values.remove("recommendationPolicy");values.remove("recommendationPreferences");values.remove("expectedTotalCookMinutes");if("all".equals(c.getCandidateScope()))values.remove("candidateScope");}
+            return com.eatwhat.util.WorkflowRequestHash.sha256(JSON.writeValueAsString(values));
+        }
         catch(Exception e) { throw new IllegalStateException("本餐条件无法校验",e); }
+    }
+    private static void normalizeLists(RecommendationCriteria c){
+        if(c.getCuisineCodes()==null)c.setCuisineCodes(new ArrayList<>());if(c.getIncludeTagCodes()==null)c.setIncludeTagCodes(new ArrayList<>());
+        if(c.getExcludeTagCodes()==null)c.setExcludeTagCodes(new ArrayList<>());if(c.getExcludedIngredients()==null)c.setExcludedIngredients(new ArrayList<>());
     }
     public static boolean sameRecipe(Dish a,Dish b) {
         if(a==null || b==null)return false;
@@ -132,6 +148,7 @@ public final class MealWorkspaceRules {
         if (history.size() > 10) history.remove(0);
         next.setAdjustedBeforeConfirmation(current.isAdjustedBeforeConfirmation() || next.isAdjustedBeforeConfirmation());
         next.setHistory(history); next.setPlanVersion(current.getPlanVersion() + 1);
+        next.setReplacementFeedbackVersion(null);
         next.setTotalCookMinutes(totalMinutes(next.getDishes()));
         return next;
     }

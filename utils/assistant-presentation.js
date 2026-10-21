@@ -99,6 +99,7 @@ function buildAssistantFailurePresentation({state={}}={}) {
 // Source explanation only. Java still resolves and validates effective constraints.
 function buildAssistantContextSummary({workspace,preferencesSnapshot,options,preferencesState}={}) {
  const context=workspace&&workspace.context||{},mealRows=[],savedRows=[]
+ const balanced=require('./recommendation-policy').supported(context.recommendationPolicy)
  const short=value=>value.length>200?value.slice(0,200)+'…':value
  const text=value=>typeof value==='string'?short(value.replace(/[\x00-\x1f\x7f]/g,' ').trim()):''
  const labels={...require('./recommendation-criteria').CODE_LABELS}
@@ -112,7 +113,14 @@ function buildAssistantContextSummary({workspace,preferencesSnapshot,options,pre
  add(mealRows,'requirements','本餐要求',text(context.requirements)||'未添加')
  if(context.counts)add(mealRows,'composition','菜品搭配',require('./meal-composition').compositionSummary(context))
  add(mealRows,'owned','手边食材',list(context.ownedIngredients))
+ if(minutes(context.expectedTotalCookMinutes))add(mealRows,'expected-time','期望用时',`整餐约 ${context.expectedTotalCookMinutes} 分钟`)
  if(minutes(context.totalCookMinutes))add(mealRows,'total-time','时间输入',`整餐用时上限 ${context.totalCookMinutes} 分钟`)
+ if(balanced){
+  const wishes=context.recommendationPreferences||{}
+  add(mealRows,'wishes','本餐想吃',list([...(wishes.cuisineCodes||[]),...(wishes.includeTagCodes||[])],true))
+  if(minutes(wishes.maxCookMinutes))add(mealRows,'wish-time','单菜期望用时',`约 ${wishes.maxCookMinutes} 分钟`)
+ }
+ if(context.candidateScope==='favorites')add(mealRows,'scope','选菜范围','仅从收藏中选，可在本餐偏好中取消')
  const criteria=context.criteria||{}
  add(mealRows,'cuisines','本餐菜系',list(criteria.cuisineCodes,true))
  add(mealRows,'include','本餐筛选',list(criteria.includeTagCodes,true))
@@ -126,8 +134,8 @@ function buildAssistantContextSummary({workspace,preferencesSnapshot,options,pre
   add(savedRows,'saved-cuisines','常用菜系',list(saved.preferredCuisineCodes,true))
   add(savedRows,'saved-tags','常用偏好',list(saved.preferredTagCodes,true))
   if(Number.isInteger(saved.defaultPeople)&&saved.defaultPeople>=1&&saved.defaultPeople<=50)add(savedRows,'saved-people','常用人数',`${saved.defaultPeople}人`)
-  if(minutes(saved.maxCookMinutes))add(savedRows,'saved-time','长期单菜上限',`单菜最多 ${saved.maxCookMinutes} 分钟`)
-  if(Number.isInteger(saved.avoidRecentDays)&&saved.avoidRecentDays>=0)add(savedRows,'saved-recent','菜品轮换',saved.avoidRecentDays?`最近${saved.avoidRecentDays}天不重复`:'不限制')
+  if(minutes(saved.maxCookMinutes))add(savedRows,'saved-time',balanced?'单菜期望用时':'长期单菜上限',balanced?`约 ${saved.maxCookMinutes} 分钟`:`单菜最多 ${saved.maxCookMinutes} 分钟`)
+  if(Number.isInteger(saved.avoidRecentDays)&&saved.avoidRecentDays>=0)add(savedRows,'saved-recent','菜品轮换',saved.avoidRecentDays?`优先避开最近${saved.avoidRecentDays}天吃过的菜`:'不限制')
  }
  return {targetLabel:`${date} · ${meal}${people}`,mealRows,savedRows,unavailableLabel}
 }

@@ -49,11 +49,15 @@ function continuityPresentation(value, journey, workspaceNotice) {
 }
 
 function contextPresentation(context) {
+  const balanced=require('./recommendation-policy').supported(context.recommendationPolicy)
+  let summary=require('./recommendation-criteria').criteriaSummary(require('./recommendation-policy').wishes(context))
+  if(balanced)summary=summary.replace(/(\d+)分钟内/g,'期望 $1 分钟')
+  if(context.candidateScope==='favorites')summary=['仅从收藏中选',summary].filter(Boolean).join(' · ')
   return {
     dateLabel:`${Number(context.date.slice(5,7))}月${Number(context.date.slice(8,10))}日`,
     compositionLabel:compositionSummary(context),
     compositionModeLabel:context.compositionMode === 'manual' ? '手动搭配' : '按人数自动搭配',
-    filterSummary:require('./recommendation-criteria').criteriaSummary(context.criteria),
+    filterSummary:summary,
   }
 }
 

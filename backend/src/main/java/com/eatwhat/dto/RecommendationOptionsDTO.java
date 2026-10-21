@@ -11,6 +11,8 @@ public class RecommendationOptionsDTO {
     private int metadataVersion;
     private String minimumClientVersion;
     private boolean preferencesEnabled = true;
+    private String recommendationPolicyVersion = "balanced-v1";
+    private boolean learningResetEnabled = true;
     private List<Option> homeQuickOptions = new ArrayList<>();
     private Map<String, List<Option>> groups = new LinkedHashMap<>();
 

@@ -16,10 +16,17 @@ import java.util.Map;
 @RestController
 @RequestMapping("/users/preferences")
 public class UserPreferenceController {
+    @org.springframework.beans.factory.annotation.Autowired private com.eatwhat.service.RecommendationLearningService learning;
     private final UserPreferenceService service;
 
     public UserPreferenceController(UserPreferenceService service) {
         this.service = service;
+    }
+    @org.springframework.web.bind.annotation.PostMapping("/learning/reset")
+    public ResponseEntity<?> resetLearning(@RequestBody Map<String,String> input,HttpServletRequest request){
+        Long user=currentUserId(request);if(user==null)return ResponseEntity.status(401).build();
+        if(input==null||input.size()!=1||!input.containsKey("requestId"))return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message","请提供清除请求标识"));
+        learning.reset(user,input.get("requestId"));return ResponseEntity.ok(java.util.Collections.singletonMap("reset",true));
     }
 
     @GetMapping

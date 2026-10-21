@@ -25,7 +25,7 @@ public class WorkspaceAgentContextService {
         for(Dish d:eligible)if(selected.size()<200&&added.add(d.getId()))selected.add(d);
         List<Map<String,Object>> catalog=new ArrayList<>();
         for(Dish d:planner.attachQuality(user,selected))catalog.add(readable(d));
-        Map<String,Object> result=new LinkedHashMap<>();result.put("ownerUserId",user);result.put("catalog",catalog);result.put("preferences",preferences.get(user));result.put("favoriteDishIds",favorites.getFavoriteDishIds(user));
+        Map<String,Object> result=new LinkedHashMap<>();result.put("ownerUserId",user);result.put("catalog",catalog);result.put("preferences",preferences.get(user));
         String end=c.getDate(),start=MealConsumptionService.date(end).minusDays(6).toString();List<Map<String,Object>> recent=new ArrayList<>();
         for(MealConsumption meal:actual.range(user,start,end))if("eaten".equals(meal.getStatus())){Map<String,Object> item=new LinkedHashMap<>();item.put("date",meal.getMealDate());item.put("mealType",meal.getMealType());item.put("dishes",meal.getActualDishesJson());recent.add(item);}
         result.put("recentActual",recent);List<Map<String,Object>> savedMenus=new ArrayList<>();

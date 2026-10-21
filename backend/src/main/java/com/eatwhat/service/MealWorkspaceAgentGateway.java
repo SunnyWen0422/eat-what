@@ -9,6 +9,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 @Service
 public class MealWorkspaceAgentGateway {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private AssistantV4ModelGateway policyGateway;
     @org.springframework.beans.factory.annotation.Autowired
     private WorkspaceAgentContextService taskContext;
     private final String baseUrl;
@@ -23,6 +24,7 @@ public class MealWorkspaceAgentGateway {
     }
     @SuppressWarnings("unchecked")
     public Map<String,Object> run(Long user,MealWorkspace w) {
+        if(BalancedRecommendationPolicy.enabled(w.getContext())&&policyGateway!=null&&!policyGateway.supportsBalancedRecommendation())throw new IllegalStateException("助手推荐服务正在更新");
         if(token.trim().isEmpty())throw new IllegalStateException("智能理解尚未配置");
         AiProtectionService.Decision decision=protection.acquire(user,"workspace",w.getContext().getRequirements().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
         if(!decision.isAllowed())throw new IllegalStateException("智能理解请求较多，请稍后重试");

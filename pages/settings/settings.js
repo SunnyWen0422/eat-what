@@ -69,6 +69,8 @@ Page({
       synced: preferenceResult.synced,
       loading: false,
       featureEnabled,
+      balancedRecommendation: optionsResult.synced&&this.options.recommendationPolicyVersion==='balanced-v1',
+      learningResetEnabled: optionsResult.synced&&this.options.learningResetEnabled===true,
       statusText: preferenceResult.synced ? '' : '当前使用本机偏好',
     })
     this._editInitial = JSON.stringify({ preferences: normalizePreferences(preferenceResult.preferences), peopleDraft: String(preferences.defaultPeople), ingredientDraft: '' })
@@ -186,6 +188,21 @@ Page({
     finally{if(!this._unloaded&&scope===getUserStorageKey('preferencesPage')&&store===this.store)this.setData({saving:false})}
   },
 
+  onClearLearning() {
+    if(!this.canEditPreferences()||!this.data.learningResetEnabled||this.data.clearingLearning)return
+    const scope=this._scope,key=getUserStorageKey('pendingLearningReset')
+    wx.showModal({title:'清除学习记录？',content:'清除从采用和单菜替换中学到的口味。手填偏好、收藏、日历和用餐记录都会保留。',success:async result=>{
+      if(!result.confirm||this._unloaded||scope!==getUserStorageKey('preferencesPage'))return
+      const pending=wx.getStorageSync(key)||{requestId:require('../../utils/meal-workspace').requestId()}
+      wx.setStorageSync(key,pending);this.setData({clearingLearning:true})
+      try{await require('../../utils/api').resetRecommendationLearning(pending)
+        if(this._unloaded||scope!==getUserStorageKey('preferencesPage'))return
+        if((wx.getStorageSync(key)||{}).requestId===pending.requestId)wx.removeStorageSync(key)
+        this.setData({statusText:'学习记录已清除'});wx.showToast({title:'已清除学习记录',icon:'success'})
+      }catch(error){if(!this._unloaded&&scope===getUserStorageKey('preferencesPage'))this.setData({statusText:'暂未确认清除结果，再次点击可继续确认'})}
+      finally{if(!this._unloaded&&scope===getUserStorageKey('preferencesPage'))this.setData({clearingLearning:false})}
+    }})
+  },
   onResetMemory() {
     if(!this.canEditPreferences())return
     wx.showModal({ title: '重置偏好记忆？', content: '重置菜系、标签、忌口和近期避重复设置。用餐记录、收藏和购物清单会保留。重置后仍需保存。', success: result => {

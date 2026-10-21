@@ -21,6 +21,7 @@ public class WorkspaceAssistantToolAdapter implements AssistantCapabilityService
   TurnBinding binding=new TurnBinding();binding.setScope(scope);binding.setStepId(step.getStepId());binding.setRequestId(step.getRequestId());
   MealWorkspace saved=applyDraft(user,intent,binding);
   WorkspaceRef ref=reference(saved);Card card=new Card();card.setId(step.getRequestId());card.setType(saved.getDraft().getDishes().isEmpty()?"receipt":"menu");card.setTitle("本餐已调整");card.setText(saved.getMessage());
+  if(!saved.getDraft().getExplanations().isEmpty())card.setText(String.join("；",saved.getDraft().getExplanations()));
   card.setReceiptRef("workspace:"+saved.getId()+":"+step.getRequestId());card.setWorkspaceRef(ref);
   card.getData().put("people",saved.getContext().getPeople());card.getData().put("date",saved.getContext().getDate());card.getData().put("mealType",saved.getContext().getMealType());
   List<Map<String,Object>> dishes=new ArrayList<>();
@@ -43,11 +44,13 @@ public class WorkspaceAssistantToolAdapter implements AssistantCapabilityService
   for(String key:Arrays.asList("targetDishId","replacementDishId"))if(n.has(key))positiveInteger(n.get(key));
   for(String key:Arrays.asList("selectedDishIds","keepDishIds","releaseDishIds"))if(n.has(key)){JsonNode list=n.get(key);if(!list.isArray()||list.size()>10)throw new IllegalArgumentException("菜品编号无效");for(JsonNode id:list)positiveInteger(id);}
   JsonNode patch=n.get("contextPatch");if(patch!=null){
-   AssistantV4Contract.fields(patch,"people","counts","compositionMode","criteria","totalCookMinutes","requirements","ownedIngredients");
+   AssistantV4Contract.fields(patch,"people","counts","compositionMode","criteria","totalCookMinutes","requirements","ownedIngredients","recommendationPreferences","expectedTotalCookMinutes","candidateScope");
    if(patch.has("people"))positiveInteger(patch.get("people"));
    if(patch.hasNonNull("totalCookMinutes"))positiveInteger(patch.get("totalCookMinutes"));
    if(patch.has("counts")){JsonNode counts=patch.get("counts");AssistantV4Contract.fields(counts,"meat","veg","soup","staple","dessert","side");counts.elements().forEachRemaining(value->{if(!value.isIntegralNumber()||value.longValue()<0||value.longValue()>10)throw new IllegalArgumentException("菜数无效");});}
    if(patch.has("criteria"))criteria(patch.get("criteria"));
+   if(patch.has("recommendationPreferences"))criteria(patch.get("recommendationPreferences"));
+   if(patch.hasNonNull("expectedTotalCookMinutes"))positiveInteger(patch.get("expectedTotalCookMinutes"));
   }
   if(n.has("targetConstraints"))criteria(n.get("targetConstraints"));
  }

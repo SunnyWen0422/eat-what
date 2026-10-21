@@ -15,6 +15,11 @@ public class MealContext {
     private Map<String, Integer> counts = new LinkedHashMap<>();
     private Integer totalCookMinutes;
     private RecommendationCriteria criteria = new RecommendationCriteria();
+    /** Opt-in semantics: criteria remain hard constraints; wishes are separate. */
+    private String recommendationPolicy;
+    private RecommendationCriteria recommendationPreferences = new RecommendationCriteria();
+    private Integer expectedTotalCookMinutes;
+    private String candidateScope = "all";
     private String requirements = "";
     private List<String> ownedIngredients = new ArrayList<>();
 }

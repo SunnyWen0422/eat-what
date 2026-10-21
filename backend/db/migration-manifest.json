@@ -89,6 +89,13 @@
       "description": "Cover exact catalog visibility counts without reading recipe bodies",
       "checksumSha256": "2f727c7979c8a49dd169017a0b351fdaea76ef045f66fe2982b3d7f9310debcf",
       "rollback": "Retain additive index on application rollback; no recipe, user or history row is changed."
+    },
+    {
+      "version": "V8_40__recommendation_learning",
+      "file": "V8_40__recommendation_learning.sql",
+      "description": "Typed recommendation feedback and account-scoped idempotent learning reset; no legacy backfill",
+      "checksumSha256": "b8bba5199070fa56aa3ebc8d93f67b3d16abafb583bcab7d262863c72f5ab779",
+      "rollback": "Keep feedback and reset receipts. Disable balanced client entry points before reverting application behavior; do not erase user records."
     }
   ]
 }

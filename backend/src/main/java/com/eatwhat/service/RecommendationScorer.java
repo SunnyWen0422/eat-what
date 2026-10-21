@@ -14,7 +14,7 @@ public class RecommendationScorer {
     static final int CUISINE_WEIGHT = 30;
     static final int TAG_WEIGHT = 12;
     static final int TAG_WEIGHT_CAP = 24;
-    static final int FAVORITE_WEIGHT = 10;
+    static final int FAVORITE_WEIGHT = 0;
     static final int RECENT_WEIGHT = -40;
 
     public int score(Dish dish,

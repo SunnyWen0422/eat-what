@@ -226,7 +226,7 @@ module.exports = function workspacePage(options = {}) {
       // A save preview is a frozen source. Foreground refresh must not replace it.
       if(this.data.confirmationVisible || state && state.pending){this.renderWorkspace();return}
       const filterKey=getUserStorageKey('pendingRecommendationCriteria'), filter=wx.getStorageSync(filterKey)
-      if(filter && this.store) {wx.removeStorageSync(filterKey);this.store.edit({...this.data.context,criteria:filter});this.renderWorkspace();this.scheduleDraftSave()}
+      if(filter && this.store) {const policyKey=getUserStorageKey('pendingRecommendationPolicy'),policy=wx.getStorageSync(policyKey),clearKey=getUserStorageKey('pendingRecommendationClearRequired'),clearRequired=wx.getStorageSync(clearKey)===true,scopeKey=getUserStorageKey('pendingRecommendationScope'),candidateScope=wx.getStorageSync(scopeKey);wx.removeStorageSync(filterKey);wx.removeStorageSync(policyKey);wx.removeStorageSync(clearKey);wx.removeStorageSync(scopeKey);const next=require('./recommendation-policy').applyWishes(this.data.context,filter,policy==='balanced-v1'?this.store.state().policyVersion:null,clearRequired);if(policy==='balanced-v1'&&this.store.state().policyVersion==='balanced-v1'&&['all','favorites'].includes(candidateScope))next.candidateScope=candidateScope;this.store.edit(next);this.renderWorkspace();this.scheduleDraftSave()}
       if (!this.data.busy) { await this.readWorkspace(this.data.context); await this.refreshHardExclusions() }
     },
     async refreshHardExclusions() {
@@ -617,11 +617,12 @@ module.exports = function workspacePage(options = {}) {
       if (!this.current() || this.data.busy || this.data.contextLocked) return
       const c = clone(this.data.context)
       this.onCancelRequirements();this.onCloseComposition();this.onClosePeople();
-      this.setData({ moreVisible:false, settingsVisible: true, settingsContext: c, ownedText: c.ownedIngredients.join('、'), settingsError: '' }); this.renderCounts()
+      this.setData({ moreVisible:false, settingsVisible: true, settingsContext: c, recommendationPolicyEnabled:this.store.state().policyVersion==='balanced-v1', showRequiredTime:!!c.totalCookMinutes, ownedText: c.ownedIngredients.join('、'), settingsError: '' }); this.renderCounts()
     },
     onCloseMealSettings() { if (!this.data.busy) this.setData({ settingsVisible: false,settingsContext:null }) },
     onPeopleSetting(e) { this.setData({ 'settingsContext.people': e.detail.value }) },
-    onTimeSetting(e) { this.setData({ 'settingsContext.totalCookMinutes': e.detail.value || null }) },
+    onTimeSetting(e) { this.setData({ [this.data.recommendationPolicyEnabled?'settingsContext.expectedTotalCookMinutes':'settingsContext.totalCookMinutes']: e.detail.value || null }) },
+    onRequiredTimeSetting(e) { this.setData({ 'settingsContext.totalCookMinutes': e.detail.value || null }) },
     onOwnedSetting(e) { this.setData({ ownedText: e.detail.value }) },
     onCountSetting(e) { const c = clone(this.data.settingsContext); c.compositionMode = 'manual'; c.counts[e.currentTarget.dataset.type] = Number(e.detail.value); this.setData({ settingsContext: c }) },
     renderCounts() { this.setData({ countRows: Object.entries(this.data.settingsContext.counts).map(([type, count]) => ({ type, count, label: ({ meat: '荤菜', veg: '素菜', soup: '汤', staple: '主食', dessert: '甜品', side: '配餐' })[type] })) }) },
@@ -633,7 +634,7 @@ module.exports = function workspacePage(options = {}) {
     onRestoreAuto() { try { const c = normalizeContext({ ...this.data.settingsContext, compositionMode: 'auto' }); this.setData({ settingsContext: c }); this.renderCounts() } catch (error) { this.setData({ settingsError: userError(error,'请核对人数和搭配数量') }) } },
     async onApplyMealSettings() {
       if (!this.current() || this.data.contextLocked) return
-      try { const c = normalizeContext({ ...this.data.settingsContext, totalCookMinutes: this.data.settingsContext.totalCookMinutes ? Number(this.data.settingsContext.totalCookMinutes) : null, ownedIngredients: this.data.ownedText.split(/[、,，\n]/).map(s => s.trim()).filter(Boolean) });
+      try { const c = normalizeContext({ ...this.data.settingsContext, expectedTotalCookMinutes: this.data.settingsContext.expectedTotalCookMinutes ? Number(this.data.settingsContext.expectedTotalCookMinutes) : null, totalCookMinutes: this.data.settingsContext.totalCookMinutes ? Number(this.data.settingsContext.totalCookMinutes) : null, ownedIngredients: this.data.ownedText.split(/[、,，\n]/).map(s => s.trim()).filter(Boolean) });
         this.store.edit(c); this.setData({ settingsVisible: false, settingsContext: null }); this.renderWorkspace(); this.scheduleDraftSave()
       } catch (error) { this.setData({ settingsError: userError(error,'请核对本餐设置') }) }
     },
@@ -692,7 +693,7 @@ module.exports = function workspacePage(options = {}) {
     onOpenAssistantView(){return this.openWorkspaceRoute('/pages/chat/chat')},
     onOpenConnectedAssistant(){if(this.data.assistantAvailable)return this.openWorkspaceRoute('/pages/chat/chat?entryScene=home')},
     onOpenAdvancedAssistant() { if(this.current())wx.navigateTo({ url: `/pages/assistant-history/assistant-history?date=${this.data.context.date}&mealType=${this.data.context.mealType}` }) },
-    onOpenFilter() { if(this.current()){wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),this.data.context.criteria);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
+    onOpenFilter() { if(this.current()){const policy=require('./recommendation-policy'),version=this.store.state().policyVersion;wx.setStorageSync(getUserStorageKey('editingRecommendationCriteria'),policy.wishes(policy.enable(this.data.context,version)));wx.setStorageSync(getUserStorageKey('editingRecommendationRequired'),this.data.context.criteria);wx.setStorageSync(getUserStorageKey('editingRecommendationScope'),this.data.context.candidateScope||'all');wx.setStorageSync(getUserStorageKey('editingRecommendationPolicy'),version);wx.navigateTo({ url: '/pages/recommend-filter/recommend-filter' })} },
     onReview() { if(this.current())wx.navigateTo({ url: '/pages/statistics/statistics?period=week&anchor='+encodeURIComponent(this.data.context.date) }) },
     onLogin() { wx.showToast({ title: '登录后可跨设备保存本餐', icon: 'none' }); wx.switchTab({ url: '/pages/profile/profile' }) },
     onShareAppMessage() { return { title: '把今天这一餐安排好', path: '/pages/index/index' } },

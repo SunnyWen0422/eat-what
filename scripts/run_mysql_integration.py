@@ -57,6 +57,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mysqld", required=True)
     parser.add_argument("--maven", default="mvn")
+    parser.add_argument("--maven-repository", help="Optional existing local Maven dependency cache")
     parser.add_argument("--restart-probe", action="store_true", help="Probe two real JVM processes; build the backend jar first")
     args = parser.parse_args()
     # Windows execution isolation may permit the installed binary while denying
@@ -107,7 +108,10 @@ def main():
             cursor.execute("INSERT INTO users(id,open_id) VALUES(1,'test-a'),(2,'test-b'),(3,'http-a'),(4,'http-b')")
         env = os.environ.copy()
         env.update(V4_TEST_JDBC=f"jdbc:mysql://127.0.0.1:{port}/{database}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8", V4_TEST_PASSWORD=password)
-        result = subprocess.run([args.maven, "-q", "-f", str(ROOT / "backend/pom.xml"), "-Dtest=MealWorkspaceMysqlIT,MealWorkspaceHttpIT", "test"], env=env, creationflags=flags, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        command = [args.maven, "-q", "-f", str(ROOT / "backend/pom.xml"), "-Dtest=MealWorkspaceMysqlIT,MealWorkspaceHttpIT,RecommendationLearningMysqlIT", "test"]
+        if args.maven_repository:
+            command += ["-o", "-Dmaven.repo.local=" + str(Path(args.maven_repository).resolve())]
+        result = subprocess.run(command, env=env, creationflags=flags, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output=result.stdout.decode("utf-8", errors="replace")
         (data / "maven.log").write_text(output,encoding="utf-8")
         print("\n".join(line for line in output.splitlines() if line.startswith("[ERROR]")).encode("ascii","backslashreplace").decode(),flush=True)

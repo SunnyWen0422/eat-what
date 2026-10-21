@@ -80,7 +80,9 @@
     <ui-button slot="footer" label="应用本餐要求" loading="{{requirementsSaving}}" disabled="{{voicePhase !== 'idle' || requirementsSaving || contextLocked}}" bind:action="onApplyRequirements" />
   </ui-sheet>
   <ui-sheet visible="{{settingsVisible}}" title="本餐设置" busy="{{busy}}" bind:close="onCloseMealSettings">
-    <ui-field label="整餐用时上限（分钟，可留空）" value="{{settingsContext && settingsContext.totalCookMinutes != null ? '' + settingsContext.totalCookMinutes : ''}}" type="number" bind:change="onTimeSetting" /><ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />
+    <ui-field label="{{recommendationPolicyEnabled ? '整餐期望用时（分钟，可留空）' : '整餐用时上限（分钟，可留空）'}}" value="{{recommendationPolicyEnabled ? (settingsContext.expectedTotalCookMinutes || '') : (settingsContext.totalCookMinutes || '')}}" type="number" bind:change="onTimeSetting" />
+    <ui-field wx:if="{{recommendationPolicyEnabled && showRequiredTime}}" label="整餐必须在几分钟内（清空可取消）" value="{{settingsContext.totalCookMinutes || ''}}" type="number" bind:change="onRequiredTimeSetting" />
+    <ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />
     <view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view><ui-button slot="footer" label="应用本餐设置" bind:action="onApplyMealSettings" />
   </ui-sheet>
   <include src="meal-actual-sheet.wxml" />

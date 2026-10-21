@@ -36,7 +36,7 @@ Page({
   onShow() { if (this._scope && this._scope !== getUserStorageKey('filterPage')) return this.onLoad(); this.syncEditLeaveAlert() },
   onUnload() { this._unloaded = true; if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload() },
   canEditFilter() { return !this._unloaded && !this.data.loading && this.data.featureEnabled && this._scope === getUserStorageKey('filterPage') },
-  editSnapshot() { return JSON.stringify({ criteria: normalizeCriteria(this.data.criteria), ingredientDraft: this.data.ingredientDraft }) },
+  editSnapshot() { return JSON.stringify({ criteria: normalizeCriteria(this.data.criteria), ingredientDraft: this.data.ingredientDraft, clearRequired:this._clearRequired===true, candidateScope:this.data.candidateScope }) },
   syncEditLeaveAlert() {
     const dirty = !!this._editInitial && this.editSnapshot() !== this._editInitial
     this.setData({ dirty })
@@ -54,11 +54,18 @@ Page({
     const result = await loadRecommendationOptions()
     if (this._unloaded || scope !== getUserStorageKey('filterPage') || epoch !== this._loadEpoch) return
     this.options = result.options
+    const editingPolicy=wx.getStorageSync(getUserStorageKey('editingRecommendationPolicy'));wx.removeStorageSync(getUserStorageKey('editingRecommendationPolicy'))
+    const requiredKey=getUserStorageKey('editingRecommendationRequired'),required=normalizeCriteria(wx.getStorageSync(requiredKey));wx.removeStorageSync(requiredKey)
+    const candidateScopeKey=getUserStorageKey('editingRecommendationScope'),candidateScope=wx.getStorageSync(candidateScopeKey)==='favorites'?'favorites':'all';wx.removeStorageSync(candidateScopeKey)
+    this._clearRequired=false
     this.setData({
       criteria: sanitizeCriteriaForOptions(criteria, this.options),
+      candidateScope,
+      recommendationPolicyEnabled: result.synced&&editingPolicy==='balanced-v1'&&this.options.recommendationPolicyVersion==='balanced-v1',
+      requiredSummary: editingPolicy==='balanced-v1'?require('../../utils/recommendation-criteria').criteriaSummary({...required,excludeTagCodes:[],excludedIngredients:[]}):'',
       loading: false,
       offline: !result.synced,
-      featureEnabled: this.options.preferencesEnabled !== false,
+      featureEnabled: this.options.preferencesEnabled !== false && (editingPolicy!=='balanced-v1'||(result.synced&&this.options.recommendationPolicyVersion==='balanced-v1')),
     })
     this._editInitial = this.editSnapshot(); this.syncEditLeaveAlert()
     this.renderGroups()
@@ -147,9 +154,13 @@ Page({
 
   onClear() {
     if (!this.canEditFilter()) return
-    this.setData({ criteria: emptyCriteria(), ingredientDraft: '', ingredientError: '', ingredientFocus: false }); this.syncEditLeaveAlert()
+    this._clearRequired=true
+    this.setData({ criteria: emptyCriteria(), requiredSummary:'', candidateScope:'all', ingredientDraft: '', ingredientError: '', ingredientFocus: false }); this.syncEditLeaveAlert()
     this.renderGroups()
   },
+
+  onClearRequired(){if(!this.canEditFilter())return;this._clearRequired=true;this.setData({requiredSummary:''});this.syncEditLeaveAlert()},
+  onClearCandidateScope(){if(!this.canEditFilter())return;this.setData({candidateScope:'all'});this.syncEditLeaveAlert()},
 
   onApply() {
     if (this._scope !== getUserStorageKey('filterPage')) { this.onLoad(); return }
@@ -157,8 +168,11 @@ Page({
     const issue = preferenceSaveIssue({ ingredientDraft: this.data.ingredientDraft })
     if (issue) { this.setData({ ingredientFocus: false }); this.setData({ ingredientError: '请先添加这项本餐排除食材', ingredientFocus: true }); return }
     wx.setStorageSync(getUserStorageKey('pendingRecommendationCriteria'), normalizeCriteria(this.data.criteria))
+    wx.setStorageSync(getUserStorageKey('pendingRecommendationPolicy'), this.data.recommendationPolicyEnabled?'balanced-v1':'legacy')
+    wx.setStorageSync(getUserStorageKey('pendingRecommendationClearRequired'), this._clearRequired===true)
+    wx.setStorageSync(getUserStorageKey('pendingRecommendationScope'), this.data.candidateScope||'all')
     this._editInitial = this.editSnapshot(); this.syncEditLeaveAlert()
-    wx.showToast({ title: '筛选已带回本餐', icon: 'success' })
+    wx.showToast({ title: this.data.recommendationPolicyEnabled?'偏好已带回本餐':'筛选已带回本餐', icon: 'success' })
     wx.navigateBack()
   },
 })

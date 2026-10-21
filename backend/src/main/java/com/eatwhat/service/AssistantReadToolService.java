@@ -52,7 +52,7 @@ public class AssistantReadToolService {
         if(result.getSourceVersion()==null)result.setSourceVersion(fingerprint(result.getItems()));return result;
     }
     private void detail(Long user,List<Long> ids,MealWorkspace w,TurnScope scope,ReadResult out,boolean methods){
-        RecommendationCriteria hard=new RecommendationCriteriaResolver().resolve(w.getContext().getCriteria(),preferences.get(user),true);
+        RecommendationCriteria hard=new RecommendationCriteriaResolver().resolveMeal(w.getContext(),preferences.get(user));
         Map<Long,Dish> available=new HashMap<>();for(Dish d:orEmpty(dishes.getDishesByIdsForUser(ids,user))){checkDish(d,user);if(matches(d,hard,null)&&ids.contains(d.getId()))available.put(d.getId(),d);}
         // Fail the whole detail call; never substitute another recipe for an inaccessible ID.
         for(Long id:ids){Dish d=available.get(id);if(d==null)throw new IllegalArgumentException("菜品不存在、不可访问或不满足本餐限制");Map<String,Object> item=recipe(d,out);if(methods){item.put("steps",d.getSteps()==null?d.getStep():d.getSteps());item.put("methods",d.getMethods());if(item.get("steps")==null)out.getUnknownFields().add("steps:"+id);}out.getItems().add(item);scope.getAuthorizedDishIds().add(id);}
@@ -62,7 +62,7 @@ public class AssistantReadToolService {
         RecommendationCriteria additional=new RecommendationCriteria();additional.setCuisineCodes(strings(filters.get("cuisine_codes"),false));additional.setIncludeTagCodes(strings(filters.get("include_tag_codes"),false));additional.setExcludeTagCodes(strings(filters.get("exclude_tag_codes"),false));additional.setExcludedIngredients(strings(filters.get("excluded_ingredients"),false));if(filters.containsKey("max_cook_minutes"))additional.setMaxCookMinutes(integer(filters.get("max_cook_minutes"),1,240));
         if(!metadata.validateCriteria(additional).isEmpty())throw new IllegalArgumentException("查询条件包含不支持的代码");
         String type=filters.containsKey("type")?text(filters.get("type"),40):null;if(type!=null&&!TYPES.contains(type))throw new IllegalArgumentException("菜品类别无效");
-        RecommendationCriteria hard=new RecommendationCriteriaResolver().resolve(w.getContext().getCriteria(),preferences.get(user),true);
+        RecommendationCriteria hard=new RecommendationCriteriaResolver().resolveMeal(w.getContext(),preferences.get(user));
         RecommendationCriteria query=merge(hard,additional);String keyword=args.containsKey("query")?text(args.get("query"),200):null;
         List<String> ingredients=ingredientsSearch?strings(args.get("ingredients"),true):Collections.emptyList();int limit=args.containsKey("top_k")?integer(args.get("top_k"),1,30):10;
         List<Dish> pool=new ArrayList<>();for(Dish d:orEmpty(candidates.findRawForUser(user,type,keyword,query,Integer.MAX_VALUE))){checkDish(d,user);if(!matches(d,hard,null)||!matches(d,additional,type))continue;if(ingredientsSearch&&!hasAnyIngredient(d,ingredients))continue;pool.add(d);}

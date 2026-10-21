@@ -95,6 +95,7 @@ CRITERIA = obj({"cuisineCodes": nullable(STRINGS), "includeTagCodes": nullable(S
 COUNTS = obj({key: integer(0, 10) for key in TYPES})
 CONTEXT_PATCH = obj({"people": integer(1, 50), "counts": COUNTS,
     "compositionMode": string(30, ["auto", "manual"]), "criteria": CRITERIA,
+    "recommendationPreferences": CRITERIA, "expectedTotalCookMinutes": nullable(integer(1,480)), "candidateScope": string(20,["all","favorites"]),
     "totalCookMinutes": nullable(integer(1, 480)), "requirements": TEXT, "ownedIngredients": STRINGS})
 TOOL_ARGUMENTS = {
     "search_dishes": obj({"query": string(200, nonempty=True), "filters": FILTERS, "top_k": integer(1, 30), "cursor": CURSOR}),
@@ -111,7 +112,7 @@ TOOL_ARGUMENTS = {
     "read_saved_menus": obj({"query": string(200, nonempty=True), "menuId": ID, "cursor": dict(string(19), pattern=r"[1-9][0-9]{0,18}"), "limit": integer(1, 20)}),
 }
 ACTION_ARGUMENTS = {
-    "draft_update": obj({"operation": string(20, ["generate", "regenerate", "adjust", "undo"]),
+    "draft_update": obj({"operation": string(20, ["generate", "regenerate", "adjust", "undo"]), "selectionMode": string(20,["recommend","explicit"]),
         "contextPatch": CONTEXT_PATCH, "targetDishId": ID, "targetConstraints": CRITERIA,
         "replacementDishId": ID, "selectedDishIds": IDS, "keepDishIds": IDS, "releaseDishIds": IDS}, ["operation"]),
     "calendar_save": obj({"sourceWorkspaceId": string(100, nonempty=True), "targetDate": DATE,
@@ -203,8 +204,8 @@ CONTEXT = obj({"schemaVersion": string(30, [VERSION]), "requestContext": obj({"e
         "originalIntent": TEXT, "selection": obj({"date": DATE, "mealType": string(20, MEALS), "dishId": ID,
             "people": integer(1,50), "source": string(20, ["draft","calendar"]), "requirementMode":string(20,["time","ingredients","keep"])})}, ["kind","originalIntent","selection"]),
     "locale": string(20), "timezone": string(100), "now": string(100), "selectedTarget": obj({"date": DATE, "mealType": string(20, MEALS)})}),
-    "activeMeal": ACTIVE, "constraints": obj({"hard": CRITERIA, "requirements": nullable(TEXT), "ownedIngredients": nullable(STRINGS),
-        "soft": obj({"preferredCuisineCodes": nullable(STRINGS), "preferredTagCodes": nullable(STRINGS), "avoidRecentDays": nullable(integer(0, 366))})}),
+    "activeMeal": ACTIVE, "constraints": obj({"hard": CRITERIA, "recommendationPolicy": string(30,["balanced-v1"]), "recommendationPreferences": CRITERIA, "expectedTotalCookMinutes": nullable(integer(1,480)), "candidateScope": string(20,["all","favorites"]), "requirements": nullable(TEXT), "ownedIngredients": nullable(STRINGS),
+        "soft": obj({"preferredCuisineCodes": nullable(STRINGS), "preferredTagCodes": nullable(STRINGS), "avoidRecentDays": nullable(integer(0, 366)), "expectedCookMinutes": nullable(integer(1,240))})}),
     "conversation": obj({"recentText": array(obj({"role": string(20, ["user", "assistant"]), "text": string(400)}), 12),
         "roundLimit": integer(0, 12), "savedMenus": array(MENU, 5)}),
     "lastActions": array(LAST_ACTION, 30), "references": array(MENU, 30), "recentActual": array(ACTUAL, 100),

@@ -65,6 +65,12 @@ test('server materializing empty criteria does not create a false first-meal con
  let generated=false;f.api.commandMealWorkspace=async(id,body)=>{generated=body.command==='generate';return {...f.store.state().workspace,revision:2}}
  await f.store.command('generate');assert.equal(generated,true)
 })
+test('new server defaults do not create a false conflict and capability is refreshed rather than cached',async()=>{
+ const f=fixture();f.api.getMealWorkspace=async()=>({workspace:null,recommendationPolicyVersion:'balanced-v1'});await f.store.load('2026-10-03','lunch')
+ f.api.createMealWorkspace=async(body)=>({id:'new',revision:1,context:{...body.context,candidateScope:'all',expectedTotalCookMinutes:null,recommendationPreferences:{cuisineCodes:[],includeTagCodes:[],excludeTagCodes:[],excludedIngredients:[],maxCookMinutes:null}},draft:{planVersion:0,dishes:[]}})
+ await f.store.save();assert.equal(f.store.state().syncStatus,'synced');assert.equal(f.store.state().context.recommendationPolicy,'balanced-v1')
+ f.api.getMealWorkspace=async()=>({workspace:f.store.state().workspace});await f.store.load('2026-10-03','lunch');assert.equal(f.store.state().policyVersion,null)
+})
 test('a different server constraint still blocks a racing create',async()=>{
  const f=fixture();f.api.getMealWorkspace=async()=>({workspace:null});await f.store.load('2026-10-03','lunch')
  f.api.createMealWorkspace=async(body)=>({id:'other',revision:1,context:{...body.context,criteria:{excludedIngredients:['花生']}},draft:{planVersion:0,dishes:[]}})

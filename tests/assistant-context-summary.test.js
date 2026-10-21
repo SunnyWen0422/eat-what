@@ -29,8 +29,14 @@ test('unset, unavailable and loading preferences remain distinct and row text is
  assert.match(bounded.mealRows.find(row=>row.id==='requirements').text,/…$/)
  const concise=buildAssistantContextSummary({workspace:{context:{}},preferencesState:'ready',preferencesSnapshot:{avoidRecentDays:7}})
  assert.equal(concise.mealRows.find(row=>row.id==='requirements').text,'未添加')
- assert.deepEqual(concise.savedRows.find(row=>row.id==='saved-recent'),{id:'saved-recent',label:'菜品轮换',text:'最近7天不重复'})
+ assert.deepEqual(concise.savedRows.find(row=>row.id==='saved-recent'),{id:'saved-recent',label:'菜品轮换',text:'优先避开最近7天吃过的菜'})
  assert.equal(buildAssistantContextSummary({preferencesState:'ready',preferencesSnapshot:{avoidRecentDays:0}}).savedRows.find(row=>row.id==='saved-recent').text,'不限制')
+})
+test('balanced summaries distinguish wishes, explicit limits, and favorite-only scope',()=>{
+ const view=buildAssistantContextSummary({workspace:{context:{...workspace.context,recommendationPolicy:'balanced-v1',recommendationPreferences:{includeTagCodes:['LIGHT'],maxCookMinutes:20},candidateScope:'favorites'}},preferencesSnapshot:{maxCookMinutes:30},preferencesState:'ready'})
+ assert.equal(view.mealRows.find(row=>row.id==='wishes').text,'清淡');assert.match(view.mealRows.find(row=>row.id==='scope').text,/仅从收藏/)
+ assert.match(view.mealRows.find(row=>row.id==='total-time').text,/上限/);assert.equal(view.savedRows.find(row=>row.id==='saved-time').label,'单菜期望用时')
+ assert.doesNotMatch(view.mealRows.find(row=>row.id==='wish-time').text,/最多|上限/)
 })
 async function pageFixture(t){
  const f=fixture(),page=assistantPage(f.createPage('assistant'),{probe:async()=>true})

@@ -855,6 +855,7 @@ module.exports = {
   getUserInfo,
   updateUserInfo,
   getUserPreferences,
+  resetRecommendationLearning: body => doRequest('/users/preferences/learning/reset', 'POST', body, { silent:true, maxRetries:0 }),
   updateUserPreferences,
 
   // 收藏菜品接口

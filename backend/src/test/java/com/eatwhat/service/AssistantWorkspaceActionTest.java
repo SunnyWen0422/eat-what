@@ -11,6 +11,20 @@ import org.springframework.transaction.support.*;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 class AssistantWorkspaceActionTest {
+ @Test void partial_soft_patch_keeps_other_saved_meal_wishes() throws Exception {
+  DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");w.getContext().setRecommendationPolicy("balanced-v1");w.getContext().getRecommendationPreferences().setCuisineCodes(Collections.singletonList("CANTONESE"));w.getContext().getRecommendationPreferences().setMaxCookMinutes(20);w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));f.f.sourceJson=f.f.json.writeValueAsString(w);
+  DraftIntent intent=new DraftIntent();intent.setOperation("regenerate");intent.setSelectionMode("recommend");intent.setContextPatch(Collections.singletonMap("recommendationPreferences",Collections.singletonMap("includeTagCodes",Collections.singletonList("LIGHT"))));
+  MealContext next=f.apply(intent,"partial-wishes").getContext();assertEquals(Collections.singletonList("CANTONESE"),next.getRecommendationPreferences().getCuisineCodes());assertEquals(20,next.getRecommendationPreferences().getMaxCookMinutes());assertEquals(Collections.singletonList("LIGHT"),next.getRecommendationPreferences().getIncludeTagCodes());
+ }
+ @Test void favorite_scope_keeps_explicitly_retained_nonfavorite() throws Exception {
+  DraftFixture f=new DraftFixture();when(f.favorites.getFavoriteDishIds(1L)).thenReturn(Arrays.asList(1L,4L));DraftIntent i=new DraftIntent();i.setOperation("regenerate");i.setSelectionMode("recommend");i.setContextPatch(Collections.singletonMap("candidateScope","favorites"));
+  MealWorkspace next=f.apply(i,"favorites-keep");assertEquals(new HashSet<>(Arrays.asList(1L,4L,3L)),new HashSet<>(next.getDraft().getDishes().stream().map(Dish::getId).collect(java.util.stream.Collectors.toList())));assertTrue(next.getDraft().getLockedDishIds().contains(3L));
+ }
+ @Test void upgrading_policy_alone_does_not_block_single_replacement() throws Exception {
+  DraftFixture f=new DraftFixture();DraftIntent i=new DraftIntent();i.setOperation("adjust");i.setSelectionMode("recommend");i.setTargetDishId(2L);
+  MealWorkspace next=f.apply(i,"replace-upgrade");assertEquals(Arrays.asList(1L,4L,3L),next.getDraft().getDishes().stream().map(Dish::getId).collect(java.util.stream.Collectors.toList()));
+  assertEquals("balanced-v1",next.getContext().getRecommendationPolicy());
+ }
  @Test void empty_assistant_snapshot_fails_before_any_dish_lock_query() throws Exception {
   DraftFixture f=new DraftFixture();MealWorkspace w=f.service.get(1L,"source");w.getDraft().setDishes(Collections.emptyList());f.f.sourceJson=f.f.json.writeValueAsString(w);
   assertThrows(IllegalArgumentException.class,()->f.f.service.assistantSnapshot(1L,"source"));verifyNoInteractions(f.f.validator);
@@ -36,16 +50,22 @@ class AssistantWorkspaceActionTest {
   assertEquals(2,undone.getContext().getPeople());assertEquals(fingerprint,undone.getDraft().getContextFingerprint());
   assertEquals(5L,undone.getRevision());assertEquals(4L,undone.getDraft().getPlanVersion());
  }
+ @Test void balanced_generation_uses_server_sampling_without_model_selected_ids_and_undo_keeps_cycle() throws Exception {
+  DraftFixture f=new DraftFixture();DraftIntent intent=new DraftIntent();intent.setOperation("generate");intent.setSelectionMode("recommend");
+  MealWorkspace next=f.apply(intent,"balanced-generate");assertEquals(3,next.getDraft().getDishes().size());assertFalse(next.getRecommendationCycle().isEmpty());
+  Map<String,Set<String>> cycle=next.getRecommendationCycle();DraftIntent undo=new DraftIntent();undo.setOperation("undo");MealWorkspace restored=f.apply(undo,"balanced-undo");assertEquals(cycle,restored.getRecommendationCycle());
+ }
  static class DraftFixture {
   WorkspaceTargetSaveTest.Fixture f=new WorkspaceTargetSaveTest.Fixture();
-  MealWorkspaceService service;MealWorkspacePlanner planner;List<Dish> pool=new ArrayList<>();
+  MealWorkspaceService service;MealWorkspacePlanner planner;FavoriteDishService favorites=mock(FavoriteDishService.class);List<Dish> pool=new ArrayList<>();
   DraftFixture() throws Exception {
    for(long id=1;id<=4;id++){Dish d=new Dish();d.setId(id);d.setName("菜"+id);d.setType("veg");d.setCl("青菜");d.setCookMinutes(id==4?5:15);pool.add(d);}
    MealWorkspace w=f.service.get(1L,"source");w.getContext().setCounts(Collections.singletonMap("veg",3));w.getDraft().setDishes(new ArrayList<>(pool.subList(0,3)));w.getDraft().setLockedDishIds(new LinkedHashSet<>(Collections.singletonList(3L)));w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));f.sourceJson=f.json.writeValueAsString(w);
-   DishCandidateQueryService query=mock(DishCandidateQueryService.class);DishMapper dishes=mock(DishMapper.class);UserPreferenceService preferences=mock(UserPreferenceService.class);RecommendationMetadataService metadata=mock(RecommendationMetadataService.class);FavoriteDishService favorites=mock(FavoriteDishService.class);
+   DishCandidateQueryService query=mock(DishCandidateQueryService.class);DishMapper dishes=mock(DishMapper.class);UserPreferenceService preferences=mock(UserPreferenceService.class);RecommendationMetadataService metadata=mock(RecommendationMetadataService.class);
    when(preferences.get(1L)).thenReturn(new UserPreferenceDTO());when(favorites.getFavoriteDishIds(1L)).thenReturn(Collections.emptyList());when(metadata.validateCriteria(any())).thenReturn(Collections.emptyMap());
    when(query.detailsForFacts(anyLong(),anyList())).thenAnswer(call -> call.getArgument(1)); when(query.findRawForUser(eq(1L),isNull(),isNull(),any(),anyInt())).thenAnswer(i->{EffectiveRecommendationCriteria c=i.getArgument(3);List<Dish> out=new ArrayList<>();for(Dish d:pool)if(c.getMaxCookMinutes()==null||d.getCookMinutes()<=c.getMaxCookMinutes())out.add(d);return out;});
    when(dishes.lockReadableDishes(anyList(),eq(1L))).thenAnswer(i->{List<Long> ids=i.getArgument(0);List<Dish> out=new ArrayList<>();for(Dish d:pool)if(ids.contains(d.getId()))out.add(d);return out;});
+   when(query.findSelectedForUser(eq(1L),anyList(),any())).thenAnswer(i->{List<Long> ids=i.getArgument(1);RecommendationCriteria c=i.getArgument(2);List<Dish> out=new ArrayList<>();for(Dish d:pool)if(ids.contains(d.getId())&&(c.getMaxCookMinutes()==null||d.getCookMinutes()<=c.getMaxCookMinutes()))out.add(d);return out;});
    planner=new MealWorkspacePlanner(query,dishes,preferences,metadata,favorites,f.actual,f.json);
    TransactionTemplate tx=mock(TransactionTemplate.class);when(tx.execute(any())).thenAnswer(i->((TransactionCallback<?>)i.getArgument(0)).doInTransaction(new SimpleTransactionStatus()));
    service=new MealWorkspaceService(f.db,f.actual,f.plans,new RecipeRecordService(f.plans,f.dishes),planner,f.json,tx);

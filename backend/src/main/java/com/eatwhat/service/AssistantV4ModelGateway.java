@@ -32,6 +32,8 @@ public class AssistantV4ModelGateway {
             .disableAutomaticRetries().disableRedirectHandling().disableCookieManagement().build();
     private volatile long extensionCheckUntil;
     private volatile boolean extensionReady;
+    private volatile boolean balancedReady;
+    public boolean supportsBalancedRecommendation(){supportsExtensions();return balancedReady;}
     @Value("${assistant-v4.natural-reply-enabled:${ASSISTANT_V4_NATURAL_REPLY_ENABLED:false}}") private boolean naturalRepliesEnabled;
     private volatile long replyCheckUntil;
     private volatile boolean replyReady,flexibleReplyReady;
@@ -78,11 +80,13 @@ public class AssistantV4ModelGateway {
         if(token==null||token.trim().isEmpty()||TransactionSynchronizationManager.isActualTransactionActive())return false;
         long now=System.currentTimeMillis();if(now<extensionCheckUntil)return extensionReady;
         Future<String> pending=null;boolean ready=false;TransportCancellation cancellation=new TransportCancellation();
+        balancedReady=false;
         try{
             HttpHeaders headers=new HttpHeaders();headers.set("X-Service-Token",token);
             pending=requests.submit(()->transport(1000,cancellation).exchange(url.substring(0,url.length()-4)+"capabilities",HttpMethod.GET,new HttpEntity<Void>(headers),String.class).getBody());
             String response=pending.get(1000,TimeUnit.MILLISECONDS);
             if(response!=null&&response.length()<2000){com.fasterxml.jackson.databind.JsonNode body=json.readTree(response);
+                balancedReady="balanced-v1".equals(body.path("recommendationPolicyVersion").asText());
                 ready="maturity.2".equals(body.path("contractRevision").asText())&&body.path("uiFeatures").isArray()&&body.path("uiFeatures").toString().contains("\"clarification_v1\"")&&body.path("uiFeatures").toString().contains("\"handoff_v1\"");}
         }catch(InterruptedException cancelled){Thread.currentThread().interrupt();}
         catch(Exception unavailable){/* Old/unavailable adapters simply do not advertise extensions. */}

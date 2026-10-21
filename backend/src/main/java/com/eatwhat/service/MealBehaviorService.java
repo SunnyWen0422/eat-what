@@ -10,6 +10,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.*;
 @Service
 public class MealBehaviorService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private RecommendationLearningService learning;
     private final MealWorkspaceMapper db;
     private final MealConsumptionMapper locks;
     private final ObjectMapper json;
@@ -29,6 +30,7 @@ public class MealBehaviorService {
                 MealWorkspace w=json.readValue(row.getStateJson(),MealWorkspace.class);
                 if(!Objects.equals(row.getRevision(),event.getExpectedWorkspaceRevision())||!Objects.equals(w.getDraft().getPlanVersion(),event.getPlanVersion())||w.getDraft().getDishes().isEmpty())throw new MealConsumptionService.VersionConflict("曝光方案已变化");
                 db.event(key(user,event.getRequestId()),user,w.getId(),event.getPlanVersion(),event.getEventType(),w.getDraft().getSource());
+                if(learning!=null)learning.record(user,w,"exposed",w.getDraft().getDishes());
                 MealWorkspace receipt=new MealWorkspace();receipt.setId(w.getId());receipt.setRevision(w.getRevision());db.log(user,event.getRequestId(),hash,json.writeValueAsString(receipt));return Collections.singletonMap("recorded",true);
             }catch(MealConsumptionService.VersionConflict e){throw e;}catch(Exception e){throw new IllegalStateException("事件保存失败",e);}
         });

@@ -64,6 +64,12 @@ public class RecommendationMetadataService {
         return metadataVersion;
     }
 
+    public String groupOf(String code) {
+        for (Map.Entry<String,List<RecommendationOptionsDTO.Option>> group:groups.entrySet())
+            for (RecommendationOptionsDTO.Option option:group.getValue()) if (option.getCode().equals(code)) return group.getKey();
+        return null;
+    }
+
     public boolean isKnownCuisine(String code) {
         return code != null && cuisineCodes.contains(code.trim().toUpperCase());
     }

@@ -21,11 +21,21 @@ public class AssistantV4ContextService {
     private AssistantGuidanceService guidance;
     @Autowired void setGuidance(AssistantGuidanceService service){guidance=service;}
     @Autowired public AssistantV4ContextService(MealWorkspaceService w,UserPreferenceService p,MealConsumptionMapper a,PersonalMenuService m,RecommendationMetadataService d,ObjectMapper j){this(w,p,a,m,d,j,Clock.system(ZoneId.of("Asia/Shanghai")));}
+    /** Negotiation affects this turn's interpretation; it does not mutate the workspace. */
+    public void negotiateBalanced(Long user,TurnRequest request,ModelContext result){
+        MealWorkspace w=workspaces.get(user,request.getWorkspaceId());checkVersions(w,request.getExpectedWorkspaceRevision(),request.getExpectedPlanVersion());
+        MealContext c=json.convertValue(w.getContext(),MealContext.class);c.setRecommendationPolicy(BalancedRecommendationPolicy.VERSION);
+        UserPreferenceDTO saved=preferences.get(user);EffectiveRecommendationCriteria effective=new RecommendationCriteriaResolver().resolveMeal(c,saved);
+        result.getConstraints().put("hard",criteria(effective));result.getConstraints().put("recommendationPolicy",BalancedRecommendationPolicy.VERSION);
+        result.getConstraints().put("recommendationPreferences",criteria(c.getRecommendationPreferences()));result.getConstraints().put("expectedTotalCookMinutes",c.getExpectedTotalCookMinutes());result.getConstraints().put("candidateScope",c.getCandidateScope());
+        result.getConstraints().put("soft",map("preferredCuisineCodes",effective.getPreferredCuisineCodes(),"preferredTagCodes",effective.getPreferredTagCodes(),"avoidRecentDays",effective.getAvoidRecentDays(),"expectedCookMinutes",saved.getMaxCookMinutes()));
+        if(size(result)>CONTEXT_BUDGET)result.getConstraints().remove("soft");
+    }
     AssistantV4ContextService(MealWorkspaceService w,UserPreferenceService p,MealConsumptionMapper a,PersonalMenuService m,RecommendationMetadataService d,ObjectMapper j,Clock c){workspaces=w;preferences=p;actual=a;menus=m;metadata=d;json=j;clock=c;}
     public ModelContext build(Long user,TurnRequest request,SessionState session){
         if(user==null||user<1||request==null||session==null||!Objects.equals(user,session.getUserId())||!Objects.equals(request.getWorkspaceId(),session.getWorkspaceId()))throw new IllegalArgumentException("会话与本餐不匹配，请重新打开助手");
         MealWorkspace w=workspaces.get(user,request.getWorkspaceId());checkVersions(w,request.getExpectedWorkspaceRevision(),request.getExpectedPlanVersion());
-        MealContext meal=w.getContext();UserPreferenceDTO saved=preferences.get(user);EffectiveRecommendationCriteria effective=new RecommendationCriteriaResolver().resolve(meal.getCriteria(),saved,true);
+        MealContext meal=w.getContext();UserPreferenceDTO saved=preferences.get(user);EffectiveRecommendationCriteria effective=new RecommendationCriteriaResolver().resolveMeal(meal,saved);
         LocalDate today=LocalDate.now(clock.withZone(ZoneId.of("Asia/Shanghai"))),start=today.minusDays(6);ModelContext result=new ModelContext();
         result.setRequestContext(map("entryScene",request.getEntryScene(),"locale","zh-CN","timezone","Asia/Shanghai","now",OffsetDateTime.now(clock.withZone(ZoneId.of("Asia/Shanghai"))).toString(),"selectedTarget",map("date",meal.getDate(),"mealType",meal.getMealType())));
         if(request.getClarificationChoice()!=null){if(guidance==null)throw new IllegalArgumentException("澄清暂不可用");result.getRequestContext().put("clarification",guidance.resolveChoice(user,session.getSessionId(),request));}
@@ -52,6 +62,10 @@ public class AssistantV4ContextService {
         List<Map<String,Object>> optionalMenus=new ArrayList<>();for(CustomRecipe menu:orEmpty(menus.list(user))){if(menu.getUserId()!=null&&!Objects.equals(user,menu.getUserId()))throw new IllegalArgumentException("菜单不可访问");Map<String,Object> item=map("kind","menu","id",menu.getId(),"name",menu.getName(),"people",menu.getPeople(),"dishIds",menu.getDishIds(),"version",menu.getVersion());if(menu.getName()!=null&&!menu.getName().isEmpty()&&request.getMessage()!=null&&request.getMessage().contains(menu.getName()))result.getReferences().add(item);else if(optionalMenus.size()<5)optionalMenus.add(item);}
         result.getConversation().put("savedMenus",optionalMenus);
         result.getConstraints().put("soft",map("preferredCuisineCodes",effective.getPreferredCuisineCodes(),"preferredTagCodes",effective.getPreferredTagCodes(),"avoidRecentDays",effective.getAvoidRecentDays()));
+        if(BalancedRecommendationPolicy.enabled(meal)){
+            result.getConstraints().put("recommendationPolicy",BalancedRecommendationPolicy.VERSION);result.getConstraints().put("recommendationPreferences",criteria(meal.getRecommendationPreferences()));result.getConstraints().put("expectedTotalCookMinutes",meal.getExpectedTotalCookMinutes());result.getConstraints().put("candidateScope",meal.getCandidateScope());
+            ((Map<String,Object>)result.getConstraints().get("soft")).put("expectedCookMinutes",saved.getMaxCookMinutes());
+        }
         // Structured optional removal retains the mandatory current meal, named refs, and constraints.
         while(size(result)>CONTEXT_BUDGET){
             result.getEvidence().put("truncated",true);

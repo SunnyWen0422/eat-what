@@ -82,7 +82,7 @@ class WorkspaceQualityReadScopeTest {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace();
         when(f.favorites.getFavoriteDishIds(7L)).thenReturn(Collections.singletonList(999L));
         List<Dish> rows = f.planner.eligible(7L, w.getContext());
-        assertEquals(1000, rows.size()); assertEquals(999L, rows.get(0).getId());
+        assertEquals(1000, rows.size()); assertEquals(1L, rows.get(0).getId());verifyNoInteractions(f.favorites);
         assertTrue(rows.stream().allMatch(d -> d.getQuality() == null)); verifyNoInteractions(f.profiles);
     }
     @Test void generationEnrichesOnlyFinalTwoRecipesAndPreservesWholeMealTime() {

@@ -108,7 +108,8 @@ public class MealWorkspaceTaskRunner {
                     merged.setCuisineCodes(intersection);
                 }
                 List<String> tags=new ArrayList<>(extra.getIncludeTagCodes());
-                if(!interpreted.getCriteria().getIncludeTagCodes().isEmpty()) {
+                if(BalancedRecommendationPolicy.enabled(interpreted))tags=planner.mergeRequiredTags(interpreted.getCriteria().getIncludeTagCodes(),tags);
+                else if(!interpreted.getCriteria().getIncludeTagCodes().isEmpty()) {
                     if(tags.isEmpty())tags.addAll(interpreted.getCriteria().getIncludeTagCodes());
                     else tags.retainAll(interpreted.getCriteria().getIncludeTagCodes());
                     if(tags.isEmpty())throw new IllegalArgumentException("文字中的标签与本餐设置冲突，请明确选择");
@@ -121,9 +122,15 @@ public class MealWorkspaceTaskRunner {
                     interpreted.setTotalCookMinutes(interpreted.getTotalCookMinutes()==null?limit:Math.min(limit,interpreted.getTotalCookMinutes()));
                 }
                 MealWorkspaceRules.normalize(interpreted);w.setContext(interpreted);
+                if(BalancedRecommendationPolicy.enabled(interpreted)){
+                    if(response.get("recommendationPreferences")!=null){Map<String,Object> wishes=json.convertValue(interpreted.getRecommendationPreferences(),Map.class);wishes.putAll(json.convertValue(response.get("recommendationPreferences"),Map.class));interpreted.setRecommendationPreferences(json.convertValue(wishes,RecommendationCriteria.class));}
+                    if(response.containsKey("expectedTotalCookMinutes"))interpreted.setExpectedTotalCookMinutes(json.convertValue(response.get("expectedTotalCookMinutes"),Integer.class));
+                    if(response.containsKey("candidateScope"))interpreted.setCandidateScope(String.valueOf(response.get("candidateScope")));MealWorkspaceRules.normalize(interpreted);
+                    w.getDraft().setRequirementsFingerprint(MealWorkspaceRules.requirementsFingerprint(interpreted));
+                }
                 List<Long> ids=new ArrayList<>();for(Object id:(List<?>)response.get("dishIds")) ids.add(json.convertValue(id,Long.class));
-                if(!ids.containsAll(w.getDraft().getLockedDishIds()))throw new IllegalArgumentException("智能结果未保留指定菜品，原方案已保留");
-                draft=planner.validateAgent(task.getUserId(),w,ids);draft.setSource("agent");
+                if(BalancedRecommendationPolicy.enabled(interpreted)&&!"explicit".equals(response.get("selectionMode")))draft=planner.generate(task.getUserId(),w,r.getCommand(),null,null);
+                else {if(!ids.containsAll(w.getDraft().getLockedDishIds()))throw new IllegalArgumentException("智能结果未保留指定菜品，原方案已保留");draft=planner.validateAgent(task.getUserId(),w,ids);}draft.setSource("agent");
             } else {draft=planner.generate(task.getUserId(),w,r.getCommand(),r.getDishId(),r.getDishIds());if("select".equals(r.getCommand()))interpreted=w.getContext();}
             if (r.getMenuId() != null) {
                 if (!"select".equals(r.getCommand())) throw new IllegalArgumentException("菜单只能用于选菜草稿");

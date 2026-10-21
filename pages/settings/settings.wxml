@@ -57,13 +57,14 @@
   </view>
 
   <view class="section">
-    <view class="section-title">每道菜用时上限</view>
+    <view class="section-title">{{balancedRecommendation ? '每道菜期望用时' : '每道菜用时上限'}}</view>
     <view class="chip-grid ew-filter-grid">
       <view aria-role="button" class="ew-hit-target choice-chip ew-filter-choice {{(item === null && !preferences.maxCookMinutes) || preferences.maxCookMinutes === item ? 'selected' : ''}}" wx:for="{{durationOptions}}" wx:key="*this" data-value="{{item === null ? 'none' : item}}" bindtap="onDurationTap"><view class="ew-filter-chip">{{item === null ? '不限' : item + '分钟'}}</view></view>
     </view>
   </view>
 
   <button class="ew-hit-target save-btn" bindtap="onSave" disabled="{{loading || saving}}" loading="{{saving}}">保存偏好</button>
+  <view wx:if="{{learningResetEnabled}}" class="section"><view class="section-title">口味学习</view><view class="section-desc">结合采用和单菜替换缓慢调整，不使用收藏。</view><button class="ew-hit-target ew-button secondary" disabled="{{saving || loading || clearingLearning}}" loading="{{clearingLearning}}" bindtap="onClearLearning">清除学习记录</button></view>
   <view class="section"><view class="section-title">偏好记忆</view><button class="ew-hit-target ew-button secondary" disabled="{{saving || loading}}" bindtap="onResetMemory">重置偏好记忆</button></view>
   </block>
 </view>

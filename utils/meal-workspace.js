@@ -1,3 +1,4 @@
+const recommendationPolicy = require('./recommendation-policy')
 const { validateCounts } = require('./meal-composition')
 const { validateMealTarget, matchesSaveSnapshot } = require('./meal-save-target')
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value))
@@ -5,6 +6,10 @@ const canonical = value => JSON.stringify(value, function(key, item) { return it
 const canonicalContext = value => {
   const context = normalizeContext(value)
   context.criteria = { cuisineCodes: [], includeTagCodes: [], excludeTagCodes: [], excludedIngredients: [], maxCookMinutes: null, ...context.criteria }
+  context.recommendationPolicy=context.recommendationPolicy||null
+  context.recommendationPreferences=require('./recommendation-criteria').normalizeCriteria(context.recommendationPreferences)
+  context.expectedTotalCookMinutes=context.expectedTotalCookMinutes==null?null:context.expectedTotalCookMinutes
+  context.candidateScope=context.candidateScope||'all'
   return canonical(context)
 }
 const requestId = () => `ws-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
@@ -57,12 +62,13 @@ function createWorkspaceStore(options = {}) {
   const read = options.read || (key => wx.getStorageSync(key))
   const write = options.write || ((key, value) => wx.setStorageSync(key, value))
   const scope = identity()
+  let policyVersion = null
   let active = true, generation = 0, mutation = 0, key = '', workspace = null, context = null, linked = {}, dirty = false, pending = null, lastAction = null, syncStatus = 'loading'
   const ensure = () => { if (!active || scope !== identity()) throw new Error('账号已切换，请重新进入本餐');if(ownerSource!==source())throw new Error('服务已切换，请重新进入本餐') }
   const owns = (ticket,mutationTicket) => active && scope===identity() && ownerSource===source() && ticket===generation && mutationTicket===mutation
   const superseded = () => Object.assign(new Error('当前餐已切换'),{superseded:true})
   const persist = () => { ensure(); if (key) write(key, clone({ workspace, context, linked, dirty, pending, lastAction, syncStatus })) }
-  const state = () => scope === identity() && ownerSource===source() && active ? clone({ workspace, context, linked, dirty, pending, lastAction, syncStatus }) : { workspace: null, context: null, linked: {}, dirty: false, pending: null, syncStatus: 'account_changed' }
+  const state = () => scope === identity() && ownerSource===source() && active ? clone({ workspace, context, linked, dirty, pending, lastAction, syncStatus, policyVersion }) : { workspace: null, context: null, linked: {}, dirty: false, pending: null, syncStatus: 'account_changed' }
   async function load(date, mealType, defaults = {}) {
     ensure(); const ticket = ++generation, mutationTicket=mutation
     key = `user:${scope}:meal-workspace:${date}:${mealType}`
@@ -72,6 +78,8 @@ function createWorkspaceStore(options = {}) {
     try {
       const response = await api.getMealWorkspace(date, mealType); ensure()
       if (!owns(ticket,mutationTicket)) throw superseded()
+      policyVersion=recommendationPolicy.supported(response.recommendationPolicyVersion)?response.recommendationPolicyVersion:null
+      if (!workspace&&!pending)context=recommendationPolicy.enable(context,policyVersion)
       if (workspace && (!response.workspace || (workspace.id === response.workspace.id && workspace.revision > response.workspace.revision))) { persist(); return state() }
       if ((!dirty && !pending) || !workspace) workspace = response.workspace || null; linked = { plan: response.plan || null, actual: response.actual || null, planRevision: response.planRevision || 0 }
       if (!dirty && !pending && workspace) context = clone(workspace.context)
@@ -87,7 +95,7 @@ function createWorkspaceStore(options = {}) {
       syncStatus=error.statusCode===409?'conflict':'offline';persist();throw error
     }
   }
-  function edit(value) { ensure(); context = normalizeContext(value); dirty = true; if (syncStatus !== 'conflict' && !pending) syncStatus = 'unsynced'; persist(); return state() }
+  function edit(value) { ensure(); context = normalizeContext(recommendationPolicy.enable(value,policyVersion)); dirty = true; if (syncStatus !== 'conflict' && !pending) syncStatus = 'unsynced'; persist(); return state() }
   const available = () => { ensure(); if (syncStatus === 'conflict') throw new Error('本餐已更新，请查看最新内容后重新应用输入'); if (pending) throw new Error('上次结果待确认，请先重试或查询原请求') }
   function rememberAction(operation) {
     if(operation.type!=='command')return null
@@ -192,7 +200,7 @@ function createWorkspaceStore(options = {}) {
   async function command(command, extra = {}, expectedRef = null) {
     const checkReference=()=>{if(expectedRef && (!matchesWorkspaceReference(expectedRef,workspace,context) || options.canCommand && options.canCommand(expectedRef)===false))throw new Error('本餐或待确认操作已变化，请查看当前菜单或完成当前核对')}
     checkReference()
-    available(); if(dirty || !workspace)await save(); available()
+    available(); if(['generate','regenerate'].includes(command)&&!expectedRef&&recommendationPolicy.supported(policyVersion)&&context.recommendationPolicy!==policyVersion)edit(recommendationPolicy.enable(context,policyVersion)); if(dirty || !workspace)await save(); available()
     checkReference()
     return send({ type: 'command', id: workspace.id, body: { ...extra, requestId: extra.requestId || requestId(), expectedWorkspaceRevision: workspace.revision, planVersion: workspace.draft.planVersion, command } })
   }

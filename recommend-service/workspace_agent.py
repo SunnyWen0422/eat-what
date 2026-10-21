@@ -19,8 +19,10 @@ def validate_result(value: dict, context: dict, sourced_ids: set[int]) -> dict:
     if result.get("date") != context.get("date") or result.get("mealType") != context.get("mealType"):
         return {"needsInput": True, "message": "需求指向其他日期或餐次，请先切换当前餐再安排", "dishIds": [],
                 "suggestedTarget": {"date": result.get("date"), "mealType": result.get("mealType")}}
-    ids = result.get("dishIds")
-    if not isinstance(ids, list) or not 1 <= len(ids) <= 10:
+    balanced = context.get("recommendationPolicy") == "balanced-v1"
+    automatic = balanced and result.get("selectionMode", "recommend") == "recommend"
+    ids = [] if automatic else result.get("dishIds")
+    if not isinstance(ids, list) or not (0 if automatic else 1) <= len(ids) <= 10:
         raise ValueError("invalid dish count")
     if any(not isinstance(i, int) or isinstance(i, bool) or i not in sourced_ids for i in ids):
         raise ValueError("dish was not returned by a read tool")
@@ -34,6 +36,12 @@ def validate_result(value: dict, context: dict, sourced_ids: set[int]) -> dict:
         if not isinstance(values, list) or len(values) > 30 or any(not isinstance(v, str) or len(v) > 40 for v in values):
             raise ValueError("invalid criterion values")
     result["criteria"] = criteria
+    if balanced:
+        from assistant_v4_schema import validate, CRITERIA, integer, nullable
+        validate(result.get("recommendationPreferences", {}), CRITERIA)
+        validate(result.get("expectedTotalCookMinutes"), nullable(integer(1,480)))
+        if result.get("selectionMode", "recommend") not in ("recommend", "explicit") or result.get("candidateScope", "all") not in ("all", "favorites"):
+            raise ValueError("invalid selection scope")
     return result
 
 
@@ -62,6 +70,11 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
                      "criteria": {"cuisineCodes": [], "includeTagCodes": [], "excludeTagCodes": [], "excludedIngredients": [], "maxCookMinutes": None},
                      "totalCookMinutes": "null or positive integer (entire meal serial duration)"},
     }, ensure_ascii=False)}, {"role": "user", "content": str(context.get("requirements") or "")[:2000]}]
+    if context.get("recommendationPolicy") == "balanced-v1":
+        instruction=json.loads(messages[0]["content"])
+        instruction["instruction"] += " 当前由Java统一选菜。默认selectionMode=recommend，dishIds=[]，不必查询候选。将想吃、偏向、尽量放入recommendationPreferences或expectedTotalCookMinutes；只有不要、只要、必须等明确限制才写criteria或totalCookMinutes。明确点名时selectionMode=explicit并读取真实ID。只有明确从收藏选才candidateScope=favorites，否则all。"
+        instruction["contract"].update({"selectionMode":"recommend|explicit","candidateScope":"all|favorites","recommendationPreferences":instruction["contract"]["criteria"],"expectedTotalCookMinutes":"null or positive integer"})
+        messages[0]["content"]=json.dumps(instruction,ensure_ascii=False)
     sourced = set()
     started = time.monotonic()
     failure_class = "ToolLoopExhausted"

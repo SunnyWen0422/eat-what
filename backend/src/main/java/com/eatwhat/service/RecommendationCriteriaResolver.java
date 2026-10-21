@@ -12,6 +12,13 @@ import java.util.TreeSet;
 
 public class RecommendationCriteriaResolver {
 
+    public EffectiveRecommendationCriteria resolveMeal(com.eatwhat.dto.MealContext context, UserPreferenceDTO saved) {
+        if(!BalancedRecommendationPolicy.enabled(context))return resolve(context.getCriteria(),saved,true);
+        UserPreferenceDTO copy=new com.fasterxml.jackson.databind.ObjectMapper().convertValue(saved==null?new UserPreferenceDTO():saved,UserPreferenceDTO.class);
+        copy.setMaxCookMinutes(null);
+        return resolve(context.getCriteria(),copy,true);
+    }
+
     public EffectiveRecommendationCriteria resolve(RecommendationCriteria session,
                                                     UserPreferenceDTO saved,
                                                     boolean useSavedPreferences) {

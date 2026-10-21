@@ -12,6 +12,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AssistantV4ContextTest {
+    @Test void negotiationMovesSavedTimeToSoftWithoutMutatingLegacyWorkspace(){
+        Fixture f=new Fixture();f.preference.setMaxCookMinutes(20);AssistantV4ContextService service=f.service();ModelContext result=service.build(7L,f.request,f.session);
+        assertEquals(20,((Map<?,?>)result.getConstraints().get("hard")).get("maxCookMinutes"));service.negotiateBalanced(7L,f.request,result);
+        assertNull(((Map<?,?>)result.getConstraints().get("hard")).get("maxCookMinutes"));assertEquals(20,((Map<?,?>)result.getConstraints().get("soft")).get("expectedCookMinutes"));assertNull(f.w.getContext().getRecommendationPolicy());assertEquals(Arrays.asList("花生"),((Map<?,?>)result.getConstraints().get("hard")).get("excludedIngredients"));
+    }
     static class Fixture {
         final ObjectMapper json=new ObjectMapper();
         final MealWorkspaceService workspaces=mock(MealWorkspaceService.class);

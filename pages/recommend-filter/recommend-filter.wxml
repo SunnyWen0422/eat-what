@@ -1,9 +1,17 @@
 <view class="ew-page filter-page mobile-screen" style="font-size:{{fontBase * fontScale}}px">
   <scroll-view class="mobile-scroll" scroll-y enhanced>
   <view class="mobile-scroll-content">
-  <view class="filter-page-heading"><view class="ew-title">本次筛选</view><ui-icon-button class="meal-filter-clear-control" wx:if="{{featureEnabled}}" name="delete" label="清空本餐筛选" disabled="{{loading}}" bind:press="onClear" /></view>
-  <view class="filter-scope-note">仅用于本餐，长期忌口继续生效。</view>
+  <view class="filter-page-heading"><view class="ew-title">{{recommendationPolicyEnabled ? "本餐偏好" : "本次筛选"}}</view><ui-icon-button class="meal-filter-clear-control" wx:if="{{featureEnabled}}" name="delete" label="清空本餐筛选" disabled="{{loading}}" bind:press="onClear" /></view>
+  <view class="filter-scope-note">{{recommendationPolicyEnabled ? "想吃会优先搭配，排除与长期忌口严格生效。" : "仅用于本餐，长期忌口继续生效。"}}</view>
   <view class="offline-tip" wx:if="{{offline}}">当前使用本地筛选目录</view>
+  <view class="filter-section" wx:if="{{recommendationPolicyEnabled && candidateScope === 'favorites'}}">
+    <view class="section-title">选菜范围 · 仅收藏</view>
+    <button class="ew-hit-target add-btn" bindtap="onClearCandidateScope">改用全部菜谱</button>
+  </view>
+  <view class="filter-section" wx:if="{{recommendationPolicyEnabled && requiredSummary}}">
+    <view class="section-title">必须满足 · {{requiredSummary}}</view>
+    <button class="ew-hit-target add-btn" bindtap="onClearRequired">取消这些限制</button>
+  </view>
 
   <view class="filter-section" wx:if="{{!featureEnabled}}">
     <view class="section-title">筛选功能已暂停</view>
@@ -36,7 +44,7 @@
   </view>
 
   <view class="filter-section">
-    <view class="section-title">单菜最长用时</view>
+    <view class="section-title">{{recommendationPolicyEnabled ? "每道菜期望用时" : "单菜最长用时"}}</view>
     <view class="option-grid ew-filter-grid">
       <view aria-role="button"
         class="ew-hit-target option-chip ew-filter-choice {{(item.value === null && !criteria.maxCookMinutes) || item.value === criteria.maxCookMinutes ? 'selected' : ''}}"

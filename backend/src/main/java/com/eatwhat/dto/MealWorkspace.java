@@ -9,6 +9,8 @@ public class MealWorkspace {
     private Long revision = 0L;
     private MealContext context;
     private PlanDraft draft = new PlanDraft();
+    /** Server-owned, survives undo and is shared by all entry points for this meal. */
+    private Map<String, Set<String>> recommendationCycle = new LinkedHashMap<>();
     private String status = "empty";
     private String taskId;
     private String message;

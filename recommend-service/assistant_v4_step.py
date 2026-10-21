@@ -122,6 +122,13 @@ def prepare_step(value):
         generation_hint = ("\n用户要求生成新方案且事实齐备时，第一步kind=draft_update，在arguments中设operation=generate；"
             "selectedDishIds选1至10个已授权的真实候选ID，遵守保留菜和硬限制。"
             "优先一次均衡候选查询后直接给出完整有界建议，不先创建空方案，不重复生成。")
+    if context.get("constraints", {}).get("recommendationPolicy") == "balanced-v1":
+        generation_hint = ("\n本餐采用服务端统一推荐策略。生成/换一套使用draft_update operation=generate或regenerate，selectionMode=recommend，不挑选selectedDishIds。"
+            "单菜换一道用operation=adjust、selectionMode=recommend和targetDishId，不指定replacementDishId。Java按完整菜库、偏好权重和持久轮换实际选菜。"
+            "想吃、偏向、尽量等写入contextPatch.recommendationPreferences（菜系/标签/maxCookMinutes）及expectedTotalCookMinutes；"
+            "不要/忌口/只要/必须等明确限制写入criteria或totalCookMinutes。排除不可放宽。只返回本次变更字段；修改标签列表时保留未修改的偏好维度。"
+            "只有用户明确点名菜品或指定已保存菜单时使用selectionMode=explicit，并先查到真实ID。明确从收藏挑选才设置candidateScope=favorites，其他推荐设all。"
+            "收藏本身不代表偏好。未知用时保持未知。不要预先宣称具体菜名或已满足条件，执行后以真实菜单及解释为准。")
     messages = [{"role": "system", "content": SYSTEM + generation_hint + navigation_hint + "\n工具循环预算（服务端）：" + bounded_json(budget, 2000)
                  + "\n最终输出 JSON schema：" + bounded_json(model_output_schema(allowed_actions, value.get("replyContract")), 20000)},
                 {"role": "user", "content": "当前授权上下文资料(JSON)：" + bounded_json(context, 12000)}]
@@ -153,6 +160,17 @@ def _step_result(value,message,history,seen,results,allowed,allowed_actions):
         "reasoning_content": {"anyOf": [string(60000), {"type": "null"}]},
         "tool_calls": {"type": "array", "items": {"type": "object"}, "maxItems": 0}}, ["role", "content"]))
     output = strict_json(message["content"])
+    if value["context"].get("constraints", {}).get("recommendationPolicy") == "balanced-v1" and isinstance(output, dict):
+        proposal = output.get("actionProposal")
+        for step in proposal.get("steps", []) if isinstance(proposal, dict) else []:
+            arguments = step.get("arguments") if isinstance(step, dict) else None
+            if isinstance(step, dict) and step.get("kind") == "draft_update" and isinstance(arguments, dict) and "selectionMode" not in arguments:
+                # The negotiated boundary owns this default, including a legacy
+                # workspace's first single replacement. Explicit IDs still need
+                # an explicit mode and the usual read-source authorization.
+                if arguments.get("selectedDishIds") or arguments.get("replacementDishId"):
+                    raise StepValidationError("explicit selection mode required")
+                arguments["selectionMode"] = "recommend"
     try:
         return final_output(output, _authorized_ids(value["context"], results), allowed_actions, value.get("replyContract"), value.get("answerBasis"))
     except StepValidationError:

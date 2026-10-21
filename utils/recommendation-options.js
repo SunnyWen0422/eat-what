@@ -79,6 +79,8 @@ function normalizeOptions(value) {
     metadataVersion: Number(source.metadataVersion) || 1,
     minimumClientVersion: source.minimumClientVersion || FALLBACK_OPTIONS.minimumClientVersion,
     preferencesEnabled: source.preferencesEnabled !== false,
+    recommendationPolicyVersion: source.recommendationPolicyVersion==='balanced-v1'?'balanced-v1':null,
+    learningResetEnabled: source.learningResetEnabled===true,
     homeQuickOptions,
     groups,
   }
@@ -110,7 +112,7 @@ async function loadRecommendationOptions(dependencies = {}) {
   } catch (error) {
     const version = Number(wxRuntime.getStorageSync(CURRENT_VERSION_KEY)) || FALLBACK_OPTIONS.metadataVersion
     const cached = wxRuntime.getStorageSync(cacheKey(version)) || wxRuntime.getStorageSync('recommendationOptionsV1')
-    return { options: normalizeOptions(cached), synced: false, error }
+    return { options: {...normalizeOptions(cached),recommendationPolicyVersion:null,learningResetEnabled:false}, synced: false, error }
   }
 }
 

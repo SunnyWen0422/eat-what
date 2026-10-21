@@ -2,6 +2,7 @@ package com.eatwhat.service;
 
 import com.eatwhat.EatWhatApplication;
 import com.eatwhat.dto.*;
+import com.eatwhat.mapper.DishMapper;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -106,19 +107,27 @@ class MealWorkspaceHttpIT {
         List<Long> ids=sql.queryForList("SELECT id FROM food WHERE IS_PUBLISHED=1 AND FIND_IN_SET('BREAKFAST_ELIGIBLE',TAG_CODES)>0 ORDER BY id LIMIT 3",Long.class);
         assertEquals(3,ids.size());
         MealContext context=new MealContext();context.setDate(day);context.setMealType("breakfast");context.setPeople(2);
+        List<Long> baseline=planner.eligible(3L,context).stream().map(com.eatwhat.entity.Dish::getId).collect(java.util.stream.Collectors.toList());
         try {
             saveRankingFavorite(3L,ids.get(0));saveRankingFavorite(4L,ids.get(1));
             assertEquals(Collections.singletonList(ids.get(0)),favorites.selectDishIdsByUser(3L));
             assertEquals(Collections.singletonList(ids.get(1)),favorites.selectDishIdsByUser(4L));
             saveRankingFavorite(3L,ids.get(0));
             assertEquals(1,sql.queryForObject("SELECT COUNT(*) FROM favorite_dishes WHERE USER_ID=3 AND DISH_ID=?",Integer.class,ids.get(0)));
-            assertEquals(ids.get(0),planner.eligible(3L,context).get(0).getId());
+            assertEquals(baseline,planner.eligible(3L,context).stream().map(com.eatwhat.entity.Dish::getId).collect(java.util.stream.Collectors.toList()));
             saveRankingActual(3L,recentDate,ids.get(0));saveRankingActual(4L,recentDate,ids.get(1));saveRankingActual(3L,outsideDate,ids.get(2));
             List<com.eatwhat.entity.MealConsumption> history=actualRecords.range(3L,recentDate,day);
             assertEquals(1,history.size());assertEquals(3L,history.get(0).getUserId());assertEquals(recentDate,history.get(0).getMealDate());
             assertEquals(ids.get(0).longValue(),json.readTree(history.get(0).getActualDishesJson()).get(0).path("dishId").asLong());
             List<com.eatwhat.entity.Dish> ranked=planner.eligible(3L,context);
-            assertEquals(ids.get(0),ranked.get(ranked.size()-1).getId());
+            assertEquals(baseline,ranked.stream().map(com.eatwhat.entity.Dish::getId).collect(java.util.stream.Collectors.toList()));
+            BalancedRecommendationPolicy policy=new BalancedRecommendationPolicy(new RecommendationMetadataService(org.mockito.Mockito.mock(DishMapper.class)));
+            MealWorkspace test=new MealWorkspace();test.setContext(MealWorkspaceRules.normalize(context));
+            Set<Long> recent=new HashSet<>(Collections.singletonList(ids.get(0)));
+            List<Long> first=policy.select(ranked,test,new UserPreferenceDTO(),recent,Collections.emptySet(),Collections.emptyMap(),"generate",null,new Random(17)).dishes.stream().map(com.eatwhat.entity.Dish::getId).collect(java.util.stream.Collectors.toList());
+            sql.update("DELETE FROM favorite_dishes WHERE USER_ID=3");
+            List<Long> second=policy.select(planner.eligible(3L,context),test,new UserPreferenceDTO(),recent,Collections.emptySet(),Collections.emptyMap(),"generate",null,new Random(17)).dishes.stream().map(com.eatwhat.entity.Dish::getId).collect(java.util.stream.Collectors.toList());
+            assertEquals(first,second,"Changing favorites must not change fixed-seed recommendations");
         } finally {
             sql.update("DELETE FROM favorite_dishes WHERE USER_ID IN (3,4)");
             sql.update("DELETE FROM meal_consumption WHERE user_id IN (3,4) AND meal_date IN (?,?) AND meal_type='lunch'",recentDate,outsideDate);

@@ -9,6 +9,7 @@ public final class AssistantActionContract {
  private AssistantActionContract() {}
  @Data public static class DraftIntent {
   private String operation;
+  private String selectionMode;
   private Map<String,Object> contextPatch;
   private Long targetDishId,replacementDishId;
   private RecommendationCriteria targetConstraints;
