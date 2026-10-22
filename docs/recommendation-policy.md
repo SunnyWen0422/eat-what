@@ -96,7 +96,7 @@
 
 ## 6. 发布顺序与评估边界
 
-本次只完成源码和隔离验收，未执行线上变更。后续发布必须遵循[运维手册](operations/agent-runbook.md)及当次授权：
+2026-10-21 已按用户授权完成 `V8_40` 线上增量迁移及 Java/Python 配套更新，两端能力回查确认为 `balanced-v1`；小程序未发布，真实模型链路未在生产执行验收。证据与边界见[后端上线记录](operations/2026-10-21-recommendation-backend-update.md)。后续发布仍必须遵循[运维手册](operations/agent-runbook.md)及当次授权：
 
 1. 核对备份并按迁移清单应用增量 `V8_40__recommendation_learning.sql`。新增学习事件及重置回执表，不重写旧业务记录。
 2. Python 先具备 `balanced-v1` 协议能力，或安排协调切换；Java 启动前必须已有新表。普通推荐完成、采用和定时清理会访问新表，没有“缺表也已启用”的静默降级。
