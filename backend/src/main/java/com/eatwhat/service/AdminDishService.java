@@ -12,6 +12,7 @@ public class AdminDishService {
     private static final int MAX_PAGE_SIZE = 50;
 
     private final DishMapper dishMapper;
+    @org.springframework.beans.factory.annotation.Autowired private CanonicalCatalogService catalog;
     private final CustomDishService customDishService;
 
     public AdminDishService(DishMapper dishMapper, CustomDishService customDishService) {
@@ -34,11 +35,12 @@ public class AdminDishService {
         safePage = Math.min(safePage, maxPage);
         List<Dish> list = dishMapper.selectAdminPage(safeScope, safeKeyword, safeType, published,
                 ownerId, safePageSize, (safePage - 1) * safePageSize);
+        catalog.enrich(list);
         return new AdminDishPageDTO(list, total, safePage, safePageSize);
     }
 
     public Dish get(Long id) {
-        return id == null ? null : dishMapper.selectAdminById(id);
+        return id == null ? null : catalog.enrich(dishMapper.selectAdminById(id));
     }
 
     public Dish updateSystem(Dish input) {

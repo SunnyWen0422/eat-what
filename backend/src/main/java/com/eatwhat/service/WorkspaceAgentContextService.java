@@ -25,7 +25,7 @@ public class WorkspaceAgentContextService {
         for(Dish d:eligible)if(selected.size()<200&&added.add(d.getId()))selected.add(d);
         List<Map<String,Object>> catalog=new ArrayList<>();
         for(Dish d:planner.attachQuality(user,selected))catalog.add(readable(d));
-        Map<String,Object> result=new LinkedHashMap<>();result.put("ownerUserId",user);result.put("catalog",catalog);result.put("preferences",preferences.get(user));
+        Map<String,Object> result=new LinkedHashMap<>();result.put("ownerUserId",user);result.put("catalog",catalog);if(!catalog.isEmpty())result.put("catalogRevision",catalog.get(0).get("catalogRevision"));result.put("preferences",preferences.get(user));
         String end=c.getDate(),start=MealConsumptionService.date(end).minusDays(6).toString();List<Map<String,Object>> recent=new ArrayList<>();
         for(MealConsumption meal:actual.range(user,start,end))if("eaten".equals(meal.getStatus())){Map<String,Object> item=new LinkedHashMap<>();item.put("date",meal.getMealDate());item.put("mealType",meal.getMealType());item.put("dishes",meal.getActualDishesJson());recent.add(item);}
         result.put("recentActual",recent);List<Map<String,Object>> savedMenus=new ArrayList<>();
@@ -37,24 +37,15 @@ public class WorkspaceAgentContextService {
         String name=searchText(dish.getName());
         if(!name.isEmpty()&&request.contains(name))return 10000+name.length();
         // Ingredient matches are weaker than an explicitly named recipe and never widen eligibility.
-        if(dish.getQuality()!=null){
-            for(CatalogQuality.Ingredient fact:dish.getQuality().getIngredients()){
-                String ingredient=searchText(fact.getName());
-                if(!"REJECTED".equals(fact.getIdentityStatus())&&!ingredient.isEmpty()&&request.contains(ingredient))return 1;
-            }
-        }else if(dish.getCl()!=null){
-            for(String raw:dish.getCl().split("###|#|[,，;；\\n]")){
-                String ingredient=searchText(raw.split("\\|",2)[0]);
-                if(!ingredient.isEmpty()&&request.contains(ingredient))return 1;
-            }
+        for(String term:CanonicalAssistantFacts.terms(dish)){
+            String ingredient=searchText(term);
+            if(!ingredient.isEmpty()&&request.contains(ingredient))return 1;
         }
         return 0;
     }
     private String searchText(String value){return value==null?"":value.toLowerCase(Locale.ROOT).replaceAll("[\\s\\p{P}]+","");}
     private Map<String,Object> readable(Dish d){
-        Map<String,Object> value=new LinkedHashMap<>();value.put("id",d.getId());value.put("name",d.getName());value.put("type",d.getType());value.put("cuisineCode",d.getCuisineCode());value.put("tagCodes",d.getTagCodes());value.put("cookMinutes",d.getCookMinutes());value.put("steps",d.getSteps()==null?d.getStep():d.getSteps());value.put("methods",d.getMethods());value.put("contentVersion",d.getContentVersion());
-        List<Map<String,Object>> facts=new ArrayList<>();List<String> names=new ArrayList<>();
-        if(d.getQuality()!=null){for(CatalogQuality.Ingredient f:d.getQuality().getIngredients()){if("REJECTED".equals(f.getIdentityStatus()))continue;names.add(f.getName());Map<String,Object> item=new LinkedHashMap<>();item.put("name",f.getName());item.put("identityStatus",f.getIdentityStatus());boolean trusted="VERIFIED".equals(d.getQuality().getReviewStatus())&&f.verifiedQuantity();item.put("quantityValue",trusted?f.getQuantityValue():null);item.put("unit",f.getUnit());item.put("quantityStatus",trusted?"VERIFIED":"UNKNOWN");facts.add(item);}value.put("datasetVersion",d.getQuality().getDatasetVersion());}
-        value.put("cl",names.isEmpty()?d.getCl():String.join(" ",names));value.put("ingredientFacts",facts);return value;
+        Map<String,Object> value=CanonicalAssistantFacts.summary(d);
+        value.put("catalogContractVersion",4);value.put("recipe",CanonicalAssistantFacts.recipe(d));return value;
     }
 }

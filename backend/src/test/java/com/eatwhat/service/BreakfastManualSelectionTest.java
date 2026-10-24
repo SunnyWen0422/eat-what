@@ -34,7 +34,7 @@ class BreakfastManualSelectionTest {
                 Dish d = new Dish(); d.setId(id); d.setName("真实菜" + id); d.setType(id == 1 ? "staple" : "veg");
                 d.setCookMinutes(5); d.setCl(id == 3 ? "花生" : "青菜"); d.setTagCodes("LIGHT");
                 if (id == 4) { d.setUserId(7L); d.setIsCustom(1); }
-                values.add(d);
+                CanonicalCandidateFixture.ingredients(d,d.getCl());((com.fasterxml.jackson.databind.node.ObjectNode)d.getRecipe()).putArray("mealCodes").add("MEAL_LUNCH");values.add(d);
             }
             return values;
         }
@@ -85,7 +85,7 @@ class BreakfastManualSelectionTest {
     @Test void manualBreakfastConfirmationStillRejectsRecipeChanges() {
         Fixture f = new Fixture(); MealWorkspace w = f.breakfast();
         PlanDraft draft = assertDoesNotThrow(() -> f.planner.generate(7L, w, "select", null, Arrays.asList(1L, 2L))); w.setDraft(draft);
-        Dish changed = f.visibleRows().get(0); changed.setCl("花生");
+        Dish changed = f.visibleRows().get(0); CanonicalCandidateFixture.ingredients(changed,"花生");
         when(f.dishes.lockReadableDishes(anyList(), eq(7L))).thenReturn(Arrays.asList(changed, f.visibleRows().get(1)));
         assertThrows(MealConsumptionService.VersionConflict.class, () -> f.planner.lockAndValidate(7L, w, Arrays.asList(1L, 2L)));
     }

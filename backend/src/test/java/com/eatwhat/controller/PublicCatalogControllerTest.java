@@ -25,6 +25,7 @@ class PublicCatalogControllerTest {
     @BeforeEach void setup() {
         properties=new PublicCatalogProperties(); mapper=mock(PublicCatalogMapper.class);
         PublicCatalogService service=new PublicCatalogService(properties,mapper,mock(DishQualityMapper.class),new ObjectMapper());
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"catalog",mock(CanonicalCatalogService.class));
         mvc=MockMvcBuilders.standaloneSetup(new PublicCatalogController(service)).dispatchOptions(true).build();
     }
     @Test void disabledListAndDetailReturnExplicitUnavailableJson() throws Exception {

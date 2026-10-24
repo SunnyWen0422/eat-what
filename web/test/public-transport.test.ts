@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createSameOriginPublicCatalogTransport } from '../src/catalog/public-transport.ts';
 import { createPublicCatalogProvider, loadCatalog } from '../src/catalog/catalog.ts';
+import { canonicalPublicDish } from './canonical-fixture.ts';
 import type { PublicDishQuery } from '../src/domain/types.ts';
 
 const empty = { list: [], total: 0, page: 1, pageSize: 100 };
@@ -52,7 +53,7 @@ describe('same-origin deliberate public catalog transport', () => {
     }
   });
   it('uses the provider whitelist to strip all private, media, provenance and nutrition fields', async () => {
-    const row = { id: 1, name: '测试菜', type: 'veg', cl: '青菜', step: '煮熟', contentVersion: 'content', userId: 7, image: 'private image', kcal: 9, quality: { reviewStatus: 'UNKNOWN', reviewedBy: 'private reviewer', sourceRef: 'private source', ingredients: [], issueCodes: [] } };
+    const row = { ...canonicalPublicDish(1), userId: 7, image: 'private image', kcal: 9, quality: { reviewStatus: 'UNKNOWN', reviewedBy: 'private reviewer', sourceRef: 'private source', ingredients: [], issueCodes: [] } };
     const fetcher = cleanFetch(response({ ...empty, total: 1, list: [row], privateOwner: 'secret' }));
     const result = await createPublicCatalogProvider(createSameOriginPublicCatalogTransport(fetcher)).list({ page: 1, pageSize: 100 });
     expect(result.ok).toBe(true); expect(JSON.stringify(result)).not.toMatch(/private|userId|kcal|secret/);

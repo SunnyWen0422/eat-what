@@ -13,7 +13,7 @@ import static org.mockito.Mockito.*;
 
 class IngredientExclusionAllocationTest {
     private DishCandidateQueryService query(String cl, String amounts) {
-        Dish dish=new Dish();dish.setId(1L);dish.setCl(cl);dish.setIngredientsAmounts(amounts);
+        Dish dish=new Dish();dish.setId(1L);dish.setCl(cl);dish.setIngredientsAmounts(amounts);CanonicalCandidateFixture.ingredients(dish,cl.split("\\s+"));
         DishMapper mapper=mock(DishMapper.class);
         when(mapper.selectRecommendationCandidateFacts(anyLong(),isNull(),isNull(),anyList(),anyList(),isNull(),isNull(),eq(256)))
             .thenReturn(Collections.singletonList(dish));
@@ -37,7 +37,7 @@ class IngredientExclusionAllocationTest {
         long allocated=bean.getThreadAllocatedBytes(thread)-before;
         assertTrue(allocated<512*1024,"Chinese exclusions must not allocate a joined copy per row; allocated="+allocated);
     }
-    @Test void matchingRetainsWhitespaceBoundaryUnicodeAndDefaultLocaleRules() {
+    @Test void matchingUsesExactStructuredNamesAndLocaleRootRegardlessOfProse() {
         Locale previous=Locale.getDefault();
         try {
             for(Locale locale:Arrays.asList(Locale.ROOT,Locale.ENGLISH,new Locale("tr","TR"))) {
@@ -46,7 +46,7 @@ class IngredientExclusionAllocationTest {
                     for(String amounts:Arrays.asList("花生油|适量","生","peanut i i\u0307 ı","","盐")) {
                         DishCandidateQueryService service=query(cl,amounts);
                         for(String needle:Arrays.asList("花生","花生油","生","PEANUT","I","İ","ı","i\u0307","蛋 盐"," "," 花生 ")) {
-                            boolean expected=!needle.trim().isEmpty()&&(cl+" "+amounts).toLowerCase().contains(needle.trim().toLowerCase());
+                            boolean expected=!needle.trim().isEmpty()&&Arrays.stream(cl.split("\\s+")).anyMatch(name->name.trim().toLowerCase(Locale.ROOT).equals(needle.trim().toLowerCase(Locale.ROOT)));
                             assertEquals(expected,excludes(service,needle),locale+" / "+needle);
                         }
                     }

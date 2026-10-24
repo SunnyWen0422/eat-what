@@ -1,4 +1,7 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { completeNutrition } from '../catalog/canonical.ts';
+import { fetchCanonicalScale } from '../catalog/public-transport.ts';
+import { canonicalAmount, factLabels, stripStepNumber, type CanonicalScale } from '../catalog/canonical.ts';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { DishType, ErrorCode, Meal, PersonalStore, RecipeSnapshot, TrashEntry } from '../domain/types.ts';
 import categoryIcons from '../assets/category-icons.svg?no-inline';
@@ -31,16 +34,31 @@ export function SourceLink({ url }: { url: string | null }) {
   try { if (url) { const parsed = new URL(url); safe = parsed.protocol === 'https:' && !!parsed.hostname && !parsed.username && !parsed.password; } } catch { /* Untrusted imported URLs remain text only. */ }
   return safe ? <a href={url!} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{url}</a> : <span>{url ?? '未知'}</span>;
 }
+function CanonicalRecipeFacts({snapshot}:{snapshot:RecipeSnapshot}) {
+  const facts=snapshot.canonical!;
+  const [scaled,setScaled]=useState<CanonicalScale|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[overrides,setOverrides]=useState<Record<string,boolean>>({});
+  const epoch=useRef(0);
+  useEffect(()=>{epoch.current++;setScaled(null);setError('');setBusy(false);setOverrides({});return()=>{epoch.current++;};},[snapshot.recipeId,snapshot.contentVersion]);
+  async function scale(nextOverrides=overrides){const serial=++epoch.current;setBusy(true);setError('');try{const value=await fetchCanonicalScale(facts.recipeId,null,facts.revision,undefined,Object.keys(nextOverrides).length?nextOverrides:undefined);if(serial===epoch.current){if(snapshot.contentVersion&&value.contentVersion!==snapshot.contentVersion)throw Error('菜谱已更新，请重新读取');setScaled(value);setOverrides(nextOverrides);}}catch(e){if(serial===epoch.current)setError(e instanceof Error?e.message:'用量更新未完成');}finally{if(serial===epoch.current)setBusy(false);}}
+  const ingredients=scaled?scaled.ingredients.filter(i=>i.enabled).map(i=>({name:i.name,amount:canonicalAmount(i.quantity,i.unit,i.quantityKind)})):snapshot.ingredients.map(i=>({name:i.raw,amount:i.quantityDisplay||canonicalAmount(i.quantity?.kind==='exact'?i.quantity.value:null,i.quantity?.unit||'')}));
+  const nutrition=scaled?(scaled.nutrition.completeness==='complete'?scaled.nutrition.total:null):facts.nutrition;
+  const dietary=scaled?scaled.dietaryCodes:facts.dietaryCodes,allergens=scaled?scaled.allergenCodes:facts.allergenCodes;
+  return <><p className="muted">{[snapshot.types.map(type=>TYPE_LABELS[type]).join('、'),facts.totalMinutes===null?'':`${facts.totalMinutes} 分钟`,'整道菜用量'].filter(Boolean).join(' · ')}</p>
+    {error&&<Notice text={error} error/>}
+    <h4>食材</h4><ul className="ingredient-facts">{ingredients.map((i,index)=><li key={index}><span>{i.name}</span> <span>{i.amount}</span></li>)}</ul>
+    {!!facts.optionalIngredients?.length&&<div>{facts.optionalIngredients.map(i=><label key={i.lineId}><input type="checkbox" checked={scaled?scaled.ingredients.some(row=>row.lineId===i.lineId&&row.enabled):i.defaultEnabled} disabled={busy} onChange={e=>void scale({...overrides,[i.lineId]:e.target.checked})}/>{i.name}（可选）</label>)}</div>}
+    <h4>做法</h4><ol>{(scaled?.steps||snapshot.steps.map(text=>({text}))).map((step,index)=><li key={index}>{/\{\{\s*amount\b/.test(step.text)?'步骤用量暂未读到，请重新读取':stripStepNumber(step.text)}{'ingredientQuantities' in step&&!!step.ingredientQuantities&&<p>本步用量：{Object.entries(step.ingredientQuantities).map(([id,q])=>{const i=scaled!.ingredients.find(i=>i.lineId===id),v=q!==null&&typeof q==='object'?q:null;return i?`${i.name} ${canonicalAmount(v?v.quantity:typeof q==='number'?q:null,v?v.unit:i.unit,v?v.quantityKind:i.quantityKind)}`:'';}).filter(Boolean).join('、')}</p>}</li>)}</ol>
+    {!!dietary?.length&&<p>{dietary.map(code=>factLabels[code]||code).join('、')}</p>}{allergens?.length?<p>过敏原：{allergens.map(code=>factLabels[code]||code).join('、')}</p>:allergens==null&&<p className="muted">过敏原资料未提供</p>}
+    {completeNutrition(nutrition)&&<p className="muted">整道菜合计约 {Number(nutrition.energyKcal.toFixed(1))} 千卡 · 按食材成分计算</p>}</>;
+}
 export function RecipeFacts({ snapshot }: { snapshot: RecipeSnapshot }) {
-  return <><p className="muted">{snapshot.types.map(type => TYPE_LABELS[type]).join('、') || '菜谱'}{snapshot.baseServings !== null ? ` · 原配方 ${snapshot.baseServings} 人` : ''}</p>
-    <h4>食材</h4>{snapshot.ingredients.length ? <ul className="ingredient-facts">{snapshot.ingredients.map((ingredient, index) => <li key={index}>{ingredient.raw}</li>)}</ul> : <p>暂未提供食材信息</p>}
-    <h4>做法</h4>{snapshot.steps.length ? <ol>{snapshot.steps.map((step, index) => <li key={index}>{step}</li>)}</ol> : <p>暂未提供做法</p>}
-    <p className="muted">有忌口时，请核对完整配料和调味料。</p>
-    <details><summary>来源与用料说明</summary><p>基准人数：{snapshot.baseServings ?? '未知'}</p>
-    {snapshot.ingredients.map((ingredient, index) => <p key={index}>{ingredient.raw} · 结构用量：{ingredient.quantity === null ? '未知' : ingredient.quantity.kind === 'exact' ? `${ingredient.quantity.value} ${ingredient.quantity.unit}` : `${ingredient.quantity.min}–${ingredient.quantity.max} ${ingredient.quantity.unit}`} · {ingredient.trust === 'reviewed' ? '来源有审核记录' : '未经审核'} · 复合成分{ingredient.compoundResolved ? '已解析' : '未知'}</p>)}
-    <p>来源链接：<SourceLink url={snapshot.source.url} /></p><p>许可：{snapshot.source.license ?? '未知'}</p>
-    <p>来源版本：{snapshot.source.commit ?? '未知'} · 菜品内容版本：{snapshot.contentVersion ?? '未知'} · 菜库版本：{snapshot.catalogVersion ?? '未知'}</p>
-    <p>筛选无法保证过敏安全，请核对原料、调味料及交叉接触风险。</p></details></>;
+  if(snapshot.canonical)return <CanonicalRecipeFacts snapshot={snapshot}/>;
+  return <><p className="muted">{snapshot.types.map(type=>TYPE_LABELS[type]).join('、')} · 保存时的菜谱</p><h4>食材</h4><ul className="ingredient-facts">{snapshot.ingredients.map((i,index)=><li key={index}>{i.raw}</li>)}</ul><h4>做法</h4><ol>{snapshot.steps.map((step,index)=><li key={index}>{stripStepNumber(step)}</li>)}</ol>
+    <details><summary>来源与用料说明</summary>
+      <p>来源链接：<SourceLink url={snapshot.source.url}/></p><p>许可：{snapshot.source.license??'未知'}</p>
+      <p>来源版本：{snapshot.source.commit??'未知'} · 菜品内容版本：{snapshot.contentVersion??'未知'} · 菜库版本：{snapshot.catalogVersion??'未知'}</p>
+      <p>筛选无法保证过敏安全，请核对原料、调味料及交叉接触风险。</p>
+    </details></>;
 }
 
 /** The form owns one discard decision for both its cancel button and Escape. */

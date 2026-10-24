@@ -5,7 +5,7 @@ const { getDishById } = require('../../utils/api')
 Page({
   onAssistantReturn(){return require('../../utils/assistant-origin').returnFromPage(this)},
   data: { fontBase: require('../../utils/font-scale').base, fontScale: require('../../utils/font-scale')(),
-    dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,
+    dish: null, dishImageFailed: false, dishPlaceholderIcon: 'recipe', targetPeople: 2, ingredientNotice: '', canEditCustom: false,qualityView:null,quantityBusy:false,quantityError:'',
     showDetailMore: false, showCopyPreview: false, copyPreview: null, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', detailActionHeight: 160,
     loading: true,
     error: false,
@@ -85,7 +85,8 @@ Page({
   async loadDishDetail(id) {
     const scope = this._scope = getUserStorageKey('dishView'), epoch = this._epoch = (this._epoch || 0) + 1
     this._copyPreviewBinding = null
-    this.setData({dish: null, qualityView:null,ingredientNotice:'',canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
+    this._quantityRequest = null
+    this.setData({dish: null, qualityView:null,ingredientNotice:'',quantityBusy:false,quantityError:'',canEditCustom: false, copyBusy: false, copyPending: false, copyError: '', copyMessage: '', showCopyPreview: false, copyPreview: null, showDetailMore: false,detailError:'',errorKind:'' })
     try {
       this.setData({ loading: true, error: false })
       const dish = await getDishById(id)
@@ -119,21 +120,23 @@ Page({
         dish.stepImagesFlat.forEach(arr => arr.forEach(url => dish.allStepImages.push(url)))
 
         // 处理食材与用量（如果是JSON字符串则解析）
-        if (!dish.ingredientsAmounts && dish.cl) dish.ingredientsAmounts = dish.cl
+        require('../../utils/canonical-recipe').recipeOf(dish)
         const ingredients=require('../../utils/recipe-display').presentRecipeIngredients(dish)
         dish.ingredientsList=ingredients.lines
         dish.ingredientRows=ingredients.rows
         const qualityView=require('../../utils/recipe-quality').presentRecipeQuality(dish)
         this.setData({qualityView,ingredientNotice:ingredients.basis})
         // 处理步骤（兼容 step/steps 两种字段名）
-        dish.stepsList=require('../../utils/recipe-steps').presentRecipeSteps(dish.steps||dish.step)
+        dish.stepsList=require('../../utils/canonical-recipe').stepLines(dish,dish.scaledRecipe)
+        dish.recipeFacts=require('../../utils/canonical-recipe').facts(dish)
+        dish.optionalIngredients=require('../../utils/canonical-recipe').optionalRows(dish,dish.scaledRecipe)
+        this._optionalOverrides={}
         // 展示图片使用已验证的 HTTPS 地址。
         dish.image = require('../../utils/dish-image').imageSource(dish.image)
 
         const user = wx.getStorageSync('userInfo') || {}
         const canEditCustom = !!user.id && dish.userId != null && String(dish.userId) === String(user.id)
         this.setData({ dish, dishImageFailed: false, dishPlaceholderIcon: require('../../utils/dish-image').placeholderIcon(dish.type), loading: false, canEditCustom }, () => this.measureDetailActions())
-        this.loadMealQuantities(id, scope, epoch)
       } else {
         this.setData({ loading: false, error: true, errorKind:'unavailable',detailError:'这份菜谱已不可用，请返回继续选菜' })
       }
@@ -145,19 +148,37 @@ Page({
     }
   },
 
-  async loadMealQuantities(id, scope, epoch) {
+  async loadMealQuantities(id, scope, epoch, optionalOverrides) {
+    const canonical=require('../../utils/canonical-recipe'), currentDish=this.data.dish
+    if(!currentDish)return
+    const servings=null,serial=this._quantitySerial=(this._quantitySerial||0)+1
+    this._quantityRequest={id,scope,epoch,optionalOverrides}
+    this.setData({quantityBusy:true,quantityError:''})
     try {
-      const preview = await require('../../utils/api').createShoppingPreview({ dishIds: [Number(id)], targetPeople: this.data.targetPeople })
-      if (!this.current(scope) || epoch !== this._epoch) return
-      const items = (preview.dishes || []).flatMap(dish => dish.items || [])
-      // A partial/unknown procurement calculation must not erase readable original amounts.
-      if(!items.length || !items.every(item=>item.calculationStatus==='CALCULATED' && item.quantityText))return
-      const original=this.data.dish.ingredientRows || []
-      if(original.length !== items.length || !original.every(row=>items.some(item=>item.displayName===row.name)))return
-      const display=require('../../utils/recipe-display')
-      const rows=items.map(item=>display.parseIngredient({name:item.displayName,quantityText:item.quantityText}))
-      this.setData({ 'dish.ingredientRows':rows,'dish.ingredientsList':rows.map(display.ingredientLine), ingredientNotice:`${this.data.targetPeople} 人份` })
-    } catch (error) { /* Reading remains usable with the original recipe if scaling is unavailable. */ }
+      const scaled = await require('../../utils/api').getDishScale(id, servings, optionalOverrides)
+      if (!this.current(scope) || epoch !== this._epoch || serial!==this._quantitySerial) return
+      const dish=this.data.dish, canonical=require('../../utils/canonical-recipe')
+      if (Number(scaled.recipeId)!==Number(id) || scaled.catalogRevision!==dish.catalogRevision || scaled.contentVersion && scaled.contentVersion!==dish.contentVersion) throw Error('菜谱版本已变化，请重新读取')
+      canonical.fixedCalculation(scaled,servings)
+      const rows=canonical.ingredientRows(dish,scaled)
+      this._optionalOverrides=optionalOverrides || this._optionalOverrides || {}
+      this.setData({ 'dish.scaledRecipe':scaled,'dish.ingredientRows':rows,'dish.optionalIngredients':canonical.optionalRows(dish,scaled),'dish.recipeFacts':canonical.facts({...dish,scaledRecipe:scaled}),'dish.ingredientsList':rows.map(require('../../utils/recipe-display').ingredientLine),'dish.stepsList':canonical.stepLines(dish,scaled),qualityView:canonical.nutritionView(scaled),ingredientNotice:canonical.servingLabel(dish,scaled) })
+    } catch (error) {
+      if (this.current(scope) && epoch === this._epoch && serial===this._quantitySerial) this.setData({quantityError:'用量更新未完成，仍显示上次结果，请重试'})
+    } finally {
+      if(this.current(scope) && epoch===this._epoch && serial===this._quantitySerial)this.setData({quantityBusy:false})
+    }
+  },
+  onToggleOptional(event) {
+    const dish=this.data.dish,id=event.currentTarget.dataset.id
+    if(!dish || this.data.quantityBusy || !this.current(this._scope) || !dish.recipe.ingredients.some(line=>line.id===id && line.optional))return
+    const enabled=dish.optionalIngredients.find(line=>line.id===id).enabled
+    return this.loadMealQuantities(dish.id,this._scope,this._epoch,{...this._optionalOverrides,[id]:!enabled})
+  },
+  onRetryQuantities() {
+    const request=this._quantityRequest
+    if(!request || this.data.quantityBusy || !this.current(request.scope) || request.epoch!==this._epoch)return
+    return this.loadMealQuantities(request.id,request.scope,request.epoch,request.optionalOverrides)
   },
 
   onShowDetailMore() { if (this.data.dish && this.current(this._scope)) this.setData({ showDetailMore: true }) },
@@ -226,7 +247,7 @@ Page({
   onRemoveSelected(e) { return require('../../utils/dish-workspace-handoff').changeSelectionPage(this,'remove',Number(e.currentTarget.dataset.id),this.selectionOptions()) },
   onContinueSelecting() { if(this.current(this._scope)) {this.setData({showSelectedPanel:false,showMealSelected:false});wx.switchTab({url:'/pages/customize/customize'})} },
   onSelectedDish(e) { if(this.current(this._scope))wx.navigateTo({url:'/pages/dish-detail/dish-detail?id='+Number(e.currentTarget.dataset.id)+'&people='+this.data.targetPeople}) },
-  onOpenCooking() { if(this.data.dish && this.current(this._scope))wx.navigateTo({url:'/pages/meal-cooking/meal-cooking?recipeId='+this.data.dish.id}) },
+  onOpenCooking() { if(this.data.dish && this.current(this._scope))wx.navigateTo({url:'/pages/meal-cooking/meal-cooking?recipeId='+this.data.dish.id+'&people='+this.data.targetPeople}) },
 
   previewImage(e) {
     const url = e.currentTarget.dataset.url

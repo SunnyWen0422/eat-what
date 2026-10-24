@@ -7,7 +7,7 @@ function saveProgress(storage, value, progress) { storage.setStorageSync(key(val
 // Equality uses the actual readable content, including unversioned legacy recipes.
 // It is local reading state, never evidence of cooking or eating.
 function contentFingerprint(dish) {
-  return JSON.stringify([dish.id||dish.dishId,String(dish.contentVersion||''),dish.stepsList||[],dish.ingredientsList||[]])
+  return JSON.stringify([dish.id||dish.dishId,String(dish.contentVersion||''),dish.recipe?dish.recipe.steps:dish.stepsList||[],dish.ingredientsList||[]])
 }
 function restoreReading(storage,context,dishes) {
   const saved=loadProgress(storage,context),entries={},previous=saved.version===2&&saved.entries||{}

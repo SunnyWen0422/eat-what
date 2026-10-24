@@ -28,7 +28,7 @@ function createWriteJournal(options = {}) {
       if (!/^[1-9]\d*$/.test(suffix) || !Number.isSafeInteger(id)) return []
       const request = read(name)
       if (!request || typeof request.requestId !== 'string' || !request.requestId.trim() || typeof request.expectedVersion !== 'string' || !request.expectedVersion) return []
-      return [{ id, name: typeof request.name === 'string' && request.name.trim() ? request.name.trim().slice(0, 255) : '菜谱副本' }]
+      return [{ id, name: typeof (request.recipe&&request.recipe.name||request.name) === 'string' && (request.recipe&&request.recipe.name||request.name).trim() ? (request.recipe&&request.recipe.name||request.name).trim().slice(0, 255) : '菜谱副本' }]
     }).sort((a, b) => a.id - b.id)
   }
   function pendingDeletes(kind) {
@@ -40,19 +40,22 @@ function createWriteJournal(options = {}) {
       return [{ id, request: JSON.stringify(request), name: (kind === 'dish' ? '菜谱' : '菜单') + '（编号 ' + id + '）' }]
     }).sort((a, b) => a.id - b.id)
   }
-  function run(action, body, send) {
+  function pendingDraft(action) { return clone(read(storageKey(action)+':draft') || null) }
+  function run(action, body, send, draft) {
     const scope = identity(), name = storageKey(action)
     const current = () => scope === identity() && name === storageKey(action)
     if (inFlight.has(name)) return inFlight.get(name)
-    const request = pending(action) || { ...clone(body), requestId: requestId() }
+    const previous=pending(action)
+    const request = previous || { ...clone(body), requestId: requestId() }
+    if(!previous && draft)write(name+':draft',clone(draft))
     write(name, request)
     const promise = (async () => {
       try {
         const result = await send(clone(request))
         if (!current()) throw new Error('账号或服务已切换，请重新进入')
-        remove(name); return result
+        remove(name); remove(name+':draft'); return result
       } catch (error) {
-        if (current() && error.statusCode >= 400 && error.statusCode < 500 && ![401,403,408,429].includes(error.statusCode)) remove(name)
+        if (current() && error.statusCode >= 400 && error.statusCode < 500 && ![401,403,408,429].includes(error.statusCode)) {remove(name);remove(name+':draft')}
         throw error
       }
     })()
@@ -60,7 +63,7 @@ function createWriteJournal(options = {}) {
     promise.then(() => inFlight.delete(name), () => inFlight.delete(name))
     return promise
   }
-  return { pending, pendingCopies, pendingDeletes, run }
+  return { pending, pendingDraft, pendingCopies, pendingDeletes, run }
 }
 function menuHandoff(menu) {
   if (!menu || !Number.isInteger(menu.menuId) || !Number.isInteger(menu.menuVersion) || menu.menuVersion < 1 || !/^\d{4}-\d{2}-\d{2}$/.test(menu.menuDate) || !['breakfast','lunch','dinner'].includes(menu.menuMealType) || !Number.isInteger(menu.people) || menu.people < 1 || menu.people > 50 || !Array.isArray(menu.dishIds) || !menu.dishIds.length || menu.dishIds.length > 10 || menu.dishIds.some(id => !Number.isInteger(id) || id < 1)) throw new Error('菜单目标或版本无效，请重新读取')
@@ -105,6 +108,7 @@ function recipeFieldPayload(original, text) {
   return input.replace(/\n/g, '#')
 }
 function recipeForm(dish = {}) {
+  if (dish.recipe) return require('./canonical-authoring').form(dish)
   return { name: dish.name || '', ingredients: editableRecipeText(dish.ingredientsAmounts || dish.cl), steps: editableRecipeText(dish.steps || dish.step),
     cookMinutes: dish.cookMinutes == null ? '' : String(dish.cookMinutes), servingDescription: dish.fl || '', image: dish.image || '' }
 }
@@ -121,8 +125,10 @@ function recipeCopyBody(dish, form, type) {
 }
 function recipeValidation(form, original) {
   for (const [field, label] of [['name','菜品名称'],['ingredients','食材用料'],['steps','烹饪步骤']]) if (!String(form[field] || '').trim()) return { field, message: '请输入' + label }
+  const servings = Number(form.servingDescription)
+  if (String(form.servingDescription || '').trim() && (!Number.isInteger(servings) || servings < 1 || servings > 50)) return {field:'servingDescription',message:'基准人数应为 1 至 50，未知可留空'}
   const minutes = String(form.cookMinutes || '').trim()
-  if (minutes && (!Number.isInteger(Number(minutes)) || Number(minutes) < 1 || Number(minutes) > 240)) return { field: 'cookMinutes', message: '烹饪时间应为 1 至 240 分钟' }
+  if (minutes && (!Number.isFinite(Number(minutes)) || Number(minutes) < 0 || Number(minutes) > 480)) return { field: 'cookMinutes', message: '烹饪时间应为 0 至 480 分钟，未知可留空' }
   if (form.image && (!original || String(form.image) !== String(original.image || '')) && !/^https:\/\/[^\s]+$/i.test(String(form.image).trim())) return { field: 'image', message: '图片请填写 HTTPS 地址，也可以留空' }
   return null
 }

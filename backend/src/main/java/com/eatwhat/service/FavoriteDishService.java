@@ -16,6 +16,7 @@ public class FavoriteDishService {
 
     @Autowired
     private FavoriteDishMapper favoriteDishMapper;
+    @Autowired private CanonicalCatalogService catalog;
 
     /**
      * 添加收藏
@@ -60,6 +61,8 @@ public class FavoriteDishService {
      * 获取用户的收藏列表（带菜品详情）
      */
     public List<FavoriteDish> getFavorites(Long userId) {
-        return favoriteDishMapper.selectFavoritesByUser(userId);
+        List<FavoriteDish> values=favoriteDishMapper.selectFavoritesByUser(userId);
+        java.util.List<com.eatwhat.entity.Dish> dishes=new java.util.ArrayList<>();for(FavoriteDish value:values)if(value.getDish()!=null)dishes.add(value.getDish());
+        catalog.enrich(dishes);return values;
     }
 }

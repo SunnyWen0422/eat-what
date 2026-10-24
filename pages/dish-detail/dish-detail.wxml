@@ -16,6 +16,7 @@
       <view class="dish-tags" wx:if="{{dish.tags}}">
         <text class="tag" wx:for="{{dish.visibleTags}}" wx:key="*this">{{item}}</text>
       </view>
+
     </view>
 
   <!-- 菜品图片 -->
@@ -61,10 +62,12 @@
       <view class="ingredient-grid">
         <view class="ingredient-cell {{item.wide ? 'is-wide' : ''}}" wx:for="{{dish.ingredientRows}}" wx:key="index">
           <text class="ingredient-name">{{item.name}}</text>
-          <text class="ingredient-amount">{{item.amount || '未注明'}}</text>
+          <text class="ingredient-amount">{{item.amount}}</text>
           <text wx:if="{{item.preparation}}" class="ingredient-preparation">{{item.preparation}}</text>
         </view>
       </view>
+      <view wx:if="{{dish.optionalIngredients.length}}"><button wx:for="{{dish.optionalIngredients}}" wx:key="id" class="ew-hit-target ew-link" data-id="{{item.id}}" bindtap="onToggleOptional" disabled="{{quantityBusy}}" aria-label="{{item.enabled ? '不加入' : '加入'}}{{item.name}}">{{item.enabled ? '✓' : '＋'}} {{item.name}}（可选）</button></view>
+      <view wx:if="{{quantityError}}" class="ew-error">{{quantityError}}<button class="ew-hit-target ew-link" bindtap="onRetryQuantities" disabled="{{quantityBusy}}">重试</button></view>
     </view>
     <view wx:if="{{dish.cookingNotes.length}}" class="recipe-notes"><text wx:for="{{dish.cookingNotes}}" wx:key="*this" user-select>{{item}}</text></view>
 
@@ -96,6 +99,9 @@
     </view>
 
     <view wx:if="{{!dish.stepsList || !dish.stepsList.length}}" class="ew-notice">这份菜谱还没有烹饪步骤</view>
+    <view wx:if="{{dish.recipeFacts.dietary.length}}" class="section"><text>{{dish.recipeFacts.dietary}}</text></view>
+    <view wx:if="{{dish.recipeFacts.allergens.length}}" class="section"><text>过敏原：{{dish.recipeFacts.allergens}}</text></view>
+    <view wx:elif="{{!dish.recipeFacts.allergensKnown}}" class="section"><text class="ew-muted">过敏原资料未提供</text></view>
     <view wx:if="{{qualityView.nutritionAvailable}}" class="section"><text class="ew-muted">{{qualityView.nutritionText}}</text></view>
   </view>
   <view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view>

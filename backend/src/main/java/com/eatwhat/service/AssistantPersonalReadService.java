@@ -51,9 +51,7 @@ public class AssistantPersonalReadService {
                 for(Dish d:orEmpty(dishes.getDishesByIdsForUser(page.subList(start,Math.min(start+100,page.size())),user))){checkDish(d,user);if(ids.contains(d.getId()))byId.put(d.getId(),d);}
                 for(Long key:page.subList(start,Math.min(start+100,page.size()))){Dish d=byId.get(key);if(d==null||!matches(d.getName(),query))continue;
                     if(result.getItems().size()==limit){result.setTruncated(true);break outer;}
-                    Map<String,Object> item=dishSummary(d);item.put("detailLevel","summary");
-                    CatalogQuality q=d.getQuality();boolean verified=q!=null&&"VERIFIED".equals(q.getReviewStatus())&&"VERIFIED".equals(q.getServingsStatus());
-                    item.put("basePeople",verified?q.getBasePeople():null);item.put("datasetVersion",q==null?null:q.getDatasetVersion());result.getItems().add(item);
+                    Map<String,Object> item=CanonicalAssistantFacts.summary(d);result.getItems().add(item);
                 }
             }
         }else{

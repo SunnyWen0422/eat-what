@@ -15,7 +15,7 @@ class AssistantSearchSummaryTest(unittest.TestCase):
                 _, first, _ = runner.route(tool_message(call("search", name, arguments)), request)
                 request["providerContinuation"] = first["providerContinuation"]
                 item = {"id": 101, "name": "青菜汤", "type": "soup", "detailLevel": "summary",
-                        "basePeople": None, "datasetVersion": "fixture-v1",
+                        "basePeople": None, "catalogRevision": "fixture-v4",
                         "omittedFields": ["ingredients", "ingredientFacts", "steps", "methods", "tagCodes"]}
                 result = read_result("search", name, [item])
                 result.update(truncated=True, nextCursor="1", unknownFields=["basePeople:101"])
@@ -35,12 +35,23 @@ class AssistantSearchSummaryTest(unittest.TestCase):
         with isolated_service():
             from assistant_v4_schema import read_result as validate_result, StepValidationError
             item = {"id": 101, "type": "soup", "detailLevel": "full", "basePeople": None,
-                    "ingredientFacts": [{"name": "青菜", "unit": "克", "identityStatus": "VERIFIED",
-                                         "quantityValue": None, "quantityStatus": "UNKNOWN"}]}
+                    "catalogRevision": "fixture-v4", "catalogContractVersion": 4, "dietaryCodes": None, "allergenCodes": None,
+                    "quantityPolicy": "fixed-recipe-v1",
+                    "nutrition": {"completeness": "partial", "total": None, "perServing": None, "perServingUnavailableReason": "diners_not_specified"},
+                    "ingredientFacts": [{"lineId": "i1", "ingredientId": "greens", "name": "青菜", "unit": "g",
+                                         "quantityValue": None, "quantityKind": "discretionary", "quantityDisplay": "适量",
+                                         "optional": False, "defaultEnabled": True, "preparation": "洗净"}]}
             result = read_result("details", "get_dish_details", [item])
             self.assertEqual(result, validate_result(result))
-            for key, value in (("detailLevel", "invented"), ("omittedFields", ["privateOwner"]), ("type", "invalid-category")):
+            for key, value in (("detailLevel", "invented"), ("omittedFields", ["privateOwner"]), ("type", "invalid-category"),
+                               ("dietaryCodes", "DIET_VEGAN"), ("allergenCodes", [False]), ("catalogContractVersion", 2),
+                               ("quantityPolicy", "scaled-recipe"),
+                               ("nutrition", {"completeness": "partial", "total": None, "perServing": None, "quantifiedSubtotal": {}})):
                 invalid = {**item, key: value}
+                with self.assertRaises(StepValidationError):
+                    validate_result(read_result("bad", "get_dish_details", [invalid]))
+            for key, value in (("quantityValue", "适量"), ("quantityKind", "guessed"), ("quantityStatus", "VERIFIED")):
+                invalid = {**item, "ingredientFacts": [{**item["ingredientFacts"][0], key: value}]}
                 with self.assertRaises(StepValidationError):
                     validate_result(read_result("bad", "get_dish_details", [invalid]))
 

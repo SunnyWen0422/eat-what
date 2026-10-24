@@ -22,7 +22,7 @@ test('recipe lines render structured source content without object serialization
  assert.deepEqual(quality.presentRecipeLines(JSON.stringify([{text:'煮熟\n再焖一会'},{instruction:'装盘'}])),['煮熟\n再焖一会','装盘'])
  assert.deepEqual(quality.presentRecipeLines([{internalId:5,image:'https://example.test/internal.jpg'}]),[])
  assert.equal(quality.recipeDurationLabel({cookMinutes:20,quality:{timeStatus:'UNKNOWN'}}),'')
- assert.equal(quality.recipeDurationLabel({cookMinutes:20,quality:{timeStatus:'ESTIMATED'}}),'预计 20 分钟')
+ assert.equal(quality.recipeDurationLabel({cookMinutes:20,recipe:{timing:{totalMinutes:20}}}),'20 分钟')
 })
 
 test('zero results do not clear hard constraints', async()=>{

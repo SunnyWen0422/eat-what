@@ -25,6 +25,7 @@ import java.util.Map;
 public class DishController {
 
     private final DishQueryService dishQueryService;
+    @Autowired private com.eatwhat.service.CanonicalCatalogService catalog;
     private final CustomDishService customDishService;
     private final RecommendationMetadataService metadataService;
 
@@ -226,6 +227,20 @@ public class DishController {
         List<Dish> dishes = dishQueryService.getDishesLite(type, keyword, limit);
         return ResponseEntity.ok(dishes);
     }
+
+    @GetMapping("/{id}/scale")
+    public ResponseEntity<?> scale(@PathVariable Long id,@RequestParam(required=false) java.math.BigDecimal servings,HttpServletRequest request) {
+        Object user=request.getAttribute("currentUserId");if(user==null)return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(catalog.scale(dishQueryService.getDishById(id,Long.valueOf(user.toString())),servings));
+    }
+    @PostMapping("/{id}/scale")
+    public ResponseEntity<?> scaleOptions(@PathVariable Long id,@RequestBody ScaleRequest body,HttpServletRequest request) {
+        Object user=request.getAttribute("currentUserId");if(user==null)return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(catalog.scale(dishQueryService.getDishById(id,Long.valueOf(user.toString())),body.servings,body.optionalOverrides));
+    }
+    public static class ScaleRequest { public java.math.BigDecimal servings; public java.util.Map<String,Boolean> optionalOverrides; }
+    @GetMapping("/ingredient-standards")
+    public ResponseEntity<?> ingredients(@RequestParam(defaultValue="") String keyword) {return ResponseEntity.ok(catalog.searchIngredients(keyword));}
 
     private List<String> parseCodes(String value) {
         if (value == null || value.trim().isEmpty()) return new ArrayList<>();

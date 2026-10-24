@@ -13,6 +13,9 @@ public class ShoppingPreviewResponse {
     private List<String> warnings;
     private Integer metadataVersion;
 
+    public String getQuantityPolicy() { return "fixed-recipe-v1"; }
+    public String getQuantityBasis() { return "fixed_recipe"; }
+
     public ShoppingPreviewResponse() {
         this(null, new ArrayList<ShoppingDishDTO>(), new ArrayList<String>(), 1);
     }

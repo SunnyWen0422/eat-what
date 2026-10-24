@@ -169,7 +169,7 @@ public class MealConsumptionService {
         // New plans contain server-validated snapshots; legacy plans retain the old lookup path.
         if(!"manual".equals(plan.getRecordOrigin())||plan.getDishDetailsString()==null||plan.getDishDetailsString().trim().isEmpty())return snapshots;
         try {
-            List<Dish> saved=json.readValue(plan.getDishDetailsString(),new TypeReference<List<Dish>>(){});
+            List<Dish> saved=com.eatwhat.util.DishSnapshotReader.readDishes(json,plan.getDishDetailsString());
             for(Dish dish:saved) {if(dish==null||dish.getId()==null)throw new IllegalArgumentException("快照缺少菜品标识");snapshots.put(dish.getId(),dish);}
         } catch(Exception e) {throw new IllegalStateException("计划快照无法读取，请核对本餐安排",e);}
         if(!snapshots.keySet().containsAll(plan.getDishIds()))throw new IllegalStateException("计划快照不完整，请核对本餐安排");
@@ -178,6 +178,7 @@ public class MealConsumptionService {
     private Map<String,Object> dishEntry(Dish dish) {
         Map<String,Object> value=freeEntry(dish.getName());
         value.put("dishId",String.valueOf(dish.getId()));
+        value.put("nutritionSnapshot",DietNutritionSummary.snapshot(dish,json));
         String type=dish.getType();
         Map<String,String> names=new HashMap<>();
         names.put("荤菜","meat");

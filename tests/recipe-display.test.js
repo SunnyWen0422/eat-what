@@ -1,18 +1,22 @@
 const test = require('node:test'), assert = require('node:assert/strict')
 const { presentRecipeIngredients, recipeNotes, cleanRecipeText, parseIngredient } = require('../utils/recipe-display')
-test('original amounts are readable without changing quality or scaling eligibility', () => {
-  const dish = { ingredientsAmounts: '鸡蛋|2|枚|主料|打散||2名成年人总量+15%冗余#盐|适量|克|调料|||2名成年人用量+15%冗余', quality: { reviewStatus: 'UNVERIFIED', ingredients: [{name:'鸡蛋',identityStatus:'UNVERIFIED',quantityStatus:'UNKNOWN',rawText:'鸡蛋|2|枚|主料|打散||2名成年人总量+15%冗余'}, {name:'盐',identityStatus:'UNVERIFIED',quantityStatus:'UNKNOWN'}] } }
+const {canonicalDish,fixedCalculation}=require('./fixtures/canonical-dish')
+test('fixed recipe amounts and discretionary seasoning are readable without modifying the recipe', () => {
+  const dish = canonicalDish({id:1,ingredientsAmounts:'鸡蛋|2|枚|主料|打散#盐|适量|g|调料|'})
   const before = JSON.stringify(dish), result = presentRecipeIngredients(dish)
   assert.deepEqual(result.lines, ['鸡蛋 2枚（打散）', '盐 适量'])
-  assert.equal(result.basis, '原方用量'); assert.equal(JSON.stringify(dish), before)
+  assert.equal(result.basis, '整道菜用量'); assert.equal(JSON.stringify(dish), before)
 })
-test('missing amounts stay absent and rejected non-ingredients do not return', () => {
-  const result = presentRecipeIngredients({cl:'胡椒#快手#锡纸',quality:{ingredients:[{name:'胡椒',rawQuantity:'用量待核实'},{name:'锡纸',identityStatus:'REJECTED'}]}})
-  assert.deepEqual(result.lines, ['胡椒']); assert.equal(result.rows[0].amount, '')
+test('legacy material and quality fields cannot provide a second recipe source', () => {
+  const result = presentRecipeIngredients({cl:'胡椒#快手#锡纸',quality:{ingredients:[{name:'胡椒',rawQuantity:'用量待核实'}]}})
+  assert.deepEqual(result, {rows:[],lines:[],basis:''})
 })
-test('verified quantities retain their basis while raw units and useful preparation remain legible', () => {
-  const result = presentRecipeIngredients({quality:{reviewStatus:'VERIFIED',servingsStatus:'VERIFIED',basePeople:2,ingredients:[{name:'豆腐',identityStatus:'VERIFIED',quantityStatus:'VERIFIED',quantityValue:250,unit:'克',preparation:'切成小块'}]}})
-  assert.deepEqual(result.lines, ['豆腐 250克（切成小块）']); assert.equal(result.basis, '原方 2 人份')
+test('different diner counts preserve fixed amounts, preparation and basis', () => {
+  const dish=canonicalDish({id:1,ingredientsAmounts:[{name:'豆腐',quantity:250,unit:'g',preparation:'切成小块'}]})
+  for(const diners of [null,1,2,8]){
+    const result=presentRecipeIngredients({...dish,scaledRecipe:fixedCalculation(dish,{},diners)})
+    assert.deepEqual(result.lines,['豆腐 250克（切成小块）']);assert.equal(result.basis,'整道菜用量')
+  }
   assert.equal(parseIngredient({name:'盐',quantityText:'用量待核实',rawQuantity:'少许',unit:'克'}).amount, '少许')
   assert.equal(parseIngredient('盐适量').amount, '适量')
 })

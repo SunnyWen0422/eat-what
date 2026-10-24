@@ -7,7 +7,7 @@ import java.util.List;
 /** Dedicated read-only queries; no legacy ownership OR or publication NULL defaults. */
 @Mapper
 public interface PublicCatalogMapper {
-    String COLUMNS = "ID AS id, NAME AS name, TYPE AS type, CL AS cl, FL AS fl, STEP AS step, " +
+    String COLUMNS = "ID as id, RECIPE_JSON as recipeJson, NAME AS name, TYPE AS type, CL AS cl, FL AS fl, STEP AS step, " +
         "INGREDIENTS_AMOUNTS AS ingredientsAmounts, STEPS AS steps, STEP_IMAGES AS stepImages, TIPS AS tips, " +
         "TAGS AS tags, CUISINE_CODE AS cuisineCode, TAG_CODES AS tagCodes, COOK_MINUTES AS cookMinutes, " +
         "METADATA_VERSION AS metadataVersion, IMAGE AS image, DIFFICULTY AS difficulty, COOK_TIME AS cookTime, " +

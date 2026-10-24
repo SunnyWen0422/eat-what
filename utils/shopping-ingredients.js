@@ -52,21 +52,6 @@ function normalizeLocalIngredient(item) {
   return { ...parsed, ...item, canonicalName: item.canonicalName || parsed.canonicalName || parsed.displayName }
 }
 
-function scaleLocalQuantity(item, basePeople, targetPeople) {
-  if (item.userOverride) return { ...item }
-  if (!Number.isFinite(item.quantityValue) || !Number.isFinite(basePeople) || basePeople <= 0 || !['mass', 'volume', 'count'].includes(item.unitFamily)) {
-    return { ...item, calculationStatus: 'NEEDS_ADJUSTMENT', source: 'local-fallback' }
-  }
-  const scaled = item.quantityValue * Number(targetPeople || basePeople) / basePeople
-  return {
-    ...item,
-    quantityValue: item.unitFamily === 'count' ? Math.ceil(scaled) : Number(scaled.toFixed(4)),
-    quantityText: `${item.unitFamily === 'count' ? Math.ceil(scaled) : Number(scaled.toFixed(4))}${item.unitCode || ''}`,
-    calculationStatus: 'CALCULATED',
-    source: 'local-fallback',
-  }
-}
-
 function mergeLocalItems(items) {
   const result = []
   const indexes = new Map()
@@ -146,7 +131,6 @@ function isSafeQuantity(item) {
 module.exports = {
   parseIngredientText,
   normalizeLocalIngredient,
-  scaleLocalQuantity,
   mergeLocalItems,
   formatShoppingQuantity,
   buildPurchaseSummary,

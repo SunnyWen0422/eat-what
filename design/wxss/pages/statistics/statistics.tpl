@@ -23,3 +23,6 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 /* Source identifiers remain readable on narrow screens. */
 .report-provenance { word-break:break-all; }
+.nutrition-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 16px; margin:8px 0; }
+.nutrition-row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 8px; font-weight:400; }
+.nutrition-note { display:block; margin-top:8px; line-height:1.5; }

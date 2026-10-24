@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { canGenerate, createPublicCatalogProvider, loadCatalog, normalizePublicDish } from '../src/catalog/catalog.ts';
 import type { PublicDish, PublicDishPage, PublicDishQuery } from '../src/domain/types.ts';
 import { isRecipeSnapshot } from '../src/domain/validation.ts';
-import { recipe } from './fixtures.ts';
+import { canonicalPublicDish, canonicalRecipeFixture, CANONICAL_FIXTURE_REVISION } from './canonical-fixture.ts';
 
-const catalogOnlyKeys = ['meals', 'reviewStatus', 'generationEligible', 'reviewedAt', 'issues', 'stepStatus', 'servingsStatus', 'familyIdentity', 'mealEligibility'];
+const catalogOnlyKeys = ['meals', 'generationEligible', 'issues', 'familyIdentity', 'mealEligibility'];
 
 it('refresh abort preserves last complete catalog: total deadline includes all pages', async () => {
   vi.useFakeTimers();
@@ -34,21 +34,18 @@ it('aborts a provider that ignores cancellation without publishing partial rows'
   controller.abort(); expect((await next).ok).toBe(false);
 });
 
-it('a single page has at most fifteen seconds and the public release remains capped at 500', async () => {
+it('a single page has at most fifteen seconds and an oversized directory is rejected', async () => {
   vi.useFakeTimers();
   try {
     const pending = loadCatalog({ list: () => new Promise(() => {}) });
     await vi.advanceTimersByTimeAsync(15001); expect((await pending).ok).toBe(false);
-    const overLimit = await loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: 501, list: Array.from({ length: 100 }, (_, i) => dish(i + 1)) })));
+    const overLimit = await loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: 10001, list: Array.from({ length: 100 }, (_, i) => dish(i + 1)) })));
     expect(overLimit.ok).toBe(false); expect(Object.hasOwn(overLimit, 'value')).toBe(false);
   } finally { vi.useRealTimers(); }
 });
 
-function dish(id = 1, overrides: Partial<PublicDish> = {}): PublicDish {
-  return { id, name: `测试菜${id}`, type: 'veg', cl: '青菜', fl: null, step: '洗净并煮熟。', steps: null, tips: null, ingredientsAmounts: '青菜100g', contentVersion: `fixture-content-${id}`,
-    quality: { reviewStatus: 'VERIFIED', basePeople: 2, servingsStatus: 'VERIFIED', stepStatus: 'VERIFIED', timeStatus: 'UNKNOWN', issueCodes: [], ingredients: [{ name: '青菜', unit: 'g', rawText: '青菜100g', rawQuantity: '100', rawUnit: 'g', displayQuantity: '100g', quantityValue: 100, preparation: null, role: null, identityStatus: 'VERIFIED', quantityStatus: 'VERIFIED' }] }, ...overrides };
-}
-function page(rows = [dish()], query: PublicDishQuery = { page: 1, pageSize: 100 }): PublicDishPage {
+const dish = canonicalPublicDish;
+function page(rows: PublicDish[] = [dish()], query: PublicDishQuery = { page: 1, pageSize: 100 }): PublicDishPage {
   return { list: rows, total: rows.length, page: query.page, pageSize: query.pageSize };
 }
 function provider(rows: PublicDish[] = [dish()]) { return createPublicCatalogProvider(async (query) => page(rows, query)); }
@@ -70,12 +67,12 @@ describe('injectable public online contract', () => {
     const result = await loadCatalog(provider([])); expect(result.ok).toBe(true);
     if (result.ok) { expect(result.value.recipes).toEqual([]); expect(canGenerate(result.value, 'dinner', 'meat')).toBe(false); }
   });
-  it.each([{ id: 0 }, { id: Number.MAX_SAFE_INTEGER + 1 }, { name: 7 }, { step: { html: 'bad' } }, { quality: { ingredients: 'invalid' } }])('rejects invalid API fields %j', async (bad) => {
+  it.each([{ id: 0 }, { id: Number.MAX_SAFE_INTEGER + 1 }, { recipe: null }, { recipe: { ...canonicalRecipeFixture(), name: '' } }, { recipe: { ...canonicalRecipeFixture(), steps: [{ id: 's1', text: { html: 'bad' }, ingredientLineIds: [] }] } }])('rejects invalid API fields %j', async (bad) => {
     const response = { ...dish(), ...bad }; const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [response], total: 1 })).list({ page: 1, pageSize: 100 });
     expect(result.ok).toBe(false);
   });
-  it('drops owner, evidence and nutritional fields while retaining public dish photos from the public projection', async () => {
-    const row = { ...dish(), userId: 7, isCustom: 1, isPublished: 1, image: 'https://images.example/food.png', stepImages: ['https://private.example/image'], kcal: 999, quality: { ...dish().quality!, reviewedBy: 'private reviewer', sourceRef: 'private source', nutritionKcal: 888, ingredients: [{ ...dish().quality!.ingredients[0], identityEvidence: 'private identity', quantityEvidence: 'private quantity', sourceLabel: 'private evidence' }] } };
+  it('drops owner and legacy evidence fields while retaining canonical public photos', async () => {
+    const row = { ...dish(1, {}, { imageUrl: 'https://images.example/food.png' }), userId: 7, isCustom: 1, isPublished: 1, image: 'https://private.example/legacy', stepImages: ['https://private.example/image'], kcal: 999, quality: { reviewedBy: 'private reviewer', sourceRef: 'private source', nutritionKcal: 888, ingredients: [{ identityEvidence: 'private identity', quantityEvidence: 'private quantity', sourceLabel: 'private evidence' }] } };
     const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [row], total: 1, owner: 'secret' })).list({ page: 1, pageSize: 100 });
     expect(result.ok).toBe(true); if (result.ok) { const text = JSON.stringify(result.value); expect(text).not.toMatch(/private|secret|userId|isPublished|nutritionKcal|stepImages/); expect(result.value.list[0]?.image).toBe('https://images.example/food.png'); }
   });
@@ -92,73 +89,75 @@ describe('injectable public online contract', () => {
   });
 });
 
-describe('truthful online normalization', () => {
-  it.each([null, '', '   ', '\t\n', undefined])('keeps an unknown version %j browsable as a valid snapshot', (contentVersion) => {
+describe('truthful canonical online normalization', () => {
+  it.each([null, '', '   ', '\t\n', undefined])('rejects unknown content version %j instead of promoting a stale snapshot', (contentVersion) => {
     const row = dish();
     if (contentVersion === undefined) Reflect.deleteProperty(row, 'contentVersion');
     else row.contentVersion = contentVersion;
-    const result = normalizePublicDish(row); expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(isRecipeSnapshot(result.value, catalogOnlyKeys)).toBe(true);
-      expect(result.value.contentVersion).toBe(null);
-      expect(result.value.generationEligible).toBe(true);
-      expect(result.value.baseServings).toBe(null);
-      expect(result.value.ingredients.every((i) => i.quantity === null)).toBe(true);
-    }
+    expect(normalizePublicDish(row).ok).toBe(false);
   });
-  it('uses provider-reachable eligibility and identity facts in the shared recipe fixture', () => {
+  it('normalizes canonical ingredient facts into a valid saved snapshot', () => {
     const result = normalizePublicDish(dish()); expect(result.ok).toBe(true);
     if (result.ok) {
-      const fixture = recipe();
-      const identities = (ingredients: typeof fixture.ingredients) => ingredients.map(({ trust, ingredientId, compoundResolved }) => ({ trust, ingredientId, compoundResolved }));
-      expect(fixture.generationEligible).toBe(result.value.generationEligible);
-      expect(identities(fixture.ingredients)).toEqual(identities(result.value.ingredients));
+      expect(isRecipeSnapshot(result.value, catalogOnlyKeys)).toBe(true);
+      expect(result.value.ingredients).toEqual([{ ingredientId: 'ing_green', form: '', part: null, raw: '青菜', quantity: { kind: 'exact', value: 100, unit: 'g' }, trust: 'reviewed', compoundResolved: true }]);
+      expect(result.value.canonical?.revision).toBe(CANONICAL_FIXTURE_REVISION);
     }
   });
-  it('never upgrades publication flags or absent quality to verified', async () => {
-    const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [{ ...dish(), quality: null, isPublished: 1, reviewStatus: 'VERIFIED' }], total: 1 })).list({ page: 1, pageSize: 100 });
-    expect(result.ok).toBe(true); if (!result.ok) return;
-    const normalized = normalizePublicDish(result.value.list[0]!); expect(normalized.ok).toBe(true);
-    if (normalized.ok) { expect(normalized.value.reviewStatus).toBe('UNKNOWN'); expect(normalized.value.generationEligible).toBe(true); expect(normalized.value.baseServings).toBe(null); expect(normalized.value.ingredients.every((i) => i.quantity === null && i.ingredientId === null && i.trust === 'unknown' && !i.compoundResolved)).toBe(true); }
+  it('rejects legacy publication or quality claims without a canonical recipe', async () => {
+    const row = { ...dish(), recipe: undefined, isPublished: 1, reviewStatus: 'VERIFIED', cl: '青菜100g', step: '煮熟', quality: { reviewStatus: 'VERIFIED' } };
+    const result = await createPublicCatalogProvider(async (query) => ({ ...page([], query), list: [row], total: 1 })).list({ page: 1, pageSize: 100 });
+    expect(result.ok).toBe(false); expect(Object.hasOwn(result, 'value')).toBe(false);
   });
-  it('keeps unknown quantities and servings unknown even when numbers are present', () => {
-    const row = dish(); row.quality!.servingsStatus = 'UNKNOWN'; row.quality!.ingredients[0]!.quantityStatus = 'UNKNOWN';
-    const normalized = normalizePublicDish(row); expect(normalized.ok).toBe(true);
-    if (normalized.ok) { expect(normalized.value.baseServings).toBe(null); expect(normalized.value.ingredients[0]!.quantity).toBe(null); }
+  it('keeps discretionary quantities and unknown original servings without reading legacy numeric text', () => {
+    const recipe = canonicalRecipeFixture(1, { baseServings: null }); recipe.ingredients[0]!.quantity = null; recipe.ingredients[0]!.quantityKind = 'discretionary'; recipe.ingredients[0]!.quantityDisplay = '适量';
+    const normalized = normalizePublicDish(dish(1, { recipe, fl: '2人', ingredientsAmounts: '青菜100g' })); expect(normalized.ok).toBe(true);
+    if (normalized.ok) { expect(normalized.value.baseServings).toBe(null); expect(normalized.value.ingredients[0]!.quantity).toBe(null); expect(normalized.value.ingredients[0]!.quantityDisplay).toBe('适量'); expect(normalized.value.generationEligible).toBe(true); }
   });
-  it('retains verified exact quantities without inventing standard ids or compound composition', () => {
+  it('retains exact source quantities and canonical ingredient identity', () => {
     const normalized = normalizePublicDish(dish()); expect(normalized.ok).toBe(true);
-    if (normalized.ok) { expect(normalized.value.baseServings).toBe(2); expect(normalized.value.ingredients[0]!.quantity).toEqual({ kind: 'exact', value: 100, unit: 'g' }); expect(normalized.value.ingredients[0]!.ingredientId).toBe(null); expect(normalized.value.ingredients[0]!.compoundResolved).toBe(false); }
+    if (normalized.ok) { expect(normalized.value.baseServings).toBe(2); expect(normalized.value.ingredients[0]!.quantity).toEqual({ kind: 'exact', value: 100, unit: 'g' }); expect(normalized.value.ingredients[0]!.ingredientId).toBe('ing_green'); expect(normalized.value.ingredients[0]!.compoundResolved).toBe(true); }
   });
-  it('uses deterministic database recipe/family fallback ids without fake provenance', () => {
-    const first = normalizePublicDish(dish(42)); const renamed = normalizePublicDish(dish(42, { name: '新显示名称' })); expect(first.ok).toBe(true); expect(renamed.ok).toBe(true);
-    if (first.ok && renamed.ok) { expect(first.value.recipeId).toBe('eatwhat-db:42'); expect(renamed.value.recipeId).toBe(first.value.recipeId); expect(first.value.familyId).toBe(first.value.recipeId); expect(first.value.variantId).toBe(null); expect(first.value.source).toEqual({ url: null, commit: null, license: null }); expect(first.value.catalogVersion).toBe(null); expect(first.value.reviewedAt).toBe(null); expect(first.value.contentVersion).toBe('fixture-content-42'); }
+  it('uses stable recipe ids and the supplied canonical family without inventing provenance', () => {
+    const first = normalizePublicDish(dish(42)); const renamed = normalizePublicDish(dish(42, {}, { name: '新显示名称' })); expect(first.ok).toBe(true); expect(renamed.ok).toBe(true);
+    if (first.ok && renamed.ok) { expect(first.value.recipeId).toBe('eatwhat-db:42'); expect(renamed.value.recipeId).toBe(first.value.recipeId); expect(first.value.familyId).toBe('family-42'); expect(first.value.variantId).toBe(null); expect(first.value.source).toEqual({ url: null, commit: null, license: null }); expect(first.value.catalogVersion).toBe(CANONICAL_FIXTURE_REVISION); expect(first.value.reviewedAt).toBeUndefined(); expect(first.value.contentVersion).toBe('fixture-content-42'); }
   });
-  it.each([['meat', 'meat'], ['veg', 'vegetable'], ['soup', 'soup'], ['staple', 'staple'], ['dessert', 'breakfastSnack']] as const)('maps database %s to %s as an explicit local convention', (type, mapped) => {
-    const result = normalizePublicDish(dish(1, { type })); expect(result.ok).toBe(true);
-    if (result.ok) { expect(result.value.types).toEqual([mapped]); expect(result.value.mealEligibility).toBe('local-convention'); expect(result.value.familyIdentity).toBe('database-id-fallback'); }
+  it.each([['CAT_MEAT_FISH', 'meat'], ['CAT_VEGETABLE', 'vegetable'], ['CAT_SOUP', 'soup'], ['CAT_STAPLE', 'staple'], ['CAT_DESSERT', 'breakfastSnack']] as const)('maps canonical category %s to %s independently of legacy type', (categoryCode, mapped) => {
+    const result = normalizePublicDish(dish(1, { type: 'unmapped' }, { categoryCode })); expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.value.types).toEqual([mapped]); expect(result.value.mealEligibility).toBe('canonical'); expect(result.value.familyIdentity).toBe('canonical'); }
   });
-  it('keeps safe-text unknown-type rows browsable but unavailable to selection', async () => {
-    const value = await catalog([dish(1, { type: 'unmapped' }), dish(2, { type: null }), dish(3, { type: 'unmapped' })]);
+  it('keeps unsupported canonical categories browsable but unavailable to automatic selection', async () => {
+    const value = await catalog([1, 2, 3].map(id => dish(id, { type: 'veg' }, { categoryCode: 'CAT_UNMAPPED' })));
     expect(value.recipes).toHaveLength(3); expect(value.recipes.every((r) => !r.generationEligible && r.types.length === 0)).toBe(true); expect(canGenerate(value, 'dinner', 'vegetable')).toBe(false);
   });
-  it('excludes missing steps but permits present unreviewed instructions for ordinary suggestions', async () => {
-    const incomplete = dish(1, { step: null, steps: null }); const unverified = dish(2); unverified.quality!.stepStatus = 'UNKNOWN';
-    const value = await catalog([incomplete, unverified, dish(3)]); expect(canGenerate(value, 'dinner', 'vegetable')).toBe(false);
-    expect(value.recipes.filter((r) => r.generationEligible)).toHaveLength(2);
+  it('rejects missing canonical steps even when legacy prose is present', async () => {
+    const result = await loadCatalog(provider([dish(1, { step: '旧文本看似完整' }, { steps: [] }), dish(2), dish(3)]));
+    expect(result.ok).toBe(false); expect(Object.hasOwn(result, 'value')).toBe(false);
   });
-  it.each(['REJECTED', 'BROWSE_ONLY'] as const)('keeps explicit %s outside ordinary recommendations', status => {
-    const row = dish(); row.quality!.reviewStatus = status;
+  it.each(['REJECTED', 'BROWSE_ONLY'] as const)('ignores legacy %s flags and uses the canonical serving role', status => {
+    const row = dish(); row.quality = { reviewStatus: status, basePeople: null, servingsStatus: 'UNKNOWN', stepStatus: 'UNKNOWN', timeStatus: 'UNKNOWN', issueCodes: [], ingredients: [] };
     const result = normalizePublicDish(row); expect(result.ok).toBe(true);
-    if (result.ok) { expect(result.value.generationEligible).toBe(false); expect(result.value.reviewStatus).toBe(status); }
+    if (result.ok) { expect(result.value.generationEligible).toBe(true); expect(result.value.reviewStatus).toBeUndefined(); }
+    const condiment = normalizePublicDish(dish(2, {}, { servingRole: 'condiment' })); expect(condiment.ok).toBe(true); if (condiment.ok) expect(condiment.value.generationEligible).toBe(false);
   });
-  it('opens only three distinct successful provider families and rejects imported clones', async () => {
+  it('opens only three distinct provider families and rejects imported catalog clones', async () => {
     const value = await catalog(); expect(canGenerate(value, 'dinner', 'vegetable')).toBe(true); expect(canGenerate(value, 'breakfast', 'vegetable')).toBe(false);
-    expect(canGenerate(structuredClone(value), 'dinner', 'vegetable')).toBe(false); expect(value.origin).toBe('online-provider'); expect(value.aliases).toEqual({}); expect(value.version).toBe(null);
+    expect(canGenerate(structuredClone(value), 'dinner', 'vegetable')).toBe(false); expect(value.origin).toBe('online-provider'); expect(value.aliases).toEqual({ 青菜: 'ing_green', 小青菜: 'ing_green' }); expect(value.version).toBe(CANONICAL_FIXTURE_REVISION);
+    const repeated = await catalog([1, 2, 3].map(id => dish(id, {}, { dishGroupId: 'same-family' }))); expect(canGenerate(repeated, 'dinner', 'vegetable')).toBe(false);
   });
-  it('preserves HTML-like strings only as inert text with no resource fields', async () => {
-    const text = '<img src="https://example.com/a" onerror="alert(1)">'; const value = await catalog([dish(1, { name: text, step: text })]);
+  it('preserves HTML-like strings as inert text without introducing resource fields', async () => {
+    const text = '<img src="https://example.com/a" onerror="alert(1)">'; const value = await catalog([dish(1, {}, { name: text, steps: [{ id: 's1', text, ingredientLineIds: ['i1'] }] })]);
     expect(value.recipes[0]!.name).toBe(text); expect(value.recipes[0]!.steps[0]).toBe(text); expect(Object.keys(value.recipes[0]!)).not.toContain('image');
+  });
+  it('rejects old quantity policies and active scaling rules', () => {
+    const stale = dish(); Reflect.set(stale.recipe!, 'quantityPolicy', 'linear'); expect(normalizePublicDish(stale).ok).toBe(false);
+    const batched = dish(); batched.recipe!.scaling = { available: true }; expect(normalizePublicDish(batched).ok).toBe(false);
+    const linked = dish(); Reflect.set(linked.recipe!.ingredients[0]!, 'scaleRule', { type: 'linked' }); expect(normalizePublicDish(linked).ok).toBe(false);
+  });
+  it('rejects mixed catalog revisions without publishing partial rows', async () => {
+    const rows = Array.from({ length: 101 }, (_, i) => dish(i + 1)); rows[100]!.catalogRevision = 'other-revision';
+    const result = await loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: 101, list: query.page === 1 ? rows.slice(0, 100) : [rows[100]] })));
+    expect(result.ok).toBe(false); expect(Object.hasOwn(result, 'value')).toBe(false);
   });
 });
 

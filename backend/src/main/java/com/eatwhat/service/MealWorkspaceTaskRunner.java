@@ -78,7 +78,7 @@ public class MealWorkspaceTaskRunner {
         long started=System.nanoTime();
         MealWorkspace w=null;WorkspaceRequest r=null;
         try {
-            JsonNode input=json.readTree(task.getInputJson());w=json.treeToValue(input.get("workspace"),MealWorkspace.class);r=json.treeToValue(input.get("request"),WorkspaceRequest.class);
+            JsonNode input=json.readTree(task.getInputJson());w=com.eatwhat.util.DishSnapshotReader.convert(json,input.get("workspace"),MealWorkspace.class);r=json.treeToValue(input.get("request"),WorkspaceRequest.class);
             MealContext interpreted=null;PlanDraft draft;
             if(Arrays.asList("generate","regenerate").contains(r.getCommand())&&!w.getContext().getRequirements().trim().isEmpty()) {
                 Map<String,Object> response=agent.run(task.getUserId(),w);

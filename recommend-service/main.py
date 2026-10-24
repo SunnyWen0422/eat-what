@@ -48,28 +48,8 @@ def health():
 
 @app.post("/recommend")
 def recommend(req: RecommendRequest):
-    """生成菜谱推荐"""
-    from graph.graph import run_recommend
-
-    params = {
-        "people": req.people or 2,
-        "meat_count": req.meat_count if req.meat_count is not None else (req.meat or 2),
-        "veg_count": req.veg_count if req.veg_count is not None else (req.veg or 2),
-        "soup_count": req.soup_count if req.soup_count is not None else (req.soup or 1),
-        "meal_type": req.meal_type or "lunch",
-        "selected_dishes": req.selected_dishes,
-        "selected_recipe": req.selected_recipe,
-        "user_id": req.user_id,
-    }
-    try:
-        result = run_recommend(params)
-        plans = result.get("plans") or []
-        error = result.get("error")
-        if error and not plans:
-            raise HTTPException(status_code=500, detail=error)
-        return {"success": True, "plans": plans}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """The retired route must not create a second selection algorithm."""
+    raise HTTPException(status_code=410, detail="Use the authenticated meal workspace recommendation endpoint")
 
 
 class ChatRequest(BaseModel):
@@ -78,13 +58,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    """AI 对话接口 — SSE 流式返回"""
-    async def generate():
-        async for chunk in chat_handler.stream_chat(req.message, req.user_id or "guest"):
-            yield f"data: {chunk}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 
 class ChatSyncRequest(BaseModel):
@@ -96,22 +70,7 @@ _chat_sync_lock = Lock()
 
 @app.post("/chat/sync")
 def chat_sync(req: ChatSyncRequest):
-    """同步检索和 HTTP 由框架工作线程承接，不占用事件循环。"""
-    # 保持同进程同步聊天串行；忙时拒绝，避免等待锁占满框架工作线程。
-    if not _chat_sync_lock.acquire(blocking=False):
-        return JSONResponse(status_code=503, headers={"Retry-After": "2"}, content={
-            "success": False, "errorCode": "AI_CHAT_BUSY", "message": "聊天服务忙，请稍后重试"})
-    try:
-        result = chat_handler.chat(req.message, req.user_id or "guest")
-    finally:
-        _chat_sync_lock.release()
-    if isinstance(result, dict):
-        response = {"reply": result.get("reply",""), "dishes": result.get("dishes",[]), "success": True}
-        if result.get("action"):
-            response["action"] = result["action"]
-        return response
-    else:
-        return {"reply": str(result), "dishes": [], "success": True}
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 
 class AssistantSessionRequest(BaseModel):
@@ -218,27 +177,7 @@ def list_assistant_sessions(user_id: Optional[str] = None, cursor: Optional[str]
 
 @app.post("/assistant/sessions/{session_id}/messages")
 def send_assistant_message(session_id: str, req: AssistantMessageRequest):
-    message = str(req.message or "").strip()
-    if not message:
-        return _assistant_error(422, "ASSISTANT_MESSAGE_INVALID", "消息不能为空")
-    scope = _assistant_scope(req.user_id, session_id)
-    try:
-        # Reject malformed IDs before creating any session state. This also
-        # keeps a bad client request from being interpreted as a new guest.
-        assistant_engine.SESSION_STORE._session_id(session_id)
-        return agent_runtime.RUNTIME.run(
-            message, scope, session_id=session_id,
-            idempotency_key=req.idempotency_key,
-            parent_task_id=req.parent_task_id,
-        )
-    except agent_runtime.TaskInProgressError:
-        return _assistant_error(409, "ASSISTANT_TASK_IN_PROGRESS", "当前会话已有任务生成中，请先停止后再发送")
-    except ValueError:
-        return _assistant_invalid_session_error()
-    except Exception as error:
-        # Keep a stable typed response for the mini program; do not expose
-        # database credentials or model request details to clients.
-        return _assistant_error(503, "ASSISTANT_SERVICE_UNAVAILABLE", "助手暂时不可用，请稍后重试")
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 
 @app.delete("/assistant/sessions/{session_id}")
@@ -254,20 +193,7 @@ def delete_assistant_session(session_id: str, user_id: Optional[str] = None):
 
 @app.post("/assistant/sessions/{session_id}/actions/preview")
 def preview_assistant_action(session_id: str, req: AssistantActionPreviewRequest):
-    try:
-        result = assistant_engine.preview_action(
-            session_id,
-            _assistant_scope(req.user_id, session_id),
-            req.action_type,
-            req.plan_version,
-            req.payload,
-        )
-    except ValueError:
-        return _assistant_invalid_session_error()
-    if not result.get("success"):
-        status = 404 if result.get("error_code") == "ASSISTANT_SESSION_NOT_FOUND" else 409 if result.get("error_code") == "ASSISTANT_PLAN_VERSION_CONFLICT" else 422
-        return JSONResponse(status_code=status, content=result)
-    return result
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 
 class AssistantPlanCommandRequest(BaseModel):
@@ -281,51 +207,16 @@ class AssistantPlanCommandRequest(BaseModel):
 
 @app.post("/assistant/sessions/{session_id}/plan-commands")
 def command_assistant_plan(session_id: str, req: AssistantPlanCommandRequest):
-    try:
-        scope = _assistant_scope(req.user_id, session_id)
-        session = assistant_engine.SESSION_STORE.get(session_id,scope)
-        if not session: return JSONResponse(status_code=404,content={"message":"助手会话不存在或已过期"})
-        state = session.get("state") or {}
-        candidates = assistant_engine._local_candidates(state.get("request") or {},scope) if req.action == "replace" else []
-        body = req.dict(exclude={"user_id"},exclude_none=True)
-        return assistant_engine.SESSION_STORE.command_plan(session_id,scope,body,candidates)
-    except ValueError as error:
-        return JSONResponse(status_code=409,content={"success":False,"message":str(error)})
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 @app.post("/assistant/sessions/{session_id}/undo")
 def undo_assistant_plan(session_id: str, req: AssistantUndoRequest):
-    try:
-        result = assistant_engine.undo_last_plan(
-            session_id,
-            _assistant_scope(req.user_id, session_id),
-            req.plan_version,
-        )
-    except ValueError:
-        return _assistant_invalid_session_error()
-    if not result.get("success"):
-        status = 404 if result.get("error_code") == "ASSISTANT_SESSION_NOT_FOUND" else 409 if result.get("error_code") == "ASSISTANT_PLAN_VERSION_CONFLICT" else 422
-        return JSONResponse(status_code=status, content=result)
-    return result
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 
 @app.post("/assistant/sessions/{session_id}/actions/confirm")
 def confirm_assistant_action(session_id: str, req: AssistantActionConfirmRequest):
-    try:
-        result = assistant_engine.confirm_action(
-            session_id,
-            _assistant_scope(req.user_id, session_id),
-            req.action_type,
-            req.plan_version,
-            req.preview_token,
-            req.idempotency_key,
-            req.payload,
-        )
-    except ValueError:
-        return _assistant_invalid_session_error()
-    if not result.get("success"):
-        status = 404 if result.get("error_code") == "ASSISTANT_SESSION_NOT_FOUND" else 409 if result.get("error_code") == "ASSISTANT_PLAN_VERSION_CONFLICT" else 422
-        return JSONResponse(status_code=status, content=result)
-    return result
+    raise HTTPException(status_code=410, detail="Legacy planning is retired; use the shared meal workspace")
 
 
 @app.get("/assistant/tools")

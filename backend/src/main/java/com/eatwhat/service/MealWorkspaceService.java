@@ -28,7 +28,7 @@ public class MealWorkspaceService {
         this.db=db;this.locks=locks;this.plans=plans;this.planService=planService;this.planner=planner;this.json=json;this.tx=tx;
     }
     private String encode(Object o) {try{return json.writeValueAsString(o);}catch(Exception e){throw new IllegalStateException("工作区保存失败",e);}}
-    private <T> T decode(String value,Class<T> type) {try{return json.readValue(value,type);}catch(Exception e){throw new IllegalStateException("工作区读取失败",e);}}
+    private <T> T decode(String value,Class<T> type) {try{return com.eatwhat.util.DishSnapshotReader.read(json,value,type);}catch(Exception e){throw new IllegalStateException("工作区读取失败",e);}}
     private void lock(Long user) {if(user==null||locks.lockUser(user)==null)throw new IllegalArgumentException("用户不存在");}
     private MealWorkspace read(WorkspaceRow row) {if(row==null)return null;MealWorkspace w=decode(row.getStateJson(),MealWorkspace.class);if(row.getRevision()!=null)w.setRevision(row.getRevision());return w;}
     /** Owner-scoped read for server-side assistant context and session binding. */
@@ -89,7 +89,19 @@ public class MealWorkspaceService {
             if("context".equals(operation)) {
                 MealContext c=MealWorkspaceRules.normalize(json.convertValue(request.getContext(),MealContext.class));
                 if(!Objects.equals(c.getDate(),w.getContext().getDate())||!Objects.equals(c.getMealType(),w.getContext().getMealType()))throw new IllegalArgumentException("请切换目标工作区后修改条件");
-                db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.getDraft().setRequirementsFingerprint(null);w.setContext(c);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":"needs_regeneration");w.setMessage("本餐条件已保存，重新安排后生效");
+                boolean sharingOnly=MealWorkspaceRules.onlyDinersChanged(w.getContext(),c)
+                    &&MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())&&!w.getDraft().getDishes().isEmpty();
+                if(sharingOnly){
+                    PlanDraft checkpoint=MealWorkspaceRules.copy(w.getDraft());checkpoint.setHistory(new ArrayList<>());
+                    checkpoint.setContextSnapshot(json.convertValue(w.getContext(),MealContext.class));
+                    List<PlanDraft> history=new ArrayList<>(w.getDraft().getHistory());history.add(checkpoint);if(history.size()>10)history.remove(0);
+                    w.getDraft().setHistory(history);w.getDraft().setContextSnapshot(null);
+                    w.getDraft().setPlanVersion(w.getDraft().getPlanVersion()+1);w.getDraft().setReplacementFeedbackVersion(null);
+                    w.getDraft().setAdjustedBeforeConfirmation(true);
+                }
+                db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setContext(c);
+                if(sharingOnly){w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));w.setStatus("draft");w.setMessage("用餐人数已更新，菜品用量保持不变");}
+                else{w.getDraft().setRequirementsFingerprint(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":"needs_regeneration");w.setMessage("本餐条件已保存，重新安排后生效");}
             } else {
                 if(!Objects.equals(w.getDraft().getPlanVersion(),request.getPlanVersion()))throw conflict("方案版本已更新");
                 if("confirm".equals(operation)) confirm(user,w,request);
@@ -203,11 +215,19 @@ public class MealWorkspaceService {
                 boolean policyOnlyUpgrade=originalContext.getRecommendationPolicy()==null&&BalancedRecommendationPolicy.enabled(context)
                     &&json.valueToTree(comparable).equals(json.valueToTree(originalContext))&&MealWorkspaceRules.matchesContext(original,originalContext);
                 boolean contextChanged=(!policyOnlyUpgrade&&!MealWorkspaceRules.contextFingerprint(originalContext).equals(MealWorkspaceRules.contextFingerprint(context)))||!MealWorkspaceRules.matchesContext(original,originalContext);
+                boolean sharingOnlyAdjustment="adjust".equals(intent.getOperation())&&intent.getTargetDishId()==null
+                    &&intent.getReplacementDishId()==null&&intent.getTargetConstraints()==null&&intent.getSelectedDishIds()==null
+                    &&!original.getDishes().isEmpty()&&MealWorkspaceRules.matchesContext(original,originalContext)
+                    &&MealWorkspaceRules.onlyDinersChanged(originalContext,comparable);
                 if(intent.getSelectionMode()!=null&&!Arrays.asList("recommend","explicit").contains(intent.getSelectionMode()))throw new IllegalArgumentException("选菜方式无效");
                 boolean automaticRecommendation=BalancedRecommendationPolicy.enabled(context)&&!"explicit".equals(intent.getSelectionMode())
-                    &&(Arrays.asList("generate","regenerate").contains(intent.getOperation())||intent.getTargetDishId()!=null||(contextChanged&&intent.getSelectedDishIds()==null));
+                    &&(Arrays.asList("generate","regenerate").contains(intent.getOperation())||intent.getTargetDishId()!=null||(contextChanged&&!sharingOnlyAdjustment&&intent.getSelectedDishIds()==null));
                 List<Long> ids;PlanDraft next;
-                if(automaticRecommendation){
+                if(sharingOnlyAdjustment){
+                    // Preserve the server-owned manual/automatic origin; changing diners is not a new selection.
+                    ids=new ArrayList<>(currentIds);w.setContext(context);w.getDraft().setLockedDishIds(locks);
+                    next=MealWorkspaceRules.copy(original);next.setReplacementFeedbackVersion(null);next.setCycleAfterSelection(null);
+                } else if(automaticRecommendation){
                     if(intent.getTargetDishId()!=null&&(contextChanged||!"adjust".equals(intent.getOperation())))throw new IllegalArgumentException("整餐条件变化时请重新生成完整菜单");
                     w.setContext(context);w.getDraft().setLockedDishIds(locks);
                     if(policyOnlyUpgrade)w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(context));
@@ -221,7 +241,7 @@ public class MealWorkspaceService {
                 } else {
                     if(intent.getTargetConstraints()!=null)throw new IllegalArgumentException("单菜限制需要明确替换对象");
                     ids=intent.getSelectedDishIds()==null?new ArrayList<>(currentIds):new ArrayList<>(intent.getSelectedDishIds());
-                    if((contextChanged||Arrays.asList("generate","regenerate").contains(intent.getOperation()))&&intent.getSelectedDishIds()==null)throw new IllegalArgumentException("请提供满足新条件的完整菜单");
+                    if(((contextChanged&&!sharingOnlyAdjustment)||Arrays.asList("generate","regenerate").contains(intent.getOperation()))&&intent.getSelectedDishIds()==null)throw new IllegalArgumentException("请提供满足新条件的完整菜单");
                 }
                 if(ids.isEmpty()||ids.size()>10||new HashSet<>(ids).size()!=ids.size()||!ids.containsAll(locks))throw new IllegalArgumentException("菜单数量、重复项或保留项无效");
                 Set<Long> authorized=new HashSet<>(validated.authorizedDishIds);authorized.addAll(currentIds);
@@ -238,7 +258,8 @@ public class MealWorkspaceService {
                 }
                 Map<Long,Dish> selected=next.getDishes().stream().collect(Collectors.toMap(Dish::getId,d->d));
                 next.setDishes(ids.stream().map(selected::get).collect(Collectors.toList()));next.setLockedDishIds(locks);
-                next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(context));next.setRequirementsFingerprint(original.getRequirementsFingerprint());next.setSource("assistant");
+                next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(context));next.setRequirementsFingerprint(original.getRequirementsFingerprint());
+                if(!sharingOnlyAdjustment)next.setSource("assistant");
                 next.setAdjustedBeforeConfirmation(!original.getDishes().isEmpty()||original.isAdjustedBeforeConfirmation());
                 PlanDraft checkpoint=MealWorkspaceRules.copy(original);checkpoint.setHistory(new ArrayList<>());checkpoint.setContextSnapshot(originalContext);
                 List<PlanDraft> history=new ArrayList<>(original.getHistory());history.add(checkpoint);if(history.size()>10)history.remove(0);
@@ -277,7 +298,7 @@ public class MealWorkspaceService {
             completion[0]=status;
             if(draft!=null) {
                 if(draft.getCycleAfterSelection()!=null)w.setRecommendationCycle(draft.getCycleAfterSelection());
-                if(learning!=null){try{WorkspaceRequest command=json.treeToValue(json.readTree(task.getInputJson()).get("request"),WorkspaceRequest.class);if("replace".equals(command.getCommand())){List<Dish> removed=w.getDraft().getDishes().stream().filter(d->Objects.equals(d.getId(),command.getDishId())).collect(Collectors.toList());MealWorkspace feedback=json.convertValue(w,MealWorkspace.class);feedback.setDraft(draft);learning.record(task.getUserId(),feedback,"single_replaced",removed);}}catch(com.fasterxml.jackson.core.JsonProcessingException error){throw new IllegalStateException("替换反馈无法记录",error);}}
+                if(learning!=null){try{WorkspaceRequest command=json.treeToValue(json.readTree(task.getInputJson()).get("request"),WorkspaceRequest.class);if("replace".equals(command.getCommand())){List<Dish> removed=w.getDraft().getDishes().stream().filter(d->Objects.equals(d.getId(),command.getDishId())).collect(Collectors.toList());MealWorkspace feedback=com.eatwhat.util.DishSnapshotReader.convert(json,w,MealWorkspace.class);feedback.setDraft(draft);learning.record(task.getUserId(),feedback,"single_replaced",removed);}}catch(com.fasterxml.jackson.core.JsonProcessingException error){throw new IllegalStateException("替换反馈无法记录",error);}}
                 if(!w.getDraft().getDishes().isEmpty())db.event("adjusted:"+task.getId(),task.getUserId(),w.getId(),draft.getPlanVersion(),"replaced",draft.getSource());
                 w.setDraft(draft);if(interpreted!=null)w.setContext(interpreted);db.event("generated:"+task.getId(),task.getUserId(),w.getId(),draft.getPlanVersion(),"generated",draft.getSource());}
             w.setStatus(status);w.setMessage(message);w.setSuggestedTarget(target);w.setTaskId(null);long before=w.getRevision();w.setRevision(before+1);
@@ -292,7 +313,7 @@ public class MealWorkspaceService {
     private String hash(String op,String id,Object request) {return WorkflowRequestHash.sha256(op+"|"+id+"|"+encode(request));}
     private MealWorkspace replay(Long user,String key,String hash) {Map<String,Object> prior=db.request(user,key);if(prior==null)return null;if(!hash.equals(prior.get("requestHash")))throw conflict("请求标识已用于不同内容");return decode(String.valueOf(prior.get("responseJson")),MealWorkspace.class);}
     private void receipt(Long user,String key,String hash,MealWorkspace w) {
-        MealWorkspace safe=json.convertValue(w,MealWorkspace.class);safe.getContext().setRequirements("");safe.getContext().setOwnedIngredients(new ArrayList<>());safe.getContext().setCriteria(new RecommendationCriteria());
+        MealWorkspace safe=com.eatwhat.util.DishSnapshotReader.convert(json,w,MealWorkspace.class);safe.getContext().setRequirements("");safe.getContext().setOwnedIngredients(new ArrayList<>());safe.getContext().setCriteria(new RecommendationCriteria());
         PlanDraft minimal=new PlanDraft();minimal.setPlanVersion(w.getDraft().getPlanVersion());minimal.setSource(w.getDraft().getSource());safe.setDraft(minimal);
         db.log(user,key,hash,encode(safe));
     }

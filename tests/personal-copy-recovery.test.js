@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -21,7 +22,7 @@ function fixture(overrides = {}, shared = {}) {
   const sandbox = { wx, Page: value => { definition = value }, console: { log() {}, warn() {}, error() {} } }
   function moduleFrom(file) {
     if (cache[file]) return cache[file]
-    if (path.basename(file) === 'api.js') return api
+    if (path.basename(file) === 'api.js') return canonicalApi(api)
     if (path.basename(file) === 'font-scale.js') return Object.assign(() => 1, { base: 16 })
     if (path.basename(file) === 'config.js') return { getApiBaseUrl: () => account.environment }
     const module = { exports: {} }

@@ -16,7 +16,7 @@ class MainCatalogPaginationTest {
     private Dish dish(long id, String tags, String ingredients, String amounts) {
         Dish dish = new Dish(); dish.setId(id); dish.setTagCodes(tags);
         dish.setCl(ingredients); dish.setIngredientsAmounts(amounts);
-        dish.setSteps("complete instructions " + id); return dish;
+        dish.setSteps("complete instructions " + id); return CanonicalCandidateFixture.ingredients(dish,ingredients,amounts==null?null:"peanut");
     }
 
     private List<Long> ids(List<Dish> dishes) {
@@ -66,7 +66,7 @@ class MainCatalogPaginationTest {
         assertEquals(3200, beyond.getTotal()); assertTrue(beyond.getList().isEmpty()); assertTrue(fullReads.isEmpty());
     }
 
-    @Test void exclusionsKeepJavaTokenAndLiteralSubstringSemanticsBeforePagination() {
+    @Test void exclusionsUseStructuredExactNamesBeforePagination() {
         List<Dish> all = Arrays.asList(
                 dish(12, " LIGHT , SpIcY ", "青菜", null),
                 dish(11, "NOT_SPICY,SPICYISH", "青菜", null),
@@ -91,7 +91,7 @@ class MainCatalogPaginationTest {
         });
         RecommendationCriteria criteria = new RecommendationCriteria();
         criteria.setExcludeTagCodes(Arrays.asList(null, " spicy ", ""));
-        criteria.setExcludedIngredients(Arrays.asList(null, "", " peanut ", "%", "_"));
+        criteria.setExcludedIngredients(Arrays.asList(null, "", " peanut ", "100% 花生", "red_bean"));
         DishQueryService query = new DishQueryService(mapper);
         DishPageDTO page = query.getFilteredDishes(7L, null, null, criteria, 2, 2);
         assertEquals(5, page.getTotal()); assertEquals(Arrays.asList(7L, 4L), ids(page.getList()));

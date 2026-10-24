@@ -7,7 +7,10 @@ import java.util.*;
 public class PublicDishDTO {
     private Long id;
     private String name, type, cl, fl, step, steps, tips, ingredientsAmounts, contentVersion, image;
-    private Quality quality;
+    @com.fasterxml.jackson.annotation.JsonIgnore private Quality quality;
+    private com.fasterxml.jackson.databind.JsonNode recipe, scaledRecipe;
+    private String catalogRevision;
+    private String quantityPolicy;
     @Data public static class Quality {
         private String reviewStatus, servingsStatus, stepStatus, timeStatus;
         private BigDecimal basePeople;

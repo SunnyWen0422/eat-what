@@ -44,7 +44,7 @@ public class CustomRecipe {
 
     public List<Dish> getDishes() {
         if (dishSnapshotsJson == null || dishSnapshotsJson.trim().isEmpty()) return new ArrayList<>();
-        try { return mapper.readValue(dishSnapshotsJson, new TypeReference<List<Dish>>(){}); }
+        try { return com.eatwhat.util.DishSnapshotReader.readDishes(mapper,dishSnapshotsJson); }
         catch (Exception error) { throw new IllegalStateException("菜单快照无法读取，请重新编辑菜单", error); }
     }
     public void setDishes(List<Dish> dishes) {

@@ -6,7 +6,7 @@ const vm = require('node:vm')
 
 const LOCAL = 'http://127.0.0.1:18780/api'
 const ONLINE = 'https://chishenme.icu/api'
-const dish = id => ({ id, name: `菜${id}`, type: 'meat' })
+const dish = id => ({ id, name: `菜${id}`, type: 'meat', catalogRevision: 'catalog-fixed-1', quantityPolicy:'fixed-recipe-v1' })
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r }); return { promise, resolve } }
 
 function fixture(api = {}, initial = {}) {
@@ -121,7 +121,7 @@ test('successful prefetch creates source-labelled global and persistent rows for
 
 test('prefetched cover images survive memory, persisted cache and offline recommendation loading', async () => {
   const covers = { meat: 'https://images.example.com/meat.jpg', veg: 'https://images.example.com/veg.jpg', soup: 'https://images.example.com/soup.jpg', dessert: 'https://images.example.com/dessert.jpg' }
-  const f = fixture({ getDishesLiteByType: async type => [{ id: Object.keys(covers).indexOf(type) + 1, name: `菜${type}`, type, image: covers[type] }] })
+  const f = fixture({ getDishesLiteByType: async type => [{ ...dish(Object.keys(covers).indexOf(type) + 1), name: `菜${type}`, type, image: covers[type] }] })
   f.load('app.js'); await f.app.precacheDishes()
   const persisted = [...f.storage.values()][0]
   assert.deepEqual(Array.from(f.app.globalData.allDishes, row => row.image), Object.values(covers))
@@ -138,4 +138,14 @@ test('prefetched cover images survive memory, persisted cache and offline recomm
   const result = await flow.generate({ people: 2 })
   assert.equal(result.source, 'cache')
   assert.deepEqual(Array.from(result.plans[0].dishes, row => row.image), Object.values(covers))
+})
+
+test('pre-change quantities and mixed releases never become the active fallback catalog', () => {
+  for (const rows of [[{...dish(1),quantityPolicy:undefined}], [dish(1), {...dish(2),catalogRevision:'older'}]]) {
+    const f=fixture({}, {globalData:{allDishes:rows,allDishesSource:ONLINE}})
+    const cache=f.load('utils/catalog-cache.js').createCatalogCache({wx:f.wx,appProvider:()=>f.app})
+    assert.equal(cache.read(),null)
+    cache.write(rows)
+    assert.equal(f.storage.size,0)
+  }
 })

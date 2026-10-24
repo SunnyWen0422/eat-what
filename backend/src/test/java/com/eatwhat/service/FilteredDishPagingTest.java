@@ -15,7 +15,7 @@ class FilteredDishPagingTest {
     private Dish row(long id) {
         Dish d = new Dish(); d.setId(id); d.setName("菜" + id);
         d.setCl(id % 5 == 0 ? "花生" : "青菜"); d.setIngredientsAmounts(null);
-        d.setTagCodes(id % 7 == 0 ? " light, SpIcY " : "LIGHT"); return d;
+        d.setTagCodes(id % 7 == 0 ? " light, SpIcY " : "LIGHT"); return CanonicalCandidateFixture.ingredients(d,d.getCl());
     }
     @Test void scansBoundedFactsCountsAllMatchesAndFetchesOnlyRequestedPage() {
         List<Dish> all = new ArrayList<>();

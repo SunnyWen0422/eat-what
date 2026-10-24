@@ -17,13 +17,14 @@ class AssistantShoppingFixture {
  final ShoppingListMapper listDb=mock(ShoppingListMapper.class);final ShoppingDishMapper groupsDb=mock(ShoppingDishMapper.class);final ShoppingItemMapper itemsDb=mock(ShoppingItemMapper.class);final ShoppingRequestLogMapper logs=mock(ShoppingRequestLogMapper.class);
  final ShoppingList list=new ShoppingList();final List<ShoppingDish> groups=new ArrayList<>();final List<ShoppingItem> items=new ArrayList<>();final Map<String,ShoppingRequestLog> receipts=new HashMap<>();
  final ShoppingPreviewService previews;final ShoppingListService lists;
+ final CanonicalCatalogService catalog=CanonicalTestCatalog.service();
  ShoppingProcurementScopeService scopes;ShoppingAssistantToolAdapter adapter;AssistantV4TurnService turns;
  final AssistantV4ModelGateway model=mock(AssistantV4ModelGateway.class);long sequence=10;
  AssistantShoppingFixture() throws Exception {
-  f.domain.reviewed.get(0).setIngredientsAmounts("青菜|200|g\n盐|2|g");f.domain.reviewed.get(0).setFl("2人");refreshDraft();
+  Dish recipe=f.domain.reviewed.get(0);com.fasterxml.jackson.databind.node.ObjectNode canonical=CanonicalTestCatalog.recipe(recipe.getId(),recipe.getName(),"green",new java.math.BigDecimal("200"),new java.math.BigDecimal("2"));CanonicalTestCatalog.line((com.fasterxml.jackson.databind.node.ArrayNode)canonical.path("ingredients"),"i2","salt",new java.math.BigDecimal("2"));recipe.setRecipe(canonical);catalog.enrich(recipe);refreshDraft();
   when(aliases.find(anyLong(),anyString())).thenAnswer(i->aliasRows.get(i.getArgument(0)+"|"+i.getArgument(1)));workingAliases();
-  when(aliases.lockDishes(eq(1L),anyList())).thenAnswer(i->f.domain.json.convertValue(f.domain.reviewed,new com.fasterxml.jackson.core.type.TypeReference<List<Dish>>(){}));
-  when(aliases.lockProfiles(anyList())).thenReturn(Collections.emptyList());
+  when(aliases.lockDishes(eq(1L),anyList())).thenAnswer(i->{List<Dish> out=new ArrayList<>();for(Dish dish:f.domain.reviewed)out.add(CanonicalTestCatalog.cloneDish(dish));return out;});
+
   list.setId(1L);list.setUserId(1L);list.setVersion(0L);list.setMetadataVersion(1);when(listDb.findByUserId(1L)).thenReturn(list);when(listDb.findByUserIdForUpdate(1L)).thenReturn(list);
   when(listDb.updateVersion(eq(1L),eq(1L),anyLong(),anyInt())).thenAnswer(i->{list.setVersion(i.getArgument(2));return 1;});
   when(groupsDb.findByListId(1L)).thenAnswer(i->new ArrayList<>(groups));when(groupsDb.findBySelectionKey(eq(1L),anyString())).thenAnswer(i->groups.stream().filter(g->g.getSelectionKey().equals(i.getArgument(1))).findFirst().orElse(null));
@@ -32,7 +33,7 @@ class AssistantShoppingFixture {
   when(itemsDb.insert(any())).thenAnswer(i->{ShoppingItem item=i.getArgument(0);item.setId(sequence++);items.add(item);return 1;});
   when(itemsDb.update(any(),eq(1L))).thenAnswer(i->{ShoppingItem item=i.getArgument(0);items.removeIf(v->v.getId().equals(item.getId()));items.add(item);return 1;});when(itemsDb.delete(anyLong(),eq(1L))).thenAnswer(i->{items.removeIf(v->v.getId().equals(i.getArgument(0)));return 1;});
   when(logs.findSuccess(eq(1L),anyString())).thenAnswer(i->receipts.get(i.getArgument(1)));when(logs.insertBoundSuccess(eq(1L),anyString(),anyString(),anyString())).thenAnswer(i->{ShoppingRequestLog r=new ShoppingRequestLog();r.setRequestHash(i.getArgument(2));r.setResponseJson(i.getArgument(3));receipts.put(i.getArgument(1),r);return 1;});
-  previews=new ShoppingPreviewService(f.domain.dishes,new IngredientParserService(),new IngredientNormalizationService());lists=spy(new ShoppingListService(listDb,groupsDb,itemsDb,logs,mock(ShoppingListMergeService.class),previews,f.domain.json));initialize();
+  previews=CanonicalTestCatalog.wire(new ShoppingPreviewService(f.domain.dishes,new IngredientParserService(),new IngredientNormalizationService()),catalog);lists=spy(new ShoppingListService(listDb,groupsDb,itemsDb,logs,mock(ShoppingListMergeService.class),previews,f.domain.json));initialize();
  }
  void workingAliases(){doAnswer(i->{aliasRows.putIfAbsent(i.getArgument(0)+"|"+i.getArgument(1),i.getArgument(2));return 1;}).when(aliases).insert(anyLong(),anyString(),anyString());}
  void refreshDraft() throws Exception {MealWorkspace w=f.domain.service.get(1L,"source");w.getDraft().setDishes(f.domain.reviewed);f.domain.sourceJson=f.domain.json.writeValueAsString(w);}

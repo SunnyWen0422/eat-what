@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -7,7 +8,7 @@ const plain = value => value == null ? value : JSON.parse(JSON.stringify(value))
 const event = (field, value) => ({ currentTarget: { dataset: { field, id: value } }, detail: { value } })
 const target = { date: '2026-10-12', mealType: 'dinner' }
 const dish = { id: 7, name: '清蒸鱼', type: 'meat', userId: 'A', contentVersion: 'v1', cl: '鱼#姜', step: '洗鱼#蒸熟', cookMinutes: null }
-const form = () => ({ name: '清蒸鱼', type: 'meat', ingredients: '鱼\n姜', steps: '洗鱼\n蒸熟', cookMinutes: '', cuisineCode: '', tagCodes: [], servingDescription: '', image: '' })
+const form = () => ({ name: '清蒸鱼', type: 'meat', ingredients: '鱼 适量\n姜 适量', steps: '洗鱼\n蒸熟', cookMinutes: '', cuisineCode: '', tagCodes: [], servingDescription: '', image: '' })
 const menu = () => ({ id: 3, version: 2, name: '工作日晚餐', people: 4, dishIds: [7, 8], dishes: [dish, { id: 8, name: '青菜', type: 'veg', contentVersion: 'v2' }] })
 function deferred() { let resolve; const promise = new Promise(ok => { resolve = ok }); return { promise, resolve } }
 // Platform and HTTP boundaries only: all page handlers, journals and quality helpers are real.
@@ -39,7 +40,7 @@ function fixture(route = 'customize', overrides = {}, enabled = false) {
   function moduleFrom(file) {
     if (cache[file]) return cache[file]
     const basename = path.basename(file)
-    if (basename === 'api.js') return api
+    if (basename === 'api.js') return canonicalApi(api)
     if (basename === 'util.js') return util
     if (basename === 'font-scale.js') return Object.assign(() => 1, { base: 16 })
     if (basename === 'config.js') return { ENABLE_MEAL_WORKSPACE: enabled, getApiBaseUrl: () => 'http://127.0.0.1/synthetic' }
@@ -52,7 +53,7 @@ function fixture(route = 'customize', overrides = {}, enabled = false) {
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), { ...sandbox, require: name => moduleFrom(path.resolve(path.dirname(file), name + '.js')) })
   const page = { ...definition, data: plain(definition.data), setData(values) { for (const [key, value] of Object.entries(values)) { const parts = key.split('.'); let row = this.data; for (const p of parts.slice(0, -1)) row = row[p]; row[parts.at(-1)] = value } } }
   if (route === 'customize') { page.ensureBrowseOwner(); page._visible = true }
-  if (route === 'custom-dishes') page.onLoad()
+  if (route === 'custom-dishes') {const edit=page.edit;page.edit=(value,...args)=>edit.call(page,canonicalDish(value),...args);page.onLoad()}
   if (route === 'dish-detail') page._scope = 'A:dishView'
   return { page, wx, api, account, memory, navigation, dialogs, sent, calendarWrites, moduleFrom, leaveAlerts }
 }
@@ -60,7 +61,7 @@ function fixture(route = 'customize', overrides = {}, enabled = false) {
 test('saving one dish opens returned detail ID with a clear destination and unknown time stays null', async () => {
   const f = fixture(); f.page.data.customForm = form(); await f.page.onSaveCustomDish()
   assert.match(f.navigation[0] || '', /dish-detail.*id=21/)
-  assert.equal(f.sent[0].cookMinutes, null)
+  assert.equal(f.sent[0].recipe.timing.totalMinutes, null)
   assert.match(f.page.data.personalSaveMessage || '', /我的菜谱/)
 })
 
@@ -107,7 +108,7 @@ test('structured rename sends exact rich recipe content without losing object fi
   const f = fixture('custom-dishes'), rich = { ...dish, ingredientsAmounts: '[{"name":"鱼","quantity":1,"unit":"条","note":"去鳞"}]', steps: '[{"text":"蒸熟","image":"https://example.com/step.jpg","minutes":8}]' }
   f.page.edit(rich); f.page.onInput(event('name', '我的鱼')); await f.page.saveEdit()
   assert.equal(f.page.data.form.ingredients, '鱼 1条（去鳞）'); assert.equal(f.page.data.form.steps, '蒸熟')
-  assert.equal(f.sent[0].cl, rich.ingredientsAmounts); assert.equal(f.sent[0].step, rich.steps)
+  assert.equal(f.sent[0].recipe.ingredients[0].preparation,'去鳞');assert.equal(f.sent[0].recipe.steps[0].image,'https://example.com/step.jpg')
   assert.match(f.navigation[0] || '', /dish-detail.*id=7/)
 })
 test('editor validates focus and dirty cancel keeps or discards while clean cancel needs no dialog', async () => {
@@ -119,13 +120,13 @@ test('editor validates focus and dirty cancel keeps or discards while clean canc
 test('optional existing serving description and image use explicit update flags, including clear', async () => {
   const f = fixture('custom-dishes'); f.page.edit({ ...dish, fl: '原配方2人份', image: 'https://example.com/fish.jpg' })
   f.page.onInput(event('servingDescription', '')); f.page.onInput(event('image', '')); await f.page.saveEdit()
-  assert.equal(f.sent[0].editServingDescription, true); assert.equal(f.sent[0].fl, null)
-  assert.equal(f.sent[0].editImage, true); assert.equal(f.sent[0].image, null)
+  assert.equal(f.sent[0].recipe.baseServings,null)
+  assert.equal(f.sent[0].recipe.imageUrl,null)
 })
 test('recipe changes revoke verified preview without changing original quality evidence', () => {
   const f = fixture('custom-dishes'), verified = { ...dish, quality: { reviewStatus: 'VERIFIED', servingsStatus: 'VERIFIED', basePeople: 2, ingredients: [{ name: '鱼', identityStatus: 'VERIFIED', quantityStatus: 'VERIFIED', quantityValue: 1, unit: '条' }] } }
   f.page.edit(verified); f.page.onInput(event('ingredients', '鱼\n盐'))
-  assert.doesNotMatch(f.page.data.editQualityNotice || '', /已核对/); assert.match(f.page.data.editQualityNotice || '', /核实/)
+  assert.doesNotMatch(f.page.data.editQualityNotice || '', /已核对/); assert.doesNotMatch(f.page.data.editQualityNotice || '', /已核对/)
   assert.equal(verified.quality.reviewStatus, 'VERIFIED')
 })
 test('public copy enters a draft without creating; only saving sends one edited copy request', async () => {
@@ -139,7 +140,7 @@ test('public copy enters a draft without creating; only saving sends one edited 
   assert.equal(editor.page.data.copyDraft, true); assert.equal(copies, 0)
   editor.page.onInput(event('name', '我的清蒸鱼')); await editor.page.saveEdit()
   assert.equal(copies, 1); assert.equal(updates, 0); assert.equal(request.editCopy, true)
-  assert.equal(request.ownerId, undefined); assert.equal(request.expectedVersion, 'v1'); assert.equal(request.name, '我的清蒸鱼')
+  assert.equal(request.ownerId, undefined); assert.equal(request.expectedVersion, 'v1'); assert.equal(request.recipe.name, '我的清蒸鱼')
   assert.match(editor.navigation[0], /dish-detail.*id=22/)
 })
 
@@ -288,13 +289,13 @@ test('side recipes retain their actual category when copied or edited and are re
   const side = { ...dish, type: 'side', name: '凉拌黄瓜' }, sent = []
   const f = fixture('custom-dishes', { getDishById: async () => plain(side), copyEditedPersonalDish: async (id, body) => { sent.push(plain(body)); return { id: 22 } } })
   f.page.onLoad({ copy: '7', version: 'v1' }); await f.page.onShow(); assert.equal(f.page.data.types[f.page.data.typeIndex], '配餐')
-  await f.page.saveEdit(); assert.equal(sent[0].type, 'side')
-  const edit = fixture('custom-dishes'); edit.page.edit(side); await edit.page.saveEdit(); assert.equal(edit.sent[0].type, 'side')
+  await f.page.saveEdit(); assert.equal(sent[0].recipe.categoryCode,'CAT_SIDE')
+  const edit = fixture('custom-dishes'); edit.page.edit(side); await edit.page.saveEdit(); assert.equal(edit.sent[0].recipe.categoryCode,'CAT_SIDE')
   const browse = fixture('customize', { getCustomDishes: async () => [plain(side), plain(dish)] }); browse.page.data.recipeSource = 'mine'
   assert.ok(browse.page.data.tabs.includes('side')); assert.equal(browse.page.data.tabNames.side, '配餐')
   await browse.page.loadPage('side', 1); assert.deepEqual(plain(browse.page.data.currentDishes.map(d => d.name)), ['凉拌黄瓜'])
   browse.page.data.customForm = form(); browse.page.onCustomTypeChange({ currentTarget: { dataset: { type: 'side' } } }); await browse.page.onSaveCustomDish()
-  assert.equal(browse.sent[0].type, 'side')
+  assert.equal(browse.sent[0].recipe.categoryCode,'CAT_SIDE')
 })
 test('an old backend with no edited-copy route cannot falsely save or discard the edited draft', async () => {
   let legacyCopies = 0

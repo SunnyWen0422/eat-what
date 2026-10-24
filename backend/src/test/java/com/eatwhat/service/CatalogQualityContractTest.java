@@ -1,48 +1,17 @@
 package com.eatwhat.service;
-
 import com.eatwhat.entity.Dish;
-import com.eatwhat.dto.CatalogQuality;
-import com.eatwhat.dto.ShoppingPreviewRequest;
 import com.eatwhat.mapper.DishQualityMapper;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.*;
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 class CatalogQualityContractTest {
-    private final ObjectMapper json=new ObjectMapper();
-    private Dish raw(){Dish d=new Dish();d.setId(1L);d.setName("快手青椒肉丝");d.setFl("2名成年人总量+15%冗余");d.setKcal(0);return d;}
-    private String profile(String status,String quantity,String base){return "{\"dishId\":1,\"datasetVersion\":\"v1\",\"sourceHash\":\"source\",\"contentHash\":\"content\",\"reviewStatus\":\""+status+"\",\"servingsStatus\":\""+(base==null?"UNKNOWN":"VERIFIED")+"\",\"basePeople\":"+(base==null?"null":"\""+base+"\"")+",\"nutritionStatus\":\"UNKNOWN\",\"nutritionKcal\":null,\"ingredients\":[{\"name\":\"白糖\",\"unit\":\"克\",\"quantityStatus\":\""+(quantity==null?"UNKNOWN":"VERIFIED")+"\",\"identityStatus\":\"VERIFIED\",\"quantityValue\":"+(quantity==null?"null":"\""+quantity+"\"")+",\"rawQuantity\":\"55\",\"rawText\":\"白糖|55|克\",\"preparation\":\"调味\",\"role\":\"调味料\"}]}";}
-    private Dish enriched(String status,String qty,String base)throws Exception{
-        DishQualityMapper mapper=mock(DishQualityMapper.class);DishQualityMapper.Row row=new DishQualityMapper.Row();row.setDishId(1L);row.setProfileJson(profile(status,qty,base));
-        com.fasterxml.jackson.databind.node.ObjectNode node=(com.fasterxml.jackson.databind.node.ObjectNode)json.readTree(row.getProfileJson());node.put("sourceRecipeVersion",com.eatwhat.util.DishContentVersion.rawOf(raw()));row.setProfileJson(json.writeValueAsString(node));
-        when(mapper.find(anyList())).thenReturn(Collections.singletonList(row));return new DishQualityService(mapper,json).enrich(raw());
-    }
-    @Test void unknownNutritionAndGeneratedQuantityStayUnknown()throws Exception{
-        Dish d=enriched("UNREVIEWED",null,null);assertNull(d.getQuality().getNutritionKcal());assertEquals("2名成年人总量+15%冗余",d.getFl());
-        assertEquals("55",d.getQuality().getIngredients().get(0).getRawQuantity());assertEquals("UNKNOWN",d.getQuality().getIngredients().get(0).getQuantityStatus());
-    }
-    @Test void unverifiedIngredientNeverBecomesCalculatedEvenWithAPlainPeopleLabel()throws Exception{
-        Dish d=enriched("UNREVIEWED",null,"2");DishQueryService query=mock(DishQueryService.class);
-        when(query.getDishesByIdsForUser(anyList(),eq(1L))).thenReturn(Collections.singletonList(d));
-        ShoppingPreviewRequest req=new ShoppingPreviewRequest();req.setDishIds(Collections.singletonList(1L));req.setTargetPeople(new BigDecimal("4"));
-        com.eatwhat.dto.ShoppingPreviewItemDTO item=new ShoppingPreviewService(query,new IngredientParserService(),new IngredientNormalizationService()).createPreview(1L,req).getDishes().get(0).getItems().get(0);
-        assertNull(item.getQuantityValue());assertEquals("NEEDS_ADJUSTMENT",item.getCalculationStatus());assertFalse(item.getQuantityText().contains("55"));
-    }
-    @Test void verifiedIdentityAmountServingsAndUnitCanScale()throws Exception{
-        Dish d=enriched("VERIFIED","10","2");DishQueryService query=mock(DishQueryService.class);when(query.getDishesByIdsForUser(anyList(),eq(1L))).thenReturn(Collections.singletonList(d));
-        ShoppingPreviewRequest req=new ShoppingPreviewRequest();req.setDishIds(Collections.singletonList(1L));req.setTargetPeople(new BigDecimal("4"));
-        com.eatwhat.dto.ShoppingPreviewItemDTO item=new ShoppingPreviewService(query,new IngredientParserService(),new IngredientNormalizationService()).createPreview(1L,req).getDishes().get(0).getItems().get(0);
-        assertEquals(0,new BigDecimal("20").compareTo(item.getQuantityValue()));assertEquals("CALCULATED",item.getCalculationStatus());
-    }
-    @Test void batchEnrichmentUsesOneReadAndRejectsCrossDishProfile()throws Exception{
-        DishQualityMapper mapper=mock(DishQualityMapper.class);DishQualityMapper.Row row=new DishQualityMapper.Row();row.setDishId(1L);row.setProfileJson(profile("UNREVIEWED",null,null).replace("\"dishId\":1","\"dishId\":2"));
-        when(mapper.find(anyList())).thenReturn(Collections.singletonList(row));Dish dish=new DishQualityService(mapper,json).enrich(raw());assertTrue(dish.getQuality().getIssueCodes().contains("QUALITY_RECORD_INVALID"));verify(mapper,times(1)).find(anyList());
-    }
-    @Test void verifiedProfileCannotSurviveAChangedRawRecipe()throws Exception{
-        DishQualityMapper mapper=mock(DishQualityMapper.class);DishQualityMapper.Row row=new DishQualityMapper.Row();row.setDishId(1L);row.setProfileJson(profile("VERIFIED","10","2"));when(mapper.find(anyList())).thenReturn(Collections.singletonList(row));
-        Dish dish=new DishQualityService(mapper,json).enrich(raw());assertTrue(dish.getQuality().getIssueCodes().contains("QUALITY_VERSION_CHANGED"));assertNull(dish.getQuality().getBasePeople());
-    }
+ final CanonicalCatalogService catalog=CanonicalTestCatalog.service();
+ @Test void discretionaryQuantityAndNutritionRemainNull(){Dish d=CanonicalTestCatalog.dish(1,"糖水","sugar",null,new BigDecimal("2"));catalog.enrich(d);assertNull(d.getQuality());assertNull(d.getKcal());assertTrue(d.getScaledRecipe().path("nutrition").path("total").isNull());assertTrue(d.getScaledRecipe().path("ingredients").get(0).path("quantity").isNull());}
+ @Test void displayNumbersCannotOverrideDiscretionaryCanonicalFacts(){Dish d=CanonicalTestCatalog.dish(1,"糖水","sugar",null,new BigDecimal("2"));d.setIngredientsAmounts("白糖|55|克");assertTrue(catalog.scale(d,new BigDecimal("4")).path("ingredients").get(0).path("quantity").isNull());}
+ @Test void exactIngredientAmountIsIndependentOfDiners(){Dish d=CanonicalTestCatalog.dish(1,"糖水","sugar",new BigDecimal("10"),new BigDecimal("2"));assertEquals(10,catalog.scale(d,new BigDecimal("4")).path("ingredients").get(0).path("quantity").asInt());}
+ @Test void oldQualityProfilesAreNotASecondReadSource(){DishQualityMapper rows=mock(DishQualityMapper.class);DishQualityService wrapper=new DishQualityService(rows,CanonicalTestCatalog.JSON);wrapper.setCatalog(catalog);Dish a=CanonicalTestCatalog.fish(1),b=CanonicalTestCatalog.fish(2);wrapper.enrich(Arrays.asList(a,b));assertNull(a.getQuality());assertNull(b.getQuality());verifyNoInteractions(rows);}
+ @Test void changingTheCanonicalRecipeChangesVersionAndRecalculates(){Dish d=CanonicalTestCatalog.fish(1);String old=d.getContentVersion();CanonicalTestCatalog.changed(d,r->((ObjectNode)r.path("ingredients").get(0)).put("quantity",200));assertNotEquals(old,d.getContentVersion());assertEquals(200,catalog.scale(d,new BigDecimal("2")).path("ingredients").get(0).path("quantity").asInt());}
 }

@@ -5,6 +5,7 @@ import { createPublicCatalogProvider, loadCatalog } from '../src/catalog/catalog
 import { safeRecipeImage } from '../src/catalog/media.ts';
 import { snapshotRecipe } from '../src/domain/snapshots.ts';
 import { RecipeImage, RecipeMediaContext } from '../src/ui/RecipeImage.tsx';
+import { canonicalPublicDish } from './canonical-fixture.ts';
 afterEach(cleanup);
 it('maps only verified legacy hosts to the working HTTPS image host', () => {
   for (const host of ['cp1.douguo.net', 'cp2.douguo.net']) {
@@ -20,7 +21,7 @@ it('rejects executable, credential-bearing and local image URLs', () => {
   expect(safeRecipeImage('http://images.example.com/food.jpg')).toBe('https://images.example.com/food.jpg');
 });
 it('shows verified catalog media, falls back on failure, and excludes media from snapshots', async () => {
-  const catalog = await loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: 1, list: [{ id: 1, name: '番茄炒蛋', type: 'meat', image: 'https://images.example.com/food.jpg', cl: '番茄、鸡蛋', steps: '炒熟' }] })));
+  const catalog = await loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: 1, list: [canonicalPublicDish(1,{}, {name:'番茄炒蛋',categoryCode:'CAT_MEAT',imageUrl:'https://images.example.com/food.jpg'})] })));
   if (!catalog.ok) throw new Error('fixture catalog failed');
   const recipe = catalog.value.recipes[0]!, snapshot = snapshotRecipe(recipe);
   expect(snapshot).not.toHaveProperty('image'); expect(recipe).not.toHaveProperty('image');

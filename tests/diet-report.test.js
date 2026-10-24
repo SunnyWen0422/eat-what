@@ -38,6 +38,12 @@ test('empty actual report retains all six sections and pending plans with proven
   const source = fs.readFileSync('pages/statistics/statistics.wxml','utf8')
   for (const block of ['overview','actualDetails','frequentDishes','categoryCounts','planExecution','completeness']) assert.ok(source.includes(`data-report-block="${block}"`),block)
 })
+test('nutrition reference reaches the actual page and is cleared on period change and read failure', async () => {
+  let failing=false
+  const {view}=fixture(async(startDate,endDate)=>{if(failing)throw Error('offline');const data=report({startDate,endDate});data.blocks.overview.mealCount=1;data.blocks.actualDetails.nutrition={basis:'recipe_baseline',personalIntakeAvailable:false,entryCount:2,coveredCount:1,unknownCount:1,complete:false,knownTotal:{energyKcal:150,proteinG:6,fatG:2,carbohydrateG:30,fiberG:1,sodiumMg:20},total:null};return data})
+  await view.loadStatistics();assert.equal(view.data.nutritionReference.coverage,'已覆盖 1/2 道');assert.equal(view.data.nutritionReference.label,'已知部分')
+  failing=true;view.data.selectedDate='2026-01-12';const next=view.loadStatistics();assert.equal(view.data.nutritionReference,null);await next;assert.equal(view.data.nutritionReference,null)
+})
 test('actual record link retains both date and meal type', () => {
   const {view,urls} = fixture(async () => report())
   view._viewScope='A:dietReview'

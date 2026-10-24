@@ -47,9 +47,9 @@ class BalancedRecommendationPolicyTest {
     }
     @Test void structuredMainIngredientsCountButCondimentsAndAmbiguousTextDoNot(){
         MealContext c=context();c.setOwnedIngredients(Arrays.asList("土豆","盐","油"));Dish d=dish(1,"");
-        d.setIngredientsAmounts("土豆|200|克|主料#盐|3|克|调味料#油|5|毫升|主料");
+        d.setIngredientsAmounts("旧的展示文字不参与权重");CanonicalCandidateFixture.ingredients(d,"土豆");
         assertEquals(115,policy.weight(d,c,new UserPreferenceDTO(),Collections.emptyList(),Collections.emptyMap()),.001);
-        d.setIngredientsAmounts("土豆、盐、油适量");assertEquals(100,policy.weight(d,c,new UserPreferenceDTO(),Collections.emptyList(),Collections.emptyMap()),.001);
+        d.setRecipe(null);d.setIngredientsAmounts("土豆、盐、油适量");assertEquals(100,policy.weight(d,c,new UserPreferenceDTO(),Collections.emptyList(),Collections.emptyMap()),.001);
     }
     @Test void timeContributionHasOneCapAndUnknownTimeStaysNeutral(){
         MealContext c=context();c.getRecommendationPreferences().setMaxCookMinutes(20);c.setExpectedTotalCookMinutes(30);Dish d=dish(1,"");

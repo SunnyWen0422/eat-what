@@ -64,7 +64,7 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
         "context": context, "lockedDishIds": workspace.get("draft", {}).get("lockedDishIds", []),
         "recommendationOptions": workspace.get("recommendationOptions", {}),
         "userContext":{k:v for k,v in authorized_context.items() if k not in ['ownerUserId','catalog']},
-        "toolFilterKeys":['type','cuisine_codes','include_tag_codes','exclude_tag_codes','excluded_ingredients','max_cook_minutes'],
+        "toolFilterKeys":['type','cuisine_codes','include_tag_codes','exclude_tag_codes','excluded_ingredients','max_cook_minutes','meal_codes','dietary_codes','excluded_allergen_codes'],
         "contract": {"needsInput": "boolean", "constraintsUnderstood": "boolean", "message": "string",
                      "date": "YYYY-MM-DD", "mealType": "breakfast|lunch|dinner", "dishIds": "integer[]",
                      "criteria": {"cuisineCodes": [], "includeTagCodes": [], "excludeTagCodes": [], "excludedIngredients": [], "maxCookMinutes": None},
@@ -90,20 +90,13 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
             return validate_result(response["final"], context, sourced)
         call = validate_tool_call(response.get("tool_call"), {t["name"] for t in tools}, tools)
         records = execute(call["name"], call["arguments"], f"user:{int(user_id)}")
-        def collect(value):
-            if isinstance(value, dict):
-                identifier = value.get("id", value.get("dish_id"))
-                if identifier is not None:
-                    try:
-                        sourced.add(int(identifier))
-                    except (ValueError, TypeError):
-                        raise ValueError("invalid identifier from tool")
-                for child in value.values():
-                    collect(child)
-            elif isinstance(value, list):
-                for child in value:
-                    collect(child)
-        collect(records)
+        # Only top-level dish records authorize a future selection. Canonical
+        # ingredient/step IDs are strings and must never enter the dish ID set.
+        for record in records if isinstance(records, list) else []:
+            identifier = record.get("id") if isinstance(record, dict) else None
+            if isinstance(identifier, bool) or not isinstance(identifier, int) or identifier <= 0:
+                raise ValueError("invalid dish identifier from tool")
+            sourced.add(identifier)
         call_id = call.get("id") or f"v4_{round_number}"
         messages.extend([tool_assistant_message(response, call, call_id),
             {"role": "tool", "tool_call_id": call_id, "content": json.dumps(records, ensure_ascii=False)}])

@@ -41,12 +41,12 @@ class MainCatalogMapperSqlTest {
         assertEquals("SELECT COUNT(*) " + originalWhere, sql("countFilteredDishes", filters));
         Object[] factFilters = Arrays.copyOf(filters, 8); factFilters[6] = 900L; factFilters[7] = 256;
         String facts = sql("selectFilteredCandidateFacts", factFilters);
-        String keysetWhere=originalWhere.replace("FROM food ","FROM food FORCE INDEX(PRIMARY) ");
+        String keysetWhere=originalWhere.replace("FROM food ","FROM food ");
         assertEquals(keysetWhere + " AND ID < ? ORDER BY ID DESC LIMIT ?", facts.substring(facts.indexOf("FROM food")));
-        assertEquals("SELECT ID as id, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes ",
+        assertEquals("SELECT ID as id, RECIPE_JSON as recipeJson, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes ",
                 facts.substring(0, facts.indexOf("FROM food")));
         Object[] pageFilters = Arrays.copyOf(filters, 8); pageFilters[6] = 5; pageFilters[7] = 10L;
-        assertEquals(original.replace("FROM food ","FROM food FORCE INDEX(PRIMARY) ") + " LIMIT ? OFFSET ?", sql("selectFilteredDishesPage", pageFilters));
+        assertEquals(original.replace("FROM food ","FROM food ") + " LIMIT ? OFFSET ?", sql("selectFilteredDishesPage", pageFilters));
         MappedStatement mapped = statement("selectFilteredDishesPage"); Object params = parameters("selectFilteredDishesPage", pageFilters);
         BoundSql bound = mapped.getBoundSql(params);
         assertFalse(bound.getSql().contains((String) filters[2]));

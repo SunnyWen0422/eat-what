@@ -1,0 +1,1459 @@
+{
+  "capturedAt": "2026-10-22T12:51:07.598397+00:00",
+  "scope": "All public recipes: is_custom=0 AND is_published=1 AND user_id IS NULL",
+  "exactCounts": {
+    "food": 6665,
+    "dish_quality_profile": 6665,
+    "dish_quality_revision": 6665,
+    "dish_ingredient": 0,
+    "ingredient_catalog": 0
+  },
+  "integrity": {
+    "dish_quality_profileOrphans": 0,
+    "dish_quality_revisionOrphans": 0,
+    "dish_ingredientOrphans": 0
+  },
+  "counts": {
+    "recipes": 6665,
+    "stepAndStepsIdentical": 6665,
+    "stepsTotal": 34212,
+    "numberPrefixedSteps": 34212,
+    "recipesWithNumberPrefixedSteps": 6665,
+    "timeColumnsAgree": 6665,
+    "validStepImageArrays": 6665,
+    "emptyStepImageArrays": 6665,
+    "hasGroup_cuisine": 400,
+    "hasGroup_flavor": 620,
+    "hasGroup_scene": 6548,
+    "hasGroup_diet": 1573,
+    "hasGroup_method": 6060,
+    "rawIngredientLines": 47161,
+    "qualityProfiles": 6665,
+    "qualityIngredientFacts": 47109,
+    "rejectedIngredientFacts": 52,
+    "ingredientFactsWithQuantityValue": 0,
+    "ingredientFactsWithQuantityEvidence": 0,
+    "ingredientFactsWithIdentityEvidence": 27001,
+    "recipesWithUnreviewedIngredientIdentity": 6617,
+    "recipesStepMinutesExceedCookMinutes": 390,
+    "oneOrZeroStepRecipes": 151,
+    "recipesPotentialDoublePrefix": 174,
+    "knownDescriptorIngredientsRemaining": 52
+  },
+  "missing": {
+    "id": {
+      "present": 6665
+    },
+    "name": {
+      "present": 6665
+    },
+    "type": {
+      "present": 6665
+    },
+    "cl": {
+      "present": 6665
+    },
+    "fl": {
+      "present": 6665
+    },
+    "step": {
+      "present": 6665
+    },
+    "tags": {
+      "present": 6665
+    },
+    "image": {
+      "present": 6665
+    },
+    "difficulty": {
+      "present": 6665
+    },
+    "cook_time": {
+      "present": 6665
+    },
+    "ingredients_amounts": {
+      "present": 6665
+    },
+    "steps": {
+      "present": 6665
+    },
+    "step_images": {
+      "present": 6665
+    },
+    "tips": {
+      "present": 6665
+    },
+    "methods": {
+      "present": 6665
+    },
+    "kcal": {
+      "present": 6665
+    },
+    "create_time": {
+      "present": 6665
+    },
+    "cuisine_code": {
+      "null": 6265,
+      "present": 400
+    },
+    "tag_codes": {
+      "present": 6647,
+      "blank": 18
+    },
+    "cook_minutes": {
+      "present": 6665
+    },
+    "metadata_version": {
+      "present": 6665
+    }
+  },
+  "distributions": {
+    "type": {
+      "meat": 3200,
+      "veg": 2190,
+      "soup": 619,
+      "staple": 400,
+      "dessert": 256
+    },
+    "fl": {
+      "2名成年人总量+15%冗余": 6665
+    },
+    "difficulty": {
+      "普通": 3983,
+      "简单": 1482,
+      "困难": 1200
+    },
+    "cook_time": {
+      "20分钟": 3460,
+      "15分钟": 1482,
+      "25分钟": 986,
+      "60分钟": 429,
+      "45分钟": 252,
+      "90分钟": 56
+    },
+    "cook_minutes": {
+      "20": 3460,
+      "15": 1482,
+      "25": 986,
+      "60": 429,
+      "45": 252,
+      "90": 56
+    },
+    "cuisine_code": {
+      "None": 6265,
+      "SICHUAN": 162,
+      "NORTHEAST": 74,
+      "CANTONESE": 65,
+      "JIANGNAN": 42,
+      "HUNAN": 24,
+      "NORTHWEST": 13,
+      "SHANDONG": 11,
+      "FUJIAN": 9
+    },
+    "methods": {
+      "炒": 3384,
+      "煮": 632,
+      "炸": 611,
+      "煎": 358,
+      "蒸": 342,
+      "凉拌": 322,
+      "炖": 231,
+      "烤": 230,
+      "煲": 197,
+      "酱制": 116,
+      "焖": 87,
+      "微波": 29,
+      "腌": 27,
+      "糖醋": 25,
+      "红烧": 24,
+      "汆": 18,
+      "烙": 14,
+      "白灼": 7,
+      "卤": 4,
+      "焗": 3,
+      "冲泡": 2,
+      "煨": 1,
+      "生食": 1
+    },
+    "kcal": {
+      "0": 6665
+    },
+    "metadata_version": {
+      "1": 6665
+    },
+    "quality_dataset_version": {
+      "catalog-quality-20261008-v1-9db2ff9b09c2f243": 6665
+    },
+    "quality_review_status": {
+      "UNREVIEWED": 6665
+    },
+    "createDate": {
+      "2026-09-14": 6665
+    },
+    "stepCount": {
+      "4": 1341,
+      "5": 1255,
+      "3": 1095,
+      "6": 951,
+      "7": 651,
+      "8": 458,
+      "2": 291,
+      "9": 248,
+      "1": 151,
+      "10": 128,
+      "11": 53,
+      "12": 29,
+      "13": 11,
+      "14": 3
+    },
+    "imageHost": {
+      "cp1.douguo.net": 6580,
+      "cp2.douguo.net": 85
+    },
+    "imageScheme": {
+      "https": 6665
+    },
+    "tagCode": {
+      "HOME_STYLE": 6035,
+      "QUICK": 4942,
+      "STIR_FRY": 3384,
+      "LUNCH": 2833,
+      "VEGETARIAN": 1525,
+      "GATHERING": 1453,
+      "STEW": 1060,
+      "FRY": 611,
+      "LOW_EFFORT": 417,
+      "DINNER": 390,
+      "STEAM": 342,
+      "COLD_MIX": 322,
+      "BAKE": 230,
+      "TOMATO": 154,
+      "SWEET_SOUR": 133,
+      "SPICY": 126,
+      "BRAISE": 111,
+      "SOUR_SPICY": 88,
+      "NUMB_SPICY": 81,
+      "HEALTHY": 73,
+      "LIGHT": 52
+    },
+    "rawTag": {
+      "家常菜": 6035,
+      "热菜": 5061,
+      "午餐": 2833,
+      "肉类": 2618,
+      "禽类": 2200,
+      "下饭菜": 1956,
+      "朋友聚餐": 1453,
+      "水产": 1445,
+      "素食": 1386,
+      "凉菜": 626,
+      "煲汤": 620,
+      "蛋类": 600,
+      "下酒菜": 557,
+      "豆制品": 468,
+      "一家三口": 462,
+      "懒人食谱": 417,
+      "单身食谱": 405,
+      "晚餐": 390,
+      "素食主义": 390,
+      "主食": 379,
+      "海鲜": 357,
+      "烤箱": 291,
+      "甜品": 223,
+      "川菜": 162,
+      "下午茶": 159,
+      "番茄味": 154,
+      "高压锅": 151,
+      "砂锅": 143,
+      "酸甜": 133,
+      "香辣": 126,
+      "幼儿食谱": 124,
+      "微波炉": 118,
+      "小吃": 114,
+      "电饭煲": 104,
+      "酸辣": 88,
+      "私家菜": 83,
+      "麻辣": 81,
+      "面条": 75,
+      "东北菜": 74,
+      "健康食谱": 73,
+      "蒜香": 72,
+      "饼": 71,
+      "创意菜": 67,
+      "粤菜": 65,
+      "甜": 65,
+      "鲜": 63,
+      "爽口": 63,
+      "孜然": 58,
+      "秋冬进补": 57,
+      "清淡": 52,
+      "咸": 50,
+      "饮品": 49,
+      "压力锅": 46,
+      "电饼铛": 46,
+      "年夜饭": 45,
+      "黑椒": 44,
+      "酱香": 37,
+      "香酥": 37,
+      "二人世界": 36,
+      "老年食谱": 36,
+      "零食": 36,
+      "椒盐": 34,
+      "孕妇食谱": 31,
+      "电压力锅": 28,
+      "早餐食谱": 28,
+      "辣": 28,
+      "炒饭": 27,
+      "葱香": 26,
+      "工作便当": 25,
+      "泡椒": 25,
+      "驱寒暖身": 25,
+      "粥": 25,
+      "焖饭": 24,
+      "湘菜": 24,
+      "产妇食谱": 24,
+      "空气炸锅": 23,
+      "儿童": 23,
+      "果酱": 22,
+      "苏菜": 20,
+      "饺子": 20,
+      "鱼香": 20,
+      "豆浆机": 17,
+      "奶香": 17,
+      "粥饭": 16,
+      "麻酱味": 15,
+      "京菜": 13,
+      "盖浇饭": 13,
+      "炒面": 13,
+      "酸": 12,
+      "甜辣": 12,
+      "微辣": 12,
+      "鲁菜": 11,
+      "年糕": 11,
+      "上海菜": 11,
+      "家常味": 10,
+      "蒸箱": 10,
+      "西北菜": 9,
+      "闽菜": 9,
+      "煎饼": 9,
+      "浙菜": 8,
+      "炸酱面": 8,
+      "馒头": 8,
+      "冰品": 8,
+      "拌面": 8,
+      "面包机": 8,
+      "减肥食谱": 7,
+      "户外野炊": 7,
+      "凉面": 7,
+      "早餐": 6,
+      "包子": 5,
+      "赣菜": 5,
+      "青少年": 5,
+      "米粉": 5,
+      "蒸饺": 5,
+      "便当": 5,
+      "五香": 5,
+      "徽菜": 5,
+      "宵夜": 5,
+      "馄饨": 5,
+      "苦": 5,
+      "台湾美食": 5,
+      "云南菜": 5,
+      "鄂菜": 4,
+      "新疆菜": 4,
+      "月子餐": 4,
+      "水饺": 3,
+      "晋菜": 3,
+      "粽子": 3,
+      "煲仔饭": 3,
+      "焖面": 3,
+      "烙饼": 3,
+      "花卷": 3,
+      "咸鲜": 3,
+      "淮扬菜": 3,
+      "婴儿(6-8个月)": 2,
+      "河粉": 2,
+      "肉夹馍": 2,
+      "火锅": 2,
+      "油条": 2,
+      "中式糕点": 2,
+      "炒饼": 2,
+      "豫菜": 2,
+      "锅贴": 2,
+      "卷饼": 2,
+      "酱汁佐料": 2,
+      "贵州菜": 2,
+      "婴儿(10-12个月)": 2,
+      "烧烤": 2,
+      "婴儿(8-10个月)": 1,
+      "重体力": 1,
+      "中秋节": 1,
+      "糍粑": 1,
+      "热干面": 1,
+      "刀削面": 1,
+      "烩饭": 1,
+      "塔吉锅": 1,
+      "中辣": 1,
+      "窝头": 1,
+      "破壁机": 1,
+      "米线": 1
+    },
+    "tagCodeCount": {
+      "4": 2343,
+      "3": 1930,
+      "5": 1154,
+      "2": 755,
+      "6": 256,
+      "1": 180,
+      "7": 28,
+      "0": 18,
+      "8": 1
+    },
+    "ingredientCount": {
+      "6": 1048,
+      "7": 1034,
+      "8": 908,
+      "5": 886,
+      "9": 699,
+      "4": 630,
+      "10": 489,
+      "11": 299,
+      "3": 254,
+      "12": 177,
+      "2": 94,
+      "13": 85,
+      "14": 26,
+      "15": 21,
+      "1": 10,
+      "17": 3,
+      "16": 2
+    },
+    "ingredientFieldCount": {
+      "7": 47161
+    },
+    "ingredientUnit": {
+      "克": 35536,
+      "毫升": 11024,
+      "个": 601
+    },
+    "ingredientRole": {
+      "调味料": 21123,
+      "主料": 14724,
+      "辅料": 9643,
+      "配菜": 1671
+    },
+    "ingredientSourceLabel": {
+      "步骤": 32995,
+      "菜名+步骤": 8352,
+      "菜名": 3749,
+      "烹饪常规补全": 2065
+    },
+    "ingredientServings": {
+      "2名成年人总量+15%冗余": 47161
+    },
+    "ingredientPreparation": {
+      "按口味调整": 8536,
+      "炒制或拌制": 5486,
+      "按步骤处理": 3439,
+      "调味": 3371,
+      "切段或切花": 2760,
+      "切片或切末": 2527,
+      "切末": 2456,
+      "直接使用": 1655,
+      "去腥": 1516,
+      "按步骤切配": 1372,
+      "去皮切块或切片": 1275,
+      "腌制或勾芡": 913,
+      "去籽切丝或切块": 867,
+      "切块或切片": 733,
+      "洗净切片": 633,
+      "洗净切段": 606,
+      "打散": 601,
+      "去鳞去内脏并清洗": 582,
+      "调色": 515,
+      "切块": 458,
+      "去虾线并清洗": 416,
+      "剪段": 356,
+      "去皮切丝": 353,
+      "剁块并清洗": 331,
+      "干品提前泡发": 288,
+      "淘洗": 271,
+      "洗净切片或拍碎": 256,
+      "去壳切段": 241,
+      "洗净备用": 240,
+      "剥粒洗净": 237,
+      "炒香": 237,
+      "洗净浸泡": 198,
+      "洗净并划刀": 187,
+      "掰小朵洗净": 186,
+      "过筛或和面": 186,
+      "切块或切条": 176,
+      "提前浸泡": 175,
+      "去筋切段": 162,
+      "去皮切片或切丁": 160,
+      "去皮切块": 159,
+      "切片": 145,
+      "洗净并切块": 136,
+      "去皮去核切块": 132,
+      "去核洗净": 131,
+      "去皮切段": 119,
+      "切片或切条": 111,
+      "去瓤切块": 100,
+      "提前泡发或切丝": 99,
+      "去根洗净": 87,
+      "刷洗干净": 87,
+      "去皮去瓤切块": 69,
+      "剥壳洗净": 69,
+      "洗净沥水": 68,
+      "按包装处理": 63,
+      "去瓤切片": 62,
+      "去皮去籽切块": 61,
+      "切丝或切片": 60,
+      "清洗并切花或切圈": 60,
+      "去皮切片": 59,
+      "提前泡发撕小朵": 54,
+      "洗净去蒂": 41,
+      "吐沙并清洗": 40,
+      "冷藏备用": 40,
+      "过筛备用": 38,
+      "提前浸泡去芯": 36,
+      "浸泡洗净切片": 28,
+      "取仁备用": 21,
+      "去蒂洗净": 20,
+      "隔水融化": 3,
+      "清洗去腥切段": 2,
+      "洗净焯水": 2,
+      "取果肉": 2
+    },
+    "quality_reviewStatus": {
+      "UNREVIEWED": 6665
+    },
+    "quality_sourceKind": {
+      "LEGACY_GENERATED": 6665
+    },
+    "quality_servingsStatus": {
+      "UNKNOWN": 6665
+    },
+    "quality_stepStatus": {
+      "UNREVIEWED": 6665
+    },
+    "quality_timeStatus": {
+      "ESTIMATED": 6665
+    },
+    "quality_nutritionStatus": {
+      "UNKNOWN": 6665
+    },
+    "quality_imageRightsStatus": {
+      "UNKNOWN": 6665
+    },
+    "quality_basePeople": {
+      "None": 6665
+    },
+    "quality_sourceRef": {
+      "None": 6665
+    },
+    "quality_canScale": {
+      "False": 6665
+    },
+    "qualityIssueCodes": {
+      "SERVINGS_EVIDENCE_MISSING": 6665,
+      "QUANTITY_EVIDENCE_MISSING": 6665,
+      "IMAGE_RIGHTS_UNREVIEWED": 6665,
+      "INGREDIENT_IDENTITY_UNREVIEWED": 6617,
+      "DESCRIPTOR_AS_INGREDIENT": 52,
+      "POSSIBLE_ALIAS_DUPLICATE": 5
+    },
+    "qualityUpdateDate": {
+      "2026-10-10": 6665
+    },
+    "ingredientIdentityStatus": {
+      "SOURCE_EXPLICIT": 27001,
+      "UNREVIEWED": 20108
+    },
+    "ingredientQuantityStatus": {
+      "UNKNOWN": 47109
+    }
+  },
+  "duplicates": {
+    "exactName": {
+      "groups": 93,
+      "rows": 199,
+      "excessRows": 106,
+      "examples": [
+        {
+          "key": "糖醋排骨",
+          "ids": [
+            1748,
+            4508,
+            20339,
+            23414,
+            23749,
+            32309
+          ],
+          "count": 6
+        },
+        {
+          "key": "烧茄子",
+          "ids": [
+            2433,
+            10132,
+            15545,
+            18512
+          ],
+          "count": 4
+        },
+        {
+          "key": "蜜汁鸡翅",
+          "ids": [
+            5721,
+            16647,
+            27486,
+            36356
+          ],
+          "count": 4
+        },
+        {
+          "key": "麻辣小龙虾",
+          "ids": [
+            363,
+            2101,
+            22144
+          ],
+          "count": 3
+        },
+        {
+          "key": "蛋炒饭",
+          "ids": [
+            11970,
+            12433,
+            12724
+          ],
+          "count": 3
+        },
+        {
+          "key": "油焖大虾",
+          "ids": [
+            15978,
+            18547,
+            20073
+          ],
+          "count": 3
+        },
+        {
+          "key": "红烧排骨",
+          "ids": [
+            16627,
+            31925,
+            34129
+          ],
+          "count": 3
+        },
+        {
+          "key": "可乐鸡翅",
+          "ids": [
+            16782,
+            17404,
+            21114
+          ],
+          "count": 3
+        },
+        {
+          "key": "凉拌黄瓜",
+          "ids": [
+            247,
+            8863
+          ],
+          "count": 2
+        },
+        {
+          "key": "蜜汁叉烧",
+          "ids": [
+            348,
+            4171
+          ],
+          "count": 2
+        }
+      ]
+    },
+    "spaceCaseNormalizedName": {
+      "groups": 93,
+      "rows": 199,
+      "excessRows": 106,
+      "examples": [
+        {
+          "key": "糖醋排骨",
+          "ids": [
+            1748,
+            4508,
+            20339,
+            23414,
+            23749,
+            32309
+          ],
+          "count": 6
+        },
+        {
+          "key": "烧茄子",
+          "ids": [
+            2433,
+            10132,
+            15545,
+            18512
+          ],
+          "count": 4
+        },
+        {
+          "key": "蜜汁鸡翅",
+          "ids": [
+            5721,
+            16647,
+            27486,
+            36356
+          ],
+          "count": 4
+        },
+        {
+          "key": "麻辣小龙虾",
+          "ids": [
+            363,
+            2101,
+            22144
+          ],
+          "count": 3
+        },
+        {
+          "key": "蛋炒饭",
+          "ids": [
+            11970,
+            12433,
+            12724
+          ],
+          "count": 3
+        },
+        {
+          "key": "油焖大虾",
+          "ids": [
+            15978,
+            18547,
+            20073
+          ],
+          "count": 3
+        },
+        {
+          "key": "红烧排骨",
+          "ids": [
+            16627,
+            31925,
+            34129
+          ],
+          "count": 3
+        },
+        {
+          "key": "可乐鸡翅",
+          "ids": [
+            16782,
+            17404,
+            21114
+          ],
+          "count": 3
+        },
+        {
+          "key": "凉拌黄瓜",
+          "ids": [
+            247,
+            8863
+          ],
+          "count": 2
+        },
+        {
+          "key": "蜜汁叉烧",
+          "ids": [
+            348,
+            4171
+          ],
+          "count": 2
+        }
+      ]
+    },
+    "sameContentFingerprint": {
+      "groups": 0,
+      "rows": 0,
+      "excessRows": 0,
+      "examples": []
+    },
+    "identicalInstructionText": {
+      "groups": 0,
+      "rows": 0,
+      "excessRows": 0,
+      "examples": []
+    },
+    "sameImageUrl": {
+      "groups": 0,
+      "rows": 0,
+      "excessRows": 0,
+      "examples": []
+    }
+  },
+  "fieldBytes": {
+    "name": 110610,
+    "type": 26038,
+    "cl": 649766,
+    "fl": 193285,
+    "step": 2358164,
+    "tags": 291152,
+    "image": 553846,
+    "difficulty": 39990,
+    "cook_time": 53320,
+    "ingredients_amounts": 3673168,
+    "steps": 2358164,
+    "step_images": 13330,
+    "tips": 120194,
+    "methods": 21573,
+    "tag_codes": 196139,
+    "cuisine_code": 3100
+  },
+  "ingredients": {
+    "distinctNames": 2270,
+    "mostFrequent": [
+      [
+        "食盐",
+        6430
+      ],
+      [
+        "食用油",
+        5486
+      ],
+      [
+        "葱",
+        2760
+      ],
+      [
+        "姜",
+        2527
+      ],
+      [
+        "蒜",
+        2456
+      ],
+      [
+        "生抽",
+        2448
+      ],
+      [
+        "白糖",
+        2106
+      ],
+      [
+        "料酒",
+        1516
+      ],
+      [
+        "香醋",
+        923
+      ],
+      [
+        "淀粉",
+        913
+      ],
+      [
+        "萝卜",
+        789
+      ],
+      [
+        "花椒",
+        703
+      ],
+      [
+        "猪肉",
+        659
+      ],
+      [
+        "鸡蛋",
+        601
+      ],
+      [
+        "鱼",
+        582
+      ],
+      [
+        "青椒",
+        523
+      ],
+      [
+        "老抽",
+        515
+      ],
+      [
+        "土豆",
+        486
+      ],
+      [
+        "豆腐",
+        483
+      ],
+      [
+        "香菇",
+        482
+      ],
+      [
+        "西红柿",
+        458
+      ],
+      [
+        "虾",
+        416
+      ],
+      [
+        "干辣椒",
+        356
+      ],
+      [
+        "洋葱",
+        353
+      ],
+      [
+        "红椒",
+        344
+      ]
+    ],
+    "namesWithOnlyOneQuantityAcrossAtLeastTenAppearances": 114,
+    "quantitiesForFrequentNames": {
+      "食盐": {
+        "7克": 6430
+      },
+      "食用油": {
+        "45毫升": 5486
+      },
+      "葱": {
+        "35克": 2760
+      },
+      "姜": {
+        "25克": 2527
+      },
+      "蒜": {
+        "30克": 2456
+      },
+      "生抽": {
+        "35毫升": 2448
+      },
+      "白糖": {
+        "55克": 2106
+      },
+      "料酒": {
+        "30毫升": 1516
+      },
+      "香醋": {
+        "30毫升": 923
+      },
+      "淀粉": {
+        "30克": 913
+      },
+      "萝卜": {
+        "460克": 789
+      },
+      "花椒": {
+        "6克": 703
+      },
+      "猪肉": {
+        "345克": 659
+      },
+      "鸡蛋": {
+        "5个": 601
+      },
+      "鱼": {
+        "690克": 582
+      }
+    },
+    "fromNameOnlyDistinct": 2238,
+    "fromNameOnlyMostFrequent": [
+      [
+        "腊肉",
+        35
+      ],
+      [
+        "豆豉",
+        29
+      ],
+      [
+        "花肉",
+        27
+      ],
+      [
+        "猪肉",
+        27
+      ],
+      [
+        "剁椒",
+        26
+      ],
+      [
+        "食用油",
+        24
+      ],
+      [
+        "茄汁",
+        23
+      ],
+      [
+        "辣椒",
+        23
+      ],
+      [
+        "腊肠",
+        21
+      ],
+      [
+        "荷兰豆",
+        21
+      ],
+      [
+        "酸菜",
+        20
+      ],
+      [
+        "培根",
+        19
+      ],
+      [
+        "蜜汁",
+        19
+      ],
+      [
+        "西米露",
+        19
+      ],
+      [
+        "海带",
+        18
+      ],
+      [
+        "老干妈",
+        18
+      ],
+      [
+        "香醋",
+        16
+      ],
+      [
+        "茭白",
+        16
+      ],
+      [
+        "可乐",
+        15
+      ],
+      [
+        "鸡丝",
+        15
+      ],
+      [
+        "干锅",
+        14
+      ],
+      [
+        "青菜",
+        13
+      ],
+      [
+        "鸡胗",
+        13
+      ],
+      [
+        "白糖",
+        12
+      ],
+      [
+        "鸡肉",
+        12
+      ],
+      [
+        "啤酒",
+        12
+      ],
+      [
+        "泡椒",
+        11
+      ],
+      [
+        "三丝",
+        10
+      ],
+      [
+        "豆芽",
+        10
+      ],
+      [
+        "青豆",
+        10
+      ],
+      [
+        "腰果",
+        9
+      ],
+      [
+        "快手",
+        9
+      ],
+      [
+        "奥尔良",
+        9
+      ],
+      [
+        "肉丸",
+        9
+      ],
+      [
+        "榨菜",
+        9
+      ]
+    ]
+  },
+  "sampleMethod": "Two lowest SHA256(catalog-audit-20261022|id) within each of five categories; ten rows for manual inspection. Statistical counts use all rows.",
+  "snapshotSha256Uncompressed": "b15cbfcc5d4ddae931e2363ec2c341026f91f5f5dfebcf8257986a64a32433e4",
+  "elapsedSeconds": 8.31,
+  "memoryBefore": {
+    "availableMiB": 920.8,
+    "swapUsedMiB": 691.9,
+    "pressureFullAvg10": 0.0
+  },
+  "memoryAfter": {
+    "availableMiB": 926.5,
+    "swapUsedMiB": 672.1,
+    "pressureFullAvg10": 0.0
+  },
+  "auditProcessMaxRssMiB": 33.1,
+  "breakfastRawTagCandidateCount": 34,
+  "breakfastRawTagCandidates": [
+    {
+      "id": 207,
+      "name": "辅食之南瓜米糊",
+      "type": "veg",
+      "tags": "热菜,早餐食谱,婴儿(6-8个月),婴儿(8-10个月),家常菜,素食",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,VEGETARIAN,QUICK,STEAM"
+    },
+    {
+      "id": 2584,
+      "name": "土豆烧鸡块",
+      "type": "meat",
+      "tags": "禽类,热菜,早餐,朋友聚餐,家常菜",
+      "cook_minutes": 45,
+      "tag_codes": "HOME_STYLE,GATHERING,STIR_FRY"
+    },
+    {
+      "id": 3314,
+      "name": "柠檬酱肉松蛋卷",
+      "type": "meat",
+      "tags": "蛋类,禽类,肉类,热菜,下酒菜,早餐,家常菜",
+      "cook_minutes": 45,
+      "tag_codes": "HOME_STYLE"
+    },
+    {
+      "id": 7035,
+      "name": "早餐换着吃火腿土豆饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,肉类,主食,饼,早餐食谱",
+      "cook_minutes": 20,
+      "tag_codes": "QUICK"
+    },
+    {
+      "id": 7041,
+      "name": "鲜虾时蔬粥",
+      "type": "staple",
+      "tags": "水产,主食,粥,早餐食谱",
+      "cook_minutes": 15,
+      "tag_codes": "QUICK,STEW"
+    },
+    {
+      "id": 7156,
+      "name": "雪梨百合粥",
+      "type": "staple",
+      "tags": "主食,粥饭,早餐,创意菜",
+      "cook_minutes": 45,
+      "tag_codes": "STEW"
+    },
+    {
+      "id": 7381,
+      "name": "手抓饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,肉类,主食,饼,早餐食谱",
+      "cook_minutes": 20,
+      "tag_codes": "QUICK"
+    },
+    {
+      "id": 7516,
+      "name": "海参南瓜小米粥",
+      "type": "staple",
+      "tags": "禽类,水产,主食,粥,早餐食谱,砂锅",
+      "cook_minutes": 25,
+      "tag_codes": "STEW"
+    },
+    {
+      "id": 7723,
+      "name": "虾皮煎蛋",
+      "type": "meat",
+      "tags": "蛋类,禽类,水产,热菜,早餐食谱,午餐,家常菜,微波炉",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,LUNCH,QUICK"
+    },
+    {
+      "id": 11610,
+      "name": "墨鱼粥",
+      "type": "staple",
+      "tags": "水产,主食,粥,早餐食谱",
+      "cook_minutes": 25,
+      "tag_codes": "STEW"
+    },
+    {
+      "id": 12065,
+      "name": "杏鲍菇大杂烩炒饭",
+      "type": "staple",
+      "tags": "肉类,主食,炒饭,早餐食谱,午餐",
+      "cook_minutes": 20,
+      "tag_codes": "LUNCH,QUICK,STIR_FRY"
+    },
+    {
+      "id": 12104,
+      "name": "时蔬蛋炒饭",
+      "type": "staple",
+      "tags": "禽类,蛋类,肉类,主食,炒饭,早餐食谱",
+      "cook_minutes": 20,
+      "tag_codes": "QUICK,STIR_FRY"
+    },
+    {
+      "id": 12290,
+      "name": "苜蓿菜摊蛋饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,饼,主食,早餐食谱,单身食谱",
+      "cook_minutes": 20,
+      "tag_codes": "QUICK"
+    },
+    {
+      "id": 12316,
+      "name": "黑红双色大米粥",
+      "type": "staple",
+      "tags": "主食,粥,早餐食谱,电饭煲",
+      "cook_minutes": 25,
+      "tag_codes": "STEW"
+    },
+    {
+      "id": 12433,
+      "name": "蛋炒饭",
+      "type": "staple",
+      "tags": "主食,炒饭,早餐食谱,午餐,单身食谱",
+      "cook_minutes": 20,
+      "tag_codes": "LUNCH,QUICK,STIR_FRY"
+    },
+    {
+      "id": 15189,
+      "name": "女王厨房咸口燕麦牛奶火腿核桃软欧",
+      "type": "meat",
+      "tags": "肉类,热菜,早餐食谱,下午茶,家常菜,烤箱",
+      "cook_minutes": 15,
+      "tag_codes": "HOME_STYLE,QUICK,BAKE"
+    },
+    {
+      "id": 15737,
+      "name": "蒲公英汤",
+      "type": "soup",
+      "tags": "肉类,煲汤,早餐食谱,朋友聚餐,家常菜",
+      "cook_minutes": 15,
+      "tag_codes": "HOME_STYLE,GATHERING,QUICK,STEW"
+    },
+    {
+      "id": 17262,
+      "name": "简易美式早餐附煎蛋蓉不老秘方",
+      "type": "meat",
+      "tags": "蛋类,禽类,热菜,早餐食谱,家常菜,懒人食谱",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,LOW_EFFORT,QUICK,STIR_FRY"
+    },
+    {
+      "id": 17264,
+      "name": "卤味茶叶蛋",
+      "type": "meat",
+      "tags": "蛋类,禽类,小吃,热菜,早餐食谱,家常菜",
+      "cook_minutes": 25,
+      "tag_codes": "HOME_STYLE,STEW"
+    },
+    {
+      "id": 23087,
+      "name": "辅食青瓜早餐小饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,主食,饼,早餐食谱",
+      "cook_minutes": 20,
+      "tag_codes": "QUICK"
+    },
+    {
+      "id": 23382,
+      "name": "白糖糯米饼",
+      "type": "staple",
+      "tags": "饼,主食,早餐食谱,电饼铛",
+      "cook_minutes": 15,
+      "tag_codes": "QUICK"
+    },
+    {
+      "id": 23580,
+      "name": "牛舌饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,肉类,主食,饼,早餐食谱,电饼铛",
+      "cook_minutes": 15,
+      "tag_codes": "QUICK,STIR_FRY"
+    },
+    {
+      "id": 27123,
+      "name": "鹰嘴豆粥",
+      "type": "staple",
+      "tags": "豆制品,主食,粥,早餐食谱,午餐,电饭煲",
+      "cook_minutes": 25,
+      "tag_codes": "LUNCH,STEW"
+    },
+    {
+      "id": 28652,
+      "name": "茄子肉卷",
+      "type": "meat",
+      "tags": "东北菜,禽类,肉类,热菜,午餐,下饭菜,早餐,家常菜",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,LUNCH,QUICK,STIR_FRY"
+    },
+    {
+      "id": 30523,
+      "name": "金枪鱼海苔蛋皮卷",
+      "type": "meat",
+      "tags": "禽类,水产,蛋类,肉类,热菜,早餐食谱,工作便当,家常菜,电饼铛",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,QUICK"
+    },
+    {
+      "id": 30674,
+      "name": "香菇鸡丝泡饭粥",
+      "type": "staple",
+      "tags": "上海菜,禽类,肉类,粥饭,主食,早餐,朋友聚餐",
+      "cook_minutes": 45,
+      "tag_codes": "GATHERING,STEAM"
+    },
+    {
+      "id": 30709,
+      "name": "焖汁荷包蛋香汁荷包蛋",
+      "type": "meat",
+      "tags": "蛋类,禽类,热菜,早餐食谱,家常菜",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,QUICK,FRY"
+    },
+    {
+      "id": 31804,
+      "name": "腊味煲仔饭",
+      "type": "staple",
+      "tags": "粤菜,禽类,肉类,主食,煲仔饭,早餐食谱,工作便当,砂锅",
+      "cook_minutes": 15,
+      "tag_codes": "QUICK,STEW"
+    },
+    {
+      "id": 31845,
+      "name": "儿童奶香玉米饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,主食,饼,奶香,早餐食谱,幼儿食谱",
+      "cook_minutes": 25,
+      "tag_codes": ""
+    },
+    {
+      "id": 31960,
+      "name": "燕麦甜饼",
+      "type": "staple",
+      "tags": "禽类,蛋类,主食,早餐食谱,烤箱",
+      "cook_minutes": 15,
+      "tag_codes": "QUICK,BAKE"
+    },
+    {
+      "id": 35013,
+      "name": "红豆燕麦粥",
+      "type": "staple",
+      "tags": "主食,粥,早餐食谱",
+      "cook_minutes": 20,
+      "tag_codes": "QUICK,STEW"
+    },
+    {
+      "id": 35546,
+      "name": "饺子皮小馅饼",
+      "type": "staple",
+      "tags": "肉类,主食,饼,饺子,早餐食谱,一家三口,烤箱",
+      "cook_minutes": 25,
+      "tag_codes": "BAKE"
+    },
+    {
+      "id": 39212,
+      "name": "南瓜糊糊",
+      "type": "veg",
+      "tags": "热菜,早餐,下午茶,幼儿食谱,婴儿(6-8个月),家常菜,素食",
+      "cook_minutes": 45,
+      "tag_codes": "HOME_STYLE,VEGETARIAN,STEAM"
+    },
+    {
+      "id": 39337,
+      "name": "创意煎蛋",
+      "type": "meat",
+      "tags": "蛋类,禽类,热菜,早餐食谱,创意菜,家常菜,电饼铛",
+      "cook_minutes": 20,
+      "tag_codes": "HOME_STYLE,QUICK"
+    }
+  ],
+  "unmappedMethods": {
+    "糖醋": 25,
+    "煎": 358,
+    "腌": 27,
+    "白灼": 7,
+    "微波": 29,
+    "酱制": 116,
+    "焗": 3,
+    "汆": 18,
+    "烙": 14,
+    "煨": 1,
+    "冲泡": 2,
+    "卤": 4,
+    "生食": 1
+  },
+  "knownDescriptorIngredients": {
+    "快手": 9,
+    "干锅": 14,
+    "爽口": 9,
+    "手撕": 8,
+    "脆皮": 8,
+    "锡纸": 2,
+    "广式": 2
+  },
+  "manualSampleIds": {
+    "formatByLowestId": [
+      36,
+      39,
+      31,
+      32,
+      48,
+      119,
+      33,
+      38,
+      693,
+      1792
+    ],
+    "fixedHashStratified": [
+      10885,
+      30931,
+      18000,
+      20208,
+      29357,
+      27750,
+      7055,
+      35013,
+      9834,
+      18590
+    ]
+  },
+  "limitations": [
+    "Full static profile; semantic inspection covers 20 recipes only.",
+    "Unknown and generated values are not verified facts.",
+    "Image URL syntax is checked; reachability, identity and usage rights are not.",
+    "390 time flags are candidates from numeric-minute literals only, not an adjudicated error rate.",
+    "Creation and profile timestamps do not establish original recipe freshness.",
+    "Related-table counts are exact COUNT(*), not information_schema cardinality estimates.",
+    "Zero counters are omitted by the source Counter; use .get(name, 0)."
+  ]
+}

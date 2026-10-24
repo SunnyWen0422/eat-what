@@ -34,9 +34,9 @@
         </view>
       </view>
 
-      <textarea id="custom-ingredients" focus="{{customFocus === 'ingredients'}}" aria-label="食材用料" placeholder-class="ew-placeholder" class="form-textarea" placeholder="食材用料（每行一个）" value="{{customForm.ingredients}}" data-field="ingredients" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" maxlength="10000" auto-height cursor-spacing="24" />
+      <textarea id="custom-ingredients" focus="{{customFocus === 'ingredients'}}" aria-label="食材用料" placeholder-class="ew-placeholder" class="form-textarea" placeholder="每行：标准食材名 数量单位或适量，例如：食盐 适量" value="{{customForm.ingredients}}" data-field="ingredients" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" maxlength="10000" auto-height cursor-spacing="24" />
       <textarea id="custom-steps" focus="{{customFocus === 'steps'}}" aria-label="烹饪步骤" placeholder-class="ew-placeholder" class="form-textarea" placeholder="烹饪步骤（每行一步）" value="{{customForm.steps}}" data-field="steps" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" maxlength="20000" auto-height cursor-spacing="24" />
-      <button class="ew-hit-target ew-link custom-form-secondary" bindtap="onToggleCustomExtras">{{customExtrasVisible ? '收起可选资料' : '添加时间、份数说明或图片（可选）'}}</button>
+      <button class="ew-hit-target ew-link custom-form-secondary" bindtap="onToggleCustomExtras">{{customExtrasVisible ? '收起可选资料' : '填写来源人数、时间与图片'}}</button>
       <view wx:if="{{customExtrasVisible}}" class="personal-recipe-extras">
       <picker class="ew-hit-target" mode="selector" range="{{cuisineOptions}}" range-key="label" bindchange="onCustomCuisineChange">
         <view class="form-input selector-input">菜系：{{customForm.cuisineLabel}}</view>
@@ -49,7 +49,7 @@
 
       <input placeholder-class="ew-placeholder" class="form-input" type="number" maxlength="3" id="custom-cookMinutes" focus="{{customFocus === 'cookMinutes'}}" aria-label="烹饪时长，分钟" placeholder="烹饪时长（分钟，可选）" value="{{customForm.cookMinutes}}" data-field="cookMinutes" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
 
-      <view class="ew-label">原配方份数说明（可选）</view><input placeholder-class="ew-placeholder" class="form-input" aria-label="原配方份数说明" placeholder="例如：原配方2人份" value="{{customForm.servingDescription}}" maxlength="1000" data-field="servingDescription" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
+      <view class="ew-label">原配方人数说明（可选）</view><input placeholder-class="ew-placeholder" class="form-input" aria-label="原配方份数说明" placeholder="例如：2" value="{{customForm.servingDescription}}" maxlength="1000" data-field="servingDescription" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
       <view class="ew-label">图片 HTTPS 地址（可选）</view><input id="custom-image" focus="{{customFocus === 'image'}}" class="form-input" value="{{customForm.image}}" maxlength="2048" data-field="image" disabled="{{savingCustom || customPending}}" bindinput="onCustomInput" />
       </view>
       <view wx:if="{{customPending}}" class="ew-notice">上次保存结果未确认，重试会使用原内容。</view><view wx:if="{{customError}}" class="ew-error">{{customError}}</view><button class="ew-hit-target save-custom-btn" loading="{{savingCustom}}" disabled="{{savingCustom}}" bindtap="onSaveCustomDish">{{customPending ? '重试原保存' : '保存菜谱'}}</button><button class="ew-hit-target ew-link custom-form-secondary" disabled="{{savingCustom}}" bindtap="onCancelCustom">取消编辑，保留输入</button>

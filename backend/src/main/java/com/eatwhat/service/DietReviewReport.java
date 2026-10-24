@@ -12,7 +12,7 @@ import java.util.*;
 
 /** A freshly calculated view of owned source records, not a persisted report archive. */
 final class DietReviewReport {
-    static final String CALCULATION_VERSION = "actual-diet-v1";
+    static final String CALCULATION_VERSION = "actual-diet-v2";
     static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private final ObjectMapper json;
     private final DietReviewCalculator calculator;
@@ -30,6 +30,7 @@ final class DietReviewReport {
             .thenComparing(MealConsumption::getMealType).thenComparing(m -> String.valueOf(m.getId())));
         Map<String,Object> result = calculator.calculate(ordered, plans, today);
         List<Map<String,Object>> actualSources = new ArrayList<>(), planSources = new ArrayList<>(), details = new ArrayList<>();
+        List<Map<String,Object>> nutritionEntries = new ArrayList<>();
         Set<String> recordedDays = new HashSet<>();
         int skipped = 0, unrecorded = 0, freeText = 0, noDishes = 0;
         for (MealConsumption meal : ordered) {
@@ -45,6 +46,7 @@ final class DietReviewReport {
             if ("skipped".equals(meal.getStatus())) skipped++;
             if ("unrecorded".equals(meal.getStatus())) unrecorded++;
             if (!"eaten".equals(meal.getStatus())) continue;
+            if(!day.isAfter(today)&&!day.isBefore(start)&&!day.isAfter(end))nutritionEntries.addAll(dishes);
             if (dishes.isEmpty()) noDishes++;
             for (Map<String,Object> dish : dishes) if (dish.get("dishId") == null) freeText++;
             row.put("sourceUrl", "/pages/calendar-detail/calendar-detail?date=" + meal.getMealDate() + "&mealType=" + meal.getMealType());
@@ -74,7 +76,7 @@ final class DietReviewReport {
         Map<String,Object> frequent = values("dishes", result.get("popularDishes"), "basis", "known_dish_id_once_per_eaten_meal");
         Map<String,Object> blocks = values(
             "overview", select(result, "mealCount", "recordedDays", "uniqueDishCount", "entryCount", "dailyMeals"),
-            "actualDetails", values("records", details, "basis", "explicit_eaten_snapshots"),
+            "actualDetails", values("records", details, "basis", "explicit_eaten_snapshots", "nutrition", DietNutritionSummary.summarize(nutritionEntries,json)),
             "frequentDishes", frequent,
             "categoryCounts", select(result, "categories", "entryCount", "classifiedCount", "unclassifiedCount"),
             "planExecution", select(result, "plannedMealsDue", "plannedMealsEaten", "plannedMealsFollowed", "plannedMealsChanged", "skippedMeals", "unconfirmedMeals"),

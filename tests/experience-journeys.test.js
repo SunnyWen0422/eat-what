@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test'), assert = require('node:assert/strict')
 const fs = require('node:fs'), vm = require('node:vm'), path = require('node:path')
 const plain = x => x == null ? x : JSON.parse(JSON.stringify(x))
@@ -40,7 +41,7 @@ function journey() {
   class FixedDate extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-09T10:00:00Z'])) } static now() { return new Date('2026-10-09T10:00:00Z').getTime() } }
   const sandbox = { Date: FixedDate, wx, console, setTimeout, clearTimeout, getApp: () => ({ globalData: { loginReady: true } }) }
   function read(file) { file = path.resolve(file); if (cache[file]) return cache[file]; const name = path.basename(file)
-    if (name === 'api.js') return api
+    if (name === 'api.js') return canonicalApi(api)
     if (name === 'util.js') return util
     if (name === 'config.js') return { ENABLE_MEAL_WORKSPACE: true, getApiBaseUrl:()=> 'https://isolated.invalid/api' }
     if (name === 'font-scale.js') return Object.assign(() => 2, { base: 16 })
@@ -91,8 +92,8 @@ test('first use through tomorrow, shopping undo, own recipe and next menu applic
   const preview = h.page('shopping-preview'); preview.onLoad(); await settle(); assert.equal(preview.data.itemCount, 4); await preview.onConfirm(); await preview.onConfirm(); assert.equal(h.shoppingWrites.length, 1); assert.match(preview.data.resultMessage, /已加入/)
   const shopping = h.page('shopping-list'); await shopping.loadList(); assert.equal(shopping.data.pendingCount, 4); await shopping.onToggleSummary(event({ key: shopping.data.summaryRows[0].key })); assert.equal(shopping.data.checkedCount, 1); await shopping.onUndoCheck({ detail: { requestId: shopping.data.feedback.requestId } }); assert.equal(shopping.data.checkedCount, 0)
   const recipes = h.page('customize'); recipes.ensureBrowseOwner(); recipes._visible = true
-  for (const [field, value] of Object.entries({ name: '自家蒸蛋', ingredients: '鸡蛋\n水', steps: '搅匀\n蒸熟' })) recipes.onCustomInput(event({ field }, value))
-  await recipes.onSaveCustomDish(); assert.equal(h.recipeWrites.length, 1); assert.equal(h.recipeWrites[0].name, '自家蒸蛋'); assert.match(h.navigation.at(-1), /id=21/); assert.equal(planWrites.length, 1)
+  for (const [field, value] of Object.entries({ name: '自家蒸蛋', ingredients: '鸡蛋 适量\n水 适量', steps: '搅匀\n蒸熟' })) recipes.onCustomInput(event({ field }, value))
+  await recipes.onSaveCustomDish(); assert.equal(h.recipeWrites.length, 1); assert.equal(h.recipeWrites[0].recipe.name, '自家蒸蛋'); assert.match(h.navigation.at(-1), /id=21/); assert.equal(planWrites.length, 1)
   home.onSaveReusableMenu(); await recipes.onShow(); assert.deepEqual(plain(recipes.data.selectedIds), [7, 8, 9, 10]); recipes.onMenuInput(event({ field: 'menuName' }, '家常晚餐')); await recipes.onSaveMenu(); assert.equal(h.menuWrites.length, 1); assert.equal(h.menuWrites[0].name, '家常晚餐'); assert.equal(planWrites.length, 1)
   recipes.onMenuDate(event({}, '2026-10-11')); recipes.onMenuMeal(event({}, '2')); await recipes.onApplyMenu(event({ id: 31 })); const next = h.page('index'); next._alive = true; t.after(() => next.onUnload()); await next.initializeWorkspace({ date: '2026-10-11', mealType: 'dinner' }); assert.deepEqual(plain(next.data.draft.dishes).map(d => d.id), [7, 8, 9, 10]); assert.equal(next.data.context.date, '2026-10-11'); assert.equal(planWrites.length, 1)
 })

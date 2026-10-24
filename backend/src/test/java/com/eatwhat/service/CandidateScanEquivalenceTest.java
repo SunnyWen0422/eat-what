@@ -20,7 +20,7 @@ class CandidateScanEquivalenceTest {
             assertNotNull(tx,method.getName()+" needs one snapshot across batches");assertTrue(tx.readOnly());assertEquals(org.springframework.transaction.annotation.Isolation.REPEATABLE_READ,tx.isolation());
         }
     }
-    private Dish row(long id,boolean full){Dish d=new Dish();d.setId(id);d.setName("菜"+id);d.setType(id%3==0?"soup":"veg");d.setCl(id%11==0?"花生":"青菜");d.setTagCodes(id%7==0?"SPICY":"LIGHT");d.setCookMinutes(10);if(full)d.setSteps("完整的做法正文");return d;}
+    private Dish row(long id,boolean full){Dish d=new Dish();d.setId(id);d.setName("菜"+id);d.setType(id%3==0?"soup":"veg");d.setCl(id%11==0?"花生":"青菜");d.setTagCodes(id%7==0?"SPICY":"LIGHT");d.setCookMinutes(10);if(full)d.setSteps("完整的做法正文");return CanonicalCandidateFixture.ingredients(d,d.getCl());}
     @Test void scansAllCandidatesInBoundedFactBatchesWithoutRecipeBodiesAndRetainsExactExclusions(){
         List<Dish> all=new ArrayList<>();for(long id=1025;id>0;id--)all.add(row(id,true));List<Integer>batches=new ArrayList<>();
         DishMapper mapper=mock(DishMapper.class,call->{
@@ -55,7 +55,7 @@ class CandidateScanEquivalenceTest {
         Configuration c=new Configuration();c.addMapper(DishMapper.class);String id=DishMapper.class.getName()+".selectRecommendationCandidateFacts";
         assertTrue(c.hasStatement(id));Map<String,Object> p=new HashMap<>();p.put("userId",7L);p.put("type",null);p.put("keyword",null);p.put("cuisineCodes",Collections.emptyList());p.put("includeTagCodes",Collections.emptyList());p.put("maxCookMinutes",null);p.put("beforeId",null);p.put("limit",256);
         String sql=c.getMappedStatement(id).getBoundSql(p).getSql().toLowerCase(Locale.ROOT);
-        assertTrue(sql.contains("force index(primary)"),"Use the keyset ordering index; owner index plus filesort rescans the remaining catalog each batch");
+        assertTrue(!sql.contains("force index")&&sql.contains("order by id desc limit"),"Derived view preserves bounded keyset scans without an invalid table index hint");
         assertTrue(sql.contains("user_id"));assertTrue(sql.contains("cook_minutes"));assertTrue(sql.contains("cuisine_code"));assertTrue(sql.contains("ingredients_amounts"));assertFalse(sql.contains("step as"));assertFalse(sql.contains("image as"));assertTrue(c.getMappedStatement(id).isFlushCacheRequired());assertFalse(c.getMappedStatement(id).isUseCache());
     }
     @Test void fixedSeedOrderingAndScoresMatchFullRecipesAndChangedOrForeignDetailsFailClosed(){

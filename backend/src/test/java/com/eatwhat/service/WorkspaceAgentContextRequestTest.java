@@ -24,7 +24,7 @@ class WorkspaceAgentContextRequestTest {
         when(metadata.getOptions()).thenReturn(new RecommendationOptionsDTO()); return workspace;
     }
     private Dish dish(long id,String name,Long owner) {
-        Dish d = new Dish(); d.setId(id); d.setName(name); d.setType("veg"); d.setUserId(owner); d.setCl("材料"); return d;
+        Dish d = new Dish(); d.setId(id); d.setName(name); d.setType("veg"); d.setUserId(owner); d.setCl("材料"); return CanonicalAssistantFixture.enrich(d);
     }
     private List<Dish> pool() {
         List<Dish> pool = new ArrayList<>(); for (long id=1;id<=205;id++) pool.add(dish(id,"普通菜"+id,null)); return pool;

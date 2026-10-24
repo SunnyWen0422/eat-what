@@ -310,8 +310,8 @@ public class ShoppingListService {
             ShoppingPreviewRequest preview = new ShoppingPreviewRequest();
             preview.setDishIds(new ArrayList<>(ids));
             preview.setTargetPeople(group.getTargetPeople() != null ? group.getTargetPeople()
-                : request.getTargetPeople() != null ? request.getTargetPeople() : new BigDecimal("2"));
-            String previewKey = ids.iterator().next()+"@"+preview.getTargetPeople().stripTrailingZeros().toPlainString();
+                : request.getTargetPeople());
+            String previewKey = ids.iterator().next()+"@"+(preview.getTargetPeople()==null ? "baseline" : preview.getTargetPeople().stripTrailingZeros().toPlainString());
             ShoppingPreviewResponse trusted = previewCache.get(previewKey);
             if (trusted == null) { trusted = previewService.createPreview(userId, preview); previewCache.put(previewKey,trusted); }
             Map<String,ShoppingPreviewItemDTO> allowed = new HashMap<>();
@@ -444,9 +444,9 @@ public class ShoppingListService {
         entity.setUnitFamily(item.getUnitFamily());
         entity.setSourceQuantityText(item.getSourceQuantityText());
         entity.setParseStatus(item.getParseStatus());
-        // This marker fits the existing VARCHAR(24) and distinguishes new verified writes from inferred legacy bases.
+        // Records the calculation basis of this immutable shopping event. Historical receipts remain historical.
         entity.setCalculationStatus("CALCULATED".equals(item.getCalculationStatus()) && Boolean.TRUE.equals(item.getServingsVerified())
-                ? "CALCULATED_VERIFIED" : item.getCalculationStatus());
+                ? "CALCULATED_CANONICAL" : item.getCalculationStatus());
         entity.setChecked(item.isChecked());
         entity.setUserOverride(item.isUserOverride());
         return entity;
@@ -474,7 +474,7 @@ public class ShoppingListService {
         dto.setCalculationStatus(item.getCalculationStatus());
         dto.setChecked(Boolean.TRUE.equals(item.getChecked()));
         dto.setUserOverride(Boolean.TRUE.equals(item.getUserOverride()));
-        if ("CALCULATED_VERIFIED".equals(item.getCalculationStatus())) {
+        if ("CALCULATED_CANONICAL".equals(item.getCalculationStatus()) || "CALCULATED_VERIFIED".equals(item.getCalculationStatus())) {
             dto.setCalculationStatus("CALCULATED");
             dto.setServingsVerified(true);
         } else if ("CALCULATED".equals(item.getCalculationStatus()) && !dto.isUserOverride()) {

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/ui/App.tsx';
 import type { Repository, CommitReceipt } from '../src/data/repository.ts';
 import type { Catalog, Result } from '../src/domain/types.ts';
 import { personalData, recipe } from './fixtures.ts';
+import { canonicalPublicDish } from './canonical-fixture.ts';
 
 const catalog = { origin:'online-provider',version:null,recipes:[recipe()],aliases:{},recipeAliases:{},availability:{} } as Catalog;
 const status = { readable: true, writable: true, origin:'https://test.invalid',estimate:null,persisted:null,error:null };
@@ -45,7 +46,7 @@ it('persists a real public DTO through normalization, manual choice and strict s
   vi.stubGlobal('crypto',webcrypto);
   const opened = await openRepository({factory:new IDBFactory(),now:()=>new Date('2026-10-09T00:00:00.000Z'),uuid:()=> '00000000-0000-4000-8000-000000000001'});
   if (!opened.ok) throw new Error(opened.error.message);
-  const provider=createPublicCatalogProvider(async()=>({page:1,pageSize:100,total:1,list:[{id:910001,name:'接口测试菜',type:'veg',cl:'接口原料',steps:'接口步骤',contentVersion:'integration-test-only',quality:null}]}));
+  const provider=createPublicCatalogProvider(async()=>({page:1,pageSize:100,total:1,list:[canonicalPublicDish(910001,{contentVersion:'integration-test-only'},{name:'接口测试菜'})]}));
   try {
     render(<App repository={opened.value} catalogLoader={()=>loadCatalog(provider)} storageStatus={status}/>);
     fireEvent.click(await screen.findByRole('button',{name:'菜谱'})); const selection = await screen.findByRole('button',{name:'手选 接口测试菜'}); await waitFor(()=>expect((selection as HTMLButtonElement).disabled).toBe(false)); fireEvent.click(selection);
@@ -164,7 +165,7 @@ describe('local meal controls through the real repository', () => {
     vi.stubGlobal('crypto', webcrypto);
     const opened = await openRepository({ factory: new IDBFactory(), now: () => new Date('2026-10-09T00:00:00.000Z'), uuid: () => '00000000-0000-4000-8000-000000000001' });
     if (!opened.ok) throw new Error(opened.error.message);
-    const rows = ['meat', 'veg'].flatMap((type, index) => [1, 2, 3, 4].map((n) => ({ id: 100 + index * 10 + n, name: `接口${type}${n}`, type, cl: '原料原文', steps: '测试步骤', contentVersion: 'test-only-generation', quality: { reviewStatus: options.unreviewed ? 'UNREVIEWED' : 'VERIFIED', stepStatus: 'VERIFIED', ingredients: [{ name: '审核原料', rawText: '未知复合配料原文', identityStatus: 'VERIFIED' }] } })));
+    const rows = ['meat', 'veg'].flatMap((type, index) => [1, 2, 3, 4].map((n) => canonicalPublicDish(100 + index * 10 + n,{contentVersion:'test-only-generation'},{name:`接口${type}${n}`,categoryCode:type==='meat'?'CAT_MEAT':'CAT_VEGETABLE',baseServings:options.unreviewed?null:2,dietaryCodes:null,allergenCodes:null})));
     const loaded = await loadCatalog(createPublicCatalogProvider(async () => ({ list: rows, total: rows.length, page: 1, pageSize: 100 })));
     if (!loaded.ok) throw new Error(loaded.error.message);
     const source = options.forged ? structuredClone(loaded.value) : loaded.value;
@@ -190,7 +191,7 @@ describe('local meal controls through the real repository', () => {
     await waitFor(() => expect(screen.queryByText('正在读取本地记录…')).toBeNull());
     return { repo: opened.value, source, view, attempts, close: () => { cleanup(); opened.value.close(); vi.unstubAllGlobals(); } };
   }
-  it.each([false, true])('generates, locks and replaces from database rows (unreviewed=%s), preserving other slots', async unreviewed => {
+  it.each([false, true])('generates, locks and replaces fixed recipes (unknown source servings=%s), preserving other slots', async unreviewed => {
     const test = await mealSetup({ unreviewed }); try {
       fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); await screen.findByText('菜单已生成并保存');
       const first = await test.repo.read(); if (!first.ok || !first.value.draft) throw new Error('missing draft');
@@ -240,19 +241,21 @@ describe('local meal controls through the real repository', () => {
       const read = await test.repo.read(); if (!read.ok) throw new Error('read'); expect(read.value.preferences.servings).toBe(2); expect(read.value.draft).toBeNull();
     } finally { test.close(); }
   });
-  it('shows unresolved exclusions, blocks automatic results, and explains exact unknown manual ingredients', async () => {
+  it('shows unresolved exclusions, blocks automatic results, and keeps unknown allergen facts explicit', async () => {
     const test = await mealSetup(); try {
       fireEvent.change(screen.getByLabelText('硬忌口，每行一项'), { target: { value: '芝麻' } }); fireEvent.click(screen.getByRole('button', { name: '保存忌口' })); await screen.findByText('忌口已保存');
       expect(screen.getByText(/尚未识别，未生效：芝麻/)).not.toBeNull(); fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); expect(await screen.findByText(/请补全、移除或手选/)).not.toBeNull();
-      fireEvent.click(screen.getByRole('button', { name: '菜谱' })); expect(screen.getAllByText(/原料身份或复合成分未知：未知复合配料原文/)).toHaveLength(8); fireEvent.click(await screen.findByRole('button', { name: '手选 接口meat1' })); await screen.findByText('草稿已保存');
-      fireEvent.click(screen.getByRole('button', { name: '今天吃什么' })); expect(screen.getByText(/原料身份或复合成分未知：未知复合配料原文/)).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: '菜谱' })); expect(screen.getAllByText(/忌口尚未识别，未生效：芝麻/).length).toBeGreaterThanOrEqual(8);
+      fireEvent.click(await screen.findByRole('button', {name:'查看详情 接口meat1'}));expect(screen.getByText('过敏原资料未提供')).not.toBeNull();expect(screen.queryByText(/不含过敏原|无过敏原/)).toBeNull();
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '手选 接口meat1' })); await screen.findByText('草稿已保存');
+      fireEvent.click(screen.getByRole('button', { name: '今天吃什么' })); expect(screen.getAllByText(/尚未识别，未生效：芝麻/).length).toBeGreaterThan(0);
     } finally { test.close(); }
   });
   it('converts vegetarian slots but does not invent ingredient-based suitability', async () => {
     const test = await mealSetup(); try {
-      fireEvent.click(screen.getByLabelText('素食组合（完整配料需审核）')); await screen.findByText('设置和草稿已保存');
+      fireEvent.click(screen.getByLabelText('素食组合')); await screen.findByText('设置和草稿已保存');
       const read = await test.repo.read(); if (!read.ok) throw new Error('read'); expect(read.value.preferences.softPreferences).toContain('vegetarian'); expect(read.value.draft?.slots.map((s) => s.type)).toEqual(['vegetable', 'vegetable']);
-      fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); expect(await screen.findByText(/当前目录没有完整配料的素食适用审核/)).not.toBeNull(); expect((await test.repo.read())).toEqual(read);
+      fireEvent.click(screen.getByRole('button', { name: '生成本餐菜单' })); expect(await screen.findByText(/当前目录没有适合本餐的明确素食菜谱/)).not.toBeNull(); expect((await test.repo.read())).toEqual(read);
     } finally { test.close(); }
   });
   it('saves retained failed preferences with the next draft edit rather than falsely losing them', async () => {

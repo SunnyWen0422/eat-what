@@ -6,7 +6,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class RecommendationEvidenceTest {
     final RecommendationScorer scorer=new RecommendationScorer();
-    Dish dish(){Dish d=new Dish();d.setId(1L);d.setName("洋葱炒蛋");d.setCl("洋葱#鸡蛋");d.setTagCodes("LIGHT");d.setCookMinutes(10);return d;}
+    Dish dish(){Dish d=new Dish();d.setId(1L);d.setName("洋葱炒蛋");d.setCl("洋葱#鸡蛋");d.setTagCodes("LIGHT");d.setCookMinutes(10);return CanonicalCandidateFixture.ingredients(d,"洋葱","鸡蛋");}
     @Test void unknownTimeAndSubstringIngredientsCannotBecomePositiveReasons(){
         Dish d=dish();EffectiveRecommendationCriteria c=new EffectiveRecommendationCriteria();c.setMaxCookMinutes(15);
         Map<String,Object> evidence=scorer.evidence(Collections.singletonList(d),c,Collections.singletonList("葱"),Collections.emptySet());

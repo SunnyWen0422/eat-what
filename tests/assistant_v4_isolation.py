@@ -79,6 +79,7 @@ def isolated_service():
             # Non-empty synthetic index prevents load_index from reading source artifacts.
             rag._dish_meta = [{"id": 999, "name": "synthetic placeholder", "type": "veg", "cl": ""}]
             rag._ingredient_map = {}
+            stack.enter_context(patch.object(rag, "load_index"))
             yield types.SimpleNamespace(
                 client=importlib.import_module("model_client"),
                 agent=importlib.import_module("workspace_agent"),

@@ -134,10 +134,11 @@ test('mixedUnitsNeverCoerce', () => {
   assert.equal(view.rows.length, 4)
   assert.deepEqual(view.rows.map(row => row.quantityLabel), ['1个', '100g', '适量', '我确认2个'])
   assert.equal(view.rows[2].quantityValue, null)
-  assert.deepEqual(ingredients.scaleLocalQuantity(manual, 2, 8), manual)
-  assert.equal(ingredients.scaleLocalQuantity(unknown, null, 8).quantityText, '适量')
+  assert.deepEqual(ingredients.normalizeQuantitySafety(manual), manual)
+  assert.equal(ingredients.normalizeQuantitySafety(unknown).quantityText, '适量')
   const unknownUnit = item(5, '葱', { unitFamily: 'unknown', unitCode: '把', quantityText: '1把' })
-  assert.equal(ingredients.scaleLocalQuantity(unknownUnit, 2, 8).quantityText, '1把')
+  assert.equal(ingredients.normalizeQuantitySafety(unknownUnit).quantityText, '1把')
+  assert.equal(ingredients.scaleLocalQuantity,undefined,'no client-side diner multiplier remains')
 })
 
 test('legacy source objects preserve dish name date and meal rather than saying manual', () => {

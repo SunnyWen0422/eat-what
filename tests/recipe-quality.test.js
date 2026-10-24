@@ -1,19 +1,19 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs')
 const file=require('node:path').resolve(__dirname,'../utils/recipe-quality.js')
-test('recipe quality renderer hides generated raw amounts and rejected materials',()=>{
+test('partial nutrition does not display a fake whole recipe total or verification placeholders',()=>{
  assert.ok(fs.existsSync(file),'recipe quality renderer missing')
- const view=require(file).presentRecipeQuality({kcal:0,quality:{reviewStatus:'UNREVIEWED',servingsStatus:'UNKNOWN',ingredients:[{name:'白糖',quantityStatus:'UNKNOWN',rawQuantity:'55',unit:'克'},{name:'快手',identityStatus:'REJECTED'}]}})
- assert.deepEqual(view.ingredientLines,['白糖 · 用量待核实']);assert.equal(view.nutritionText,'热量资料待核实');assert.ok(!view.ingredientLines.join('').includes('55'))
+ const view=require(file).presentRecipeQuality({kcal:0,recipe:{calculatedNutrition:{completeness:'partial',total:null,quantifiedSubtotal:{energyKcal:55},perServing:null}}})
+ assert.equal(view.nutritionAvailable,false);assert.equal(view.nutritionText,'')
 })
-test('verified quantity and servings can be displayed while unknown calories stay unknown',()=>{
+test('complete nutrition displays whole dish energy even with unknown source servings',()=>{
  assert.ok(fs.existsSync(file),'recipe quality renderer missing')
- const view=require(file).presentRecipeQuality({quality:{reviewStatus:'VERIFIED',servingsStatus:'VERIFIED',basePeople:2,ingredients:[{name:'白糖',identityStatus:'VERIFIED',quantityStatus:'VERIFIED',quantityValue:'10',unit:'克'}],nutritionStatus:'UNKNOWN'}})
- assert.equal(view.ingredientLines[0],'白糖 · 原配方 10克');assert.match(view.notice,/2 人/);assert.equal(view.nutritionText,'热量资料待核实')
+ const view=require(file).presentRecipeQuality({recipe:{baseServings:null,calculatedNutrition:{completeness:'complete',total:{energyKcal:100,proteinG:2,fatG:4,carbohydrateG:10,fiberG:1,sodiumMg:12},perServing:null}}})
+ assert.equal(view.nutritionAvailable,true);assert.equal(view.nutritionText,'整道菜合计约 100 千卡（按食材成分计算）')
 })
-test('legacy generated allowance is handled honestly even before evidence is returned',()=>{
+test('legacy calorie and verification fields cannot replace canonical nutrition',()=>{
  assert.ok(fs.existsSync(file),'recipe quality renderer missing')
  const view=require(file).presentRecipeQuality({fl:'2名成年人总量+15%冗余',ingredientsAmounts:'快手|345|克|主料|处理|2名成年人总量+15%冗余|菜名###糖|55|克|调味|加入|2名成年人总量+15%冗余|步骤'})
- assert.deepEqual(view.ingredientLines,['糖 · 用量待核实']);assert.match(view.notice,/核实/)
+ assert.equal(view.nutritionAvailable,false);assert.equal(view.nutritionText,'')
 })
 
 test('category labels translate catalog codes without exposing unknown internal values',()=>{

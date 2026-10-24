@@ -47,7 +47,7 @@ public class ShoppingProcurementScopeService implements CalendarSavedListener {
    source.setDishes(snapshots);
   }else throw new IllegalArgumentException("采购来源无效");
   validateSlot(source.getDate(),source.getMealType());
-  if(source.getPeople()==null||source.getPeople()<1||source.getPeople()>50)throw new IllegalArgumentException("请先补充这餐的用餐人数");
+  if(source.getPeople()!=null&&(source.getPeople()<1||source.getPeople()>50))throw new IllegalArgumentException("请先补充这餐的用餐人数");
   if(source.getDishes().isEmpty()||source.getDishes().size()>10)throw new IllegalArgumentException("采购菜品数量无效");
   List<Long> ids=source.getDishes().stream().map(Dish::getId).collect(Collectors.toList());
   List<Dish> live=dishes.getDishesByIdsForUser(new ArrayList<>(new LinkedHashSet<>(ids)),user);
@@ -60,8 +60,6 @@ public class ShoppingProcurementScopeService implements CalendarSavedListener {
  public void lockForConfirmation(Long user,ResolvedSource source){
   lock(user);List<Long> ids=source.getDishes().stream().map(Dish::getId).distinct().sorted().collect(Collectors.toList());
   Map<Long,Dish> current=aliases.lockDishes(user,ids).stream().collect(Collectors.toMap(Dish::getId,d->d));
-  for(Dish d:current.values())d.setQuality(null);
-  for(DishQualityMapper.Row row:aliases.lockProfiles(ids))try{Dish d=current.get(row.getDishId());if(d!=null){CatalogQuality q=json.readValue(row.getProfileJson(),CatalogQuality.class);if(!row.getDishId().equals(q.getDishId()))throw new IllegalStateException("菜谱证据来源无效");d.setQuality(q);}}catch(java.io.IOException error){throw new IllegalStateException("菜谱证据读取失败",error);}
   for(Dish expected:source.getDishes())if(!current.containsKey(expected.getId())||!expected.getContentVersion().equals(current.get(expected.getId()).getContentVersion()))throw new MealConsumptionService.VersionConflict("菜谱内容或证据已变化，请重新预览");
  }
  void lockAccount(Long user){lock(user);}
@@ -83,7 +81,7 @@ public class ShoppingProcurementScopeService implements CalendarSavedListener {
    String targetDate=(String)r.get("targetDate"),targetMeal=(String)r.get("targetMealType");
    RecipeRecord plan=plans.findSlot(user,targetDate,targetMeal);
    if(plan==null||Boolean.TRUE.equals(plan.getIsDeleted())||!user.equals(plan.getUserId())||!Objects.equals(plan.getRevision(),((Number)r.get("targetPlanRevision")).longValue()))throw new MealConsumptionService.VersionConflict("已保存安排已变化，请重新查看");
-   List<Dish> original=json.convertValue(b.get("dishes"),new TypeReference<List<Dish>>(){});Integer people=((Number)b.get("people")).intValue();
+   List<Dish> original=com.eatwhat.util.DishSnapshotReader.convertDishes(json,b.get("dishes"));Integer people=b.get("people")==null?null:((Number)b.get("people")).intValue();
    String semantic=semanticHash(original,people);
    if(!semantic.equals(semanticHash(plan.getDishDetails(),plan.getTargetPeople())))throw new MealConsumptionService.VersionConflict("已保存安排内容已变化");
    ResolvedSource source=new ResolvedSource();source.setSourceRef(draft);source.setWorkspaceId(draft.getWorkspaceId());source.setDate((String)b.get("sourceDate"));source.setMealType((String)b.get("sourceMealType"));source.setSemanticHash(semantic);
@@ -97,7 +95,7 @@ public class ShoppingProcurementScopeService implements CalendarSavedListener {
   });
  }
  public void afterSaved(Long user,CalendarSavedReceipt receipt){ShoppingSourceRef draft=new ShoppingSourceRef();draft.setKind("draft");draft.setWorkspaceId(receipt.getSourceWorkspaceId());linkSavedPlan(user,draft,receipt);}
- String semanticHash(List<Dish> values,Integer people){List<Object> content=new ArrayList<>();content.add(people);for(int i=0;i<values.size();i++){Dish d=values.get(i);content.add(Arrays.asList(i,d.getId(),d.getContentVersion()));}return hash(content);}
+ String semanticHash(List<Dish> values,Integer people){List<Object> content=new ArrayList<>();content.add("fixed-recipe-v1");for(int i=0;i<values.size();i++){Dish d=values.get(i);content.add(Arrays.asList(i,d.getId(),d.getContentVersion()));}return hash(content);}
  private String alias(ResolvedSource source){return "draft".equals(source.getSourceRef().getKind())?hash(Arrays.asList("draft",source.getWorkspaceId(),source.getDate(),source.getMealType(),source.getSemanticHash())):planAlias(source.getDate(),source.getMealType(),source.getSemanticHash());}
  private String planAlias(String date,String meal,String content){return hash(Arrays.asList("plan",date,meal,content));}
  private String hash(Object value){try{return WorkflowRequestHash.sha256(json.writeValueAsString(value));}catch(Exception e){throw new IllegalArgumentException("采购来源无效",e);}}

@@ -20,6 +20,7 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
   const setKeyword = (keyword: string) => update({ keyword });
   const setCategory = (category: DishType | '') => update({ category });
   const setFavoritesOnly = (favoritesOnly: boolean) => update({ favoritesOnly });
+  const [visibleCount,setVisibleCount]=useState(100);
   const [selected, setSelected] = useState<CatalogRecipe | null>(null);
   const recipes = catalog?.ok ? catalog.value.recipes : [];
   const query = keyword.trim().toLocaleLowerCase();
@@ -40,12 +41,12 @@ export function Recipes({ catalog, loading, onRetry, onSelect, onFavorite, favor
     {!catalog?.ok && loading ? <p className="muted">正在准备菜谱，可先查看个人记录。</p> : !catalog?.ok ? <div className="notice"><p>在线菜谱暂时无法读取。已有个人计划仍可查看，可在“我的”新建自定义菜谱。</p><button disabled={loading} onClick={onRetry}>重试在线菜谱</button></div>
       : <><p className="result-count muted">{matches.length} 道菜</p>
         {!recipes.length ? <p>当前没有可浏览的在线菜谱。</p> : !matches.length ? <p>没有匹配的菜谱，试试调整筛选。</p>
-          : <ul className="recipe-list">{matches.map(recipe => <li className="card recipe-card" key={recipe.recipeId}><div className="dish-identity"><RecipeImage snapshot={recipe}/><div><h3>{recipe.name}</h3><p className="muted">{recipe.types.map(type => TYPE_LABELS[type]).join('、') || '菜谱'}</p></div></div>
+          : <ul className="recipe-list">{matches.slice(0,visibleCount).map(recipe => <li className="card recipe-card" key={recipe.recipeId}><div className="dish-identity"><RecipeImage snapshot={recipe}/><div><h3>{recipe.name}</h3><p className="muted">{recipe.types.map(type => TYPE_LABELS[type]).join('、') || '菜谱'}</p></div></div>
             {(preferences.hardExclusions.length || preferences.softPreferences.includes('vegetarian') ? warnings(recipe) : []).map(warning => <p className="warning" key={warning}>{warning}</p>)}
 
             <button data-view-anchor={`recipe-detail-${recipe.recipeId}`} aria-label={`查看详情 ${recipe.name}`} onClick={event => { event.currentTarget.focus({ preventScroll: true }); setSelected(recipe); }}>查看做法</button>{buttons(recipe)}
-          </li>)}</ul>}</>}
+          </li>)}</ul>}{matches.length>visibleCount&&<button onClick={()=>setVisibleCount(n=>n+100)}>查看更多菜谱</button>}</>}
     {selected && <Dialog title={selected.name} initialFocus="panel" busy={pending} onClose={() => setSelected(null)}><h3>{selected.name}</h3><RecipeImage snapshot={selected} hero/><RecipeFacts snapshot={selected} />
-      <details><summary>菜谱信息说明</summary><p>{REVIEW_LABELS[selected.reviewStatus]}</p>{selected.issues.map((issue,index)=><p key={index}>{ISSUE_LABELS[issue] ?? (/^[A-Z_0-9]+$/.test(issue) ? '部分菜谱资料仍需核对。' : issue)}</p>)}</details>{warnings(selected).map(warning => <p className="warning" key={warning}>{warning}</p>)}{buttons(selected, true)}<button disabled={pending} onClick={() => setSelected(null)}>关闭菜谱详情</button></Dialog>}
+{warnings(selected).map(warning => <p className="warning" key={warning}>{warning}</p>)}{buttons(selected, true)}<button disabled={pending} onClick={() => setSelected(null)}>关闭菜谱详情</button></Dialog>}
   </section>;
 }

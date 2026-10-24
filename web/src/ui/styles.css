@@ -143,3 +143,5 @@ body { font-size:1rem; }
 /* Selection colors switch together; avoid white text over a fading pale background. */
 button[aria-pressed] { transition:transform 100ms ease-out; }
 @media(prefers-reduced-motion:reduce){button[aria-pressed]{transition:none;}}
+
+.ingredient-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;list-style:none;padding:0}.ingredient-facts li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;padding:10px;border-bottom:1px solid #B8C5B8;overflow-wrap:anywhere}

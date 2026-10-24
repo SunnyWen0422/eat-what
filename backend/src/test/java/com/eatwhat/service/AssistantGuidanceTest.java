@@ -18,7 +18,7 @@ class AssistantGuidanceTest {
     @Test void favoritesAreReadOnlyPagedAndOwnerScoped(){
         MealWorkspaceService workspaces=mock(MealWorkspaceService.class);when(workspaces.get(7L,"w")).thenReturn(workspace());
         FavoriteDishService favorites=mock(FavoriteDishService.class);when(favorites.getFavoriteDishIds(7L)).thenReturn(Arrays.asList(3L,1L,2L));
-        DishQueryService dishes=mock(DishQueryService.class);when(dishes.getDishesByIdsForUser(anyList(),eq(7L))).thenAnswer(call->{List<Dish> rows=new ArrayList<>();for(Long id:(List<Long>)call.getArgument(0)){Dish d=new Dish();d.setId(id);d.setName("菜"+id);d.setType("veg");rows.add(d);}return rows;});
+        DishQueryService dishes=mock(DishQueryService.class);when(dishes.getDishesByIdsForUser(anyList(),eq(7L))).thenAnswer(call->{List<Dish> rows=new ArrayList<>();for(Long id:(List<Long>)call.getArgument(0)){Dish d=new Dish();d.setId(id);d.setName("菜"+id);d.setType("veg");rows.add(CanonicalTestDish.attach(d));}return rows;});
         PersonalMenuService menus=mock(PersonalMenuService.class);
         AssistantPersonalReadService reads=new AssistantPersonalReadService(workspaces,favorites,menus,dishes,mock(RecommendationMetadataService.class),json,new AssistantCapabilityService(true));
         ReadResult page=reads.read(7L,call("read_favorites",Collections.singletonMap("limit",2)),scope());

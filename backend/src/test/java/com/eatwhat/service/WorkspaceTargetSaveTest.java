@@ -28,7 +28,7 @@ class WorkspaceTargetSaveTest {
         String sourceJson; int commits,rollbacks; boolean failSourceSave;
         final MealWorkspaceService service;
         Fixture() throws Exception {
-            Dish a=new Dish();a.setId(7L);a.setName("菜单A");a.setType("veg");a.setCl("青菜");reviewed.add(a);
+            Dish a=new Dish();a.setId(7L);a.setName("菜单A");a.setType("veg");a.setCl("青菜");CanonicalTestDish.attach(a);reviewed.add(a);
             MealContext context=new MealContext();context.setDate("2026-12-31");context.setMealType("dinner");context.setCompositionMode("manual");context.setCounts(Collections.singletonMap("veg",1));MealWorkspaceRules.normalize(context);
             MealWorkspace source=new MealWorkspace();source.setId("source");source.setRevision(4L);source.setContext(context);source.setStatus("draft");
             source.getDraft().setPlanVersion(3L);source.getDraft().setDishes(reviewed);source.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(context));sourceJson=json.writeValueAsString(source);
@@ -36,7 +36,9 @@ class WorkspaceTargetSaveTest {
             when(db.find(anyString(),anyLong())).thenAnswer(i->{if(!"source".equals(i.getArgument(0)) || !Long.valueOf(1L).equals(i.getArgument(1)))return null;WorkspaceRow r=new WorkspaceRow();r.setStateJson(sourceJson);return r;});
             when(plans.findSlot(anyLong(),anyString(),anyString())).thenAnswer(i->slots.get(i.getArgument(1)+"|"+i.getArgument(2)));
             when(dishes.getDishesByIdsForUser(anyList(),eq(1L))).thenAnswer(i->new ArrayList<>(reviewed));
-            when(plans.insert(any())).thenAnswer(i->{RecipeRecord r=i.getArgument(0);RecipeRecord copy=json.convertValue(r,RecipeRecord.class);copy.setRevision(r.getExpectedRevision()+1);slots.put(r.getRecordDateString()+"|"+r.getMealType(),copy);return 1;});
+            when(plans.insert(any())).thenAnswer(i->{RecipeRecord r=i.getArgument(0);RecipeRecord copy=json.convertValue(r,RecipeRecord.class);
+                // SQL stores this column verbatim; reading it must exercise the trusted snapshot getter.
+                copy.setDishDetailsString(r.getDishDetailsString());copy.setRevision(r.getExpectedRevision()+1);slots.put(r.getRecordDateString()+"|"+r.getMealType(),copy);return 1;});
             when(db.save(anyString(),eq(1L),anyLong(),anyLong(),anyString())).thenAnswer(i->{if(failSourceSave)return 0;sourceJson=i.getArgument(4);return 1;});
             when(db.request(anyLong(),anyString())).thenAnswer(i->receipts.get(i.getArgument(1)));
             when(db.log(anyLong(),anyString(),anyString(),anyString())).thenAnswer(i->{Map<String,Object> receipt=new HashMap<>();receipt.put("requestHash",i.getArgument(2));receipt.put("responseJson",i.getArgument(3));receipts.put(i.getArgument(1),receipt);return 1;});
@@ -98,7 +100,7 @@ class WorkspaceTargetSaveTest {
         }
     }
     @Test void changedRecipeSnapshotIsRejectedWithoutSavingItsNewIngredients() throws Exception {
-        Fixture f=new Fixture();Dish changed=new Dish();changed.setId(7L);changed.setName("菜单A");changed.setType("veg");changed.setCl("花生");
+        Fixture f=new Fixture();Dish changed=new Dish();changed.setId(7L);changed.setName("菜单A");changed.setType("veg");changed.setCl("花生");CanonicalTestDish.attach(changed);
         when(f.dishes.getDishesByIdsForUser(anyList(),eq(1L))).thenReturn(Collections.singletonList(changed));
         assertThrows(MealConsumptionService.VersionConflict.class,()->f.save(f.request("2027-01-01","lunch")));verify(f.plans,never()).insert(any());assertTrue(f.slots.isEmpty());
     }

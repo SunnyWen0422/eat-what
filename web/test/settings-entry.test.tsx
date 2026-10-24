@@ -8,6 +8,7 @@ import { App } from '../src/ui/App.tsx';
 import { openRepository, type Repository } from '../src/data/repository.ts';
 import { createPublicCatalogProvider, loadCatalog } from '../src/catalog/catalog.ts';
 import type { Catalog, Result } from '../src/domain/types.ts';
+import { canonicalPublicDish } from './canonical-fixture.ts';
 
 const repositories: Repository[] = [];
 const status = { readable: true, writable: true, origin: 'https://test.invalid', estimate: null, persisted: null, error: null };
@@ -17,7 +18,7 @@ async function setup() {
   const opened = await openRepository({ factory: new IDBFactory(), now: () => new Date(), uuid: () => crypto.randomUUID() });
   if (!opened.ok) throw new Error(opened.error.message);
   const repository = opened.value; repositories.push(repository);
-  const rows = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, name: `设置验证菜 ${index + 1}`, type: index < 3 ? 'meat' : 'veg', steps: '做好', contentVersion: 'test-settings', quality: { reviewStatus: 'VERIFIED', stepStatus: 'VERIFIED', ingredients: [{ name: '原料', rawText: '原料', identityStatus: 'VERIFIED' }] } }));
+  const rows = Array.from({ length: 6 }, (_, index) => canonicalPublicDish(index+1,{contentVersion:'test-settings'},{name:`设置验证菜 ${index+1}`,categoryCode:index<3?'CAT_MEAT':'CAT_VEGETABLE'}));
   const catalogLoader = (): Promise<Result<Catalog>> => loadCatalog(createPublicCatalogProvider(async query => ({ ...query, total: rows.length, list: rows })));
   render(<App repository={repository} storageStatus={status} catalogLoader={catalogLoader} />);
   await waitFor(() => expect(screen.queryByText('正在读取本地记录…')).toBeNull());

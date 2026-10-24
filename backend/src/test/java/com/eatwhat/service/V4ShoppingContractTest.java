@@ -92,28 +92,21 @@ class V4ShoppingContractTest {
         }
     }
     private ShoppingPreviewService preview(String servings) {
-        Dish dish=new Dish(); dish.setId(9L); dish.setName("土豆"); dish.setFl(servings); dish.setIngredientsAmounts("土豆|200|g|主料");
-        DishQueryService query=mock(DishQueryService.class); when(query.getDishesByIdsForUser(anyList(),eq(3L))).thenReturn(Collections.singletonList(dish));
-        return new ShoppingPreviewService(query,new IngredientParserService(),new IngredientNormalizationService());
+        Dish dish=CanonicalTestCatalog.dish(9,"土豆","potato",new BigDecimal("200"),servings==null?null:new BigDecimal("2"));dish.setFl(servings);DishQueryService query=mock(DishQueryService.class);when(query.getDishesByIdsForUser(anyList(),eq(3L))).thenReturn(Collections.singletonList(dish));return CanonicalTestCatalog.wire(new ShoppingPreviewService(query,new IngredientParserService(),new IngredientNormalizationService()),CanonicalTestCatalog.service());
     }
     private ShoppingPreviewResponse preview(ShoppingPreviewService service) {
         ShoppingPreviewRequest r=new ShoppingPreviewRequest(); r.setDishIds(Collections.singletonList(9L)); r.setTargetPeople(new BigDecimal("4")); return service.createPreview(3L,r);
     }
-    @Test void unknownOrAmbiguousServingsKeepRawTextWithoutNumericProcurement() {
-        for(String fl:Arrays.asList(null,"","未知","0人","2-4人","2~4人","15%余量","约两人","people=oops","-2人","0","2人 extra")) {
-            ShoppingPreviewResponse response=preview(preview(fl)); ShoppingPreviewItemDTO item=response.getDishes().get(0).getItems().get(0);
-            assertEquals("NEEDS_ADJUSTMENT",item.getCalculationStatus(),"fl="+fl);
-            assertNull(item.getSourceBasePeople()); assertNull(item.getQuantityValue()); assertNull(item.getQuantityMin()); assertNull(item.getQuantityMax());
-            assertEquals("土豆|200|g|主料",item.getQuantityText()); assertFalse(item.getWarnings().isEmpty()); assertFalse(response.getWarnings().isEmpty());
-        }
+    @Test void unknownBaseStillHasFixedNumericProcurement() {
+        ShoppingPreviewService service=preview((String)null);assertEquals(0,new BigDecimal("200").compareTo(preview(service).getDishes().get(0).getItems().get(0).getQuantityValue()));ShoppingPreviewRequest r=new ShoppingPreviewRequest();r.setDishIds(Collections.singletonList(9L));r.setTargetPeople(null);ShoppingPreviewItemDTO item=service.createPreview(3L,r).getDishes().get(0).getItems().get(0);assertNull(item.getSourceBasePeople());assertEquals("CALCULATED",item.getCalculationStatus());assertEquals(0,new BigDecimal("200").compareTo(item.getQuantityValue()));
     }
-    @Test void recognizedLegacyServingsStillScaleExactly() {
+    @Test void legacyServingsDisplayCannotChangeFixedQuantities() {
         for(String fl:Arrays.asList("2","2人","2人份","2 人份","2人基础份量","2份","2 servings","serves 2","2.0人")) {
             ShoppingPreviewItemDTO item=preview(preview(fl)).getDishes().get(0).getItems().get(0);
-            assertEquals("CALCULATED",item.getCalculationStatus(),fl); assertEquals(0,new BigDecimal("400").compareTo(item.getQuantityValue()));
+            assertEquals("CALCULATED",item.getCalculationStatus(),fl); assertEquals(0,new BigDecimal("200").compareTo(item.getQuantityValue()));
         }
         ShoppingPreviewItemDTO bulk=preview(preview("100人")).getDishes().get(0).getItems().get(0);
-        assertEquals("CALCULATED",bulk.getCalculationStatus());assertEquals(0,new BigDecimal("8").compareTo(bulk.getQuantityValue()));
+        assertEquals("CALCULATED",bulk.getCalculationStatus());assertEquals(0,new BigDecimal("200").compareTo(bulk.getQuantityValue()));
     }
     @Test void existingRequestKeyConflictsForMissingVersionAndUnboundLegacyReceipt() throws Exception {
         Store store=new Store(mock(ShoppingPreviewService.class)); store.row(false);
@@ -124,17 +117,7 @@ class V4ShoppingContractTest {
         assertThrows(MealConsumptionService.VersionConflict.class,()->store.service.clear(3L,clear("unbound","all",3L)));
     }
     @Test void unknownBaseSurvivesTrustedBatchPersistenceAndSummaryReentry() {
-        ShoppingPreviewService preview=preview((String)null); Store store=new Store(preview);
-        ShoppingDishDTO source=preview(preview).getDishes().get(0);
-        ShoppingDishRequest group=new ShoppingDishRequest(); group.setSelectionKey("meal-one"); group.setTargetPeople(new BigDecimal("4")); group.setItems(source.getItems());
-        ShoppingBatchAddRequest r=new ShoppingBatchAddRequest(); r.setRequestId("unknown-base"); r.setExpectedListVersion(2L); r.setDishes(Collections.singletonList(group));
-        store.service.batchAdd(3L,r);
-        ShoppingListResponse saved=store.service.getList(3L,"all"); ShoppingPreviewItemDTO item=saved.getDishes().get(0).getItems().get(0);
-        assertEquals("NEEDS_ADJUSTMENT",item.getCalculationStatus()); assertNull(item.getQuantityValue()); assertEquals("土豆|200|g|主料",item.getQuantityText());
-        assertTrue(saved.getPurchaseSummary().getMergeableItems().isEmpty()); assertEquals(1,saved.getPurchaseSummary().getSeparateItems().size());
-        assertEquals("土豆|200|g|主料",saved.getPurchaseSummary().getSeparateItems().get(0).getQuantityText());
-        assertTrue(store.service.batchAdd(3L,r).isIdempotent()); assertEquals(1,store.rows.size());
-        r.setTargetPeople(BigDecimal.ONE); assertThrows(MealConsumptionService.VersionConflict.class,()->store.service.batchAdd(3L,r));
+        ShoppingPreviewService preview=preview((String)null);Store store=new Store(preview);ShoppingPreviewRequest original=new ShoppingPreviewRequest();original.setDishIds(Collections.singletonList(9L));original.setTargetPeople(null);ShoppingDishDTO source=preview.createPreview(3L,original).getDishes().get(0);ShoppingDishRequest group=new ShoppingDishRequest();group.setSelectionKey("meal-one");group.setTargetPeople(null);group.setItems(source.getItems());ShoppingBatchAddRequest r=new ShoppingBatchAddRequest();r.setRequestId("unknown-base");r.setExpectedListVersion(2L);r.setDishes(Collections.singletonList(group));store.service.batchAdd(3L,r);ShoppingListResponse saved=store.service.getList(3L,"all");ShoppingPreviewItemDTO item=saved.getDishes().get(0).getItems().get(0);assertEquals("CALCULATED",item.getCalculationStatus());assertEquals(0,new BigDecimal("200").compareTo(item.getQuantityValue()));assertEquals("200g",item.getQuantityText());assertEquals(1,saved.getPurchaseSummary().getMergeableItems().size());assertTrue(saved.getPurchaseSummary().getSeparateItems().isEmpty());assertTrue(store.service.batchAdd(3L,r).isIdempotent());assertEquals(1,store.rows.size());r.setTargetPeople(BigDecimal.ONE);assertThrows(MealConsumptionService.VersionConflict.class,()->store.service.batchAdd(3L,r));
     }
     @Test void oldCalculatedRowsWithNoPersistedServingsProofStayUnresolved() {
         Store store=new Store(mock(ShoppingPreviewService.class)); store.row(false); ShoppingItem old=store.rows.get(0);

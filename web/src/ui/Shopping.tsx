@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { ShoppingItem, ShoppingList, ShoppingListInput, ShoppingSource } from '../domain/types.ts';
-import { buildShopping, diffShopping, sourceFromPlan, sourceState } from '../shopping/shopping.ts';
+import { buildShopping, prepareCanonicalSources, diffShopping, sourceFromPlan, sourceState } from '../shopping/shopping.ts';
 import { formatQuantity } from '../shopping/quantities.ts';
 import { isText } from '../domain/validation.ts';
 import { DeleteEditor, useLocalMutation, type LocalActions } from './PersonalActions.tsx';
@@ -8,23 +8,27 @@ import { Dialog, MEAL_LABELS, Notice, SourceLink, TYPE_LABELS, useDirtyClose } f
 function SourceDetails({source,actions,draftSource}:{source:ShoppingSource;actions:LocalActions;draftSource:ShoppingSource|null}){
   const state=sourceState(source,actions.data,draftSource),plan=source.kind==='plan'?actions.data.plans.find(p=>p.id===source.id):null;
   return <div>{state==='changed'&&<p>来源已变更</p>}{state==='deleted'&&<p>{source.kind==='plan'?'来源计划已删除，快照仍保留':'来源草稿已移除，快照仍保留'}</p>}<details><summary>{source.kind==='plan'?'计划来源':'本餐来源'}{plan?' · '+plan.date+' '+MEAL_LABELS[plan.meal]:''} · {source.servings} 人 · {source.snapshots.map(s=>s.name).join('、')}</summary>
-    {source.snapshots.map((snapshot,i)=><div key={i}><h4>{snapshot.name}</h4><p>原配方 {snapshot.baseServings??'未知'} 人 · {snapshot.types.map(type=>TYPE_LABELS[type]).join('、')||'分类未知'}</p><ul>{snapshot.ingredients.map((ingredient,n)=><li key={n}>{ingredient.raw} · 原量 {formatQuantity(ingredient.quantity)} · 形态 {ingredient.form||'未知'} · 部位 {ingredient.part??'未知'} · {ingredient.trust==='reviewed'?'来源有审核记录':'未经审核'} · 复合成分 {ingredient.compoundResolved?'已解析':'未知'}</li>)}</ul><ol>{snapshot.steps.map((step,n)=><li key={n}>{step}</li>)}</ol><p>来源 <SourceLink url={snapshot.source.url}/> · 许可 {snapshot.source.license??'未知'}</p></div>)}
+    {source.snapshots.map((snapshot,i)=><div key={i}><h4>{snapshot.name}</h4><p>{snapshot.baseServings===null?'原配方整批用量':`原配方 ${snapshot.baseServings} 人`} · {snapshot.types.map(type=>TYPE_LABELS[type]).join('、')||'分类未知'}</p><ul>{snapshot.ingredients.map((ingredient,n)=><li key={n}>{ingredient.raw} · 原量 {ingredient.quantityDisplay||formatQuantity(ingredient.quantity)} · 形态 {ingredient.form||'未知'} · 部位 {ingredient.part??'未知'} · {ingredient.trust==='reviewed'?'来源有审核记录':'未经审核'} · 复合成分 {ingredient.compoundResolved?'已解析':'未知'}</li>)}</ul><ol>{snapshot.steps.map((step,n)=><li key={n}>{step}</li>)}</ol><p>来源 <SourceLink url={snapshot.source.url}/> · 许可 {snapshot.source.license??'未知'}</p></div>)}
     <details><summary>诊断数据原文</summary><p>{JSON.stringify(source)}</p></details>
   </details></div>;
 }
 function itemLabel(item:ShoppingItem){return [item.name, item.form.trim() ? `形态 ${item.form.trim()}` : '', item.part?.trim() ? `部位 ${item.part.trim()}` : ''].filter(Boolean).join(' · ');}
 function ItemFacts({item}:{item:ShoppingItem}){
-  return <><p>{itemLabel(item)}{item.manual?' · 手动项':''}</p><p>{formatQuantity(item.quantity)}</p>{item.unknownEntries.length>0&&<p>待确认 {item.unknownEntries.length} 项</p>}{item.userQuantity!==null&&<p>手改用量：{item.userQuantity}</p>}{item.purchased&&<p>已购</p>}
-    {item.sources.length>0&&<details><summary>查看条目计算和原文</summary>{item.sources.map((f,i)=><div key={i}><p>{f.snapshot.name} · {f.sourceKind==='plan'?'计划用料':'本餐用料'}</p><p>{f.scaled.ingredient.raw} · 原量 {formatQuantity(f.scaled.originalQuantity)} · {f.scaled.ingredient.trust==='reviewed'?'来源有审核记录':'未经审核'}</p><p>基准人数 {f.scaled.baseServings??'未知'} · 倍数 {f.scaled.factor??'未换算'} · 计算量 {formatQuantity(f.scaled.quantity)}</p>{f.scaled.reason&&<p>{f.scaled.reason}</p>}</div>)}</details>}
+  const discretionary=item.unknownEntries.some(entry=>entry.scaled.ingredient.quantityDisplay==='适量'),pending=item.unknownEntries.filter(entry=>entry.scaled.ingredient.quantityDisplay!=='适量').length;
+  return <><p>{itemLabel(item)}{item.manual?' · 手动项':''}</p><p>{item.quantity?formatQuantity(item.quantity):discretionary?'适量':''}{item.quantity&&discretionary?'，另有适量':''}</p>{pending>0&&<p>待确认 {pending} 项</p>}{item.userQuantity!==null&&<p>手改用量：{item.userQuantity}</p>}{item.purchased&&<p>已购</p>}
+    {item.sources.length>0&&<details><summary>查看条目计算和原文</summary>{item.sources.map((f,i)=><div key={i}><p>{f.snapshot.name} · {f.sourceKind==='plan'?'计划用料':'本餐用料'}</p><p>{f.scaled.ingredient.raw} · 原量 {f.scaled.ingredient.quantityDisplay||formatQuantity(f.scaled.originalQuantity)} · {f.snapshot.canonical?'标准配方':'保存时的用量'}</p><p>整道菜用量 {formatQuantity(f.scaled.quantity)}</p>{f.scaled.reason&&<p>{f.scaled.reason}</p>}</div>)}</details>}
   </>;
 }
 function ShoppingBuilder({actions,initial,previous,draftSource,onDone}:{actions:LocalActions;initial:ShoppingSource[];previous?:ShoppingList;draftSource:ShoppingSource|null;onDone:()=>void}){
   const mutation=useLocalMutation(actions);
   const [selected,setSelected]=useState(()=>structuredClone(initial)),[preview,setPreview]=useState<ShoppingListInput|null>(null),[error,setError]=useState('');
   const missing=previous&&initial.length<previous.sources.length;
-  const disabled=mutation.disabled;
+  const [calculating,setCalculating]=useState(false);const calculation=useRef(0);
+  useEffect(()=>()=>{calculation.current++;},[]);
+  const disabled=mutation.disabled||calculating;
   function toggle(source:ShoppingSource,checked:boolean){setSelected(current=>checked?[...current.filter(s=>!(s.kind===source.kind&&s.id===source.id)),source]:current.filter(s=>!(s.kind===source.kind&&s.id===source.id)));setPreview(null);setError('');}
-  function generate(){try{setPreview(buildShopping(selected));setError('');}catch(e){setError(e instanceof RangeError?'这次食材内容超过可保存范围，请减少来源后重试。原清单和选择仍保留。':'食材来源暂时无法整理，请核对后重试。原清单和选择仍保留。');}}
+  async function generate(){const serial=++calculation.current;setCalculating(true);try{const sources=await prepareCanonicalSources(selected);if(serial!==calculation.current)return;setPreview(buildShopping(sources));setError('');}catch(e){if(serial===calculation.current)setError(e instanceof RangeError?'这次食材内容超过可保存范围，请减少来源后重试。原清单和选择仍保留。':e instanceof Error?e.message:'食材来源暂时无法整理，请重试。');}finally{if(serial===calculation.current)setCalculating(false);}}
+
   async function save(){if(preview&&await mutation.run({type:'saveShoppingList',list:preview,expectedObjectRevision:null},'采购清单已保存'))onDone();}
   const diff=previous&&preview?diffShopping(previous,preview):null;
   return <div className="card"><h3>{previous?'重新生成采购清单':'新建采购清单'}</h3>{missing&&<p>有来源已删除或不可用，请重新选择来源；旧版快照仍保留。</p>}

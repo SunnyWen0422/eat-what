@@ -47,7 +47,7 @@ public interface FavoriteDishMapper {
      * MyBatis配置了map-underscore-to-camel-case=true，会自动转换下划线到驼峰
      */
     @Select("SELECT " +
-            "f.id, f.name, f.type, " +
+            "f.id, f.RECIPE_JSON AS recipeJson, f.name, f.type, " +
             "f.cl, f.fl, f.step, " +
             "f.tags, f.image, f.difficulty, " +
             "f.cook_time as cookTime, " +
@@ -61,6 +61,7 @@ public interface FavoriteDishMapper {
             "ORDER BY fd.CREATE_TIME DESC")
     @Results({
         @Result(property = "dish.id", column = "id"),
+        @Result(property = "dish.recipeJson", column = "recipeJson"),
         @Result(property = "dish.name", column = "name"),
         @Result(property = "dish.type", column = "type"),
         @Result(property = "dish.cl", column = "cl"),

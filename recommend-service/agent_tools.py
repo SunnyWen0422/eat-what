@@ -7,8 +7,6 @@ context is supplied by the trusted application layer.
 from __future__ import annotations
 
 import copy
-import re
-from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_HALF_UP
 from typing import Any, Dict, Iterable, List, Optional
 
 import rag
@@ -58,8 +56,9 @@ _CATALOG: List[Dict[str, Any]] = [
      "input_schema": _schema([], {})},
     {"name": "check_plan_constraints", "description": "校验方案中的硬约束和整餐搭配", "mutates": False, "requires_confirmation": False,
      "input_schema": _schema(["plan"], {"plan": {"type": "object"}, "excluded_ingredients": {"type": "array", "items": {"type": "string"}}})},
-    {"name": "scale_recipe_ingredients", "description": "按服务端 Decimal 规则换算目标人数食材用量", "mutates": False, "requires_confirmation": False,
-     "input_schema": _schema(["dish", "target_people"], {"dish": {"type": "object"}, "target_people": {"type": "number", "minimum": 1, "maximum": 50}})},
+    {"name": "scale_recipe_ingredients", "description": "读取固定配方和整道菜营养；target_people 仅用于均分营养参考，不改变食材或采购量。省略人数时不提供人均值；可选食材改变时由服务端重新计算。", "mutates": False, "requires_confirmation": False,
+     "input_schema": _schema(["dish"], {"dish": {"type": "object"}, "target_people": {"type": "number", "minimum": 1, "maximum": 50},
+                                       "optional_overrides": {"type": "object", "additionalProperties": {"type": "boolean"}}})},
     {"name": "compose_meal_plan", "description": "将工具查到的菜品组合为当前任务方案", "mutates": False, "requires_confirmation": False,
      "input_schema": _schema(["dishes", "dates", "meal_types", "people"], {"dishes": {"type": "array"}, "dates": {"type": "array"}, "meal_types": {"type": "array"}, "people": {"type": "integer", "minimum": 1, "maximum": 50}})},
     {"name": "replace_plan_dish", "description": "只替换当前任务方案中的指定菜品", "mutates": False, "requires_confirmation": False,
@@ -102,6 +101,7 @@ def v4_model_catalog() -> Dict[str, Any]:
         "exclude_tag_codes": string_list,
         "excluded_ingredients": string_list,
         "max_cook_minutes": {"type": "integer", "minimum": 1, "maximum": 240},
+        "meal_codes": string_list, "dietary_codes": string_list, "excluded_allergen_codes": string_list,
     })
     tools = [copy.deepcopy(item) for item in _CATALOG if item["name"] in {
         "search_dishes", "search_by_ingredients", "get_dish_details", "get_dish_methods"}]
@@ -123,74 +123,22 @@ def _dish_index() -> Dict[str, Dict[str, Any]]:
     return {str(item.get("id")): dict(item) for item in getattr(rag, "_dish_meta", []) if item.get("id") is not None}
 
 
-def _parse_quantity(value: str) -> Optional[tuple]:
-    text = str(value or "").strip()
-    match = re.search(r"(?P<number>\d+(?:\.\d+)?)(?:\s*)(?P<unit>克|千克|g|kg|毫升|ml|mL|升|个|只|根|块|片|条|把|勺|汤匙|茶匙)", text, re.I)
-    if not match:
-        return None
+def _scale(dish: Dict[str, Any], target_people: Any, user_scope: str = "", optional_overrides=None) -> Dict[str, Any]:
+    from catalog_service import scale_recipe
+    user_id = None
+    if user_scope.startswith("user:"):
+        try:
+            user_id = int(user_scope.split(":", 1)[1])
+        except ValueError:
+            raise ToolError("Invalid authenticated user scope") from None
     try:
-        return Decimal(match.group("number")), match.group("unit")
-    except InvalidOperation:
-        return None
-
-
-def _parse_ingredients(raw: Any) -> List[Dict[str, Any]]:
-    text = str(raw or "")
-    result: List[Dict[str, Any]] = []
-    for line in re.split(r"[#\n]+", text):
-        line = line.strip()
-        if not line:
-            continue
-        if "：" in line:
-            name, quantity = line.split("：", 1)
-        elif ":" in line:
-            name, quantity = line.split(":", 1)
-        else:
-            name, quantity = line, ""
-        parsed = _parse_quantity(quantity)
-        if parsed:
-            value, unit = parsed
-            result.append({"name": name.strip(), "source_quantity": quantity.strip(), "value": value, "unit": unit, "status": "calculated"})
-        else:
-            result.append({"name": name.strip(), "source_quantity": quantity.strip() or line, "status": "needs_adjustment"})
-    return result
-
-
-def _json_quantity(value: Decimal) -> str:
-    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP).normalize().to_eng_string()
-
-
-def _scale(dish: Dict[str, Any], target_people: Any) -> Dict[str, Any]:
-    try:
-        target = Decimal(str(target_people))
-    except (InvalidOperation, TypeError):
-        raise ToolError("target_people must be numeric")
-    if target < 1 or target > 50:
-        raise ToolError("target_people must be between 1 and 50")
-    fl = str(dish.get("fl") or dish.get("servings") or "")
-    base_match = re.search(r"(\d+(?:\.\d+)?)", fl)
-    base = Decimal(base_match.group(1)) if base_match else Decimal("2")
-    raw = dish.get("ingredientsAmounts") or dish.get("ingredients_amounts") or dish.get("cl") or dish.get("ingredients")
-    if isinstance(raw, list):
-        raw = "#".join(f"{item.get('name', '')}：{item.get('quantity', '')}" if isinstance(item, dict) else str(item) for item in raw)
-    ingredients = []
-    for item in _parse_ingredients(raw):
-        item["source_base_people"] = _json_quantity(base)
-        if item["status"] != "calculated":
-            continue
-        scaled = item["value"] * target / base
-        if item["unit"] in {"个", "只", "根", "块", "片", "条", "把"}:
-            scaled = scaled.quantize(Decimal("1"), rounding=ROUND_CEILING)
-        item["quantity"] = _json_quantity(scaled)
-        item.pop("value", None)
-        item["status"] = "calculated"
-        ingredients.append(item)
-    for item in _parse_ingredients(raw):
-        if item["status"] != "calculated":
-            item["source_base_people"] = _json_quantity(base)
-            ingredients.append(item)
-    target_value = int(target) if target == target.to_integral_value() else float(target)
-    return {"dish_id": dish.get("id"), "dish_name": dish.get("name", ""), "source_people": _json_quantity(base), "target_people": target_value, "ingredients": ingredients, "source": "database", "rounding": "half_up; count units ceiling"}
+        result = scale_recipe(dish.get("id"), target_people, user_id, optional_overrides=optional_overrides)
+    except (ValueError, RuntimeError) as error:
+        raise ToolError(str(error)) from error
+    if dish.get("catalogRevision") and dish["catalogRevision"] != result["catalogRevision"]:
+        raise ToolError("Catalog release changed; reload recipe before calculating")
+    return {**result, "dish_id": result["recipeId"], "target_people": result["diners"],
+            "source_people": result["baseServings"], "source": "canonical_catalog"}
 
 
 def _search(args: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -213,7 +161,7 @@ def execute_tool(name: str, arguments: Optional[Dict[str, Any]] = None, user_sco
         ids = arguments.get("dish_ids") if name == "get_dish_details" else [arguments.get("dish_id")]
         dishes = [index[str(value)] for value in ids or [] if str(value) in index]
         if name == "get_dish_methods":
-            return [{"id": dish.get("id"), "name": dish.get("name"), "steps": dish.get("step") or dish.get("steps") or dish.get("methods") or "", "source": "database"} for dish in dishes]
+            return [{"id": dish.get("id"), "name": dish.get("name"), "steps": dish["recipe"]["steps"], "catalogRevision": dish["catalogRevision"], "source": "canonical_catalog"} for dish in dishes]
         return dishes
     if name == "get_user_context":
         if not str(user_scope).startswith("user:"):
@@ -248,12 +196,12 @@ def execute_tool(name: str, arguments: Optional[Dict[str, Any]] = None, user_sco
                     violations.append({"dish_id": dish.get("id", dish.get("dish_id")), "reason": "excluded_ingredient"})
         return {"valid": not violations, "violations": violations}
     if name == "scale_recipe_ingredients":
-        return _scale(arguments.get("dish") or {}, arguments.get("target_people"))
+        return _scale(arguments.get("dish") or {}, arguments.get("target_people"), user_scope, arguments.get("optional_overrides"))
     if name == "compose_meal_plan":
         dishes = [dict(item) for item in arguments.get("dishes") or [] if item.get("id") is not None]
         dates = [str(item) for item in arguments.get("dates") or []]
         meals = [str(item) for item in arguments.get("meal_types") or ["dinner"]]
-        return {"period": {"dates": dates, "meal_types": meals, "people": int(arguments.get("people") or 2)}, "meals": [{"date": current, "meal_type": meal, "dishes": copy.deepcopy(dishes)} for current in dates for meal in meals], "source": "database"}
+        return {"period": {"dates": dates, "meal_types": meals, "people": int(arguments["people"])}, "meals": [{"date": current, "meal_type": meal, "dishes": copy.deepcopy(dishes)} for current in dates for meal in meals], "source": "database"}
     if name == "replace_plan_dish":
         plan = copy.deepcopy(arguments.get("plan") or {})
         target = str(arguments.get("target_dish_id"))
@@ -273,7 +221,7 @@ def execute_tool(name: str, arguments: Optional[Dict[str, Any]] = None, user_sco
         groups = []
         for meal in plan.get("meals") or []:
             for dish in meal.get("dishes") or []:
-                scaled = _scale(dish, dish.get("target_people") or (plan.get("period") or {}).get("people") or 2)
+                scaled = _scale(dish, dish.get("target_people") or (plan.get("period") or {}).get("people"), user_scope)
                 groups.append({"selection_key": f"assistant-{meal.get('date')}-{meal.get('meal_type')}-{dish.get('id')}", "dish_id": dish.get("id"), "dish_name": dish.get("name"), "date": meal.get("date"), "meal_type": meal.get("meal_type"), "target_people": scaled["target_people"], "items": scaled["ingredients"]})
         return {"action_type": "ADD_SHOPPING_LIST", "requires_confirmation": True, "dishes": groups, "plan": plan}
     raise ToolError(f"tool is not implemented: {name}")

@@ -59,7 +59,8 @@ export function isQuantity(value: unknown): value is Quantity {
     : value.kind === 'range' && exactKeys(value, ['kind', 'min', 'max', 'unit']) && positiveQuantity(value.min) && positiveQuantity(value.max) && value.min <= value.max;
 }
 export function isIngredient(value: unknown): value is Ingredient {
-  return exactKeys(value, ['ingredientId', 'form', 'part', 'raw', 'quantity', 'trust', 'compoundResolved'])
+  return exactKeys(value, ['ingredientId', 'form', 'part', 'raw', 'quantity', 'trust', 'compoundResolved',...(isObject(value)&&Object.hasOwn(value,'quantityDisplay')?['quantityDisplay']:[])])
+    && (!Object.hasOwn(value,'quantityDisplay') || value.quantityDisplay === '适量' && value.quantity === null)
     && (value.ingredientId === null || isText(value.ingredientId)) && isText(value.form, false) && (value.part === null || isText(value.part))
     && isText(value.raw) && (value.quantity === null || isQuantity(value.quantity)) && ['reviewed', 'unknown'].includes(value.trust as string)
     && typeof value.compoundResolved === 'boolean';
@@ -70,8 +71,8 @@ export function isHttpsSource(value:unknown):boolean {
   try{const url=new URL(value);return url.protocol==='https:'&&url.hostname.length>0&&!url.username&&!url.password;}catch{return false;}
 }
 export function isRecipeSnapshot(value: unknown, extraKeys: readonly string[] = []): value is RecipeSnapshot {
-  if (!exactKeys(value, [...snapshotKeys, ...extraKeys, ...(isObject(value) && Object.hasOwn(value, 'contentVersion') ? ['contentVersion'] : [])])) return false;
-  return isText(value.recipeId) && isText(value.familyId) && (value.variantId === null || isText(value.variantId)) && isText(value.name)
+  if (!exactKeys(value, [...snapshotKeys, ...extraKeys, ...(isObject(value) ? ['contentVersion','canonical','canonicalScale'].filter(key=>Object.hasOwn(value,key)) : [])])) return false;
+  return (!value.canonical || isObject(value.canonical) && integer(value.canonical.recipeId,1) && isText(value.canonical.revision) && (value.canonical.dietaryCodes===null||Array.isArray(value.canonical.dietaryCodes)) && (value.canonical.allergenCodes===null||Array.isArray(value.canonical.allergenCodes))) && (!value.canonicalScale || isObject(value.canonicalScale) && Array.isArray(value.canonicalScale.ingredients) && (value.canonicalScale.servings===null||integer(value.canonicalScale.servings,1,50))) && isText(value.recipeId) && isText(value.familyId) && (value.variantId === null || isText(value.variantId)) && isText(value.name)
     && Array.isArray(value.types) && value.types.every((t) => TYPE_VALUES.includes(t)) && new Set(value.types).size === value.types.length
     && Array.isArray(value.ingredients) && value.ingredients.every(isIngredient) && Array.isArray(value.steps) && value.steps.every((s) => isText(s))
     && exactKeys(value.source, ['url', 'commit', 'license']) && (value.source.url === null || isHttpsSource(value.source.url)) && (value.source.commit === null || isText(value.source.commit)) && (value.source.license === null || isText(value.source.license))

@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -23,7 +24,7 @@ function load(route, api = {}, extras = {}) {
     navigateTo: value => navigation.push(value), switchTab() {}, redirectTo() {}, ...extras.wx,
   }
   const modules = {
-    '../../utils/api': api, '../../utils/font-scale': () => 1,
+    '../../utils/api': canonicalApi(api), '../../utils/font-scale': () => 1,
     '../../utils/util': { getUserStorageKey: key => `${account.id || 'guest'}:${key}` },
     '../../utils/config': { ENABLE_MEAL_WORKSPACE: false }, '../../utils/meal-workflow': flow,
     '../../utils/recommendation-options': { loadRecommendationOptions: async () => ({ options: { groups: {} } }) },
@@ -44,7 +45,7 @@ function load(route, api = {}, extras = {}) {
     const module = { exports: {} }
     vm.runInNewContext(fs.readFileSync(file, 'utf8'), { ...sandbox, module, exports: module.exports, require: name => {
       const resolved = path.resolve(path.dirname(file), name + '.js')
-      if (path.basename(resolved) === 'api.js') return api
+      if (path.basename(resolved) === 'api.js') return canonicalApi(api)
       if (path.basename(resolved) === 'util.js') return modules['../../utils/util']
       if (path.basename(resolved) === 'meal-workflow.js') return flow
       return moduleFrom(resolved)
@@ -362,7 +363,7 @@ test('F07 calendar recipe navigation passes plan and actual people to the real d
     let preview
     const detail = load('pages/dish-detail/dish-detail', { getDishById: async () => ({ id: 42, name: '菜' }), checkFavoriteDish: async () => ({}), createShoppingPreview: async value => { preview = value; return { dishes: [] } } }).page
     detail.onLoad(query); await new Promise(resolve => setImmediate(resolve))
-    assert.equal(preview.targetPeople, fixture.want)
+    assert.equal(detail.data.targetPeople,fixture.want);assert.equal(preview,undefined);assert.equal(detail.data.ingredientNotice,'整道菜用量')
   }
   assert.equal(links.length, 1, 'one shared recipe component follows the authoritative visible source')
   assert.ok(links[0].includes('data-meal="{{item.mealType}}"'))
@@ -372,5 +373,5 @@ test('F07 generic browse retains the explicit two-person preview default', async
   let preview
   const { page } = load('pages/dish-detail/dish-detail', { getDishById: async () => ({ id: 42, name: '菜' }), checkFavoriteDish: async () => ({}), createShoppingPreview: async body => { preview = body; return { dishes: [] } } })
   page.onLoad({ id: 42 }); await new Promise(resolve => setImmediate(resolve))
-  assert.equal(preview.targetPeople, 2)
+  assert.equal(page.data.targetPeople,2);assert.equal(preview,undefined)
 })

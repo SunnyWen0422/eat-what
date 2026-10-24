@@ -64,14 +64,6 @@ public class IngredientParserService {
         return results;
     }
 
-    public BigDecimal scale(BigDecimal source, BigDecimal basePeople, BigDecimal targetPeople) {
-        if (source == null || basePeople == null || targetPeople == null || basePeople.signum() <= 0) {
-            throw new IllegalArgumentException("人数或数量无效");
-        }
-        BigDecimal scaled = source.multiply(targetPeople).divide(basePeople, 4, RoundingMode.HALF_UP);
-        return new BigDecimal(scaled.stripTrailingZeros().toPlainString());
-    }
-
     public String explainAllowance(String allowanceText) {
         return containsAllowance(allowanceText) ? "SOURCE_ALLOWANCE_INCLUDED" : "NO_SOURCE_ALLOWANCE";
     }

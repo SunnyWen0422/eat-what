@@ -28,7 +28,7 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
  public ShoppingAssistantToolAdapter(ShoppingProcurementScopeService scopes,ShoppingPreviewService previews,ShoppingListService lists,
    ControlledToolHarnessService harness,AssistantV4Store store,AssistantCapabilityService capabilities,ObjectProvider<AssistantV4TurnService> runner,TransactionTemplate tx,ObjectMapper json){
   this.capabilities=capabilities;this.scopes=scopes;this.previews=previews;this.lists=lists;this.harness=harness;this.store=store;this.runner=runner;this.tx=tx;
-  this.json=json.copy().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,true).configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,true);
+  this.json=json.copy().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,true).configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS,true).configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,true);
   harness.registerExtension(this);capabilities.registerPreview("shopping_preview",this);
  }
  public boolean enabled(){return capabilities.capabilities().isEnabled();}
@@ -61,11 +61,11 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
   List<String> selected=strings(args.get("selectedSourceKeys"),1000,200),excluded=strings(args.get("excludedOwnedIngredients"),100,100);
   Set<String> allKeys=new HashSet<>(),allNames=new HashSet<>();List<Map<String,Object>> rows=new ArrayList<>();List<ShoppingDishRequest> groups=new ArrayList<>();
   for(int occurrence=0;occurrence<source.getDishes().size();occurrence++){
-   Long dishId=source.getDishes().get(occurrence).getId();ShoppingPreviewRequest request=new ShoppingPreviewRequest();request.setDishIds(Collections.singletonList(dishId));request.setTargetPeople(BigDecimal.valueOf(source.getPeople()));
+   Long dishId=source.getDishes().get(occurrence).getId();ShoppingPreviewRequest request=new ShoppingPreviewRequest();request.setDishIds(Collections.singletonList(dishId));request.setTargetPeople(source.getPeople()==null?null:BigDecimal.valueOf(source.getPeople()));
    ShoppingPreviewResponse preview=previews.createPreview(user,request);
    if(preview.getDishes().size()!=1||!dishId.equals(preview.getDishes().get(0).getDishId()))throw new MealConsumptionService.VersionConflict("菜谱食材来源已变化");
    String selection="meal-"+scope+"-"+occurrence;
-   ShoppingDishRequest group=new ShoppingDishRequest();group.setSelectionKey(selection);group.setSourceDate(source.getDate());group.setSourceMealType(source.getMealType());group.setTargetPeople(BigDecimal.valueOf(source.getPeople()));
+   ShoppingDishRequest group=new ShoppingDishRequest();group.setSelectionKey(selection);group.setSourceDate(source.getDate());group.setSourceMealType(source.getMealType());group.setTargetPeople(source.getPeople()==null?null:BigDecimal.valueOf(source.getPeople()));
    for(ShoppingPreviewItemDTO fact:preview.getDishes().get(0).getItems()){
     String key=selection+"-"+fact.getSourceLineNo();allKeys.add(key);allNames.add(fact.getCanonicalName());allNames.add(fact.getDisplayName());
     boolean include=(selected==null||selected.contains(key))&&(excluded==null||(!excluded.contains(fact.getCanonicalName())&&!excluded.contains(fact.getDisplayName())));
@@ -80,7 +80,7 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
   if(selected!=null&&!allKeys.containsAll(selected))throw new IllegalArgumentException("选中的食材不属于本次预览");
   if(excluded!=null&&!allNames.containsAll(excluded))throw new IllegalArgumentException("排除的食材不属于本餐");
   if(groups.isEmpty())throw new IllegalArgumentException("请至少保留一项食材");
-  Map<String,Object> binding=new LinkedHashMap<>(args);binding.put("source",json.convertValue(source,Map.class));binding.put("purchaseScopeId",scope);binding.put("expectedListVersion",list.getVersion());binding.put("groups",json.convertValue(groups,List.class));binding.put("items",rows);return binding;
+  Map<String,Object> binding=new LinkedHashMap<>(args);binding.put("source",json.convertValue(source,Map.class));binding.put("purchaseScopeId",scope);binding.put("expectedListVersion",list.getVersion());binding.put("groups",json.convertValue(groups,List.class));binding.put("items",json.convertValue(rows,List.class));return binding;
  }
  private ShoppingPreviewItemDTO existing(ShoppingListResponse list,String selection,Integer line){for(ShoppingDishDTO group:list.getDishes())if(selection.equals(group.getSelectionKey()))for(ShoppingPreviewItemDTO item:group.getItems())if(Objects.equals(line,item.getSourceLineNo()))return item;return null;}
  public String summary(Map<String,Object> b){Map<String,Object> source=map(b.get("source"));return source.get("date")+" "+label((String)source.get("mealType"))+"，"+source.get("people")+" 人，请核对选中的食材。";}
@@ -93,7 +93,9 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
   return ExperienceMetrics.confirmation(metrics,()->addConfirmed(user,task,step,index),r->((Number)r.get("addedItemCount")).longValue()+((Number)r.get("mergedItemCount")).longValue());
  }
  private Map<String,Object> addConfirmed(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index){
-  scopes.lockForConfirmation(user,json.convertValue(step.binding.get("source"),ResolvedSource.class));
+  ResolvedSource confirmed=json.convertValue(step.binding.get("source"),ResolvedSource.class);
+  confirmed.setDishes(com.eatwhat.util.DishSnapshotReader.convertDishes(json,map(step.binding.get("source")).get("dishes")));
+  scopes.lockForConfirmation(user,confirmed);
   if(!hash(bind(user,step.arguments)).equals(hash(step.binding)))throw new MealConsumptionService.VersionConflict("本餐、菜谱或清单已变化，请重新预览");
   ShoppingBatchAddRequest request=new ShoppingBatchAddRequest();request.setRequestId("harness-"+task.id+"-"+index);request.setPreviewId(task.id);request.setExpectedListVersion(((Number)step.binding.get("expectedListVersion")).longValue());request.setDishes(json.convertValue(step.binding.get("groups"),new TypeReference<List<ShoppingDishRequest>>(){}));request.setTargetPeople(request.getDishes().get(0).getTargetPeople());
   ShoppingSyncResponse receipt;
@@ -125,6 +127,11 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
  private PendingAction pending(ControlledToolTask task,String step){PendingAction p=new PendingAction();p.setTaskId(task.id);p.setStepId(step);p.setPreviewToken(task.previewToken);p.setExpiresAt(task.expiresAt);return p;}
  private List<String> strings(Object value,int max,int length){if(value==null)return null;if(!(value instanceof List)||((List<?>)value).size()>max)throw new IllegalArgumentException("采购选择无效");List<String> result=new ArrayList<>();for(Object item:(List<?>)value){if(!(item instanceof String)||((String)item).isEmpty()||((String)item).length()>length||result.contains(item))throw new IllegalArgumentException("采购选择无效");result.add((String)item);}return result;}
  @SuppressWarnings("unchecked") private Map<String,Object> map(Object value){return (Map<String,Object>)value;}
- private String hash(Object value){try{return WorkflowRequestHash.sha256(json.writeValueAsString(value));}catch(Exception e){throw new IllegalArgumentException("采购预览无效",e);}}
+ private String hash(Object value){try{return WorkflowRequestHash.sha256(json.writeValueAsString(normalizeNumbers(value)));}catch(Exception e){throw new IllegalArgumentException("采购预览无效",e);}}
+ private Object normalizeNumbers(Object value){
+  if(value instanceof Number){BigDecimal n=new BigDecimal(value.toString()).stripTrailingZeros();return n.scale()<0?n.setScale(0):n;}
+  if(value instanceof Map){Map<String,Object> out=new TreeMap<>();for(Map.Entry<?,?> e:((Map<?,?>)value).entrySet())out.put(String.valueOf(e.getKey()),normalizeNumbers(e.getValue()));return out;}
+  if(value instanceof List){List<Object> out=new ArrayList<>();for(Object item:(List<?>)value)out.add(normalizeNumbers(item));return out;}return value;
+ }
  private String label(String meal){return "breakfast".equals(meal)?"早餐":"lunch".equals(meal)?"午餐":"晚餐";}
 }

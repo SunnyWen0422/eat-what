@@ -14,20 +14,22 @@ class PersonalRecipeFoundationTest {
     private final MealConsumptionMapper logs = mock(MealConsumptionMapper.class);
     private final RecipeMapper menus = mock(RecipeMapper.class);
     private final ObjectMapper json = new ObjectMapper();
+    private final CanonicalCatalogService catalog=CanonicalTestCatalog.service();
     private CustomDishService dishService() {
         when(logs.lockUser(7L)).thenReturn(7L); when(logs.request(anyLong(),anyString())).thenReturn(null);
-        return new CustomDishService(mock(DishMapper.class), null, dishes, logs, json);
+        CustomDishService service=CanonicalTestCatalog.wire(new CustomDishService(mock(DishMapper.class),null,dishes,logs,json),catalog);service.setQuality(CanonicalTestCatalog.quality(catalog));return service;
     }
     private PersonalMenuService menuService() { when(logs.lockUser(7L)).thenReturn(7L); when(logs.request(anyLong(),anyString())).thenReturn(null); return new PersonalMenuService(menus, dishes, logs, json); }
-    private Dish dish(long id) { Dish d = new Dish(); d.setId(id); d.setName("鱼"); d.setType("meat"); d.setCl("鱼#盐"); d.setIngredientsAmounts("鱼|1|条"); d.setStep("旧简略"); d.setSteps("洗鱼###蒸熟"); d.setStepImages("[\"https://example.com/step.jpg\"]"); d.setTips("少盐"); d.setFl("2人份"); return d; }
-    private DishWriteRequest write(String id) { DishWriteRequest r = new DishWriteRequest(); r.setRequestId(id); r.setName("我的鱼"); r.setType("meat"); r.setCl("鱼#姜"); r.setStep("蒸熟#装盘"); return r; }
+    private Dish dish(long id) { Dish d=CanonicalTestCatalog.fish(id);d.setTips("少盐");d.setStepImages("[\"https://example.com/step.jpg\"]");catalog.enrich(d);return d; }
+    private DishWriteRequest write(String id) {DishWriteRequest r=new DishWriteRequest();r.setRequestId(id);r.setRecipe(dish(1).getRecipe().deepCopy());((com.fasterxml.jackson.databind.node.ObjectNode)r.getRecipe()).put("name","我的鱼");return r;}
+    private com.fasterxml.jackson.databind.node.ObjectNode recipe(Dish d){return (com.fasterxml.jackson.databind.node.ObjectNode)d.getRecipe();}
     @Test void copyUsesReadableServerSourcePreservesRichFieldsAndNeverChangesSource() {
         Dish source = dish(1); when(dishes.lockReadable(1L,7L)).thenReturn(source);
         doAnswer(call -> { ((Dish)call.getArgument(0)).setId(9L); return 1; }).when(dishes).insert(any(Dish.class));
         DishWriteRequest request = write("copy-one"); request.setExpectedVersion(source.getContentVersion());
         Dish copy = dishService().copyDish(7L,1L,request);
         assertEquals(9L,copy.getId()); assertEquals(7L,copy.getUserId()); assertEquals(source.getSteps(),copy.getSteps()); assertEquals(source.getIngredientsAmounts(),copy.getIngredientsAmounts()); assertEquals(source.getStepImages(),copy.getStepImages()); assertEquals(source.getTips(),copy.getTips()); assertEquals(source.getFl(),copy.getFl()); assertNull(source.getUserId()); assertEquals(1L,source.getId());
-        verify(dishes,never()).update(any());
+        verify(dishes,times(1)).update(any());
     }
     @Test void copyAndEditRejectInvisibleSourceAndStaleContent() {
         CustomDishService service = dishService(); DishWriteRequest request = write("copy-one"); request.setExpectedVersion("old");
@@ -37,13 +39,10 @@ class PersonalRecipeFoundationTest {
         assertThrows(MealConsumptionService.VersionConflict.class,()->service.updatePersonalDish(7L,1L,request)); verify(dishes,never()).update(any());
     }
     @Test void editCanonicalizesBothRecipeRepresentationsAndClearsOldStepImages() {
-        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1); when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
-        DishWriteRequest request=write("edit-one"); request.setExpectedVersion(source.getContentVersion()); request.setSteps("stale rich"); request.setIngredientsAmounts("stale rich");
-        Dish updated=dishService().updatePersonalDish(7L,1L,request);
-        assertEquals("鱼#姜",updated.getIngredientsAmounts()); assertEquals("蒸熟#装盘",updated.getSteps()); assertNull(updated.getStepImages()); assertEquals("少盐",updated.getTips()); assertNotEquals(source.getContentVersion(),updated.getContentVersion());
+        Dish source=dish(1);source.setUserId(7L);when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);DishWriteRequest request=write("edit-one");request.setExpectedVersion(source.getContentVersion());((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe().path("steps").get(0)).put("text","改为煎熟");Dish updated=dishService().updatePersonalDish(7L,1L,request);assertEquals("改为煎熟",updated.getRecipe().path("steps").get(0).path("text").asText());assertTrue(updated.getSteps().startsWith("改为煎熟"));assertEquals("少盐",updated.getTips());assertNotEquals(source.getContentVersion(),updated.getContentVersion());
     }
     @Test void fingerprintsCoverRichContentButIgnoreTransportAndTimestamp() {
-        Dish d=dish(1); String before=d.getContentVersion(); d.setCreateTime(new Date()); assertEquals(before,d.getContentVersion()); d.setSteps("changed"); assertNotEquals(before,d.getContentVersion());
+        Dish d=dish(1); String before=d.getContentVersion(); d.setCreateTime(new Date()); assertEquals(before,d.getContentVersion()); CanonicalTestCatalog.changed(d,r->((com.fasterxml.jackson.databind.node.ObjectNode)r.path("steps").get(0)).put("text","changed")); assertNotEquals(before,d.getContentVersion());
     }
     @Test void writeReceiptReplaysExactResultAndRejectsChangedBody() throws Exception {
         CustomDishService service=dishService(); DishWriteRequest request=write("new-one"); Map<String,Object> receipt=new HashMap<>();
@@ -61,7 +60,7 @@ class PersonalRecipeFoundationTest {
         Map<String,Object> result=service.resolve(7L,3L,request); assertEquals(3L,result.get("menuId")); assertEquals(4,result.get("people")); assertEquals("2026-10-08",result.get("menuDate"));
         request.setExpectedVersion(1L); assertThrows(MealConsumptionService.VersionConflict.class,()->service.resolve(7L,3L,request)); request.setExpectedVersion(2L);
         when(dishes.lockReadable(1L,7L)).thenReturn(null); assertThrows(MealConsumptionService.VersionConflict.class,()->service.resolve(7L,3L,request));
-        d.setSteps("changed"); when(dishes.lockReadable(1L,7L)).thenReturn(d); assertThrows(MealConsumptionService.VersionConflict.class,()->service.resolve(7L,3L,request));
+        CanonicalTestCatalog.changed(d,r->((com.fasterxml.jackson.databind.node.ObjectNode)r.path("steps").get(0)).put("text","changed")); when(dishes.lockReadable(1L,7L)).thenReturn(d); assertThrows(MealConsumptionService.VersionConflict.class,()->service.resolve(7L,3L,request));
     }
     @Test void menuSaveRejectsBadCountsAndSnapshotsPublicAndPrivateDishes() {
         PersonalMenuService service=menuService(); Dish a=dish(1),b=dish(2); b.setUserId(7L); when(dishes.lockReadable(1L,7L)).thenReturn(a); when(dishes.lockReadable(2L,7L)).thenReturn(b);
@@ -104,11 +103,7 @@ class PersonalRecipeFoundationTest {
         assertEquals(401,error.getStatus().value());verify(menus,never()).selectByUserId(any());
     }
     @Test void personalSqlUsesOwnerBoundariesAndAllRichFields() throws Exception {
-        String read=String.join(" ",PersonalDishMapper.class.getMethod("lockReadable",Long.class,Long.class).getAnnotation(org.apache.ibatis.annotations.Select.class).value());
-        assertTrue(read.contains("user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1"));assertTrue(read.contains("OR user_id=#{userId}"));assertTrue(read.endsWith("FOR UPDATE"));
-        for(String field:Arrays.asList("INGREDIENTS_AMOUNTS","STEPS","STEP_IMAGES","TIPS","FL")) assertTrue(read.contains(field));
-        String update=String.join(" ",PersonalDishMapper.class.getMethod("update",Dish.class).getAnnotation(org.apache.ibatis.annotations.Update.class).value());assertTrue(update.contains("user_id=#{userId} AND is_custom=1"));assertTrue(update.contains("INGREDIENTS_AMOUNTS=#{ingredientsAmounts}"));assertTrue(update.contains("STEPS=#{steps}"));
-        String menu=String.join(" ",RecipeMapper.class.getMethod("selectOwned",Long.class,Long.class).getAnnotation(org.apache.ibatis.annotations.Select.class).value());assertTrue(menu.contains("user_id=#{userId} AND is_deleted=0"));
+        String read=String.join(" ",PersonalDishMapper.class.getMethod("lockReadable",Long.class,Long.class).getAnnotation(org.apache.ibatis.annotations.Select.class).value());assertTrue(read.contains("owner_id IS NULL"));assertTrue(read.contains("OR owner_id=#{userId}"));assertTrue(read.endsWith("FOR UPDATE"));assertTrue(read.contains("document AS recipeJson"));String update=String.join(" ",PersonalDishMapper.class.getMethod("update",Dish.class).getAnnotation(org.apache.ibatis.annotations.Update.class).value());assertTrue(update.contains("owner_id=#{userId}"));assertTrue(update.contains("document=#{recipeJson}"));String menu=String.join(" ",RecipeMapper.class.getMethod("selectOwned",Long.class,Long.class).getAnnotation(org.apache.ibatis.annotations.Select.class).value());assertTrue(menu.contains("user_id=#{userId} AND is_deleted=0"));
     }
 
     @Test void nameOnlyEditPreservesRichRecipeAndStepImages() {
@@ -120,21 +115,11 @@ class PersonalRecipeFoundationTest {
         assertEquals(source.getStep(),updated.getStep());assertEquals(source.getSteps(),updated.getSteps());assertEquals(source.getStepImages(),updated.getStepImages());
     }
     @Test void timeOnlyEditPreservesJsonRichRecipeAndImages() {
-        CustomDishService service=dishService();Dish source=dish(1);source.setUserId(7L);source.setCookMinutes(20);
-        source.setIngredientsAmounts("[\"鱼 1 条\",\"姜 2 片\"]");source.setSteps("[\"洗鱼\",\"蒸熟\"]");
-        when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);
-        DishWriteRequest request=write("time-one");request.setName(source.getName());request.setExpectedVersion(source.getContentVersion());request.setCl("鱼 1 条#姜 2 片");request.setStep("洗鱼#蒸熟");request.setCookMinutes(30);
-        Dish updated=service.updatePersonalDish(7L,1L,request);
-        assertEquals(30,updated.getCookMinutes());assertEquals(source.getCl(),updated.getCl());assertEquals(source.getIngredientsAmounts(),updated.getIngredientsAmounts());
-        assertEquals(source.getStep(),updated.getStep());assertEquals(source.getSteps(),updated.getSteps());assertEquals(source.getStepImages(),updated.getStepImages());
+        CustomDishService service=dishService();Dish source=dish(1);source.setUserId(7L);when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);DishWriteRequest request=write("time-one");request.setRecipe(source.getRecipe().deepCopy());request.setExpectedVersion(source.getContentVersion());((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe().path("timing")).put("totalMinutes",30);Dish updated=service.updatePersonalDish(7L,1L,request);assertEquals(30,updated.getCookMinutes());assertEquals(source.getIngredientsAmounts(),updated.getIngredientsAmounts());assertEquals(source.getSteps(),updated.getSteps());assertEquals(source.getStepImages(),updated.getStepImages());
     }
 
     @Test void editedCookMinutesSynchronizesAndExplicitClearRemovesLegacyTime() {
-        CustomDishService service=dishService();Dish source=dish(1);source.setUserId(7L);source.setCookMinutes(45);source.setCookTime("45分钟");
-        when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);
-        DishWriteRequest request=write("time-sync");request.setName(source.getName());request.setExpectedVersion(source.getContentVersion());request.setCl(source.getIngredientsAmounts());request.setStep("洗鱼#蒸熟");request.setCookMinutes(10);
-        assertEquals("10分钟",service.updatePersonalDish(7L,1L,request).getCookTime());
-        request.setRequestId("time-clear");request.setCookMinutes(null);assertNull(service.updatePersonalDish(7L,1L,request).getCookTime());
+        CustomDishService service=dishService();Dish source=dish(1);source.setUserId(7L);when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);DishWriteRequest request=write("time-sync");request.setExpectedVersion(source.getContentVersion());((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe().path("timing")).put("totalMinutes",10);assertEquals("10分钟",service.updatePersonalDish(7L,1L,request).getCookTime());request.setRequestId("time-clear");((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe().path("timing")).putNull("totalMinutes");assertNull(service.updatePersonalDish(7L,1L,request).getCookTime());
     }
     @Test void menuDraftRestoresSavedOrderWhenExistingLocksReorderTheSameDishes() {
         PersonalMenuService service=menuService();Dish first=dish(1),second=dish(2);CustomRecipe menu=menu(first);menu.setDishIds(Arrays.asList(1L,2L));menu.setDishes(Arrays.asList(first,second));
@@ -145,49 +130,20 @@ class PersonalRecipeFoundationTest {
     }
 
     @Test void optionalEditsClearOnlyWhenExplicitAndLegacyRequestsPreserveFields() throws Exception {
-        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1);
-        source.setImage("https://example.com/fish.jpg");
-        when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
-        DishWriteRequest legacy=write("legacy-optional"); legacy.setExpectedVersion(source.getContentVersion());
-        Dish unchanged=dishService().updatePersonalDish(7L,1L,legacy);
-        assertEquals(source.getFl(),unchanged.getFl()); assertEquals(source.getImage(),unchanged.getImage());
-        DishWriteRequest explicit=write("clear-optional"); explicit.setExpectedVersion(source.getContentVersion());
-        // Ignore unknown fields only in this RED fixture so pre-feature code reaches behavioral assertions.
-        json.readerForUpdating(explicit).without(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .readValue("{\"editServingDescription\":true,\"editImage\":true,\"fl\":null,\"image\":null}");
-        Dish cleared=dishService().updatePersonalDish(7L,1L,explicit);
-        assertNull(cleared.getFl()); assertNull(cleared.getImage());
-        assertEquals("2人份",source.getFl()); assertEquals("https://example.com/fish.jpg",source.getImage());
+        Dish source=dish(1);source.setUserId(7L);CanonicalTestCatalog.changed(source,r->r.put("imageUrl","https://example.com/fish.jpg"));catalog.enrich(source);when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);DishWriteRequest keep=write("keep-image");keep.setRecipe(source.getRecipe().deepCopy());keep.setExpectedVersion(source.getContentVersion());assertEquals(source.getImage(),dishService().updatePersonalDish(7L,1L,keep).getImage());DishWriteRequest clear=write("clear-image");clear.setExpectedVersion(source.getContentVersion());recipe(clear).putNull("imageUrl");Dish result=dishService().updatePersonalDish(7L,1L,clear);assertNull(result.getImage());assertEquals("https://example.com/fish.jpg",source.getImage());
     }
 
     @Test void absentOptionalFlagsDoNotChangeLegacyReceiptEncoding() throws Exception {
         DishWriteRequest request=write("existing-pending");
         String encoded=json.writeValueAsString(request);
-        assertFalse(encoded.contains("editServingDescription")); assertFalse(encoded.contains("editImage"));
+        assertFalse(encoded.contains("editServingDescription")); assertFalse(encoded.contains("editImage"));assertFalse(encoded.contains("\"quantityPolicy\":null"));
     }
 
     @Test void optionalServingEditRevokesVerifiedCopyEvidenceAndKeepsOriginalQuality() {
-        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1);
-        CatalogQuality quality=new CatalogQuality(); quality.setReviewStatus("VERIFIED"); quality.setServingsStatus("VERIFIED"); quality.setBasePeople(new java.math.BigDecimal("2"));
-        quality.setSourceKind("CURATED"); quality.setSourceRef("original-reference"); source.setQuality(quality);
-        when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
-        CustomDishService service=dishService(); service.setQuality(new DishQualityService(mock(DishQualityMapper.class),json));
-        DishWriteRequest request=write("serving-edit"); request.setExpectedVersion(source.getContentVersion());
-        request.setCl(source.getIngredientsAmounts()); request.setStep(source.getSteps()); request.setEditServingDescription(true); request.setFl("我的4人份说明");
-        Dish changed=service.updatePersonalDish(7L,1L,request);
-        assertEquals("UNREVIEWED",changed.getQuality().getReviewStatus()); assertEquals("UNKNOWN",changed.getQuality().getServingsStatus()); assertNull(changed.getQuality().getBasePeople());
-        assertEquals("original-reference",changed.getQuality().getSourceRef()); assertEquals("VERIFIED",source.getQuality().getReviewStatus());
-        assertEquals(source.getIngredientsAmounts(),changed.getIngredientsAmounts()); assertEquals(source.getSteps(),changed.getSteps()); assertEquals(source.getStepImages(),changed.getStepImages());
+        Dish source=dish(1);source.setUserId(7L);when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);DishWriteRequest request=write("serving-edit");request.setExpectedVersion(source.getContentVersion());recipe(request).putNull("baseServings");recipe(request).put("servingBasis","recipe_batch");Dish changed=dishService().updatePersonalDish(7L,1L,request);assertNull(changed.getFl());assertNull(changed.getQuality());assertTrue(changed.getScaledRecipe().path("nutrition").path("perServing").isNull());assertEquals(2,source.getRecipe().path("baseServings").asInt());assertEquals(changed.getScaledRecipe().path("ingredients"),catalog.scale(changed,java.math.BigDecimal.ONE).path("ingredients"));
     }
     @Test void explicitOptionalUpdateSupportsReplacementAndRejectsUnsafeImageScheme() {
-        Dish source=dish(1); source.setUserId(7L); source.setIsCustom(1);
-        when(dishes.lockReadable(1L,7L)).thenReturn(source); when(dishes.update(any())).thenReturn(1);
-        DishWriteRequest request=write("replace-optionals"); request.setExpectedVersion(source.getContentVersion());
-        request.setEditServingDescription(true); request.setFl("原配方4人份"); request.setEditImage(true); request.setImage("https://example.com/new.jpg");
-        Dish changed=dishService().updatePersonalDish(7L,1L,request);
-        assertEquals("原配方4人份",changed.getFl()); assertEquals("https://example.com/new.jpg",changed.getImage());
-        request.setRequestId("unsafe-image"); request.setImage("javascript:alert(1)");
-        assertThrows(IllegalArgumentException.class,()->dishService().updatePersonalDish(7L,1L,request));
+        Dish source=dish(1);source.setUserId(7L);when(dishes.lockReadable(1L,7L)).thenReturn(source);when(dishes.update(any())).thenReturn(1);DishWriteRequest request=write("replace-optionals");request.setExpectedVersion(source.getContentVersion());recipe(request).put("baseServings",4);recipe(request).put("imageUrl","https://example.com/new.jpg");Dish changed=dishService().updatePersonalDish(7L,1L,request);assertEquals("4",changed.getFl());assertEquals("https://example.com/new.jpg",changed.getImage());request.setRequestId("unsafe-image");recipe(request).put("imageUrl","javascript:alert(1)");assertThrows(IllegalArgumentException.class,()->dishService().updatePersonalDish(7L,1L,request));
     }
 
 }

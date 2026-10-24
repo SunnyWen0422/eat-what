@@ -1,3 +1,4 @@
+import type { CanonicalRecipe, CanonicalFacts, CanonicalScale } from '../catalog/canonical.ts';
 export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export type DishType = 'meat' | 'vegetable' | 'staple' | 'soup' | 'breakfastSnack';
 export type LocalDate = string & { readonly __localDate: unique symbol };
@@ -8,9 +9,11 @@ export type Result<T> = { ok: true; value: T } | { ok: false; error: { code: Err
 export type Quantity = { kind: 'exact'; value: number; unit: string } | { kind: 'range'; min: number; max: number; unit: string };
 export interface Ingredient {
   ingredientId: string | null; form: string; part: string | null; raw: string;
+  quantityDisplay?: string;
   quantity: Quantity | null; trust: 'reviewed' | 'unknown'; compoundResolved: boolean;
 }
 export interface RecipeSnapshot {
+  canonical?: CanonicalFacts; canonicalScale?: CanonicalScale;
   recipeId: string; familyId: string; variantId: string | null; name: string;
   types: DishType[]; ingredients: Ingredient[]; steps: string[];
   source: { url: string | null; commit: string | null; license: string | null };
@@ -19,10 +22,10 @@ export interface RecipeSnapshot {
 export type PublicReviewStatus = 'VERIFIED' | 'UNREVIEWED' | 'UNKNOWN' | 'BROWSE_ONLY' | 'REJECTED';
 export type QualityStatus = 'VERIFIED' | 'UNKNOWN';
 export interface CatalogRecipe extends RecipeSnapshot {
-  meals: Meal[]; reviewStatus: PublicReviewStatus; generationEligible: boolean;
-  reviewedAt: LocalDate | null; issues: string[];
-  stepStatus: QualityStatus; servingsStatus: QualityStatus;
-  familyIdentity: 'database-id-fallback'; mealEligibility: 'local-convention';
+  meals: Meal[]; reviewStatus?: PublicReviewStatus; generationEligible: boolean;
+  reviewedAt?: LocalDate | null; issues: string[];
+  stepStatus?: QualityStatus; servingsStatus?: QualityStatus;
+  familyIdentity: 'canonical' | 'database-id-fallback'; mealEligibility: 'canonical' | 'local-convention';
 }
 export interface Slot { id: string; type: DishType }
 export interface MealDraft {
@@ -46,7 +49,7 @@ export interface PersonalData {
 }
 export interface GenerationAvailability { familyCount: number; enabled: boolean }
 export interface Catalog {
-  origin: 'online-provider'; version: null; recipes: CatalogRecipe[]; aliases: Record<string, string>;
+  origin: 'online-provider'; version: string | null; recipes: CatalogRecipe[]; aliases: Record<string, string>;
   recipeAliases: Record<string, string>;
   availability: Record<Meal, Record<DishType, GenerationAvailability>>;
 }
@@ -64,6 +67,7 @@ export interface PublicDishQuality {
 }
 /** Minimal whitelist. Actual database text fields remain text, not executable media. */
 export interface PublicDish {
+  recipe?:CanonicalRecipe;catalogRevision?:string;scaledRecipe?:CanonicalScale;
   image?: string;
   id: number; name: string; type: string | null;
   cl: string | null; fl: string | null; step: string | null; steps: string | null;

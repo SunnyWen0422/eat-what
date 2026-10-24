@@ -14,9 +14,8 @@ export function scaleIngredient(ingredient:Ingredient,baseServings:number|null,t
   const cloned=structuredClone(ingredient);
   const result:ScaledIngredient={ingredient:cloned,originalQuantity:structuredClone(ingredient.quantity),quantity:structuredClone(ingredient.quantity),baseServings,factor:null,reason:null};
   if(ingredient.quantity===null)result.reason='结构用量未知，需自行确认';
-  else if(ingredient.trust!=='reviewed')result.reason='用量未经审核，保留原量供确认';
-  else if(baseServings===null)result.reason='基准人数未知，未换算';
-  else {result.factor=targetServings/baseServings;result.quantity=mapQuantity(ingredient.quantity,result.factor);}
+  else if(ingredient.trust!=='reviewed')result.reason='保留原配方用量，来源未经审核';
+  else {result.factor=1;result.reason='整道菜固定用量';}
   return result;
 }
 /** Display only: exact stored arithmetic is never rounded or written back. */

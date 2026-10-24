@@ -15,6 +15,8 @@ public class RecommendationOptionsDTO {
     private boolean learningResetEnabled = true;
     private List<Option> homeQuickOptions = new ArrayList<>();
     private Map<String, List<Option>> groups = new LinkedHashMap<>();
+    // Hard constraints are separate from the meal's taste preference groups.
+    private List<Option> constraintOptions = new ArrayList<>();
 
     @Data
     public static class Option {

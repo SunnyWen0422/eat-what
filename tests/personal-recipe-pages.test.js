@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -24,7 +25,7 @@ function load(route, api = {}, extras = {}) {
     navigateTo: value => navigation.push(value), switchTab() {}, redirectTo() {}, ...extras.wx,
   }
   const modules = {
-    '../../utils/api': api, '../../utils/font-scale': () => 1,
+    '../../utils/api': canonicalApi(api), '../../utils/font-scale': () => 1,
     '../../utils/util': { getUserStorageKey: key => `${account.id || 'guest'}${account.api || ''}:${key}` },
     '../../utils/config': { ENABLE_MEAL_WORKSPACE: false }, '../../utils/meal-workflow': flow,
     '../../utils/recommendation-options': { loadRecommendationOptions: async () => ({ options: { groups: {} } }) },
@@ -45,7 +46,7 @@ function load(route, api = {}, extras = {}) {
     const module = { exports: {} }
     vm.runInNewContext(fs.readFileSync(file, 'utf8'), { ...sandbox, module, exports: module.exports, require: name => {
       const resolved = path.resolve(path.dirname(file), name + '.js')
-      if (path.basename(resolved) === 'api.js') return api
+      if (path.basename(resolved) === 'api.js') return canonicalApi(api)
       if (path.basename(resolved) === 'util.js') return modules['../../utils/util']
       if (path.basename(resolved) === 'meal-workflow.js') return flow
       return moduleFrom(resolved)
@@ -69,7 +70,7 @@ function load(route, api = {}, extras = {}) {
 test('personal create retries one request ID and preserves form after unknown outcome', async () => {
   const sent = []
   const { page } = load('pages/customize/customize', { createCustomDish: async body => { sent.push(body); if (sent.length === 1) throw { isNetworkError: true }; return { id: 3 } } })
-  page.onShow(); page.data.customForm = { name: '鱼', type: 'meat', ingredients: '鱼', steps: '蒸', cuisineCode: '', tagCodes: [], cookMinutes: '' }
+  page.onShow(); page.data.customForm = { name: '鱼', type: 'meat', ingredients: '鱼 适量', steps: '蒸', cuisineCode: '', tagCodes: [], cookMinutes: '' }
   await page.onSaveCustomDish(); assert.equal(page.data.customForm.name, '鱼'); await page.onSaveCustomDish()
   assert.ok(sent[0].requestId); assert.equal(sent[0].requestId, sent[1].requestId)
 })
@@ -98,9 +99,9 @@ test('menu late resolve cannot write target or navigate for another account', as
 test('copied rich recipe editor uses detailed steps and retries the exact versioned edit', async () => {
   const sent = [], dish = { id: 9, name: '鱼', type: 'meat', ingredientsAmounts: '鱼#姜', step: '旧简略', steps: '洗鱼###蒸熟', contentVersion: 'v1', cookMinutes: 20 }
   const { page } = load('pages/custom-dishes/custom-dishes', { updateCustomDish: async (id, body) => { sent.push(body); if (sent.length === 1) throw { isNetworkError: true }; return { id } }, getCustomDishes: async () => [dish] })
-  page.onLoad(); page.edit(dish); assert.equal(page.data.form.steps, '洗鱼\n蒸熟')
+  page.onLoad(); page.edit(canonicalDish(dish)); assert.equal(page.data.form.steps, '洗鱼\n蒸熟')
   await page.saveEdit(); assert.equal(page.data.editPending, true); await page.saveEdit()
-  assert.equal(sent[0].expectedVersion, 'v1'); assert.equal(sent[0].requestId, sent[1].requestId); assert.equal(sent[0].step, '洗鱼###蒸熟')
+  assert.equal(sent[0].expectedVersion, 'v1'); assert.equal(sent[0].requestId, sent[1].requestId); assert.deepEqual(Array.from(sent[0].recipe.steps,step=>step.text),['洗鱼','蒸熟'])
 })
 test('menu save recovery restores selected IDs after reentry', async () => {
   const { page, wx } = load('pages/customize/customize', { getPersonalMenus: async () => [] })
@@ -131,13 +132,13 @@ test('late menu resolve after hiding and changing active meal cannot navigate or
 })
 test('dish detail time uses explicit evidence without duplicate source prose', async () => {
   for (const [dish, expected] of [
-    [{ cookMinutes: 10, cookTime: '45分钟' }, ''],
-    [{ cookMinutes: 10, cookTime: null }, ''],
+    [{ cookMinutes: 10, cookTime: '45分钟' }, '10 分钟'],
+    [{ cookMinutes: 10, cookTime: null }, '10 分钟'],
     [{ cookMinutes: null, cookTime: null }, ''],
     [{ cookMinutes: null, cookTime: '约45分钟' }, ''],
-    [{ cookMinutes: 10, quality:{timeStatus:'ESTIMATED'} }, '预计 10 分钟'],
+    [{ cookMinutes: 10, quality:{timeStatus:'ESTIMATED'} }, '10 分钟'],
     [{ cookMinutes: 10, quality:{timeStatus:'VERIFIED',reviewStatus:'VERIFIED'} }, '10 分钟'],
-    [{ cookMinutes: 10, quality:{timeStatus:'UNKNOWN',reviewStatus:'VERIFIED'} }, '']
+    [{ cookMinutes: 10, quality:{timeStatus:'UNKNOWN',reviewStatus:'VERIFIED'} }, '10 分钟']
   ]) {
     const { page } = load('pages/dish-detail/dish-detail', { getDishById: async () => ({ id: 1, name: '鱼', ...dish }), checkFavoriteDish: async () => ({}) })
     await page.loadDishDetail(1); assert.equal(page.data.dish.cookTimeDisplay, expected)
@@ -188,5 +189,5 @@ for (const scenario of ['unknown','partial','failed']) test('detail preserves or
  }})
  await f.page.loadDishDetail(7);await new Promise(resolve=>setImmediate(resolve))
  assert.deepEqual(JSON.parse(JSON.stringify(f.page.data.dish.ingredientsList)),['番茄 300克','鸡蛋 2枚'])
- assert.equal(f.page.data.dish.ingredientsAmounts,original.ingredientsAmounts);assert.equal(f.page.data.ingredientNotice,'原方用量')
+ assert.equal(f.page.data.dish.ingredientsAmounts,original.ingredientsAmounts);assert.equal(f.page.data.ingredientNotice,'整道菜用量')
 })

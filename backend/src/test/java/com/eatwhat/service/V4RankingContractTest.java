@@ -13,7 +13,7 @@ import static org.mockito.Mockito.*;
 class V4RankingContractTest {
     @Test void candidateRetrievalDoesNotScoreOrParseIngredientText(){
         class Counted extends Dish{int reads;@Override public String getIngredientsAmounts(){reads++;return "青菜|100|克";}}
-        List<Dish> pool=new ArrayList<>();List<Counted> counted=new ArrayList<>();for(long i=1;i<=500;i++){Counted d=new Counted();d.setId(i);d.setName("菜"+i);d.setType("veg");counted.add(d);pool.add(d);}
+        List<Dish> pool=new ArrayList<>();List<Counted> counted=new ArrayList<>();for(long i=1;i<=500;i++){Counted d=new Counted();d.setId(i);d.setName("菜"+i);d.setType("veg");CanonicalTestDish.attach(d,"青菜",5,false);counted.add(d);pool.add(d);}
         try(Fixture f=new Fixture(pool)){MealContext c=context();c.setOwnedIngredients(Collections.singletonList("青菜"));assertEquals(500,f.planner.eligible(3L,c).size());for(Counted d:counted)assertEquals(0,d.reads,"Candidate order must not encode preference scores");}
     }
     @Test void emptyOwnedIngredientsDoNotReadOrParseAnyRecipeText(){
@@ -30,14 +30,14 @@ class V4RankingContractTest {
         final MealWorkspacePlanner planner;
         Fixture(List<Dish> pool) {
             when(candidates.detailsForFacts(anyLong(),anyList())).thenAnswer(call -> call.getArgument(1)); when(candidates.findRawForUser(eq(3L),isNull(),isNull(),any(),anyInt())).thenAnswer(i->new ArrayList<>(pool)); when(preferences.get(3L)).thenReturn(preference);
-            app.registerBean(DishCandidateQueryService.class,()->candidates); app.registerBean(DishMapper.class,()->mock(DishMapper.class)); app.registerBean(UserPreferenceService.class,()->preferences);
+            app.registerBean(CanonicalCatalogService.class,CanonicalTestDish::catalog); app.registerBean(DishCandidateQueryService.class,()->candidates); app.registerBean(DishMapper.class,()->mock(DishMapper.class)); app.registerBean(UserPreferenceService.class,()->preferences);
             app.registerBean(FavoriteDishMapper.class,()->mock(FavoriteDishMapper.class));
-            app.registerBean(DishQualityService.class,()->new DishQualityService(mock(DishQualityMapper.class),new ObjectMapper()));
+            app.registerBean(DishQualityService.class,()->CanonicalTestDish.quality());
             app.registerBean(RecommendationMetadataService.class,()->new RecommendationMetadataService(mock(DishMapper.class))); app.registerBean(FavoriteDishService.class,()->favorites); app.registerBean(MealConsumptionMapper.class,()->actual); app.registerBean(ObjectMapper.class,()->new ObjectMapper()); app.registerBean(MealWorkspacePlanner.class); app.refresh(); planner=app.getBean(MealWorkspacePlanner.class);
         }
         public void close() { app.close(); }
     }
-    private Dish dish(long id,String cuisine,String ingredients) { Dish d=new Dish(); d.setId(id); d.setName("菜"+id); d.setType("veg"); d.setCuisineCode(cuisine); d.setCl(ingredients); d.setCookMinutes(5); return d; }
+    private Dish dish(long id,String cuisine,String ingredients) { Dish d=new Dish(); d.setId(id); d.setName("菜"+id); d.setType("veg"); d.setCuisineCode(cuisine); d.setCl(ingredients); d.setCookMinutes(5); return CanonicalTestDish.attach(d); }
     private MealContext context() { MealContext c=new MealContext(); c.setDate("2026-10-03"); c.setMealType("lunch"); c.setCompositionMode("manual"); c.setCounts(Collections.singletonMap("veg",1)); return MealWorkspaceRules.normalize(c); }
     private MealConsumption record(String day,String status,String snapshot) { MealConsumption m=new MealConsumption(); m.setUserId(3L); m.setMealDate(day); m.setStatus(status); m.setActualDishesJson(snapshot); return m; }
     @Test void actualRecencyIsAppliedDuringSelectionRatherThanCandidateOrdering() {

@@ -21,8 +21,8 @@ public interface DishMapper {
     String FILTERED_FROM = "FROM food " + FILTERED_WHERE;
     // MySQL otherwise may choose the nullable owner index and filesort each
     // remaining catalog batch. The ID keyset must walk the ordering index.
-    String KEYSET_FROM = "FROM food FORCE INDEX(PRIMARY) " + FILTERED_WHERE;
-    String CANDIDATE_COLUMNS = "ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
+    String KEYSET_FROM = "FROM food " + FILTERED_WHERE;
+    String CANDIDATE_COLUMNS = "ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, STEPS as steps, STEP_IMAGES as stepImages, TIPS as tips, " +
         "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, " +
         "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
         "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom, user_id as userId, create_time as createTime ";
@@ -40,7 +40,7 @@ public interface DishMapper {
                                       @Param("limit") int limit, @Param("offset") long offset);
 
     /** Keyset batches contain only facts required by the existing Java exclusions. */
-    @Select("<script>SELECT ID as id, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes "
+    @Select("<script>SELECT ID as id, RECIPE_JSON as recipeJson, CL as cl, INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes "
         + KEYSET_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"
         + "ORDER BY ID DESC LIMIT #{limit}</script>")
     @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
@@ -50,7 +50,7 @@ public interface DishMapper {
         @Param("maxCookMinutes") Integer maxCookMinutes, @Param("beforeId") Long beforeId, @Param("limit") int limit);
 
     /** All ranking/exclusion/ownership facts; recipe bodies and media load only after selection. */
-    @Select("<script>SELECT ID as id, NAME as name, TYPE as type, CL as cl, "
+    @Select("<script>SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, CL as cl, "
         + "INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes, CUISINE_CODE as cuisineCode, "
         + "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, user_id as userId, "
         + "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom "
@@ -73,7 +73,7 @@ public interface DishMapper {
         @Param("cuisineCodes") List<String> cuisines,@Param("includeTagCodes") List<String> tags,@Param("maxCookMinutes") Integer max,@Param("excludedIngredients") List<String> excluded,@Param("limit") int limit,@Param("offset") long offset);
 
     /** Same hard SQL predicates as ranking, restricted to the requested IDs. */
-    @Select("<script>SELECT ID as id,NAME as name,TYPE as type,CL as cl,INGREDIENTS_AMOUNTS as ingredientsAmounts,TAG_CODES as tagCodes,CUISINE_CODE as cuisineCode,COOK_MINUTES as cookMinutes,METADATA_VERSION as metadataVersion,user_id as userId "
+    @Select("<script>SELECT ID as id, RECIPE_JSON as recipeJson,NAME as name,TYPE as type,CL as cl,INGREDIENTS_AMOUNTS as ingredientsAmounts,TAG_CODES as tagCodes,CUISINE_CODE as cuisineCode,COOK_MINUTES as cookMinutes,METADATA_VERSION as metadataVersion,user_id as userId "
         + FILTERED_FROM + "AND <choose><when test='ids != null and ids.size() > 0'>ID IN <foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach></when><otherwise>1=0</otherwise></choose></script>")
     @Options(useCache=false)
     List<Dish> selectSelectedCandidateFacts(@Param("userId") Long userId,@Param("type") String type,@Param("keyword") String keyword,
@@ -122,7 +122,7 @@ public interface DishMapper {
     /**
      * 根据ID查询菜品
      */
-    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID=#{id}")
+    @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID=#{id} AND user_id IS NULL AND IS_PUBLISHED=1")
     Dish selectById(@Param("id") Long id);
 
     @Select("SELECT " + PersonalDishMapper.COLUMNS + " FROM food WHERE ID=#{id} AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED,1)=1) OR user_id=#{userId})")
@@ -131,15 +131,14 @@ public interface DishMapper {
     /**
      * 插入自定义菜品
      */
-    @Insert("INSERT INTO food (NAME, TYPE, CL, FL, STEP, TAGS, CUISINE_CODE, TAG_CODES, COOK_MINUTES, METADATA_VERSION, user_id, is_custom) " +
-            "VALUES (#{name}, #{type}, #{cl}, #{fl}, #{step}, #{tags}, #{cuisineCode}, #{tagCodes}, #{cookMinutes}, #{metadataVersion}, #{userId}, 1)")
+    @Insert("INSERT INTO catalog_recipe(owner_id,is_published,document) VALUES(#{userId},1,#{recipeJson})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Dish dish);
 
     /**
      * 获取用户自定义菜品。
      */
-    @Select("SELECT ID as id, NAME as name, TYPE as type, " +
+    @Select("SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, " +
             "CL as cl, FL as fl, STEP as step, " +
             "TAGS as tags, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, " +
             "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, " +
@@ -147,13 +146,10 @@ public interface DishMapper {
             "FROM food WHERE user_id = #{userId} ORDER BY ID DESC")
     List<Dish> selectCustomByUser(@Param("userId") Long userId);
 
-    @Delete("DELETE FROM food WHERE ID = #{dishId} AND user_id = #{userId} AND is_custom = 1")
+    @Delete("DELETE FROM catalog_recipe WHERE id=#{dishId} AND owner_id=#{userId}")
     int deleteCustomDish(@Param("userId") Long userId, @Param("dishId") Long dishId);
 
-    @Update("UPDATE food SET NAME = #{name}, TYPE = #{type}, CL = #{cl}, FL = #{fl}, STEP = #{step}, " +
-            "TAGS = #{tags}, CUISINE_CODE = #{cuisineCode}, TAG_CODES = #{tagCodes}, " +
-            "COOK_MINUTES = #{cookMinutes}, METADATA_VERSION = #{metadataVersion} " +
-            "WHERE ID = #{id} AND user_id = #{userId} AND is_custom = 1")
+    @Update("UPDATE catalog_recipe SET document=#{recipeJson} WHERE id=#{id} AND owner_id=#{userId}")
     int updateCustomDish(Dish dish);
 
     /**
@@ -188,15 +184,15 @@ public interface DishMapper {
     @Select("SELECT COUNT(*) FROM food WHERE user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1")
     int countAll();
 
-    @Select("SELECT COUNT(*) FROM food WHERE CUISINE_CODE = #{code} AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1")
+    @Select("SELECT COUNT(*) FROM catalog_recipe WHERE JSON_UNQUOTE(JSON_EXTRACT(document,'$.cuisineCode'))=#{code} AND owner_id IS NULL AND is_published=1")
     int countByCuisineCode(@Param("code") String code);
 
-    @Select("SELECT COUNT(*) FROM food WHERE FIND_IN_SET(#{code}, TAG_CODES) > 0 AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1")
+    @Select("SELECT COUNT(*) FROM catalog_recipe WHERE owner_id IS NULL AND is_published=1 AND (JSON_CONTAINS(JSON_EXTRACT(document,'$.flavor.baseCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.flavor.specialCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.methodCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.sceneCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.dietaryCodes'),JSON_QUOTE(#{code})))")
     int countByTagCode(@Param("code") String code);
 
     /** Bounded public cache query; optional filters and row limit are SQL parameters. */
     @Select({"<script>",
-            "SELECT ID as id, NAME as name, TYPE as type, ",
+            "SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, ",
             "TAGS as tags, IMAGE as image, CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, ",
             "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, ",
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, STEP as step ",
@@ -228,7 +224,7 @@ public interface DishMapper {
 
     @Select({
             "<script>",
-            "SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, ",
+            "SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, ",
             "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, ",
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, ",
             "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, ",
@@ -273,22 +269,19 @@ public interface DishMapper {
                    @Param("published") Integer published,
                    @Param("ownerId") Long ownerId);
 
-    @Select("SELECT ID as id, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, " +
+    @Select("SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, CL as cl, FL as fl, STEP as step, " +
             "TAGS as tags, IMAGE as image, DIFFICULTY as difficulty, COOK_TIME as cookTime, " +
             "INGREDIENTS_AMOUNTS as ingredientsAmounts, METHODS as methods, KCAL as kcal, " +
             "CUISINE_CODE as cuisineCode, TAG_CODES as tagCodes, COOK_MINUTES as cookMinutes, " +
             "METADATA_VERSION as metadataVersion, IS_PUBLISHED as isPublished, " +
             "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom, user_id as userId, create_time as createTime " +
-            "FROM food WHERE ID = #{id} AND user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1")
+            "FROM food WHERE ID = #{id} AND user_id IS NULL")
     Dish selectAdminById(@Param("id") Long id);
 
-    @Update("UPDATE food SET NAME=#{name}, TYPE=#{type}, CL=#{cl}, FL=#{fl}, STEP=#{step}, " +
-            "TAGS=#{tags}, CUISINE_CODE=#{cuisineCode}, TAG_CODES=#{tagCodes}, COOK_MINUTES=#{cookMinutes}, " +
-            "METADATA_VERSION=#{metadataVersion}, IS_PUBLISHED=#{isPublished} " +
-            "WHERE ID=#{id} AND user_id IS NULL AND is_custom=0")
+    @Update("UPDATE catalog_recipe SET document=#{recipeJson}, is_published=#{isPublished} WHERE id=#{id} AND owner_id IS NULL")
     int updateSystemDish(Dish dish);
 
-    @Update("UPDATE food SET IS_PUBLISHED=#{published} WHERE ID=#{id} AND user_id IS NULL AND is_custom=0")
+    @Update("UPDATE catalog_recipe SET is_published=#{published} WHERE id=#{id} AND owner_id IS NULL")
     int updateSystemPublication(@Param("id") Long id, @Param("published") Integer published);
 
     @Select("SELECT ID as id FROM food WHERE TYPE = #{type} AND ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId})")

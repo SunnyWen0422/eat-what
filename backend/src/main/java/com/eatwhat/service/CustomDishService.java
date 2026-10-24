@@ -25,6 +25,7 @@ import java.util.Locale;
 @Service
 public class CustomDishService {
     private DishQualityService quality;
+    @Autowired private CanonicalCatalogService catalog;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
     private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
     private List<Dish> enrich(List<Dish> dishes){return quality==null?dishes:quality.enrich(dishes);}
@@ -61,12 +62,14 @@ public class CustomDishService {
         // Legacy callers have no receipt. New UI always supplies a stable requestId.
         if (request.getRequestId() == null) return createDish(userId, request);
         String hash = writes.begin(userId, request.getRequestId(), "dish:create", request);
-        Dish replay = writes.replay(userId, request.getRequestId(), hash, Dish.class);
+        Dish replay = replayDish(userId, request.getRequestId(), hash);
         if (replay != null) return replay;
         Dish dish = copyContent(request);
         prepareDish(userId, dish);
-        canonicalManualContent(dish);
+        catalog.prepareWrite(dish);
         personalDishes.insert(dish);
+        catalog.bindGeneratedId(dish); personalDishes.update(dish);
+        enrich(dish);
         writes.save(userId, request.getRequestId(), hash, dish);
         return dish;
     }
@@ -74,14 +77,17 @@ public class CustomDishService {
     @Transactional
     public Dish copyDish(Long userId, Long sourceId, DishWriteRequest request) {
         String hash = writes.begin(userId, request.getRequestId(), "dish:copy:" + sourceId, request);
-        Dish replay = writes.replay(userId, request.getRequestId(), hash, Dish.class);
+        Dish replay = replayDish(userId, request.getRequestId(), hash);
         if (replay != null) return replay;
         Dish source = readable(sourceId, userId);
         expected(source, request.getExpectedVersion());
         Dish copy = copyContent(source);
         if (Boolean.TRUE.equals(request.getEditCopy())) applyPersonalEdits(userId, source, copy, request);
         copy.setUserId(userId); copy.setIsCustom(1);
+        catalog.prepareWrite(copy);
         personalDishes.insert(copy);
+        catalog.bindGeneratedId(copy); personalDishes.update(copy);
+        enrich(copy);
         if (quality != null) {
             if (Boolean.TRUE.equals(request.getEditCopy())) quality.inheritEditedCopy(source, copy);
             else quality.inheritCopy(source, copy);
@@ -93,7 +99,7 @@ public class CustomDishService {
     @Transactional
     public Dish updatePersonalDish(Long userId, Long dishId, DishWriteRequest request) {
         String hash = writes.begin(userId, request.getRequestId(), "dish:update:" + dishId, request);
-        Dish replay = writes.replay(userId, request.getRequestId(), hash, Dish.class);
+        Dish replay = replayDish(userId, request.getRequestId(), hash);
         if (replay != null) return replay;
         Dish current = owned(dishId, userId);
         expected(current, request.getExpectedVersion());
@@ -102,26 +108,28 @@ public class CustomDishService {
         applyPersonalEdits(userId, current, next, request);
         if (personalDishes.update(next) != 1) throw new MealConsumptionService.VersionConflict("菜品已删除或更新，请重新读取");
         if (quality != null) quality.reconcileEdit(current, next);
+        enrich(next);
         writes.save(userId, request.getRequestId(), hash, next);
         return next;
     }
 
     /** Merge an editor payload onto a trusted server source before its single insert/update. */
     private void applyPersonalEdits(Long userId, Dish current, Dish next, DishWriteRequest request) {
-        next.setName(request.getName()); next.setType(request.getType());
-        next.setCl(request.getCl()); next.setStep(request.getStep()); next.setCookMinutes(request.getCookMinutes());
-        // Optional fields change only with explicit intent; older clients preserve copied content.
-        if (Boolean.TRUE.equals(request.getEditServingDescription())) next.setFl(request.getFl());
-        if (Boolean.TRUE.equals(request.getEditImage())) {
-            String image = normalizeOptionalText(request.getImage(), 2048, "image URL");
-            if (image != null && !image.matches("(?i)^https://[^\\s]+$"))
-                throw new IllegalArgumentException("image URL must use HTTPS");
-            next.setImage(image);
-        }
-        // Keep unspecified copied metadata, tips and structured recipe content intact.
-        prepareDish(userId, next); preserveUnchangedRecipeContent(current, next);
-        if (!Objects.equals(current.getCookMinutes(), next.getCookMinutes()))
-            next.setCookTime(next.getCookMinutes() == null ? null : next.getCookMinutes() + "分钟");
+        next.setRecipe(request.getRecipe());
+        next.setUserId(userId); next.setIsCustom(1);
+        catalog.restoreUnchangedStepTemplates(current, next);
+        catalog.prepareWrite(next);
+
+    }
+
+    private Dish replayDish(Long userId, String requestId, String hash) {
+        com.fasterxml.jackson.databind.JsonNode receipt = writes.replay(userId, requestId, hash, com.fasterxml.jackson.databind.JsonNode.class);
+        if (receipt == null) return null;
+        try {
+            Dish result = json.treeToValue(receipt, Dish.class);
+            if (receipt.path("contentVersion").isTextual()) result.restoreReceiptContentVersion(receipt.path("contentVersion").asText());
+            return result;
+        } catch (java.io.IOException error) { throw new IllegalStateException("操作结果无法读取", error); }
     }
 
     @Transactional
@@ -181,6 +189,9 @@ public class CustomDishService {
     }
     private Dish copyContent(Dish from) {
         Dish to = new Dish();
+        if(from instanceof DishWriteRequest&&from.getRecipe()!=null) to.setRecipe(from.getRecipe().deepCopy());
+        else if(from.getRecipeJson()!=null) to.setRecipeJson(from.getRecipeJson());
+        else if(from.getRecipe()!=null) to.setRecipe(from.getRecipe().deepCopy());
         to.setName(from.getName()); to.setType(from.getType()); to.setCl(from.getCl()); to.setFl(from.getFl());
         to.setStep(from.getStep()); to.setIngredientsAmounts(from.getIngredientsAmounts()); to.setSteps(from.getSteps());
         to.setStepImages(from.getStepImages()); to.setTips(from.getTips()); to.setTags(from.getTags());
@@ -190,17 +201,20 @@ public class CustomDishService {
         return to;
     }
 
+    @Transactional
     public Dish createDish(Long userId, Dish dish) {
         prepareDish(userId, dish);
         dishMapper.insert(dish);
+        catalog.bindGeneratedId(dish); dishMapper.updateCustomDish(dish);
+        enrich(dish);
         return dish;
     }
 
     @Transactional
     public Dish updateDish(Long userId, Long dishId, Dish dish) {
         if (dishId == null) throw new IllegalArgumentException("dishId is required");
-        prepareDish(userId, dish);
         dish.setId(dishId);
+        prepareDish(userId, dish);
         Dish current = quality != null && personalDishes != null ? enrich(personalDishes.lockReadable(dishId, userId)) : null;
         if (dishMapper.updateCustomDish(dish) <= 0) return null;
         if (current != null && current.getQuality() != null) {
@@ -234,33 +248,7 @@ public class CustomDishService {
     }
 
     public Dish normalizeDish(Dish dish) {
-        if (dish == null || dish.getName() == null || dish.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("dish name is required");
-        }
-        if (dish.getType() == null || dish.getType().trim().isEmpty()) {
-            throw new IllegalArgumentException("dish type is required");
-        }
-        dish.setName(normalizeRequiredText(dish.getName(), "dish name", 255));
-        dish.setType(dish.getType().trim().toLowerCase(Locale.ROOT));
-        if (!ALLOWED_TYPES.contains(dish.getType())) throw new IllegalArgumentException("unsupported dish type");
-        dish.setCl(normalizeRequiredText(dish.getCl(), "ingredients", 10000));
-        dish.setStep(normalizeRequiredText(dish.getStep(), "steps", 20000));
-        dish.setFl(normalizeOptionalText(dish.getFl(), 1000, "serving description"));
-        dish.setTags(normalizeOptionalText(dish.getTags(), 500, "tags"));
-        if (dish.getCuisineCode() != null && !dish.getCuisineCode().trim().isEmpty()) {
-            String cuisineCode = dish.getCuisineCode().trim().toUpperCase(Locale.ROOT);
-            if (metadataService != null && !metadataService.isKnownCuisine(cuisineCode)) {
-                throw new IllegalArgumentException("unknown cuisine code");
-            }
-            dish.setCuisineCode(cuisineCode);
-        } else {
-            dish.setCuisineCode(null);
-        }
-        dish.setTagCodes(normalizeTagCodes(dish.getTagCodes()));
-        if (dish.getCookMinutes() != null && (dish.getCookMinutes() <= 0 || dish.getCookMinutes() > 240)) {
-            throw new IllegalArgumentException("cook minutes must be between 1 and 240");
-        }
-        dish.setMetadataVersion(metadataService == null ? 1 : metadataService.getMetadataVersion());
+        catalog.prepareWrite(dish);
         return dish;
     }
 

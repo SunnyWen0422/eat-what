@@ -3,7 +3,18 @@ import { defaultSlots, generateMeal, replaceSlot, selectionWeight, manualWarning
 import { isRecentLocalDate } from '../src/domain/dates.ts';
 import { snapshotRecipe } from '../src/domain/snapshots.ts';
 import type { ActualMeal, Catalog, CatalogRecipe, GenerateInput, LocalDate } from '../src/domain/types.ts';
-import { draft, recipe } from './fixtures.ts';
+import { draft, recipe as historicalRecipe } from './fixtures.ts';
+
+// Keep historical persistence fixtures intact; current catalog tests use one canonical contract.
+function recipe(overrides: Partial<CatalogRecipe> = {}): CatalogRecipe {
+  const row = historicalRecipe(overrides);
+  delete row.reviewStatus; delete row.reviewedAt; delete row.stepStatus; delete row.servingsStatus;
+  return { ...row, familyIdentity: 'canonical', mealEligibility: 'canonical', canonical: row.canonical ?? {
+    recipeId: [...row.recipeId].reduce((id, char) => (id * 31 + char.charCodeAt(0)) >>> 0, 0) + 1,
+    revision: 'fixture-canonical-v4-fixed1', dietaryCodes: null, allergenCodes: null,
+    servingRole: 'dish', totalMinutes: null, nutrition: null,
+  } };
+}
 
 const today = '2026-10-09' as LocalDate;
 function catalogOf(recipes: CatalogRecipe[]): Catalog {
@@ -90,11 +101,11 @@ describe('pure local seeded meal rules', () => {
     const result = generated(replaceSlot(value, 'meat-1')); expect(result.draft).toEqual(value.draft); expect(result.missing[0]?.reason).toMatch(/保留/);
     expect(generated(replaceSlot({ ...value, draft: draft({ dishes: [{ ...original, locked: true }] }) }, 'meat-1')).conflicts[0]?.reason).toMatch(/解除/);
   });
-  it('uses favorite 2, ordinary 1, recent actual ×0.5 and never reduces by plan or repeated meals', () => {
+  it('keeps favorite and ordinary weights equal, applying recent actual ×0.5 only once', () => {
     const row = candidates('vegetable')[0]!; const value = input(); expect(selectionWeight(row, value)).toBe(1);
-    expect(selectionWeight(row, { ...value, favoriteIds: [row.recipeId] })).toBe(2);
+    expect(selectionWeight(row, { ...value, favoriteIds: [row.recipeId] })).toBe(1);
     expect(selectionWeight(row, { ...value, actualMeals: [actual('2026-10-09', [row]), actual('2026-10-08', [row])] })).toBe(0.5);
-    expect(selectionWeight(row, { ...value, favoriteIds: [row.recipeId], actualMeals: [actual('2026-10-03', [row])] })).toBe(1);
+    expect(selectionWeight(row, { ...value, favoriteIds: [row.recipeId], actualMeals: [actual('2026-10-03', [row])] })).toBe(0.5);
     expect(selectionWeight(row, { ...value, actualMeals: [actual('2026-10-02', [row])] })).toBe(1);
   });
   it('shows specific unknown raw ingredients and the matched exclusion for manual selection', () => {
@@ -123,9 +134,9 @@ describe('fail-closed generator boundaries', () => {
     const result = generated(generateMeal(input({ catalog: catalogOf([unsafe, ...rows]), hardExclusions: ['exclude'], draft: draft({ slots: [{ id: 'v1', type: 'vegetable' }, { id: 'v2', type: 'vegetable' }, { id: 'v3', type: 'vegetable' }, { id: 'v4', type: 'vegetable' }] }) })));
     expect(result.draft.dishes).toHaveLength(4); expect(result.missing).toEqual([]); expect(result.draft.dishes.every((d) => d.recipe.recipeId !== 'a:unsafe')).toBe(true);
   });
-  it.each(['REJECTED', 'BROWSE_ONLY'] as const)('will not use an explicitly %s candidate even with a generationEligible flag', status => {
-    const rows = candidates('vegetable'); rows.forEach((row) => { row.reviewStatus = status; });
-    const result = generated(generateMeal(input({ catalog: catalogOf(rows) }))); expect(result.draft.dishes).toEqual([]); expect(result.missing).toHaveLength(2);
+  it('will not use explicitly generation-ineligible canonical candidates even when favorited', () => {
+    const rows = candidates('vegetable'); rows.forEach((row) => { row.generationEligible = false; });
+    const result = generated(generateMeal(input({ catalog: catalogOf(rows), favoriteIds: rows.map(row => row.recipeId) }))); expect(result.draft.dishes).toEqual([]); expect(result.missing).toHaveLength(2);
   });
   it('retains every locked snapshot when a recipe was removed or a same-name lock conflicts', () => {
     const rows = candidates('vegetable'); const value = input({ draft: draft({ slots: [{ id: 'a', type: 'vegetable' }, { id: 'b', type: 'vegetable' }], dishes: [{ slotId: 'a', recipe: snapshotRecipe(rows[0]!), locked: true }, { slotId: 'b', recipe: snapshotRecipe({ ...rows[1]!, name: rows[0]!.name }), locked: true }] }) });
@@ -139,10 +150,10 @@ describe('fail-closed generator boundaries', () => {
 
 });
 
-it('uses favorite and actual-history weights in the real seeded sampler', () => {
+it('keeps the seeded sampler unchanged by favorites and respects actual history', () => {
   const rows = candidates('vegetable'); const value = input({ catalog: catalogOf(rows), draft: draft({ slots: [{ id: 'v', type: 'vegetable' }] }), seed: 123 });
   expect(generated(generateMeal(value)).draft.dishes[0]?.recipe.recipeId).toBe('vegetable:4');
-  expect(generated(generateMeal({ ...value, favoriteIds: ['vegetable:1'] })).draft.dishes[0]?.recipe.recipeId).toBe('vegetable:3');
+  expect(generated(generateMeal({ ...value, favoriteIds: ['vegetable:1'] })).draft.dishes).toEqual(generated(generateMeal(value)).draft.dishes);
   expect(generated(generateMeal({ ...value, actualMeals: [actual('2026-10-09', [rows[3]!])] })).draft.dishes[0]?.recipe.recipeId).toBe('vegetable:3');
   expect(generated(generateMeal({ ...value, favoriteIds: ['vegetable:1'], actualMeals: [actual('2026-10-09', [rows[0]!])] })).draft.dishes[0]?.recipe.recipeId).toBe('vegetable:4');
 });

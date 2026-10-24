@@ -17,6 +17,7 @@ class WorkspaceQualityReadScopeTest {
         final ObjectMapper json = new ObjectMapper();
         final DishMapper dishes = mock(DishMapper.class);
         final DishQualityMapper profiles = mock(DishQualityMapper.class);
+        final DishQualityService quality = spy(CanonicalTestDish.quality());
         final UserPreferenceService preferences = mock(UserPreferenceService.class);
         final FavoriteDishService favorites = mock(FavoriteDishService.class);
         final MealConsumptionMapper actual = mock(MealConsumptionMapper.class);
@@ -24,7 +25,7 @@ class WorkspaceQualityReadScopeTest {
         final PersonalMenuService menus = mock(PersonalMenuService.class);
         final MealWorkspacePlanner planner;
         final int count;
-        String qualityRevision = "v1";
+        String recipeRevision = "v1";
         Fixture(int count) {
             this.count = count;
             when(preferences.get(7L)).thenReturn(new UserPreferenceDTO());
@@ -43,20 +44,7 @@ class WorkspaceQualityReadScopeTest {
             when(dishes.lockReadableDishes(anyList(), eq(7L))).thenAnswer(call -> {
                 List<Long> ids = call.getArgument(0); return rawRows().stream().filter(d -> ids.contains(d.getId())).collect(Collectors.toList());
             });
-            when(profiles.find(anyList())).thenAnswer(call -> {
-                List<Long> ids = call.getArgument(0); List<DishQualityMapper.Row> result = new ArrayList<>();
-                for (Long id : ids) {
-                    CatalogQuality q = new CatalogQuality(); q.setDishId(id); q.setReviewStatus("UNREVIEWED");
-                    q.setContentHash("profile-" + id + "-" + qualityRevision); q.setDatasetVersion("dataset-v1");
-                    CatalogQuality.Ingredient ingredient = new CatalogQuality.Ingredient();
-                    ingredient.setName("青菜"); ingredient.setUnit("克"); ingredient.setIdentityStatus("VERIFIED");
-                    ingredient.setQuantityStatus("VERIFIED"); ingredient.setQuantityValue(new BigDecimal("999"));
-                    q.setIngredients(Collections.singletonList(ingredient));
-                    DishQualityMapper.Row row = new DishQualityMapper.Row(); row.setDishId(id); row.setProfileJson(json.writeValueAsString(q)); result.add(row);
-                }
-                return result;
-            });
-            DishQualityService quality = new DishQualityService(profiles, json);
+            DishQualityService quality = this.quality;
             DishCandidateQueryService candidates = new DishCandidateQueryService(dishes); candidates.setQuality(quality);
             planner = new MealWorkspacePlanner(candidates, dishes, preferences, metadata, favorites, actual, json); planner.setQuality(quality);
         }
@@ -64,7 +52,8 @@ class WorkspaceQualityReadScopeTest {
             List<Dish> values = new ArrayList<>();
             for (long id = 1; id <= count; id++) {
                 Dish d = new Dish(); d.setId(id); d.setName("菜" + id); d.setType("veg"); d.setCl("青菜");
-                d.setTagCodes("LIGHT"); d.setCookMinutes(5); d.setSteps("清洗后炒熟"); values.add(d);
+                d.setTagCodes("LIGHT"); d.setCookMinutes(5); d.setSteps("清洗后炒熟"); CanonicalTestDish.attach(d);
+                com.fasterxml.jackson.databind.node.ObjectNode recipe=(com.fasterxml.jackson.databind.node.ObjectNode)d.getRecipe();recipe.put("testRevision",recipeRevision);d.setRecipe(recipe);values.add(d);
             }
             return values;
         }
@@ -73,9 +62,9 @@ class WorkspaceQualityReadScopeTest {
             c.setCompositionMode("manual"); c.setCounts(Collections.singletonMap("veg", 2));
             MealWorkspace w = new MealWorkspace(); w.setContext(MealWorkspaceRules.normalize(c)); return w;
         }
-        List<Long> onlyQualityRead() {
+        List<Long> onlyCanonicalEnrichment() {
             @SuppressWarnings("unchecked") ArgumentCaptor<List<Long>> ids = ArgumentCaptor.forClass(List.class);
-            verify(profiles).find(ids.capture()); verifyNoMoreInteractions(profiles); return ids.getValue();
+            ArgumentCaptor<List<Dish>> rows=ArgumentCaptor.forClass(List.class);verify(quality).enrich(rows.capture());verifyNoMoreInteractions(quality);verifyNoInteractions(profiles);return rows.getValue().stream().map(Dish::getId).collect(Collectors.toList());
         }
     }
     @Test void rankingOneThousandEligibleRecipesReadsNoQualityProfiles() {
@@ -89,19 +78,19 @@ class WorkspaceQualityReadScopeTest {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace(); w.getContext().setTotalCookMinutes(10);
         PlanDraft draft = f.planner.generate(7L, w, "generate", null, null);
         assertEquals(2, draft.getDishes().size()); assertEquals(10, draft.getTotalCookMinutes());
-        assertTrue(draft.getDishes().stream().allMatch(d -> d.getQuality() != null));
-        assertEquals(draft.getDishes().stream().map(Dish::getId).collect(Collectors.toList()), f.onlyQualityRead());
+        assertTrue(draft.getDishes().stream().allMatch(d -> d.getRecipe() != null && d.getQuality() == null));
+        assertEquals(draft.getDishes().stream().map(Dish::getId).collect(Collectors.toList()), f.onlyCanonicalEnrichment());
     }
     @Test void replacingOneDishReadsOnlyItsReplacementAndRetainsOtherSnapshot() {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace();
         PlanDraft previous = f.planner.generate(7L, w, "generate", null, null); w.setDraft(previous);
         Long target = previous.getDishes().get(0).getId(); Dish retained = previous.getDishes().get(1);
-        clearInvocations(f.profiles); PlanDraft changed = f.planner.generate(7L, w, "replace", target, null);
+        clearInvocations(f.quality); PlanDraft changed = f.planner.generate(7L, w, "replace", target, null);
         assertEquals(2, changed.getDishes().size()); assertEquals(10, changed.getTotalCookMinutes());
         assertEquals(retained.getContentVersion(), changed.getDishes().get(1).getContentVersion());
         assertNotEquals(target, changed.getDishes().get(0).getId());
-        assertEquals(Collections.singletonList(changed.getDishes().get(0).getId()), f.onlyQualityRead());
-        assertNotNull(changed.getDishes().get(0).getQuality());
+        assertEquals(Collections.singletonList(changed.getDishes().get(0).getId()), f.onlyCanonicalEnrichment());
+        assertNotNull(changed.getDishes().get(0).getRecipe());assertNull(changed.getDishes().get(0).getQuality());
     }
     @Test void authorizedToolContextEnrichesOnlyTwoHundredIncludingLockedRecipe() {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace(); w.getDraft().getLockedDishIds().add(1000L);
@@ -109,24 +98,24 @@ class WorkspaceQualityReadScopeTest {
         Map<String, Object> result = context.build(7L, w);
         @SuppressWarnings("unchecked") List<Map<String, Object>> catalog = (List<Map<String, Object>>) result.get("catalog");
         assertEquals(200, catalog.size()); assertEquals(1000L, catalog.get(0).get("id"));
-        List<Long> ids = f.onlyQualityRead(); assertEquals(200, ids.size()); assertTrue(ids.contains(1000L));
+        List<Long> ids = f.onlyCanonicalEnrichment(); assertEquals(200, ids.size()); assertTrue(ids.contains(1000L));
         assertEquals(ids, catalog.stream().map(row -> (Long) row.get("id")).collect(Collectors.toList()));
         for (Map<String, Object> row : catalog) {
-            @SuppressWarnings("unchecked") List<Map<String, Object>> facts = (List<Map<String, Object>>) row.get("ingredientFacts");
-            assertEquals(1, facts.size()); assertEquals("青菜", facts.get(0).get("name"));
-            assertEquals("UNKNOWN", facts.get(0).get("quantityStatus")); assertNull(facts.get(0).get("quantityValue"));
+            com.fasterxml.jackson.databind.JsonNode facts=((com.fasterxml.jackson.databind.JsonNode)row.get("recipe")).path("ingredients");
+            assertEquals(1, facts.size()); assertEquals("青菜", facts.get(0).path("ingredient").path("name").asText());
+            assertEquals("exact",facts.get(0).path("quantityKind").asText());assertEquals(100,facts.get(0).path("quantity").asInt());assertFalse(facts.get(0).has("quantityStatus"));
             Long id = (Long) row.get("id"); Dish enriched = f.rawRows().get(id.intValue() - 1);
-            CatalogQuality q = new CatalogQuality(); q.setContentHash("profile-" + id + "-v1"); enriched.setQuality(q);
+
             assertEquals(enriched.getContentVersion(), row.get("contentVersion"));
         }
     }
-    @Test void lockingConfirmationStillRejectsAChangedQualityRevision() {
+    @Test void lockingConfirmationStillRejectsAChangedRecipeRevision() {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace();
         PlanDraft reviewed = f.planner.generate(7L, w, "generate", null, null); w.setDraft(reviewed);
         List<Long> selected = reviewed.getDishes().stream().map(Dish::getId).collect(Collectors.toList());
-        f.qualityRevision = "v2"; clearInvocations(f.profiles);
+        f.recipeRevision = "v2"; clearInvocations(f.quality);
         assertThrows(MealConsumptionService.VersionConflict.class, () -> f.planner.lockAndValidate(7L, w, selected));
-        assertEquals(new HashSet<>(selected), new HashSet<>(f.onlyQualityRead())); assertEquals(reviewed, w.getDraft());
+        assertEquals(new HashSet<>(selected), new HashSet<>(f.onlyCanonicalEnrichment())); assertEquals(reviewed, w.getDraft());
     }
     @Test void namedRawCandidateIsRetrievedBeforeTheBoundWithoutEnrichingTheWholePool() {
         Fixture f = new Fixture(1000); MealWorkspace w = f.workspace();
@@ -134,7 +123,7 @@ class WorkspaceQualityReadScopeTest {
         WorkspaceAgentContextService context = new WorkspaceAgentContextService(f.planner, f.preferences, f.favorites, f.actual, f.menus, f.metadata);
         @SuppressWarnings("unchecked") List<Map<String, Object>> catalog = (List<Map<String, Object>>) context.build(7L, w).get("catalog");
         assertEquals(200, catalog.size()); assertEquals(1000L, catalog.get(0).get("id")); assertEquals(999L, catalog.get(1).get("id"));
-        List<Long> enriched = f.onlyQualityRead(); assertEquals(200, enriched.size());
+        List<Long> enriched = f.onlyCanonicalEnrichment(); assertEquals(200, enriched.size());
         assertEquals(catalog.stream().map(row -> (Long) row.get("id")).collect(Collectors.toList()), enriched);
     }
     @Test void impossibleWholeMealTimeDoesNotReadQualityOrMutateDraft() {

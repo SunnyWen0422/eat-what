@@ -1,0 +1,67 @@
+{
+  "purpose": "fixed-recipe-local-acceptance-public-summary",
+  "date": "2026-10-24",
+  "scope": "local-isolated-only",
+  "catalogRevision": "eatwhat-catalog-20261024-data-review-4-local-fix1-fixed1",
+  "catalogSha256": "2303a3dcd9362e922720fc94f9d4d3b80561e3a237a3e212ed949d450831aa42",
+  "javaSourceFingerprint": "6db04992b02ef2ba9e75ae72985bab1adfb88bf5c2cbcc77095345bfc4c7fa6a",
+  "jarSha256": "ccf062dbbf362c13ebe0e925f33e7478b66af2385cc954cd8ee3dbdab32a5be9",
+  "pythonSourceFingerprint": "5706651140138cc25e4b0483e34a340a288296430d1f98fcec99a7f46fea751e",
+  "acceptanceScriptSha256": "f6b83c4b9f4cdaa8ede99dacff91ccb89f82fa0483dfcde662f34fe241978531",
+  "passed": true,
+  "completedStages": 7,
+  "httpRequests": 21809,
+  "privateCatalog": {
+    "recipes": 5407,
+    "defaultNutritionCompared": 5407,
+    "defaultQuantitiesCompared": 5407,
+    "sharingRequests": 16221,
+    "dinersChecked": [
+      1,
+      2,
+      8
+    ],
+    "completeNutrition": 1550,
+    "unknownBaseServings": 5
+  },
+  "javaTests": {
+    "tests": 728,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "miniRealResponseChecks": {
+    "passed": true,
+    "publicRecipes": 500,
+    "nutritionComplete": 176,
+    "nutritionPartial": 324,
+    "realHttpToMiniPresentation": true,
+    "persistentFixedPolicyCache": true,
+    "nativeDeviceVerified": false
+  },
+  "assistant": {
+    "from": 3,
+    "to": 8,
+    "fixedMenu": true,
+    "fixedShopping": true,
+    "undoRestored": true
+  },
+  "mockProviderHttpCalls": 5,
+  "externalProviderRequests": 0,
+  "productionTouched": false,
+  "nativeDeviceVerified": false,
+  "ownedProcessesExited": true,
+  "priorEvidence": {
+    "miniTests": 1470,
+    "webTests": 551,
+    "webEvidenceType": "combined full run plus targeted fixes and local-server tests; not a single all-green run",
+    "webTypecheckBuildBoundaries": "passed",
+    "reuseRule": "Reused unchanged client results; runtime-09 checked real responses again."
+  },
+  "limits": [
+    "No production migration or release",
+    "No external model quality validation",
+    "No native WeChat device validation",
+    "Not a per-recipe cooking or laboratory nutrition audit"
+  ]
+}

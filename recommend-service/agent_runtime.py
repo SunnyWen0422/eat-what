@@ -194,11 +194,10 @@ class AgentRuntime:
 
     @staticmethod
     def _apply_trusted_scaling(payload: Dict[str, Any], scaled_results: Dict[tuple, Dict[str, Any]]) -> None:
-        """Replace model-provided ingredient numbers with tool-calculated values.
+        """Replace model-provided ingredient numbers with the fixed recipe tool values.
 
-        The model may choose a target serving count, but it cannot invent or
-        edit the resulting grams/counts.  A plan that includes inline scaled
-        ingredients must therefore be backed by a preceding scale tool call.
+        Diners select an equal-share nutrition reference, never ingredient amounts.
+        Inline ingredients must be backed by the canonical calculation tool.
         """
         plan = payload.get("plan")
         if not isinstance(plan, dict):
@@ -214,7 +213,7 @@ class AgentRuntime:
                 key = (str(dish_id), str(target))
                 scaled = scaled_results.get(key)
                 if scaled is None:
-                    raise SchemaValidationError("scaled ingredients require scale_recipe_ingredients")
+                    raise SchemaValidationError("fixed recipe ingredients require scale_recipe_ingredients")
                 if "ingredients" in dish:
                     dish["ingredients"] = copy.deepcopy(scaled.get("ingredients") or [])
                 dish["target_people"] = scaled.get("target_people", target)
@@ -311,7 +310,7 @@ class AgentRuntime:
                             candidates.setdefault(identifier, sourced)
                     if call["name"] == "scale_recipe_ingredients" and isinstance(tool_result, dict) and tool_result.get("dish_id") is not None and tool_result.get("ingredients") is not None:
                         if str(tool_result.get("dish_id")) not in candidates:
-                            raise SchemaValidationError("scaling requires a dish returned by a lookup tool")
+                            raise SchemaValidationError("recipe calculation requires a dish returned by a lookup tool")
                         scaled_results[(str(tool_result.get("dish_id")), str(tool_result.get("target_people")))] = copy.deepcopy(tool_result)
                     tool_messages.append(tool_assistant_message(response, call, call.get("id") or f"call_{round_number}"))
                     tool_messages.append({"role": "tool", "tool_call_id": call.get("id") or f"call_{round_number}", "content": json.dumps(tool_result, ensure_ascii=False)[:12000]})

@@ -48,7 +48,7 @@ public class MealWorkspacePlanner {
         EffectiveRecommendationCriteria criteria=new RecommendationCriteriaResolver().resolveMeal(c,preferences.get(user));
         List<Dish> pool=new ArrayList<>(candidates.findRawForUser(user,null,null,criteria,Integer.MAX_VALUE));
         if(BalancedRecommendationPolicy.enabled(c)){BalancedRecommendationPolicy policy=new BalancedRecommendationPolicy(metadata);pool.removeIf(d->!policy.matchesRequiredGroups(d,c));}
-        if (origin==SelectionOrigin.AUTOMATIC&&"breakfast".equals(c.getMealType())) pool=pool.stream().filter(d->Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE")).collect(Collectors.toList());
+        if(origin==SelectionOrigin.AUTOMATIC)pool.removeIf(d->!CanonicalRecommendationFacts.automatic(d,c.getMealType()));
         if("favorites".equals(c.getCandidateScope())){Set<Long> scope=new HashSet<>(favorites.getFavoriteDishIds(user));pool.removeIf(d->!scope.contains(d.getId()));}
         Set<Long> recentIds=recentDishIds(user,c,criteria.getAvoidRecentDays());
         pool.sort(Comparator.comparing(Dish::getId));
@@ -60,7 +60,7 @@ public class MealWorkspacePlanner {
         LinkedHashSet<Long> ids=new LinkedHashSet<>(locked);if(requested!=null)ids.addAll(requested);
         List<Dish> pool=new ArrayList<>(candidates.findSelectedForUser(user,new ArrayList<>(ids),criteria));
         if(BalancedRecommendationPolicy.enabled(c)){BalancedRecommendationPolicy policy=new BalancedRecommendationPolicy(metadata);pool.removeIf(d->!policy.matchesRequiredGroups(d,c));}
-        if(origin==SelectionOrigin.AUTOMATIC&&"breakfast".equals(c.getMealType()))pool.removeIf(d->!Arrays.asList((d.getTagCodes()==null?"":d.getTagCodes()).split(",")).contains("BREAKFAST_ELIGIBLE"));
+        if(origin==SelectionOrigin.AUTOMATIC)pool.removeIf(d->!CanonicalRecommendationFacts.automatic(d,c.getMealType()));
         return new RankedCandidates(pool,criteria,recentDishIds(user,c,criteria.getAvoidRecentDays()));
     }
     private Set<Long> recentDishIds(Long user,MealContext context,Integer days) {
@@ -187,7 +187,7 @@ public class MealWorkspacePlanner {
         for(Dish dish:w.getDraft().getDishes())if(!allowed.contains(dish.getId())||!MealWorkspaceRules.sameRecipe(dish,readable.get(dish.getId())))throw new MealConsumptionService.VersionConflict("撤销内容已不可用或不符合当前限制");
     }
     private PlanDraft validateSelection(Long user,MealWorkspace w,List<Long> ids,SelectionOrigin origin) {
-        MealWorkspace validation=new com.fasterxml.jackson.databind.ObjectMapper().convertValue(w,MealWorkspace.class);
+        MealWorkspace validation=com.eatwhat.util.DishSnapshotReader.convert(json,w,MealWorkspace.class);
         validation.getDraft().setRequirementsFingerprint(MealWorkspaceRules.requirementsFingerprint(w.getContext()));
         PlanDraft validated=generate(user,validation,"select",null,ids,origin);
         Map<String,Integer> actualCounts=new HashMap<>();for(Dish d:validated.getDishes()) {String type=category(d,w.getContext());actualCounts.put(type,actualCounts.getOrDefault(type,0)+1);}

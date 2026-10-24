@@ -66,7 +66,7 @@ public class RecipeRecord {
     @JsonProperty("dishNames")
     private String dishNames;  // 查询时动态填充的菜品名称，逗号分隔
 
-    @JsonProperty("dishDetailsString")
+    @JsonProperty(value = "dishDetailsString", access = JsonProperty.Access.READ_ONLY)
     private String dishDetailsString;  // 菜品详情JSON字符串
 
     @JsonProperty("dishDetails")
@@ -86,6 +86,12 @@ public class RecipeRecord {
     private Date updateTime;
 
     private static final ObjectMapper mapper = new ObjectMapper();
+
+    /** MyBatis supplies this persisted column; HTTP input is read-only. */
+    public void setDishDetailsString(String value) {
+        this.dishDetailsString = value;
+        this.dishDetails = null;
+    }
 
 
     // 转换为List<Long>
@@ -159,7 +165,7 @@ public class RecipeRecord {
         }
         try {
             if (dishDetailsString != null && !dishDetailsString.isEmpty()) {
-                this.dishDetails = mapper.readValue(dishDetailsString, new TypeReference<List<Dish>>(){});
+                this.dishDetails = com.eatwhat.util.DishSnapshotReader.readDishes(mapper,dishDetailsString);
                 return this.dishDetails;
             }
         } catch (Exception ignored) {

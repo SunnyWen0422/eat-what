@@ -49,7 +49,7 @@ class DietReportFoundationTest {
         assertEquals("explicit_eaten", metadata.get("basis"));
         assertEquals(start, metadata.get("startDate")); assertEquals(end, metadata.get("endDate"));
         assertEquals("Asia/Shanghai", metadata.get("timezone")); assertEquals(false, metadata.get("persisted"));
-        assertEquals("actual-diet-v1", metadata.get("calculationVersion"));
+        assertEquals("actual-diet-v2", metadata.get("calculationVersion"));
         assertTrue(String.valueOf(metadata.get("sourceFingerprint")).matches("[a-f0-9]{64}"));
         assertTrue(String.valueOf(metadata.get("reportId")).startsWith("diet-report-"));
         OffsetDateTime generated = OffsetDateTime.parse((String)metadata.get("generatedAt"));

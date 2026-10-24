@@ -28,6 +28,18 @@ public class PublicCatalogController {
         if (number > PublicCatalogProperties.MAX_SAFE_ID) throw invalid();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.detail(number));
     }
+    @GetMapping("/{id}/scale")
+    public ResponseEntity<?> scale(@PathVariable String id,@RequestParam(required=false) java.math.BigDecimal servings,HttpServletRequest request) {
+        getOnly(request); parameters(request,Collections.singleton("servings"));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.scale(positive(id),servings));
+    }
+    @PostMapping("/{id}/scale")
+    public ResponseEntity<?> scaleOptions(@PathVariable String id,@RequestBody com.eatwhat.controller.DishController.ScaleRequest body,HttpServletRequest request) {
+        parameters(request,Collections.emptySet());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.scale(positive(id),body.servings,body.optionalOverrides));
+    }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String,String>> badCalculation(IllegalArgumentException error) {return rejected(new ResponseStatusException(HttpStatus.BAD_REQUEST));}
     @RequestMapping(value = {"", "/{id}"}, method = {RequestMethod.HEAD, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
     public void unsupported() { throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED); }
     private static void getOnly(HttpServletRequest request) { if (!"GET".equals(request.getMethod())) throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED); }

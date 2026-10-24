@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 # Load the service-local file regardless of whether uvicorn is started from the
 # repository root or from recommend-service/.  Environment variables supplied
 # by the process still take precedence over the file (python-dotenv default).
-load_dotenv(dotenv_path=Path(__file__).resolve().with_name(".env"))
-load_dotenv()
+if os.getenv("EATWHAT_DISABLE_DOTENV") != "1":
+    load_dotenv(dotenv_path=Path(__file__).resolve().with_name(".env"))
+    load_dotenv()
 
 
 def get_env(key: str, default: str = "") -> str:

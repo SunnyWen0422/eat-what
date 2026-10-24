@@ -29,6 +29,13 @@
       <view class="bar-row" wx:for="{{categoryRows}}" wx:key="key"><text>{{item.label}}</text><view class="bar-track"><view class="bar-fill" style="width:{{item.percent}}%"></view></view><text>{{item.count}} 次</text></view>
       <text class="ew-muted">{{reportView.categoryCounts.classifiedCount}} / {{reportView.categoryCounts.entryCount}} 条实际菜品可识别类别。次数包含未分类条目，不代表营养摄入比例。</text>
     </view>
+    <view wx:if="{{hasActualRecords && nutritionReference}}" class="ew-card nutrition-reference">
+      <view class="ew-row ew-between"><text class="ew-section-title">菜谱营养参考</text><text class="ew-muted">{{nutritionReference.coverage}}</text></view>
+      <text wx:if="{{nutritionReference.available}}" class="ew-muted">{{nutritionReference.label}}</text>
+      <view wx:if="{{nutritionReference.available}}" class="nutrition-grid"><view wx:for="{{nutritionReference.rows}}" wx:key="key" class="nutrition-row"><text>{{item.label}}</text><text>{{item.value}} {{item.unit}}</text></view></view>
+      <text wx:else class="ew-muted">暂无完整菜谱营养资料</text>
+      <text class="ew-muted nutrition-note">{{nutritionReference.note}}</text>
+    </view>
     <button class="ew-hit-target ew-link" bindtap="onToggleReviewDetails" aria-expanded="{{showReviewDetails}}">{{showReviewDetails ? '收起记录与依据' : '查看记录、缺失与计算依据'}}</button>
     <block wx:if="{{showReviewDetails}}">
       <view class="ew-card">
@@ -60,7 +67,7 @@
       <text class="ew-section-title">记录完整性与缺失</text>
       <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有用餐记录。</text><text class="ew-muted">吃过、明确没吃和更正为未记录都算有记录。没有记录不代表没有吃饭。</text></view>
       <view class="record"><text>明确没吃 {{reportView.completeness.explicitSkippedMeals}} 餐；明确标记未记录 {{reportView.completeness.explicitUnrecordedMeals}} 餐。</text><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已吃但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
-      <text class="ew-muted">没有可靠的实际食用份量，暂不计算热量、营养分数或每日用餐完成率。</text>
+      <text class="ew-muted">没有可靠的实际食用份量，暂不计算个人热量摄入、营养分数或每日用餐完成率。</text>
       <button class="ew-hit-target ew-link" bindtap="onToggleProvenance">{{showProvenance ? '收起计算说明' : '查看计算说明'}}</button><view wx:if="{{showProvenance}}" class="record report-provenance"><text>按北京时间对应的用餐日期整理。</text><text class="ew-muted">这份回顾根据当前记录即时整理；更正用餐记录后会重新计算。</text></view>
     </view>
     </block>

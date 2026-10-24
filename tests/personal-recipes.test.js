@@ -70,6 +70,15 @@ test('legacy ingredient columns become readable without losing untouched origina
   assert.equal(editableRecipeText('说明|可选|自由文字'),'说明|可选|自由文字')
   const dish={name:'豆腐',cl:raw,step:'煮熟',contentVersion:'v1'};const form=recipeForm(dish);form.ingredients='豆腐 500克'
   assert.equal(recipeEditBody(dish,form,'veg').cl,'豆腐 500克')
-  assert.match(require('../utils/recipe-quality').editRecipeQualityNotice(dish,form),/重新核实/)
+  assert.doesNotMatch(require('../utils/recipe-quality').editRecipeQualityNotice(dish,form),/已核对/)
   assert.deepEqual(require('../utils/recipe-quality').presentRecipeLines(raw,true),['豆腐 460克（切块或切片）','姜 2片'])
+})
+
+
+test('separate account-scoped draft restores readable form without changing the wire request',async()=>{
+ const f=fixture(),body={expectedVersion:'v1',recipe:{name:'原名',ingredients:[{ingredientId:'catalog-salt',quantity:null,quantityKind:'discretionary'}]}},form={name:'原名',ingredients:'食盐 适量'},sent=[]
+ await assert.rejects(f.journal.run('dish:edit:1',body,async request=>{sent.push(request);throw Error('unknown')},form))
+ assert.deepEqual(f.journal.pendingDraft('dish:edit:1'),form);assert.equal(sent[0].draft,undefined);assert.equal(sent[0].ingredients,undefined)
+ await f.journal.run('dish:edit:1',{recipe:{name:'不应替换'}},async request=>{sent.push(request);return {id:1}},{name:'不应替换'})
+ assert.deepEqual(sent[1],sent[0]);assert.equal(f.journal.pendingDraft('dish:edit:1'),null)
 })

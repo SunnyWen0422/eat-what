@@ -67,6 +67,14 @@ public final class MealWorkspaceRules {
         return "breakfast".equals(context.getMealType()) && !"staple".equals(type) && !explicit ? "side" : type;
     }
 
+    /** After normalization, a new automatic composition is still a menu change. */
+    public static boolean onlyDinersChanged(MealContext before,MealContext after) {
+        if(Objects.equals(before.getPeople(),after.getPeople()))return false;
+        com.fasterxml.jackson.databind.node.ObjectNode comparable=JSON.valueToTree(after);
+        comparable.set("people",JSON.valueToTree(before.getPeople()));
+        return comparable.equals(JSON.valueToTree(before));
+    }
+
     public static String contextFingerprint(MealContext c) {
         try {
             Map<String,Object> values=JSON.convertValue(c,Map.class);
@@ -85,6 +93,7 @@ public final class MealWorkspaceRules {
         return recipeValues(a).equals(recipeValues(b));
     }
     private static List<Object> recipeValues(Dish d) {
+        if(d.getRecipe()!=null)return Arrays.asList(d.getId(),d.getContentVersion());
         List<Object> values=new ArrayList<>(Arrays.asList(d.getId(),d.getName(),d.getType(),d.getCl(),d.getFl(),d.getStep(),d.getSteps(),d.getStepImages(),d.getIngredientsAmounts(),d.getTips(),d.getMethods(),d.getCuisineCode(),d.getTagCodes(),d.getCookMinutes(),d.getQuality()==null?null:d.getQuality().getContentHash()));
         values.replaceAll(v->v==null?"":v);return values;
     }
@@ -92,7 +101,7 @@ public final class MealWorkspaceRules {
     public static boolean understandsRequirements(PlanDraft draft,MealContext c) { return c.getRequirements().trim().isEmpty() || Objects.equals(draft.getRequirementsFingerprint(),requirementsFingerprint(c)); }
     public static boolean matchesContext(PlanDraft draft,MealContext context) { return Objects.equals(draft.getContextFingerprint(),contextFingerprint(context)); }
 
-    public static PlanDraft copy(PlanDraft value) { return JSON.convertValue(value, PlanDraft.class); }
+    public static PlanDraft copy(PlanDraft value) { return com.eatwhat.util.DishSnapshotReader.convert(JSON,value, PlanDraft.class); }
 
     public static PlanDraft command(PlanDraft current, String command, Long dishId, Dish replacement) {
         PlanDraft next = copy(current);

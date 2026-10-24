@@ -1,3 +1,4 @@
+import type { CanonicalScale } from './canonical.ts';
 import type { PublicCatalogTransport, PublicDishQuery } from '../domain/types.ts';
 import { exactKeys, isObject } from '../domain/validation.ts';
 
@@ -24,7 +25,7 @@ export function createSameOriginPublicCatalogTransport(fetcher: typeof fetch = g
     const timeout = setTimeout(cancel, 15000);
     try {
       if (controller.signal.aborted) throw new Error('Public directory cancelled');
-      const response = await fetcher(`${endpoint}?${parameters}`, {
+      const response = await fetcher(endpoint + '?' + parameters, {
         method: 'GET', credentials: 'omit', mode: 'same-origin', redirect: 'error', cache: 'no-store',
         headers: { Accept: 'application/json' }, signal: controller.signal,
       });
@@ -47,4 +48,14 @@ export function createSameOriginPublicCatalogTransport(fetcher: typeof fetch = g
       return JSON.parse(body) as unknown;
     } finally { clearTimeout(timeout); options?.signal?.removeEventListener('abort', cancel); }
   };
+}
+
+export async function fetchCanonicalScale(recipeId:number,servings:number|null,revision:string,fetcher:typeof fetch=globalThis.fetch,optionalOverrides?:Record<string,boolean>):Promise<CanonicalScale>{
+  if(!Number.isSafeInteger(recipeId)||recipeId<1||servings!==null&&(!Number.isInteger(servings)||servings<1||servings>50)||optionalOverrides&&Object.entries(optionalOverrides).some(([id,enabled])=>!id||typeof enabled!=='boolean'))throw Error('Invalid recipe request');
+  const response=await fetcher(endpoint + '/' + recipeId + '/scale' + (servings===null||optionalOverrides?'':'?servings='+servings),{credentials:'omit',mode:'same-origin',redirect:'error',cache:'no-store',headers:{Accept:'application/json',...(optionalOverrides?{'Content-Type':'application/json'}:{})},...(optionalOverrides?{method:'POST',body:JSON.stringify({servings,optionalOverrides})}:{}),signal:AbortSignal.timeout(15000)});
+  if(!response.ok||response.redirected||!/^application\/json\b/i.test(response.headers.get('content-type')||''))throw Error('份量暂未读到，请重试');
+  const result=await response.json() as CanonicalScale;
+  const nonnegative=(value:unknown)=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
+  if(result.recipeId!==recipeId||result.quantityPolicy!=='fixed-recipe-v1'||result.quantityBasis!=='fixed_recipe'||result.portionBasis!=='equal_share_reference'||result.diners!==servings||servings===null&&result.nutrition?.perServing!==null||result.catalogRevision!==revision||!Array.isArray(result.ingredients)||!Array.isArray(result.steps)||!result.nutrition||result.nutrition.completeness==='partial'&&(result.nutrition.total!==null||result.nutrition.perServing!==null)||result.steps.some(step=>typeof step.text!=='string'||/\{\{\s*amount\b/.test(step.text))||result.ingredients.some(i=>!i.ingredientId||!i.lineId||!(i.quantityKind==='discretionary'?i.quantity===null:nonnegative(i.quantity))||!(i.procurementQuantity===null||nonnegative(i.procurementQuantity))))throw Error('菜库版本已变化，请重新读取');
+  return result;
 }

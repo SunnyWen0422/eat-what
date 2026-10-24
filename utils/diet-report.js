@@ -1,6 +1,19 @@
 const flow = require('./meal-workflow')
 const BLOCKS = ['overview', 'actualDetails', 'frequentDishes', 'categoryCounts', 'planExecution', 'completeness']
 const CATEGORY_LABELS = { meat: '荤菜', veg: '素菜', soup: '汤品', staple: '主食', dessert: '甜品', unknown: '未分类' }
+const NUTRIENTS = [['energyKcal','热量','千卡'],['proteinG','蛋白质','克'],['fatG','脂肪','克'],['carbohydrateG','碳水化合物','克'],['fiberG','膳食纤维','克'],['sodiumMg','钠','毫克']]
+
+function presentNutritionReference(nutrition) {
+  if(!nutrition || nutrition.basis!=='recipe_baseline' || nutrition.personalIntakeAvailable!==false)return null
+  const {entryCount,coveredCount,unknownCount}=nutrition
+  if(![entryCount,coveredCount,unknownCount].every(value=>Number.isSafeInteger(value)&&value>=0) || !entryCount || coveredCount+unknownCount!==entryCount)return null
+  const valid=value=>value && NUTRIENTS.every(([key])=>typeof value[key]==='number'&&Number.isFinite(value[key])&&value[key]>=0)
+  const complete=nutrition.complete===true && unknownCount===0 && coveredCount===entryCount && !!valid(nutrition.total)
+  const values=complete?nutrition.total:coveredCount>0&&valid(nutrition.knownTotal)?nutrition.knownTotal:null
+  return {label:complete?'总值':'已知部分',coverage:`已覆盖 ${coveredCount}/${entryCount} 道`,available:!!values,
+    rows:values?NUTRIENTS.map(([key,label,unit])=>({key,label,unit,value:String(Number(values[key].toFixed(1)))})):[],
+    note:'按已吃菜品记录保存的基准配方用量汇总，不代表个人实际摄入。'}
+}
 
 function recordUrl(date, mealType) {
   const target = `/pages/calendar-detail/calendar-detail?date=${encodeURIComponent(date)}`
@@ -40,7 +53,7 @@ function presentDietReport(report, range) {
   const missing = blocks.completeness.daysWithoutActualRecord || 0
   const skipped = blocks.completeness.explicitSkippedMeals || 0
   const coverageNotice = `${blocks.completeness.observedDays === 0 ? '这一周期尚未到观察日期。' : missing ? `记录覆盖不足：${missing} 天没有实际记录。` : '仅回顾已记录的用餐。'}明确取消 ${skipped} 餐，单独说明，不计入吃过；未记录不能推断是否用餐。`
-  return { hasActualRecords: Number(blocks.overview.mealCount)>0, review, coverageNotice, recordUrl: recordUrl(range.startDate), reportView: { metadata, ...blocks }, categoryRows, dailyRows, recordRows }
+  return { hasActualRecords: Number(blocks.overview.mealCount)>0, review, coverageNotice, nutritionReference:presentNutritionReference(blocks.actualDetails.nutrition), recordUrl: recordUrl(range.startDate), reportView: { metadata, ...blocks }, categoryRows, dailyRows, recordRows }
 }
 
-module.exports = { presentDietReport, recordUrl }
+module.exports = { presentDietReport, presentNutritionReference, recordUrl }

@@ -23,6 +23,8 @@ public class DishCandidateQueryService {
     private DishQualityService quality;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
 
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CanonicalCatalogService canonical;
+    private List<Dish> facts(List<Dish> rows){if(canonical!=null&&rows!=null&&!rows.isEmpty())canonical.attachFacts(rows);return rows;}
     private final DishMapper dishMapper;
 
     public DishCandidateQueryService(DishMapper dishMapper) {
@@ -45,14 +47,6 @@ public class DishCandidateQueryService {
             return new DishPageDTO(rows, total, page, pageSize);
         }
 
-        List<String> han=new ArrayList<>();boolean exactHan=!safe(value.getExcludedIngredients()).isEmpty()&&safe(value.getExcludeTagCodes()).isEmpty();
-        for(String term:safe(value.getExcludedIngredients()))if(term!=null&&!term.trim().isEmpty()){String word=term.trim();if(!isHanOnly(word))exactHan=false;han.add(word);}
-        if(exactHan&&!han.isEmpty()){
-            int count=dishMapper.countHanExcludedDishes(userId,safeType,safeKeyword,safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),han);
-            List<Dish> pageRows=offset>=count?Collections.emptyList():dishMapper.selectHanExcludedDishesPage(userId,safeType,safeKeyword,safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),han,pageSize,offset);
-            return new DishPageDTO(pageRows,count,page,pageSize);
-        }
-
         int total = 0;
         Long beforeId = null;
         List<Long> selected = new ArrayList<>();
@@ -60,6 +54,7 @@ public class DishCandidateQueryService {
             List<Dish> batch = observedSelectFilteredCandidateFacts(userId, blankToNull(type), blankToNull(keyword),
                     safe(value.getCuisineCodes()), safe(value.getIncludeTagCodes()), value.getMaxCookMinutes(), beforeId, 256);
             if (batch == null || batch.isEmpty()) break;
+            facts(batch);
             for (Dish dish : batch) {
                 if (hasExcludedTag(dish, value.getExcludeTagCodes()) || containsExcludedIngredient(dish, value.getExcludedIngredients())) continue;
                 if (total >= offset && selected.size() < pageSize) selected.add(dish.getId());
@@ -109,6 +104,7 @@ public class DishCandidateQueryService {
                     safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),beforeId,256);
             if(batch==null||batch.isEmpty())break;
             if(batch.size()>256)throw new IllegalStateException("候选读取超出范围");
+            facts(batch);
             for(Dish dish:batch){
                 if(dish==null||dish.getId()==null||!seen.add(dish.getId())||(dish.getUserId()!=null&&!dish.getUserId().equals(userId)))throw new IllegalStateException("菜谱目录已变化，请重新读取");
                 if(hasExcludedTag(dish,value.getExcludeTagCodes())||containsExcludedIngredient(dish,value.getExcludedIngredients()))continue;
@@ -128,6 +124,7 @@ public class DishCandidateQueryService {
         Set<Long> requested=new java.util.LinkedHashSet<>(ids);if(requested.contains(null)||requested.stream().anyMatch(id->id<1))throw new IllegalArgumentException("菜品编号无效");
         RecommendationCriteria value=criteria==null?new RecommendationCriteria():criteria;
         List<Dish> selected=dishMapper.selectSelectedCandidateFacts(user,null,null,safe(value.getCuisineCodes()),safe(value.getIncludeTagCodes()),value.getMaxCookMinutes(),new ArrayList<>(requested));
+        facts(selected);
         Map<Long,Dish> available=new HashMap<>();if(selected!=null)for(Dish dish:selected){
             if(dish==null||dish.getId()==null||!requested.contains(dish.getId())||(dish.getUserId()!=null&&!user.equals(dish.getUserId())))throw new IllegalStateException("所选菜品不可访问");
             if(!hasExcludedTag(dish,value.getExcludeTagCodes())&&!containsExcludedIngredient(dish,value.getExcludedIngredients()))available.put(dish.getId(),dish);
@@ -142,6 +139,7 @@ public class DishCandidateQueryService {
             List<Dish> part=facts.subList(from,Math.min(facts.size(),from+256));
             List<Long> ids=new ArrayList<>();for(Dish d:part)ids.add(d.getId());
             Map<Long,Dish> byId=new HashMap<>();List<Dish> rows=observedSelectFilteredPageDetails(ids,user);
+            facts(rows);
             if(rows!=null)for(Dish d:rows)if(d.getUserId()==null||d.getUserId().equals(user))byId.put(d.getId(),d);
             for(Dish fact:part){Dish detail=byId.get(fact.getId());if(detail==null||!sameSelectionFacts(fact,detail))throw new MealConsumptionService.VersionConflict("候选菜品已变化，请重新查询");result.add(detail);}
         }
@@ -170,39 +168,24 @@ public class DishCandidateQueryService {
             &&java.util.Objects.equals(a.getCl(),b.getCl())&&java.util.Objects.equals(a.getIngredientsAmounts(),b.getIngredientsAmounts())
             &&java.util.Objects.equals(a.getTagCodes(),b.getTagCodes())&&java.util.Objects.equals(a.getCuisineCode(),b.getCuisineCode())
             &&java.util.Objects.equals(a.getCookMinutes(),b.getCookMinutes())&&java.util.Objects.equals(a.getMetadataVersion(),b.getMetadataVersion())
-            &&java.util.Objects.equals(a.getUserId(),b.getUserId());
+            &&java.util.Objects.equals(a.getUserId(),b.getUserId())
+            &&java.util.Objects.equals(a.getCatalogRevision(),b.getCatalogRevision())
+            &&(a.getRecipeJson()==null&&b.getRecipeJson()==null||java.util.Objects.equals(a.getContentVersion(),b.getContentVersion()));
     }
 
     private boolean hasExcludedTag(Dish dish, List<String> exclusions) {
         if (exclusions == null || exclusions.isEmpty()) return false;
         Set<String> tags = splitCodes(dish.getTagCodes());
         for (String code : exclusions) {
+            if (code != null && code.trim().toUpperCase().startsWith("ALLERGEN_")
+                && dish.getRecipe()!=null && !dish.getRecipe().path("allergenCodes").isArray()) return true;
             if (code != null && tags.contains(code.trim().toUpperCase())) return true;
         }
         return false;
     }
 
     private boolean containsExcludedIngredient(Dish dish, List<String> exclusions) {
-        if (exclusions == null || exclusions.isEmpty()) return false;
-        String searchable = null;
-        for (String excluded : exclusions) {
-            if (excluded == null || excluded.trim().isEmpty()) continue;
-            String term = excluded.trim();
-            // Han characters have no lowercase mapping, and a Han-only term
-            // cannot span the space separating the two source fields. Avoid
-            // copying and case-scanning large ingredient bodies in this path.
-            if (isHanOnly(term)) {
-                if ((dish.getCl() != null && dish.getCl().contains(term))
-                        || (dish.getIngredientsAmounts() != null && dish.getIngredientsAmounts().contains(term))) return true;
-            } else {
-                // Retain the original default-locale and cross-field matching
-                // semantics for Latin, whitespace, punctuation and Unicode.
-                if (searchable == null) searchable = ((dish.getCl() == null ? "" : dish.getCl()) + " "
-                        + (dish.getIngredientsAmounts() == null ? "" : dish.getIngredientsAmounts())).toLowerCase();
-                if (searchable.contains(term.toLowerCase())) return true;
-            }
-        }
-        return false;
+        return CanonicalRecommendationFacts.excludes(dish,exclusions);
     }
 
     private boolean isHanOnly(String term) {

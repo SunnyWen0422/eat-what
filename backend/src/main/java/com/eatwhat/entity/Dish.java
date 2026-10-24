@@ -9,10 +9,48 @@ import java.util.Date;
  */
 @Data
 public class Dish {
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @lombok.Getter(lombok.AccessLevel.NONE)
+    @lombok.Setter(lombok.AccessLevel.NONE)
+    private String receiptContentVersion;
+    /** Only trusted persisted receipts may restore their original version after DTO deserialization. */
+    public void restoreReceiptContentVersion(String version) { receiptContentVersion = version; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private com.eatwhat.dto.CatalogQuality quality;
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String recipeJson;
+    @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = ExactRecipeDeserializer.class)
+    private com.fasterxml.jackson.databind.JsonNode recipe;
+    private com.fasterxml.jackson.databind.JsonNode scaledRecipe;
+    private String catalogRevision;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String quantityPolicy;
+    /** Recipe quantities remain decimal facts at the HTTP boundary as well as in persistence. */
+    public static final class ExactRecipeDeserializer extends com.fasterxml.jackson.databind.JsonDeserializer<com.fasterxml.jackson.databind.JsonNode> {
+        private static final com.fasterxml.jackson.databind.ObjectReader READER = new com.fasterxml.jackson.databind.ObjectMapper()
+                .reader().with(com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+        @Override public com.fasterxml.jackson.databind.JsonNode deserialize(com.fasterxml.jackson.core.JsonParser parser, com.fasterxml.jackson.databind.DeserializationContext context) throws java.io.IOException {
+            return READER.readTree(parser);
+        }
+    }
+    public void setRecipeJson(String value) {
+        receiptContentVersion = null;
+        recipeJson = value;
+        try { recipe = value == null ? null : new com.fasterxml.jackson.databind.ObjectMapper().enable(com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).readTree(value); }
+        catch (java.io.IOException e) { throw new IllegalArgumentException("Invalid canonical recipe", e); }
+    }
+    public void setRecipe(com.fasterxml.jackson.databind.JsonNode value) {
+        receiptContentVersion = null;
+        recipe = value;
+        if(value==null) { recipeJson=null; return; }
+        com.fasterxml.jackson.databind.JsonNode stored=value.deepCopy();
+        for(com.fasterxml.jackson.databind.JsonNode line:stored.path("ingredients"))
+            if(line.isObject()) ((com.fasterxml.jackson.databind.node.ObjectNode)line).remove("ingredient");
+        recipeJson=stored.toString();
+    }
 
     @JsonProperty(value = "contentVersion", access = JsonProperty.Access.READ_ONLY)
-    public String getContentVersion() { return com.eatwhat.util.DishContentVersion.of(this); }
+    public String getContentVersion() { return receiptContentVersion == null ? com.eatwhat.util.DishContentVersion.of(this) : receiptContentVersion; }
 
     @JsonProperty("id")
     private Long id;

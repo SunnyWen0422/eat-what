@@ -66,7 +66,7 @@ export async function checkBoundaries(root: string, dist = resolve(root, 'dist')
       }
       if (/\b(?:window\.open|(?:window\.)?location\.(?:assign|replace))\s*\(|\b(?:window\.)?location\.\w+\s*=|document\.write\s*\(/.test(text)) report('uncontrolled navigation');
       if (transport && [...text.matchAll(/parameters\.set\(([^)]*)\)/g)].some(match => match[1] !== "'type', query.type")) report('personal query outside public transport whitelist');
-      if (transport && (fetchCalls !== 1 || !/const endpoint = '\/api\/public\/catalog\/dishes';/.test(text) || !/method: 'GET', credentials: 'omit', mode: 'same-origin', redirect: 'error'/.test(text) || !/new URLSearchParams\(\{ page: String\(query.page\), pageSize: String\(query.pageSize\) \}\)/.test(text) || !/exactKeys\(query, Object.hasOwn\(query, 'type'\) \? \['page', 'pageSize', 'type'\] : \['page', 'pageSize'\]\)/.test(text))) report('public transport contract changed');
+      if (transport && (fetchCalls !== 2 || !/const endpoint = '\/api\/public\/catalog\/dishes';/.test(text) || !/method: 'GET', credentials: 'omit', mode: 'same-origin', redirect: 'error'/.test(text) || !/new URLSearchParams\(\{ page: String\(query.page\), pageSize: String\(query.pageSize\) \}\)/.test(text) || !/exactKeys\(query, Object.hasOwn\(query, 'type'\) \? \['page', 'pageSize', 'type'\] : \['page', 'pageSize'\]\)/.test(text))) report('public transport contract changed');
       if (path === 'src/ui/App.tsx' && !/const ROUTES = \{ '今天吃什么': '#\/today', '菜谱': '#\/recipes', '日历': '#\/calendar', '我的': '#\/my' \} as const;/.test(text)) report('navigation allowlist changed');
     }
   }

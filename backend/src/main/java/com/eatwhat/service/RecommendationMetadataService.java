@@ -30,11 +30,35 @@ public class RecommendationMetadataService {
     private final Map<String, List<RecommendationOptionsDTO.Option>> groups;
     private final Set<String> cuisineCodes = new HashSet<>();
     private final Set<String> tagCodes = new HashSet<>();
+    private final List<RecommendationOptionsDTO.Option> constraintOptions = new ArrayList<>();
     private final Map<String, Map<String, String>> aliases = new HashMap<>();
 
-    @org.springframework.beans.factory.annotation.Autowired
     public RecommendationMetadataService(DishMapper dishMapper) {
         this(dishMapper, loadCatalog());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RecommendationMetadataService(DishMapper dishMapper, com.eatwhat.mapper.CanonicalCatalogMapper catalog) {
+        this(dishMapper, canonicalOptions(catalog.metadata()));
+    }
+    private static JsonNode canonicalOptions(String document) {
+        try {
+            ObjectMapper json=new ObjectMapper();JsonNode catalog=json.readTree(document);
+            if(catalog.path("catalogContractVersion").asInt()!=4)throw new IllegalStateException("Canonical catalog contract is required");
+            com.fasterxml.jackson.databind.node.ObjectNode root=json.createObjectNode();
+            root.put("metadataVersion",catalog.path("catalogContractVersion").asInt());
+            root.put("minimumClientVersion",loadCatalog().path("minimumClientVersion").asText());
+            com.fasterxml.jackson.databind.node.ArrayNode constraintOptions=root.putArray("constraintOptions");
+            com.fasterxml.jackson.databind.node.ArrayNode constraints=root.putArray("constraintTagCodes");
+            com.fasterxml.jackson.databind.node.ObjectNode groups=root.putObject("groups");for(String group:SUPPORTED_GROUPS)groups.putArray(group);
+            java.util.Iterator<JsonNode> entries=catalog.path("taxonomy").path("entries").elements();
+            while(entries.hasNext()) {JsonNode entry=entries.next();String group=entry.path("dimension").asText();if("allergen".equals(group)){constraints.add(entry.path("code").asText());constraintOptions.addObject().put("code",entry.path("code").asText()).put("label",entry.path("label").asText());continue;}if("dietary".equals(group))group="diet";if("baseFlavor".equals(group)||"specialFlavor".equals(group))group="flavor";if(!SUPPORTED_GROUPS.contains(group))continue;
+                com.fasterxml.jackson.databind.node.ObjectNode option=((com.fasterxml.jackson.databind.node.ArrayNode)groups.path(group)).addObject();option.put("code",entry.path("code").asText());option.put("label",entry.path("label").asText());option.putArray("aliases").add(entry.path("label").asText());
+            }
+            com.fasterxml.jackson.databind.node.ArrayNode quick=root.putArray("homeQuickOptions");
+            for(String code:Arrays.asList("CUISINE_HOME_STYLE","FLAVOR_HOT","DIET_VEGAN","METHOD_STEAM"))for(String group:SUPPORTED_GROUPS)for(JsonNode option:groups.path(group))if(code.equals(option.path("code").asText())){com.fasterxml.jackson.databind.node.ObjectNode q=option.deepCopy();q.put("kind",group);q.put("id",code);quick.add(q);}
+            return root;
+        }catch(Exception e){throw new IllegalStateException("Unable to read canonical recommendation taxonomy",e);}
     }
 
     RecommendationMetadataService(DishMapper dishMapper, JsonNode root) {
@@ -44,6 +68,8 @@ public class RecommendationMetadataService {
             minimumClientVersion = root.path("minimumClientVersion").asText();
             if (minimumClientVersion.trim().isEmpty()) throw new IllegalStateException("minimumClientVersion is required");
             groups = parseGroups(root.path("groups"));
+            for(JsonNode code:root.path("constraintTagCodes"))tagCodes.add(code.asText());
+            for(JsonNode node:root.path("constraintOptions")){RecommendationOptionsDTO.Option option=new RecommendationOptionsDTO.Option();option.setCode(node.path("code").asText());option.setLabel(node.path("label").asText());option.setKind("allergen");constraintOptions.add(option);}
             homeQuickOptions = parseOptions(root.path("homeQuickOptions"), null);
             validateHomeOptions();
         } catch (Exception error) {
@@ -56,6 +82,7 @@ public class RecommendationMetadataService {
         result.setMetadataVersion(metadataVersion);
         result.setMinimumClientVersion(minimumClientVersion);
         result.setGroups(withCounts(groups));
+        result.setConstraintOptions(withCounts(constraintOptions));
         result.setHomeQuickOptions(withCounts(homeQuickOptions));
         return result;
     }

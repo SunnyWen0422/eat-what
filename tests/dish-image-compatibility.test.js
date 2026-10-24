@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -61,7 +62,7 @@ test('assistant cards use the same verified image alias without mutating source 
 test('detail cover, each step image and full preview list use the verified alias', async () => {
   const source = { id: 1, type: 'veg', image: oldImage, steps: '步骤', stepImages: JSON.stringify([oldImage + '#' + oldImage.replace('cp1', 'cp2')]) }
   const view = load('pages/dish-detail/dish-detail.js', {
-    '../../utils/api': { getDishById: async () => ({ ...source }) },
+    '../../utils/api': { getDishById: async () => canonicalDish({ ...source }) },
     '../../utils/util': { getUserStorageKey: key => key },
   })
   view.checkFavoriteStatus = () => {}; view.loadMealQuantities = () => {}; view.measureDetailActions = () => {}

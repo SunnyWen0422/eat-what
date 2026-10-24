@@ -43,9 +43,7 @@ public class RecommendationScorer {
     }
     public int ownedIngredientScore(Dish dish,List<String> owned){
         if(owned==null||owned.isEmpty())return 0;
-        Set<String> names=new HashSet<>();
-        String raw=dish.getIngredientsAmounts();if(raw==null||raw.trim().isEmpty())raw=dish.getCl();
-        if(raw!=null)for(String line:raw.split("###|#|\\n|、|,"))names.add(line.split("\\|",2)[0].trim());
+        Set<String> names=CanonicalRecommendationFacts.mainNames(dish);
         int count=0;for(String name:owned)if(name!=null&&names.contains(name.trim()))count++;
         return count*5;
     }
@@ -54,7 +52,7 @@ public class RecommendationScorer {
         if(selected.stream().anyMatch(d->ownedIngredientScore(d,owned)>0))codes.add("OWNED_INGREDIENT_MATCH");
         if(selected.stream().anyMatch(d->criteria.getPreferredCuisineCodes().contains(d.getCuisineCode())||tags(d.getTagCodes()).stream().anyMatch(criteria.getPreferredTagCodes()::contains)))codes.add("EXPLICIT_PREFERENCE_MATCH");
         if(criteria.getAvoidRecentDays()!=null&&criteria.getAvoidRecentDays()>0&&!recent.isEmpty()&&!selected.isEmpty()&&selected.stream().noneMatch(d->recent.contains(d.getId())))codes.add("RECENT_ACTUAL_AVOIDED");
-        boolean timeKnown=!selected.isEmpty()&&selected.stream().allMatch(d->d.getCookMinutes()!=null&&d.getCookMinutes()>0&&d.getQuality()!=null&&Arrays.asList("VERIFIED","ESTIMATED").contains(d.getQuality().getTimeStatus()));
+        boolean timeKnown=!selected.isEmpty()&&selected.stream().allMatch(d->d.getCookMinutes()!=null&&d.getCookMinutes()>0&&d.getRecipe()!=null&&d.getRecipe().path("timing").has("totalMinutes"));
         if(!timeKnown)unknown.add("cookMinutes");
         if(timeKnown&&criteria.getMaxCookMinutes()!=null&&selected.stream().allMatch(d->d.getCookMinutes()<=criteria.getMaxCookMinutes()))codes.add("KNOWN_TIME_MATCH");
         Map<String,Object> result=new LinkedHashMap<>();result.put("codes",new ArrayList<>(codes));

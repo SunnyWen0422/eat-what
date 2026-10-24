@@ -4,19 +4,20 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
+from canonical_catalog_fixture import canonical_row
 from assistant_v4_isolation import asgi_post, isolated_service, load_main
 
 OWNER = 910011
 TOKEN = "synthetic-internal-token"
 ROWS = [
-    {"id": 1, "name": "清炒青菜", "type": "veg", "cl": "青菜 蒜", "cuisineCode": "HOME", "tagCodes": "LIGHT", "cookMinutes": 10},
-    {"id": 2, "name": "青菜炒蛋", "type": "veg", "cl": "青菜 鸡蛋", "cuisineCode": "HOME", "tagCodes": "LIGHT", "cookMinutes": 10},
-    {"id": 3, "name": "青菜汤", "type": "soup", "cl": "青菜", "cuisineCode": "HOME", "tagCodes": "LIGHT", "cookMinutes": 10},
-    {"id": 4, "name": "辣青菜", "type": "veg", "cl": "青菜 辣椒", "cuisineCode": "HOME", "tagCodes": "LIGHT,SPICY", "cookMinutes": 10},
-    {"id": 5, "name": "粤式青菜", "type": "veg", "cl": "青菜", "cuisineCode": "CANTONESE", "tagCodes": "LIGHT", "cookMinutes": 10},
-    {"id": 6, "name": "炖青菜", "type": "veg", "cl": "青菜", "cuisineCode": "HOME", "tagCodes": "LIGHT", "cookMinutes": 25},
-    {"id": 7, "name": "拌黄瓜", "type": "veg", "cl": "黄瓜", "cuisineCode": "HOME", "tagCodes": "LIGHT", "cookMinutes": 10},
-    {"id": 8, "name": "普通青菜", "type": "veg", "cl": "青菜", "cuisineCode": "HOME", "tagCodes": "", "cookMinutes": 10},
+    canonical_row(1, "清炒青菜", ("青菜", "蒜"), codes=("LIGHT",), cuisine="HOME"),
+    canonical_row(2, "青菜炒蛋", ("青菜", "鸡蛋"), codes=("LIGHT",), cuisine="HOME"),
+    canonical_row(3, "青菜汤", ("青菜",), category="CAT_SOUP_CLEAR", codes=("LIGHT",), cuisine="HOME"),
+    canonical_row(4, "辣青菜", ("青菜", "辣椒"), codes=("LIGHT", "SPICY"), cuisine="HOME"),
+    canonical_row(5, "粤式青菜", ("青菜",), codes=("LIGHT",), cuisine="CANTONESE"),
+    canonical_row(6, "炖青菜", ("青菜",), codes=("LIGHT",), cuisine="HOME", minutes=25),
+    canonical_row(7, "拌黄瓜", ("黄瓜",), codes=("LIGHT",), cuisine="HOME"),
+    canonical_row(8, "普通青菜", ("青菜",), codes=(), cuisine="HOME"),
 ]
 
 
@@ -144,11 +145,7 @@ class AssistantV4ToolContractTest(unittest.TestCase):
             names = {item["name"] for item in catalog["tools"]}
             self.assertIn("compose_meal_plan", names)
             self.assertNotIn("create_calendar_records", names)
-            service.rag._dish_meta = [
-                {"id": 1, "name": "清炒青菜", "type": "veg", "cl": "青菜 蒜", "ingredients": ["青菜", "蒜"]},
-                {"id": 2, "name": "青菜炒蛋", "type": "veg", "cl": "青菜 鸡蛋", "ingredients": ["青菜", "鸡蛋"]},
-                {"id": 3, "name": "青菜汤", "type": "soup", "cl": "青菜", "ingredients": ["青菜"]},
-            ]
+            service.rag._dish_meta = copy.deepcopy(ROWS[:3])
             args = {"filters": {"types": ["veg"], "exclude_ingredients": ["鸡蛋"]}, "top_k": 30}
             call = service.schemas.validate_tool_call({"name": "search_dishes", "arguments": args}, names, catalog["tools"])
             result = service.tools.execute_tool(call["name"], call["arguments"])

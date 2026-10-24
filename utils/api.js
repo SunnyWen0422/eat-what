@@ -828,6 +828,10 @@ module.exports = {
   deleteCustomDish,
   getCustomDishes,
   getDishById,
+  getDishScale: (id, servings, optionalOverrides) => optionalOverrides
+    ? requestSilent(`/dishes/${encodeURIComponent(id)}/scale`, 'POST', { servings: servings == null ? null : servings, optionalOverrides })
+    : requestSilent(`/dishes/${encodeURIComponent(id)}/scale${servings == null ? '' : '?servings=' + encodeURIComponent(servings)}`, 'GET'),
+  getIngredientStandards: keyword => requestSilent(`/dishes/ingredient-standards?keyword=${encodeURIComponent(keyword)}`, 'GET'),
   createShoppingPreview,
   getShoppingList,
   batchAddShoppingItems,

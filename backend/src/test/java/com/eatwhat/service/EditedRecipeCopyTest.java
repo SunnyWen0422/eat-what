@@ -17,16 +17,8 @@ class EditedRecipeCopyTest {
     private final MealConsumptionMapper logs = mock(MealConsumptionMapper.class);
     private final DishQualityMapper quality = mock(DishQualityMapper.class);
     private final Map<String,Object> receipt = new HashMap<>();
-    private Dish source() {
-        Dish source = new Dish(); source.setId(1L); source.setName("清蒸鱼"); source.setType("meat");
-        source.setCl("鱼#盐"); source.setIngredientsAmounts("[{\"name\":\"鱼\",\"quantity\":1,\"unit\":\"条\"}]");
-        source.setStep("旧摘要"); source.setSteps("[{\"text\":\"蒸熟\",\"image\":\"https://example.com/step.jpg\"}]");
-        source.setStepImages("[\"https://example.com/step.jpg\"]"); source.setImage("http://example.com/fish.jpg");
-        source.setFl("原配方2人份"); source.setTips("少盐"); source.setCookMinutes(20);
-        CatalogQuality q = new CatalogQuality(); q.setReviewStatus("VERIFIED"); q.setServingsStatus("VERIFIED");
-        q.setBasePeople(new java.math.BigDecimal("2")); q.setSourceRef("curated-original"); q.setReviewedBy("reviewer");
-        q.setImageRightsStatus("VERIFIED"); source.setQuality(q); return source;
-    }
+    private final CanonicalCatalogService catalog=CanonicalTestCatalog.service();
+    private Dish source() {Dish source=CanonicalTestCatalog.fish(1);source.setTips("少盐");source.setStepImages("[\"https://example.com/step.jpg\"]");CanonicalTestCatalog.changed(source,r->r.put("imageUrl","https://example.com/fish.jpg"));catalog.enrich(source);return source;}
     private CustomDishService service(Dish source) {
         when(logs.lockUser(7L)).thenReturn(7L);
         when(logs.request(7L,"copy-edit")).thenAnswer(call -> receipt.isEmpty() ? null : receipt);
@@ -35,36 +27,19 @@ class EditedRecipeCopyTest {
         when(dishes.lockReadable(1L,7L)).thenReturn(source);
         doAnswer(call -> { ((Dish)call.getArgument(0)).setId(9L); return 1; }).when(dishes).insert(any(Dish.class));
         CustomDishService service = new CustomDishService(mock(DishMapper.class),null,dishes,logs,json);
-        service.setQuality(new DishQualityService(quality,json)); return service;
+        CanonicalTestCatalog.wire(service,catalog);service.setQuality(CanonicalTestCatalog.quality(catalog)); return service;
     }
     private DishWriteRequest request(Dish source) throws Exception {
         Map<String,Object> body = new LinkedHashMap<>(); body.put("requestId","copy-edit"); body.put("expectedVersion",source.getContentVersion());
         body.put("editCopy",true); body.put("name","我的清蒸鱼"); body.put("type",source.getType());
         body.put("cl",source.getIngredientsAmounts()); body.put("step",source.getSteps()); body.put("cookMinutes",source.getCookMinutes());
-        return json.readValue(json.writeValueAsString(body),DishWriteRequest.class);
+        DishWriteRequest request=json.readValue(json.writeValueAsString(body),DishWriteRequest.class);request.setRecipe(source.getRecipe().deepCopy());((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe()).put("name","我的清蒸鱼");return request;
     }
     @Test void editedCopyPreservesUntouchedRichContentImageEvidenceAndDoesOneInsert() throws Exception {
-        Dish source=source(); String original=json.writeValueAsString(source); CustomDishService service=service(source);
-        Dish copy=service.copyDish(7L,1L,request(source));
-        assertEquals("我的清蒸鱼",copy.getName()); assertEquals(7L,copy.getUserId()); assertEquals(9L,copy.getId());
-        assertEquals(source.getIngredientsAmounts(),copy.getIngredientsAmounts()); assertEquals(source.getCl(),copy.getCl());
-        assertEquals(source.getSteps(),copy.getSteps()); assertEquals(source.getStep(),copy.getStep());
-        assertEquals(source.getStepImages(),copy.getStepImages()); assertEquals(source.getImage(),copy.getImage()); assertEquals(source.getTips(),copy.getTips());
-        assertEquals("VERIFIED",copy.getQuality().getReviewStatus()); assertEquals(1L,copy.getQuality().getCopiedFromDishId());
-        assertEquals(source.getContentVersion(),copy.getQuality().getCopiedFromVersion()); assertEquals("curated-original",copy.getQuality().getSourceRef());
-        assertEquals(original,json.writeValueAsString(source)); verify(dishes,times(1)).insert(any()); verify(dishes,never()).update(any());
-        verify(quality,times(1)).save(any(),anyString()); verify(quality,times(1)).saveRevision(any(),anyString());
+        Dish source=source();String original=source.getRecipeJson();CustomDishService service=service(source);Dish copy=service.copyDish(7L,1L,request(source));assertEquals("我的清蒸鱼",copy.getName());assertEquals(7L,copy.getUserId());assertEquals(9L,copy.getId());assertEquals(source.getIngredientsAmounts(),copy.getIngredientsAmounts());assertEquals(source.getSteps(),copy.getSteps());assertEquals(source.getImage(),copy.getImage());assertEquals(source.getTips(),copy.getTips());assertNull(copy.getQuality());assertEquals(original,source.getRecipeJson());verify(dishes,times(1)).insert(any());verify(dishes,times(1)).update(argThat(d->d.getId()==9));verifyNoInteractions(quality);
     }
     @Test void changingRecipeInDraftInvalidatesInheritedClaimsButKeepsProvenance() throws Exception {
-        Dish source=source(); CustomDishService service=service(source); DishWriteRequest request=request(source);
-        request.setCl("鱼#姜"); request.setStep("煎熟#装盘"); request.setEditImage(true); request.setImage("https://example.com/new.jpg");
-        Dish copy=service.copyDish(7L,1L,request);
-        assertEquals("鱼#姜",copy.getIngredientsAmounts()); assertEquals("煎熟#装盘",copy.getSteps()); assertNull(copy.getStepImages());
-        assertEquals("UNREVIEWED",copy.getQuality().getReviewStatus()); assertEquals("UNKNOWN",copy.getQuality().getServingsStatus());
-        assertNull(copy.getQuality().getBasePeople()); assertNull(copy.getQuality().getReviewedBy());
-        assertEquals("UNKNOWN",copy.getQuality().getImageRightsStatus()); assertEquals("curated-original",copy.getQuality().getSourceRef());
-        assertEquals(1L,copy.getQuality().getCopiedFromDishId()); assertEquals("VERIFIED",source.getQuality().getReviewStatus());
-        verify(dishes,never()).update(any());
+        Dish source=source();CustomDishService service=service(source);DishWriteRequest request=request(source);((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe().path("ingredients").get(0)).put("quantity",150);((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe().path("steps").get(0)).put("text","改为煎熟");((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe()).put("imageUrl","https://example.com/new.jpg");Dish copy=service.copyDish(7L,1L,request);assertEquals(150,copy.getRecipe().path("ingredients").get(0).path("quantity").asInt());assertTrue(copy.getSteps().startsWith("改为煎熟"));assertEquals("https://example.com/new.jpg",copy.getImage());assertNull(copy.getQuality());assertEquals(100,source.getRecipe().path("ingredients").get(0).path("quantity").asInt());
     }
     @Test void editedCopyReplayReturnsSavedIdentityEvenAfterSourceChanges() throws Exception {
         Dish source=source(); CustomDishService service=service(source); DishWriteRequest request=request(source);
@@ -76,7 +51,7 @@ class EditedRecipeCopyTest {
     @Test void editedCopyRejectsVersionDriftAndInvalidImageBeforeAnyInsert() throws Exception {
         Dish source=source(); CustomDishService service=service(source); DishWriteRequest request=request(source); request.setExpectedVersion("stale");
         assertThrows(MealConsumptionService.VersionConflict.class,()->service.copyDish(7L,1L,request));
-        request.setExpectedVersion(source.getContentVersion()); request.setEditImage(true); request.setImage("javascript:bad");
+        request.setExpectedVersion(source.getContentVersion()); request.setEditImage(true); request.setImage("javascript:bad");((com.fasterxml.jackson.databind.node.ObjectNode)request.getRecipe()).put("imageUrl","javascript:bad");
         assertThrows(IllegalArgumentException.class,()->service.copyDish(7L,1L,request)); verify(dishes,never()).insert(any());
     }
     @Test void legacyCopyBodyOmitsNewFieldSoPersistedReceiptHashRemainsCompatible() throws Exception {
@@ -87,14 +62,7 @@ class EditedRecipeCopyTest {
         assertEquals(first.getId(),service.copyDish(7L,1L,legacy).getId()); verify(dishes,times(1)).insert(any());
     }
     @Test void sideCategoryRemainsSideAcrossCopyEditAndCreate() throws Exception {
-        Dish source=source(); source.setType("side"); CustomDishService service=service(source);
-        Dish copy=service.copyDish(7L,1L,request(source)); assertEquals("side",copy.getType());
-        Dish owned=source(); owned.setUserId(7L); owned.setIsCustom(1); owned.setType("side");
-        when(dishes.lockReadable(1L,7L)).thenReturn(owned); when(dishes.update(any())).thenReturn(1);
-        when(logs.request(7L,"side-edit")).thenReturn(null); DishWriteRequest edit=request(owned); edit.setRequestId("side-edit");
-        assertEquals("side",service.updatePersonalDish(7L,1L,edit).getType());
-        when(logs.request(7L,"side-create")).thenReturn(null); DishWriteRequest create=request(source); create.setRequestId("side-create");
-        assertEquals("side",service.createPersonalDish(7L,create).getType());
+        Dish source=source();CanonicalTestCatalog.changed(source,r->r.put("categoryCode","CAT_SIDE"));catalog.enrich(source);CustomDishService service=service(source);Dish copy=service.copyDish(7L,1L,request(source));assertEquals("side",copy.getType());Dish owned=source();owned.setUserId(7L);owned.setIsCustom(1);CanonicalTestCatalog.changed(owned,r->r.put("categoryCode","CAT_SIDE"));when(dishes.lockReadable(1L,7L)).thenReturn(owned);when(dishes.update(any())).thenReturn(1);when(logs.request(7L,"side-edit")).thenReturn(null);when(logs.request(7L,"side-create")).thenReturn(null);DishWriteRequest edit=request(owned);edit.setRequestId("side-edit");assertEquals("side",service.updatePersonalDish(7L,1L,edit).getType());DishWriteRequest create=request(source);create.setRequestId("side-create");assertEquals("side",service.createPersonalDish(7L,create).getType());
     }
     @Test void dedicatedEditedRouteRequiresIdentityAndCannotFallBackToLegacyCopySemantics() throws Exception {
         CustomDishService service=mock(CustomDishService.class);
@@ -103,7 +71,7 @@ class EditedRecipeCopyTest {
         java.lang.reflect.Method route=controller.getClass().getMethod("copyEditedDish",Long.class,DishWriteRequest.class,javax.servlet.http.HttpServletRequest.class);
         assertEquals("/{id}/copy-edited",route.getAnnotation(org.springframework.web.bind.annotation.PostMapping.class).value()[0]);
         assertEquals(401,((org.springframework.http.ResponseEntity<?>)route.invoke(controller,1L,request,http)).getStatusCodeValue()); verifyNoInteractions(service);
-        when(http.getAttribute("currentUserId")).thenReturn(7L); when(service.copyDish(7L,1L,request)).thenReturn(source());
+        when(http.getAttribute("currentUserId")).thenReturn(7L); Dish returned=source();when(service.copyDish(7L,1L,request)).thenReturn(returned);
         assertEquals(200,((org.springframework.http.ResponseEntity<?>)route.invoke(controller,1L,request,http)).getStatusCodeValue());
         assertEquals(Boolean.TRUE,json.convertValue(request,Map.class).get("editCopy")); verify(service).copyDish(7L,1L,request);
     }

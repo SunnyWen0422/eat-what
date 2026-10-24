@@ -22,9 +22,11 @@ class PublicCatalogServiceTest {
     @BeforeEach void setup() {
         properties = new PublicCatalogProperties(); mapper = mock(PublicCatalogMapper.class); qualityMapper = mock(DishQualityMapper.class);
         service = new PublicCatalogService(properties,mapper,qualityMapper,json);
+        CanonicalTestCatalog.wire(service,CanonicalTestCatalog.service());
     }
     void enabled() { properties.setEnabled(true); properties.setAllowedDishIds(Arrays.asList(1L,2L)); }
-    Dish dish() { Dish d = new Dish(); d.setId(1L); d.setName("测试菜"); d.setType("veg"); d.setCl("青菜"); d.setStep("煮熟"); d.setIsCustom(0); d.setIsPublished(1); return d; }
+    Dish dish() { Dish d = CanonicalTestCatalog.dish(1,"测试菜","green",new BigDecimal("100"),new BigDecimal("2"));d.setType("veg");d.setIsCustom(0);d.setIsPublished(1);return d; }
+    void image(Dish dish,String image){CanonicalTestCatalog.changed(dish,r->r.put("imageUrl",image));dish.setImage(image);}
     void listed(Dish d) { when(mapper.count(anyList(),isNull())).thenReturn(1L); when(mapper.list(anyList(),isNull(),anyInt(),anyInt())).thenReturn(Collections.singletonList(d)); }
     void status(int expected, org.junit.jupiter.api.function.Executable work) { assertEquals(expected,assertThrows(ResponseStatusException.class,work).getStatus().value()); }
     CatalogQuality profile(Dish d) {
@@ -62,40 +64,40 @@ class PublicCatalogServiceTest {
         enabled(); Dish d=dish(); d.setImage("private image"); d.setStepImages("private media"); d.setKcal(999); d.setCreateTime(new Date()); listed(d); when(mapper.detail(anyList(),eq(1L))).thenReturn(d); quality(json.writeValueAsString(profile(d)));
         PublicDishDTO value=service.detail(1); String text=json.writeValueAsString(value);
         Set<String> keys = new HashSet<>(); json.readTree(text).fieldNames().forEachRemaining(keys::add);
-        assertEquals(new HashSet<>(Arrays.asList("id","name","type","cl","fl","step","steps","tips","ingredientsAmounts","contentVersion","quality","image")),keys);
-        for (String excluded : Arrays.asList("private","userId","isCustom","isPublished","createTime","nutrition","stepImages","sourceHash","contentHash","Evidence")) assertFalse(text.contains(excluded),excluded);
-        assertFalse(text.contains("UNKNOWN_INTERNAL")); assertEquals("VERIFIED",value.getQuality().getReviewStatus()); assertEquals(new BigDecimal("2"),value.getQuality().getBasePeople()); assertEquals("VERIFIED",value.getQuality().getIngredients().get(0).getIdentityStatus());
+        assertEquals(new HashSet<>(Arrays.asList("id","name","type","cl","fl","step","steps","tips","ingredientsAmounts","contentVersion","recipe","scaledRecipe","catalogRevision","quantityPolicy","image")),keys);
+        for (String excluded : Arrays.asList("private","userId","isCustom","isPublished","createTime","stepImages","sourceHash","contentHash","Evidence","compositionSource","quantifiedSubtotal")) assertFalse(text.contains(excluded),excluded);
+        assertFalse(text.contains("UNKNOWN_INTERNAL"));assertNull(value.getQuality());assertEquals(2,value.getRecipe().path("baseServings").asInt());assertEquals(100,value.getScaledRecipe().path("ingredients").get(0).path("quantity").asInt());
         assertEquals(value.getQuality(),service.list(1,50,null).getList().get(0).getQuality()); assertNotNull(value.getContentVersion());
     }
     @Test void missingMalformedMismatchedOrStaleQualityRemainsUnknown() throws Exception {
         enabled(); Dish d=dish(); when(mapper.detail(anyList(),eq(1L))).thenReturn(d);
-        assertEquals("UNKNOWN",service.detail(1).getQuality().getReviewStatus());
+        assertNull(service.detail(1).getQuality());String version=service.detail(1).getContentVersion();
         CatalogQuality stale=profile(d); stale.setSourceRecipeVersion("old fingerprint"); CatalogQuality wrong=profile(d); wrong.setDishId(2L);
         for(String raw : Arrays.asList("{broken}","{}",json.writeValueAsString(stale),json.writeValueAsString(wrong))) {
-            quality(raw); PublicDishDTO value=service.detail(1); assertEquals("UNKNOWN",value.getQuality().getReviewStatus()); assertNull(value.getQuality().getBasePeople()); assertTrue(value.getQuality().getIngredients().isEmpty()); assertEquals("UNKNOWN",value.getQuality().getStepStatus());
+            quality(raw);PublicDishDTO value=service.detail(1);assertNull(value.getQuality());assertEquals(version,value.getContentVersion());assertEquals(100,value.getScaledRecipe().path("ingredients").get(0).path("quantity").asInt());verifyNoInteractions(qualityMapper);
         }
     }
     @Test void releasedCoverSurvivesBothListAndDetailWithoutPublishingOtherMedia() throws Exception {
-        enabled(); Dish d=dish(); d.setImage("https://cp1.douguo.net/upload/food.jpg"); d.setStepImages("private step media");
+        enabled(); Dish d=dish(); image(d,"https://cp1.douguo.net/upload/food.jpg"); d.setStepImages("private step media");
         listed(d); when(mapper.detail(anyList(),eq(1L))).thenReturn(d);
         for(PublicDishDTO value : Arrays.asList(service.detail(1),service.list(1,50,null).getList().get(0))) {
             com.fasterxml.jackson.databind.JsonNode tree=json.valueToTree(value);
             assertEquals(d.getImage(),tree.path("image").asText()); assertFalse(tree.has("stepImages")); assertFalse(tree.has("userId"));
         }
-        d.setImage(" http://images.example.com/food.jpg?size=small ");
+        image(d," http://images.example.com/food.jpg?size=small ");
         assertEquals("https://images.example.com/food.jpg?size=small",json.valueToTree(service.detail(1)).path("image").asText());
     }
     @Test void missingOrInvalidCoverDoesNotBreakRecipeBrowsing() {
         enabled(); Dish d=dish(); listed(d); when(mapper.detail(anyList(),eq(1L))).thenReturn(d);
         for(String image : Arrays.asList(null,"","private image","javascript:alert(1)","data:image/png,x","https://user:secret@example.com/a","https://127.0.0.1/a","https://[::1]/a","https://localhost/a","https://server.local/a","https://server.local./a","https://images.example.com/"+String.join("",Collections.nCopies(2050,"a")))) {
-            d.setImage(image);
+            image(d,image);
             com.fasterxml.jackson.databind.JsonNode value=json.valueToTree(service.detail(1));
-            assertTrue(value.path("image").isNull(),"Invalid cover must serialize as null");
+            assertTrue(value.path("image").isNull(),"Invalid cover must serialize as null");assertTrue(value.path("recipe").path("imageUrl").isNull());
             assertEquals("测试菜",value.path("name").asText()); assertEquals(1,service.list(1,50,null).getList().size());
         }
     }
     @Test void unknownStatusesAndUnverifiedNumbersCannotBePromotedToEvidence() throws Exception {
         enabled(); Dish d=dish(); when(mapper.detail(anyList(),eq(1L))).thenReturn(d); CatalogQuality q=profile(d); q.setReviewStatus("secret custom status"); q.setServingsStatus("VERIFIED"); q.getIngredients().get(0).setQuantityStatus("secret quantity"); quality(json.writeValueAsString(q));
-        PublicDishDTO value=service.detail(1); assertEquals("UNKNOWN",value.getQuality().getReviewStatus()); assertNull(value.getQuality().getBasePeople()); assertEquals("UNKNOWN",value.getQuality().getIngredients().get(0).getQuantityStatus()); assertNull(value.getQuality().getIngredients().get(0).getQuantityValue()); assertFalse(json.writeValueAsString(value).contains("secret"));
+        PublicDishDTO value=service.detail(1);assertNull(value.getQuality());assertEquals(2,value.getRecipe().path("baseServings").asInt());assertFalse(json.writeValueAsString(value).contains("secret"));verifyNoInteractions(qualityMapper);
     }
 }

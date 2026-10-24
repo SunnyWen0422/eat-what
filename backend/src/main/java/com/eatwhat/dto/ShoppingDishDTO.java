@@ -14,5 +14,7 @@ public class ShoppingDishDTO {
     private Long dishId;
     private String dishName;
     private BigDecimal targetPeople;
+    private String quantityPolicy;
+    private String quantityBasis;
     private List<ShoppingPreviewItemDTO> items = new ArrayList<>();
 }

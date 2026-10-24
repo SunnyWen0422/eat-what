@@ -20,7 +20,7 @@ class AssistantCandidateCursorTest {
         ReadResult second=service.read(7L,f.call("search_dishes","top_k",2,"cursor",first.getNextCursor()),f.scope);
         assertEquals(first.getSourceVersion(),second.getSourceVersion());assertNotEquals(first.getItems().get(0).get("id"),second.getItems().get(0).get("id"));
         assertThrows(MealConsumptionService.VersionConflict.class,()->service.read(7L,f.call("search_dishes","query","其他词","cursor",first.getNextCursor()),f.scope));
-        rows.get(5).setCl("目录里的用料改了");
+        com.fasterxml.jackson.databind.node.ObjectNode changed=rows.get(5).getRecipe().deepCopy();changed.put("name","目录里的配方改了");rows.get(5).setRecipe(changed);
         assertThrows(MealConsumptionService.VersionConflict.class,()->service.read(7L,f.call("search_dishes","cursor",first.getNextCursor()),f.scope));
     }
     @Test void oldNumericCursorIsOnlyACompatibilityReadAndNewResponsesAlwaysUseBoundReferences(){

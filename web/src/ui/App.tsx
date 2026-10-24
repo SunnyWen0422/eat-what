@@ -347,11 +347,14 @@ export function App({ repository, catalogLoader, storageStatus }: AppProps) {
     const unresolvedExclusions = preferences.hardExclusions.filter((e) => e.ingredientId === null).map((e) => e.raw);
     if (current.servings > 8 && !current.countsConfirmed) { setNotice('超过 8 人，请先确认菜数和类型组合。'); setError(true); return; }
     if (unresolvedExclusions.length) { setNotice(`忌口尚未识别，未生效：${unresolvedExclusions.join('、')}。请补全、移除或手选。`); setError(true); return; }
-    if (preferences.softPreferences.includes('vegetarian')) { setNotice('当前目录没有完整配料的素食适用审核，素食自动选择不可用。可以核对配料后手选。'); setError(true); return; }
+
     const openSlots = current.slots.filter((slot) => slotId ? slot.id === slotId : !current.dishes.some((d) => d.slotId === slot.id && d.locked));
     const gatedSlots = openSlots.length ? openSlots : current.slots;
     if (!catalog?.ok || !gatedSlots.every((slot) => canGenerate(catalog.value, current.meal, slot.type))) { setNotice('当前餐次或分类的可推荐菜品不足，请重试读取在线菜谱、调整组合或手选。'); setError(true); return; }
-    const input: GenerateInput = { catalog: catalog.value, draft: current, hardExclusions, unresolvedExclusions, favoriteIds: data.favorites.flatMap((favorite) => typeof favorite.recipeId === 'string' ? [favorite.recipeId] : []), actualMeals: data.actualMeals, today: localDate(new Date(), zone), seed: ++seedRef.current };
+    const vegetarian=preferences.softPreferences.includes('vegetarian');
+    const eligibleRecipes=vegetarian?catalog.value.recipes.filter(r=>r.canonical?.dietaryCodes?.some(code=>['DIET_VEGAN','DIET_OVO_LACTO','DIET_LACTO_OVO'].includes(code))):catalog.value.recipes;
+    if(vegetarian&&!gatedSlots.some(slot=>eligibleRecipes.some(recipe=>recipe.generationEligible&&recipe.meals.includes(current.meal)&&recipe.types.includes(slot.type)))){setNotice('当前目录没有适合本餐的明确素食菜谱，请调整组合或手选。');setError(true);return;}
+    const input: GenerateInput = { catalog: vegetarian ? {...catalog.value,recipes:eligibleRecipes}:catalog.value, draft: current, hardExclusions, unresolvedExclusions, favoriteIds: data.favorites.flatMap((favorite) => typeof favorite.recipeId === 'string' ? [favorite.recipeId] : []), actualMeals: data.actualMeals, today: localDate(new Date(), zone), seed: ++seedRef.current };
     const result = slotId ? replaceSlot(input, slotId) : generateMeal(input);
     if (!result.ok) { setNotice(result.error.message); setError(true); return; }
     setGeneration(result.value);

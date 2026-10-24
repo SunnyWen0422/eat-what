@@ -62,8 +62,8 @@ export function Today(props: TodayProps) {
 
       <label>用餐人数<input type="number" min="1" max="50" step="1" value={servingsInput} disabled={disabled} onChange={(event) => { const value = event.target.value; setServingsInput(value); setServingsEdited(value !== String(settings.servings)); }} /></label>
       <label>草稿餐次<select value={settings.meal} disabled={disabled} onChange={(event) => props.onSettings({ meal: event.target.value as Meal })}>{Object.entries(MEAL_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-      <label>素食组合（完整配料需审核）<input type="checkbox" checked={preferences.softPreferences.includes('vegetarian')} disabled={disabled} onChange={(event) => props.onSettings({ vegetarian: event.target.checked })} /></label>
-      {preferences.softPreferences.includes('vegetarian') && <p>已改为素菜组合。完整配料尚未核实，请核对后手选。</p>}
+      <label>素食组合<input type="checkbox" checked={preferences.softPreferences.includes('vegetarian')} disabled={disabled} onChange={(event) => props.onSettings({ vegetarian: event.target.checked })} /></label>
+      {preferences.softPreferences.includes('vegetarian') && <p>按配方食材筛选素食菜品。</p>}
       <label>菜数<input type="number" min="1" max="20" step="1" value={countInput} disabled={disabled} onChange={(event) => { const value = event.target.value; setCountInput(value); setCountEdited(value !== String(settings.slots.length)); }} /></label>
       {invalidSettings && <p role="alert">人数需为 1–50，菜数需为 1–20。当前输入尚未应用。</p>}
       <button disabled={disabled || invalidSettings || !unappliedNumbers} onClick={applyNumbers}>应用人数和菜数</button>

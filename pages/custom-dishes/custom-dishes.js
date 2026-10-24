@@ -133,10 +133,10 @@ Page({
     if (pending && pending.expectedVersion) this._original.contentVersion = pending.expectedVersion
     const source = pending || dish
     const recipeForm = require('../../utils/personal-recipes').recipeForm
-    const form = pending && (!copyDraft || pending.editCopy) ? recipeForm({ ...dish, ...pending, ingredientsAmounts: pending.cl, steps: pending.step, fl: pending.editServingDescription ? pending.fl : dish.fl, image: pending.editImage ? pending.image : dish.image }) : recipeForm(dish)
+    const form = pending && pending.recipe ? (this._writeJournal.pendingDraft((copyDraft?'dish:copy:':'dish:edit:')+dish.id) || require('../../utils/canonical-authoring').draftForm(pending)) : pending && (!copyDraft || pending.editCopy) ? recipeForm({ ...dish, ...pending, ingredientsAmounts: pending.cl, steps: pending.step, fl: pending.editServingDescription ? pending.fl : dish.fl, image: pending.editImage ? pending.image : dish.image }) : recipeForm(dish)
     this._editInitial = JSON.stringify({ form, type: source.type })
     this.setData({ editing: true, loading: false, copyDraft, legacyCopyPending: !!(copyDraft && pending && !pending.editCopy), editExtrasVisible: false, formFocus: '', editPending: !!pending, formError: pending ? '上次保存尚未确认，请重试。' : '', form,
-      editQualityNotice: require('../../utils/recipe-quality').editRecipeQualityNotice(dish, form), typeIndex: Math.max(0,['meat','veg','soup','staple','dessert','side'].indexOf(source.type || dish.type)) }); this.syncEditLeaveAlert()
+      editQualityNotice: require('../../utils/recipe-quality').editRecipeQualityNotice(dish, form), typeIndex: Math.max(0,['meat','veg','soup','staple','dessert','side'].indexOf(source.type || form.type || dish.type)) }); this.syncEditLeaveAlert()
   },
   onInput(e) {
     if (!this.ensureOwner() || !this.data.editing || this.data.saving || this.data.editPending) return
@@ -180,11 +180,14 @@ Page({
     this.setData({ saving: true, formError: '' })
     try {
       const recipes = require('../../utils/personal-recipes')
-      const saved = await this._writeJournal.run(action, (copyDraft ? recipes.recipeCopyBody : recipes.recipeEditBody)(this._original, form, ['meat','veg','soup','staple','dessert','side'][this.data.typeIndex]), async body => {
+      const payload=this._writeJournal.pending(action) || await require('../../utils/canonical-authoring').body(this._original,form,['meat','veg','soup','staple','dessert','side'][this.data.typeIndex],api.getIngredientStandards)
+      if (!this.current(scope, identity) || epoch !== this._epoch) return
+      if(copyDraft) payload.editCopy=true
+      const saved = await this._writeJournal.run(action, payload, async body => {
         const result = await (copyDraft ? (body.editCopy ? api.copyEditedPersonalDish(id, body) : api.copyPersonalDish(id, body)) : api.updateCustomDish(id, body))
         if (!result || !Number.isSafeInteger(Number(result.id)) || Number(result.id) < 1 || (copyDraft ? Number(result.id) === Number(id) : Number(result.id) !== Number(id))) throw new Error('保存结果尚未确认，请重试。')
         return result
-      })
+      }, {...form,type:['meat','veg','soup','staple','dessert','side'][this.data.typeIndex]})
       if (!this.current(scope, identity) || epoch !== this._epoch) return
       if (copyDraft && this.data.legacyCopyPending) {
         // Recover historical copy receipts exactly; do not add an automatic second write.

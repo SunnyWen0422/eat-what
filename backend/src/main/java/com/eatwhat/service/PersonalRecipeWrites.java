@@ -20,7 +20,7 @@ final class PersonalRecipeWrites {
         Map<String,Object> previous=logs.request(user,requestId);
         if(previous==null)return null;
         if(!hash.equals(previous.get("requestHash")))throw new MealConsumptionService.VersionConflict("请求标识已用于不同内容，请重新读取");
-        try { return json.readValue(String.valueOf(previous.get("responseJson")),type); }
+        try { return com.eatwhat.util.DishSnapshotReader.read(json,String.valueOf(previous.get("responseJson")),type); }
         catch(java.io.IOException error) { throw new IllegalStateException("操作结果无法读取",error); }
     }
     void save(Long user,String requestId,String hash,Object result) { logs.log(user,requestId,hash,encode(result)); }

@@ -35,7 +35,7 @@ export function manualWarnings(recipe: RecipeSnapshot, hardExclusions: string[],
 }
 export function selectionWeight(recipe: RecipeSnapshot, input: Pick<GenerateInput, 'favoriteIds' | 'actualMeals' | 'today'>): number {
   const recent = input.actualMeals.some((actual) => isRecentLocalDate(actual.date, input.today) && actual.snapshots.some((snapshot) => duplicate(snapshot, recipe)));
-  return (input.favoriteIds.includes(recipe.recipeId) ? 2 : 1) * (recent ? 0.5 : 1);
+  return recent ? 0.5 : 1;
 }
 export function recommendationEvidence(recipe: RecipeSnapshot, input: Pick<GenerateInput, 'favoriteIds' | 'actualMeals' | 'today'>): string[] {
   const reasons:string[]=[];
@@ -45,13 +45,9 @@ export function recommendationEvidence(recipe: RecipeSnapshot, input: Pick<Gener
   return reasons.slice(0,2);
 }
 function validCatalogRecipe(value: unknown): value is CatalogRecipe {
-  return isRecipeSnapshot(value, ['meals', 'reviewStatus', 'generationEligible', 'reviewedAt', 'issues', 'stepStatus', 'servingsStatus', 'familyIdentity', 'mealEligibility'])
-    && isObject(value) && Array.isArray(value.meals) && value.meals.every((meal) => MEAL_VALUES.includes(meal))
-    && ['VERIFIED', 'UNREVIEWED', 'UNKNOWN', 'BROWSE_ONLY', 'REJECTED'].includes(value.reviewStatus as string)
-    && typeof value.generationEligible === 'boolean' && (value.reviewedAt === null || isLocalDate(value.reviewedAt))
-    && Array.isArray(value.issues) && value.issues.every((issue) => isText(issue))
-    && ['VERIFIED', 'UNKNOWN'].includes(value.stepStatus as string) && ['VERIFIED', 'UNKNOWN'].includes(value.servingsStatus as string)
-    && value.familyIdentity === 'database-id-fallback' && value.mealEligibility === 'local-convention';
+  return isRecipeSnapshot(value, ['meals','generationEligible','issues','familyIdentity','mealEligibility'])
+    && isObject(value) && Array.isArray(value.meals) && value.meals.every((meal:Meal)=>MEAL_VALUES.includes(meal)) && !!value.canonical
+    && typeof value.generationEligible==='boolean' && value.familyIdentity==='canonical' && value.mealEligibility==='canonical';
 }
 function validateInput(input: GenerateInput): Result<GenerateInput> {
   const boundary = validateJsonBoundary(input); if (!boundary.ok) return boundary as Result<GenerateInput>;
@@ -64,7 +60,7 @@ function validateInput(input: GenerateInput): Result<GenerateInput> {
   return { ok: true, value: input };
 }
 function eligible(recipe: CatalogRecipe, input: GenerateInput, slot: Slot): boolean {
-  return recipe.generationEligible === true && !['REJECTED', 'BROWSE_ONLY'].includes(recipe.reviewStatus)
+  return recipe.generationEligible === true && !!recipe.canonical
     && recipe.steps.some(step => step.trim().length > 0) && recipe.ingredients.some(ingredient => ingredient.raw.trim().length > 0)
     && recipe.meals.includes(input.draft.meal) && recipe.types.includes(slot.type);
 }

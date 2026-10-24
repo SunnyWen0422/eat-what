@@ -1,8 +1,9 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path')
 function fixture(){let page,owner='A',dish={id:1,name:'同名菜',steps:[{text:'第一步'},{instruction:'第二步'}],ingredientsAmounts:[{name:'鸡蛋',quantity:'2',unit:'个'}]};const memory=new Map(),scrolls=[]
  const wx={getStorageSync:k=>memory.get(k),setStorageSync:(k,v)=>memory.set(k,structuredClone(v)),pageScrollTo:v=>scrolls.push(v)}
  const api={getDishById:async()=>structuredClone(dish)}
- vm.runInNewContext(fs.readFileSync('pages/meal-cooking/meal-cooking.js','utf8'),{Page:v=>page=v,wx,console,require:n=>n.endsWith('/api')?api:n.endsWith('/font-scale')?Object.assign(()=>1,{base:16}):n.endsWith('/util')?{getUserStorageKey:k=>owner+':'+k}:require(path.resolve('pages/meal-cooking',n))})
+ vm.runInNewContext(fs.readFileSync('pages/meal-cooking/meal-cooking.js','utf8'),{Page:v=>page=v,wx,console,require:n=>n.endsWith('/api')?canonicalApi(api):n.endsWith('/font-scale')?Object.assign(()=>1,{base:16}):n.endsWith('/util')?{getUserStorageKey:k=>owner+':'+k}:require(path.resolve('pages/meal-cooking',n))})
  page.data=structuredClone(page.data);page.setData=(v,callback)=>{Object.assign(page.data,v);callback?.()};page.onLoad({recipeId:'1'});return {page,memory,scrolls,edit:patch=>Object.assign(dish,patch),switch:()=>owner='B'}
 }
 test('structured steps and ingredients remain readable, reopening resumes the current version',async()=>{
@@ -14,7 +15,7 @@ test('unversioned edited steps reset reading with a notice rather than reuse a s
 test('numbered source remains the reading fingerprint while the displayed step has only one ordinal',async()=>{
  const f=fixture();f.edit({steps:['1. 加1.5克盐','2. 烤20分钟']})
  await f.page.onShow()
- assert.deepEqual(Array.from(f.page.data.dishes[0].stepsList),['1. 加1.5克盐','2. 烤20分钟'])
+ assert.deepEqual(Array.from(f.page.data.dishes[0].recipe.steps,step=>step.text),['1. 加1.5克盐','2. 烤20分钟'])
  assert.deepEqual(Array.from(f.page.data.steps),['加1.5克盐','烤20分钟'])
  f.page.onNextStep();await f.page.onShow()
  assert.equal(f.page.data.stepIndex,1)

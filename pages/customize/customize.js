@@ -107,7 +107,7 @@ Page({
     const menuIntentKey=getUserStorageKey('openPersonalMenus')
     if(this._openMenusRequested || wx.getStorageSync(menuIntentKey)){this._openMenusRequested=false;wx.removeStorageSync(menuIntentKey);this.onOpenMenus()}
     const pendingCustom = this.writeJournal().pending('dish:create')
-    if (pendingCustom) this.setData({ showCustomForm: true, customPending: true, customForm: { ...emptyCustomForm(), name: pendingCustom.name, type: pendingCustom.type, ingredients: String(pendingCustom.cl || '').replace(/#/g,'\n'), steps: String(pendingCustom.step || '').replace(/#/g,'\n'), cuisineCode: pendingCustom.cuisineCode || '', tagCodes: String(pendingCustom.tagCodes || '').split(',').filter(Boolean), cookMinutes: pendingCustom.cookMinutes == null ? '' : String(pendingCustom.cookMinutes), servingDescription: pendingCustom.fl || '', image: pendingCustom.image || '' } })
+    if (pendingCustom) this.setData({showCustomForm:true,customPending:true,customForm:{...emptyCustomForm(),...(this.writeJournal().pendingDraft('dish:create') || (pendingCustom.recipe?require('../../utils/canonical-authoring').draftForm(pendingCustom):require('../../utils/personal-recipes').recipeForm(pendingCustom)))}})
     this._planOwnerScope = getUserStorageKey('mealView')
     const rules=require('../../utils/meal-workspace'),pending=wx.getStorageSync(getUserStorageKey('pendingRecipeRecord')),intent=wx.getStorageSync(getUserStorageKey('recipeSelectionIntent'))
     const target=pending || wx.getStorageSync(getUserStorageKey('activeMealTarget')) || rules.defaultTarget()
@@ -438,11 +438,13 @@ Page({
     const identity = this._browseIdentity, epoch = this._privateEpoch || 0
     this.setData({ savingCustom: true, customError: '' })
     try {
-      const saved = await this.writeJournal().run('dish:create', { name: name.trim(), type, cl: ingredients.trim().replace(/\n/g, '#'), step: steps.trim().replace(/\n/g, '#'), cuisineCode: cuisineCode || null, tagCodes: tagCodes.join(','), cookMinutes: Number(cookMinutes) > 0 ? Number(cookMinutes) : null, fl: String(servingDescription || '').trim() || null, image: String(image || '').trim() || null }, async body => {
+      const payload=this.writeJournal().pending('dish:create') || await require('../../utils/canonical-authoring').body(null,this.data.customForm,type,api.getIngredientStandards)
+      if (!this.isBrowseCurrent(identity, epoch)) return
+      const saved = await this.writeJournal().run('dish:create', payload, async body => {
         const result = await api.createCustomDish(body), id = result && result.id
         if (!result || !['number','string'].includes(typeof id) || !Number.isSafeInteger(Number(id)) || Number(id) < 1) throw new Error('保存结果未确认，菜谱目的地未读到，请重试原保存。')
         return result
-      })
+      }, this.data.customForm)
       if (!this.isBrowseCurrent(identity, epoch)) return
       this.setData({ showCustomForm: false, customForm: emptyCustomForm(), customFocus: '', personalSaveMessage: '已保存到我的菜谱，正在打开菜谱详情。' }); this._customInitial = null; this.syncCustomLeaveAlert()
       wx.showToast({ title: '已保存到我的菜谱', icon: 'success' }); wx.navigateTo({ url: '/pages/dish-detail/dish-detail?id=' + Number(saved.id) })

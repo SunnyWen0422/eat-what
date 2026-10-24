@@ -34,22 +34,10 @@ function parseIngredient(value) {
 function ingredientLine(row) { return row.name + (row.amount ? ' ' + row.amount : '') + (row.preparation ? '（' + row.preparation + '）' : '') }
 function recipeSourceText(value) { return text(value).includes('|') ? ingredientLine(parseIngredient(value)) : cleanRecipeText(value) }
 function presentRecipeIngredients(dish = {}) {
-  const raw = rowsOf(dish.ingredientsAmounts || dish.cl).map(parseIngredient).filter(row => row.name && !descriptors.has(row.name))
-  const facts = dish.quality && Array.isArray(dish.quality.ingredients) ? dish.quality.ingredients : []
-  const rejected = new Set(facts.filter(x => x.identityStatus === 'REJECTED').flatMap(x => [cleanRecipeText(x.name), parseIngredient(x.rawText || '').name]))
-  const represented = new Set(facts.flatMap(x => [cleanRecipeText(x.name), parseIngredient(x.rawText || '').name]))
-  const ingredients = facts.length ? facts.filter(x => x.identityStatus !== 'REJECTED').map(fact => {
-    const evidence = parseIngredient(fact.rawText || '')
-    const original = raw.find(x => x.name === cleanRecipeText(fact.name) || x.name === evidence.name) || {}
-    const verified = dish.quality.reviewStatus === 'VERIFIED' && fact.identityStatus === 'VERIFIED' && fact.quantityStatus === 'VERIFIED' && Number(fact.quantityValue) > 0
-    return { name: cleanRecipeText(fact.name) || original.name || evidence.name,
-      amount: verified ? amountText(fact.quantityValue, fact.unit) : amountText(fact.rawQuantity, fact.rawUnit || fact.unit) || evidence.amount || original.amount || '',
-      preparation: cleanRecipeText(fact.preparation) || evidence.preparation || original.preparation || '' }
-  }).concat(raw.filter(row => !represented.has(row.name))) : raw
-  const rows = ingredients.filter(x => x.name && !rejected.has(x.name) && !descriptors.has(x.name))
-    .map(row => ({ ...row, wide: row.name.length > 12 || row.amount.length > 18 || row.preparation.length > 20 }))
-  const q = dish.quality || {}
-  return { rows, lines: rows.map(ingredientLine), basis: q.servingsStatus === 'VERIFIED' && Number(q.basePeople) > 0 ? `原方 ${q.basePeople} 人份` : '原方用量' }
+  if (!dish.recipe) return {rows:[],lines:[],basis:''}
+  const canonical = require('./canonical-recipe')
+  const rows = canonical.ingredientRows(dish, dish.scaledRecipe)
+  return { rows, lines:rows.map(ingredientLine), basis:canonical.servingLabel(dish,dish.scaledRecipe) }
 }
 function recipeNotes(dish = {}) {
   const steps = rowsOf(dish.steps || dish.step).map(x => cleanRecipeText(readableRecipeLine(x)))

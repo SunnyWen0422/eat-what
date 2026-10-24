@@ -255,7 +255,7 @@ public class ControlledToolHarnessService {
     private void save(Long user,ControlledToolTask task){if(db.save(user,task.id,encode(task))!=1)throw new IllegalStateException("任务回执未保存");}
     private String hash(Object value){return WorkflowRequestHash.sha256(encode(value));}
     private String encode(Object value){try{return json.writeValueAsString(value);}catch(Exception error){throw new IllegalStateException("任务内容无法保存",error);}}
-    private ControlledToolTask decode(Map<String,Object> row){try{return json.readValue(String.valueOf(row.get("stateJson")),ControlledToolTask.class);}catch(Exception error){throw new IllegalStateException("任务回执无法读取",error);}}
+    private ControlledToolTask decode(Map<String,Object> row){try{return json.readerFor(ControlledToolTask.class).with(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).readValue(String.valueOf(row.get("stateJson")));}catch(Exception error){throw new IllegalStateException("任务回执无法读取",error);}}
     private MealConsumptionService.VersionConflict conflict(String message){return new MealConsumptionService.VersionConflict(message);}
     private static class PreviewExpired extends RuntimeException { }
 }

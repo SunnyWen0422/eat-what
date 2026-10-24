@@ -99,6 +99,6 @@ public class DishQueryService {
         int safeLimit = Math.max(1, Math.min(MAX_LITE_LIMIT, limit));
         String safeType = type == null || type.trim().isEmpty() ? null : type.trim();
         String safeKeyword = keyword == null || keyword.trim().isEmpty() ? null : keyword.trim();
-        return dishMapper.selectDishesLite(safeType, safeKeyword, safeLimit);
+        return enrich(dishMapper.selectDishesLite(safeType, safeKeyword, safeLimit));
     }
 }

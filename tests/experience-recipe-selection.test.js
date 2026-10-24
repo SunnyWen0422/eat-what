@@ -1,3 +1,4 @@
+const {canonicalDish,canonicalApi}=require('./fixtures/canonical-dish')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -35,7 +36,7 @@ function fixture(options = {}) {
     commandMealWorkspace: async (id, body) => { writes.push({ id, body: plain(body) }); if (hold) await hold; if (commandFailure || failure) throw commandFailure || failure; const next = replies.shift(); if (!next) throw Error('No declared HTTP reply'); row = plain(next); return plain(next) },
     getWorkspaceRequest: async () => null, getWorkspaceTask: async () => plain(options.task || { id: 'task-one', workspaceId: 'workspace-A', baseRevision: 5, status: 'draft' }),
     confirmMealWorkspace: () => { throw Error('Recipe browsing must never write calendar') }, saveMealPlan: () => { throw Error('Recipe browsing must never write calendar') }, }
-  const overrides = { 'utils/api.js': api, 'utils/util.js': util, 'utils/account-identity.js': { currentIdentity: () => account }, 'utils/config.js': { ENABLE_MEAL_WORKSPACE: true, getApiBaseUrl:()=> 'https://isolated.invalid/api' },
+  const overrides = { 'utils/api.js': canonicalApi(api), 'utils/util.js': util, 'utils/account-identity.js': { currentIdentity: () => account }, 'utils/config.js': { ENABLE_MEAL_WORKSPACE: true, getApiBaseUrl:()=> 'https://isolated.invalid/api' },
     'utils/font-scale.js': Object.assign(() => 1, { base: 16 }), 'utils/recommendation-options.js': { loadRecommendationOptions: async () => ({ options: { groups: {} } }) } }
   function load(relative) {
     relative = relative.replace(/\\/g, '/')
@@ -194,7 +195,7 @@ test('same-account different-meal reentry cancels a stale confirmation without l
 })
 test('failed quantity preview never erases real original ingredients', async () => {
   const f=fixture();f.api.getDishById=async()=>({...dishes[2],ingredientsAmounts:'菌菇|200|g#水|500|ml'});const page=f.page('pages/dish-detail/dish-detail')
-  await page.loadDishDetail(3);await settle();assert.ok(page.data.dish.ingredientsList.some(line=>line.includes('菌菇')));assert.equal(page.data.ingredientNotice,'原方用量')
+  await page.loadDishDetail(3);await settle();assert.ok(page.data.dish.ingredientsList.some(line=>line.includes('菌菇')));assert.equal(page.data.ingredientNotice,'整道菜用量')
 })
 test('recipe recovery is a real visible button and component actions have reachable handlers', () => {
   for(const route of ['customize/customize','dish-detail/dish-detail','favorite-dishes/favorite-dishes']) {
@@ -264,9 +265,9 @@ test('unknown first workspace creation remains recoverable without inventing sel
   assert.equal(page.data.mealPrimaryLabel,'加入本餐');assert.equal(page.data.selectionBlocked,true)
 })
 test('original array ingredients remain readable when quantity preview is empty', async () => {
-  const f=fixture();f.api.getDishById=async()=>({...dishes[2],ingredientsAmounts:['菌菇 200g','水 500ml']})
+  const f=fixture();f.api.getDishById=async()=>({...dishes[2],ingredientsAmounts:['菌菇 200克','水 500毫升']})
   const page=f.page('pages/dish-detail/dish-detail');await page.loadDishDetail(3);await settle()
-  assert.deepEqual(plain(page.data.dish.ingredientsList),['菌菇 200g','水 500ml'])
+  assert.deepEqual(plain(page.data.dish.ingredientsList),['菌菇 200克','水 500毫升'])
 })
 
 test('filtering favorites keeps the authoritative already-added markers', async () => {

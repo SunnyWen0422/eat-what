@@ -11,7 +11,7 @@ public final class BalancedRecommendationPolicy {
     private final RecommendationMetadataService metadata;
     public BalancedRecommendationPolicy(RecommendationMetadataService metadata){this.metadata=metadata;}
     public static boolean enabled(MealContext c){return VERSION.equals(c.getRecommendationPolicy());}
-    public static String identity(Dish d){String name=d.getName();return name==null||name.trim().isEmpty()?"id:"+d.getId():name.replaceAll("[\\s\\u3000]+","").toLowerCase(Locale.ROOT);}
+    public static String identity(Dish d){if(d.getRecipe()!=null&&d.getRecipe().hasNonNull("dishGroupId"))return "group:"+d.getRecipe().path("dishGroupId").asText();String name=d.getName();return name==null||name.trim().isEmpty()?"id:"+d.getId():name.replaceAll("[\\s\\u3000]+","").toLowerCase(Locale.ROOT);}
     static Set<String> tags(String value){Set<String> result=new LinkedHashSet<>();if(value!=null)for(String s:value.split(","))if(!s.trim().isEmpty())result.add(s.trim().toUpperCase(Locale.ROOT));return result;}
     private static String code(String value){return value==null?"":value.trim().toUpperCase(Locale.ROOT);}
     public Set<String> features(Dish d){
@@ -51,15 +51,7 @@ public final class BalancedRecommendationPolicy {
         Map<String,Set<String>> required=groups(c.getCriteria());return hits(d,required)==required.size();
     }
     static Set<String> mainIngredients(Dish d){
-        Set<String> names=new LinkedHashSet<>();if(d.getQuality()!=null&&d.getQuality().getIngredients()!=null)for(CatalogQuality.Ingredient i:d.getQuality().getIngredients())
-            if(i.getName()!=null&&Arrays.asList("main","MAIN","主料").contains(i.getRole())&&Arrays.asList("PARSED","VERIFIED").contains(i.getIdentityStatus()))names.add(i.getName().trim());
-        // Candidate facts contain the source's explicit name/amount/unit/role columns.
-        // Never infer a main ingredient from a recipe title, prose, or an absent role.
-        if(d.getQuality()==null&&d.getIngredientsAmounts()!=null)for(String line:d.getIngredientsAmounts().split("###|\\r?\\n|#")){
-            String[] fields=line.split("\\|",-1);if(fields.length>=4&&Arrays.asList("main","MAIN","主料").contains(fields[3].trim())&&fields[0].trim().matches("[\\p{L}]{1,30}"))names.add(fields[0].trim());
-        }
-        names.removeAll(Arrays.asList("油","盐","糖","水","食用油","植物油","食盐","白糖","生抽","老抽","酱油","料酒","醋","味精","鸡精"));
-        return names;
+        return CanonicalRecommendationFacts.mainNames(d);
     }
     public double weight(Dish d,MealContext c,UserPreferenceDTO saved,List<Dish> chosen,Map<String,Double> learned){
         Map<String,Set<String>> wishes=enabled(c)?groups(c.getRecommendationPreferences()):Collections.emptyMap();Map<String,Set<String>> usual=savedGroups(saved);

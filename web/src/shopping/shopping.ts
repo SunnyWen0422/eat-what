@@ -1,4 +1,6 @@
-import type { MealDraft, PersonalData, Plan, Quantity, RecipeSnapshot, ShoppingDiff, ShoppingFragment, ShoppingItem, ShoppingList, ShoppingListInput, ShoppingSource } from '../domain/types.ts';
+import { fetchCanonicalScale } from '../catalog/public-transport.ts';
+import type { ScaledIngredient } from '../domain/types.ts';
+import type { MealDraft, PersonalData, Plan, Ingredient, Quantity, RecipeSnapshot, ShoppingDiff, ShoppingFragment, ShoppingItem, ShoppingList, ShoppingListInput, ShoppingSource } from '../domain/types.ts';
 import { isInteger, isMealDraft, isPlan, isRecipeSnapshot, isUuid, LIMITS, validateJsonBoundary } from '../domain/validation.ts';
 import { mapQuantity, safeAmount, scaleIngredient } from './quantities.ts';
 export function canonicalShopping(value:unknown):string {
@@ -12,7 +14,25 @@ function fingerprint(value:unknown):string {
   for(const byte of new TextEncoder().encode(canonicalShopping(value)))hash=BigInt.asUintN(64,(hash^BigInt(byte))*1099511628211n);
   return hash.toString(16).padStart(16,'0');
 }
-export function sourceDigest(snapshots:RecipeSnapshot[],servings:number):string {return fingerprint({snapshots,servings});}
+const sourceSnapshots=(snapshots:RecipeSnapshot[])=>snapshots.map(({canonicalScale:_scale,...snapshot})=>snapshot);
+export function sourceDigest(snapshots:RecipeSnapshot[],servings:number):string {return fingerprint({snapshots:sourceSnapshots(snapshots),servings});}
+export async function prepareCanonicalSources(sources:ShoppingSource[]):Promise<ShoppingSource[]> {
+ // Preserve references until buildShopping admits the complete expanded size.
+ // Only attach a new server result; do not copy potentially large saved snapshots here.
+ return Promise.all(sources.map(async source=>({...source,snapshots:await Promise.all(source.snapshots.map(async snapshot=>{
+  if(!snapshot.canonical)return snapshot;
+  const scaled=await fetchCanonicalScale(snapshot.canonical.recipeId,null,snapshot.canonical.revision);
+  if(snapshot.contentVersion&&scaled.contentVersion!==snapshot.contentVersion)throw Error('菜谱已更新，请重新选择菜谱');
+  return {...snapshot,canonicalScale:scaled};
+ }))})));
+}
+function serverScaled(snapshot:RecipeSnapshot,ingredient:Ingredient,target:number,index:number):ScaledIngredient {
+ const scale=snapshot.canonicalScale;
+ if(!scale||scale.quantityPolicy!=='fixed-recipe-v1'||scale.quantityBasis!=='fixed_recipe'||scale.portionBasis!=='equal_share_reference'||scale.diners!==null||scale.recipeId!==snapshot.canonical!.recipeId||scale.catalogRevision!==snapshot.canonical!.revision)throw Error('请先读取服务端用量');
+ const row=scale.ingredients.filter(row=>row.enabled)[index];
+ if(!row||row.ingredientId!==ingredient.ingredientId||row.procurementQuantity!==null&&row.procurementQuantity<=0)throw Error('食材计算版本不匹配');
+ return {ingredient:structuredClone(ingredient),originalQuantity:structuredClone(ingredient.quantity),quantity:row.procurementQuantity===null?null:{kind:'exact',value:row.procurementQuantity,unit:row.unit},baseServings:snapshot.baseServings,factor:1,reason:row.quantityKind==='discretionary'?'适量':'整道菜固定用量'};
+}
 export function sourceFromPlan(plan:Plan):ShoppingSource {
   if(!isPlan(plan))throw new TypeError('只能选择有效计划');
   const snapshots=structuredClone(plan.snapshots);return {kind:'plan',id:plan.id,revision:plan.revision,snapshots,servings:plan.servings,digest:sourceDigest(snapshots,plan.servings)};
@@ -70,7 +90,7 @@ export function buildShopping(sources:ShoppingSource[]):ShoppingListInput {
   for(const s of sources)for(const [recipeIndex,snapshot] of s.snapshots.entries()){
     const snapshotBytes=cachedBytes.get(snapshot)??serializedBytes(snapshot);cachedBytes.set(snapshot,snapshotBytes);
     for(const [ingredientIndex,ingredient] of snapshot.ingredients.entries()){
-      const scaled=scaleIngredient(ingredient,snapshot.baseServings,s.servings);
+      const scaled=snapshot.canonical?serverScaled(snapshot,ingredient,s.servings,ingredientIndex):scaleIngredient(ingredient,snapshot.baseServings,s.servings);
       const known=scaled.factor!==null&&scaled.quantity!==null;
       const originalUnit=scaled.originalQuantity?.unit;
       const conversion=originalUnit!==undefined&&Object.hasOwn(units,originalUnit)?units[originalUnit]:undefined;
@@ -93,7 +113,7 @@ export function buildShopping(sources:ShoppingSource[]):ShoppingListInput {
     const key=`generated:${fingerprint(group)}`;
     if(keys.has(key)&&keys.get(key)!==group)throw new TypeError('采购条目指纹冲突，未生成清单');keys.set(key,group);
     let item=grouped.get(group);
-    if(!item){const i=row.fragment.scaled.ingredient;item={key,name:i.ingredientId??i.raw,ingredientId:i.ingredientId,form:i.form,part:i.part,quantity:null,unknownEntries:[],sources:[],userQuantity:null,purchased:false,manual:false};grouped.set(group,item);}
+    if(!item){const i=row.fragment.scaled.ingredient;item={key,name:i.raw,ingredientId:i.ingredientId,form:i.form,part:i.part,quantity:null,unknownEntries:[],sources:[],userQuantity:null,purchased:false,manual:false};grouped.set(group,item);}
     item.sources.push(row.fragment);
     if(row.quantity!==null)item.quantity=add(item.quantity,row.quantity);else item.unknownEntries.push(row.fragment);
   }
@@ -111,10 +131,10 @@ export function diffShopping(previous:ShoppingList,next:ShoppingListInput):Shopp
 export function sourceState(source:ShoppingSource,data:PersonalData,currentDraft?:ShoppingSource|null):'unchanged'|'changed'|'deleted' {
   if(source.kind==='draft'&&currentDraft!==undefined){
     if(currentDraft===null)return 'deleted';
-    return currentDraft.revision===source.revision&&currentDraft.digest===source.digest&&canonicalShopping({snapshots:currentDraft.snapshots,servings:currentDraft.servings})===canonicalShopping({snapshots:source.snapshots,servings:source.servings})?'unchanged':'changed';
+    return currentDraft.revision===source.revision&&currentDraft.digest===source.digest&&canonicalShopping({snapshots:sourceSnapshots(currentDraft.snapshots),servings:currentDraft.servings})===canonicalShopping({snapshots:sourceSnapshots(source.snapshots),servings:source.servings})?'unchanged':'changed';
   }
   const current=source.kind==='plan'?data.plans.find(p=>p.id===source.id):data.draft;
   if(!current)return 'deleted';
   let latest:ShoppingSource;try{latest=source.kind==='plan'?sourceFromPlan(current as Plan):sourceFromDraft(current as MealDraft);}catch{return 'changed';}
-  return latest.revision===source.revision&&latest.digest===source.digest&&canonicalShopping({snapshots:latest.snapshots,servings:latest.servings})===canonicalShopping({snapshots:source.snapshots,servings:source.servings})?'unchanged':'changed';
+  return latest.revision===source.revision&&latest.digest===source.digest&&canonicalShopping({snapshots:sourceSnapshots(latest.snapshots),servings:latest.servings})===canonicalShopping({snapshots:sourceSnapshots(source.snapshots),servings:source.servings})?'unchanged':'changed';
 }

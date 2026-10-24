@@ -1,3 +1,5 @@
+import { completeNutrition } from './canonical.ts';
+import { canonicalRecipe, canonicalIngredients, stripStepNumber } from './canonical.ts';
 import type { Catalog, CatalogLoadOptions, CatalogRecipe, DishType, Ingredient, Meal, PublicCatalogProvider, PublicCatalogTransport, PublicDish, PublicDishPage, PublicDishQuality, PublicDishQuery, PublicIngredient, PublicReviewStatus, QualityStatus, Result } from '../domain/types.ts';
 import { rememberRecipeImage, safeRecipeImage } from './media.ts';
 import { exactKeys, isObject, isText, LIMITS, validateJsonBoundary } from '../domain/validation.ts';
@@ -6,7 +8,7 @@ const meals: readonly Meal[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 const types: readonly DishType[] = ['meat', 'vegetable', 'staple', 'soup', 'breakfastSnack'];
 const reviewStatuses: readonly PublicReviewStatus[] = ['VERIFIED', 'UNREVIEWED', 'UNKNOWN', 'BROWSE_ONLY', 'REJECTED'];
 const databaseTypes = ['meat', 'veg', 'soup', 'staple', 'dessert'] as const;
-const MAX_DIRECTORY_ROWS = 500;
+const MAX_DIRECTORY_ROWS = 10000;
 const trusted = new WeakSet<Catalog>();
 /** This is a UI convention, not source evidence of per-recipe meal or vegetarian suitability. */
 const mapping: Record<string, { type: DishType; meals: Meal[] }> = {
@@ -23,36 +25,11 @@ function nullableNumber(value: unknown): number | null {
   if (value === undefined || value === null) return null;
   requireThat(typeof value === 'number' && Number.isFinite(value)); return value;
 }
-function status(value: unknown): QualityStatus {
-  requireThat(value === undefined || value === null || typeof value === 'string');
-  return value === 'VERIFIED' ? 'VERIFIED' : 'UNKNOWN';
-}
-function parseIngredient(value: unknown): PublicIngredient {
-  requireThat(isObject(value));
-  return {
-    name: nullableText(value.name), unit: nullableText(value.unit), rawText: nullableText(value.rawText), rawQuantity: nullableText(value.rawQuantity), rawUnit: nullableText(value.rawUnit), displayQuantity: nullableText(value.displayQuantity),
-    quantityValue: nullableNumber(value.quantityValue), preparation: nullableText(value.preparation), role: nullableText(value.role), identityStatus: status(value.identityStatus), quantityStatus: status(value.quantityStatus),
-  };
-}
-function parseQuality(value: unknown): PublicDishQuality | null {
-  if (value === undefined || value === null) return null;
-  requireThat(isObject(value));
-  requireThat(value.reviewStatus === undefined || value.reviewStatus === null || typeof value.reviewStatus === 'string');
-  requireThat(value.ingredients === undefined || value.ingredients === null || Array.isArray(value.ingredients));
-  requireThat(value.issueCodes === undefined || value.issueCodes === null || (Array.isArray(value.issueCodes) && value.issueCodes.every((code) => isText(code))));
-  return {
-    reviewStatus: reviewStatuses.includes(value.reviewStatus as PublicReviewStatus) ? value.reviewStatus as PublicReviewStatus : 'UNKNOWN',
-    basePeople: nullableNumber(value.basePeople), servingsStatus: status(value.servingsStatus), stepStatus: status(value.stepStatus), timeStatus: status(value.timeStatus),
-    issueCodes: Array.isArray(value.issueCodes) ? [...value.issueCodes] : [], ingredients: Array.isArray(value.ingredients) ? value.ingredients.map(parseIngredient) : [],
-  };
-}
 function parseDish(value: unknown): PublicDish {
-  requireThat(isObject(value) && typeof value.id === 'number' && Number.isSafeInteger(value.id) && value.id > 0 && isText(value.name));
-  return {
-    id: value.id, name: value.name, type: nullableText(value.type), cl: nullableText(value.cl), fl: nullableText(value.fl), step: nullableText(value.step), steps: nullableText(value.steps),
-    ...(safeRecipeImage(value.image) ? { image: safeRecipeImage(value.image)! } : {}),
-    tips: nullableText(value.tips), ingredientsAmounts: nullableText(value.ingredientsAmounts), contentVersion: nullableText(value.contentVersion), quality: parseQuality(value.quality),
-  };
+  requireThat(isObject(value) && typeof value.id === 'number' && Number.isSafeInteger(value.id) && value.id > 0 && isText(value.catalogRevision) && isText(value.contentVersion));
+  const recipe=canonicalRecipe(value.recipe);requireThat(recipe.id===value.id);
+  return {id:value.id,name:recipe.name,type:nullableText(value.type),recipe,catalogRevision:value.catalogRevision,contentVersion:value.contentVersion,
+    ...(safeRecipeImage(recipe.imageUrl)?{image:safeRecipeImage(recipe.imageUrl)!}:{}),cl:null,fl:null,step:null,steps:null,tips:null,ingredientsAmounts:null,quality:null};
 }
 function validQuery(query: unknown): query is PublicDishQuery {
   if (!isObject(query)) return false;
@@ -82,48 +59,19 @@ export function createPublicCatalogProvider(transport: PublicCatalogTransport): 
     catch { return { ok: false, error: { code: 'CATALOG', message: 'Online recipe response could not be validated. Retry.', retryable: true } }; }
   } };
 }
-const nonempty = (text: string | null): text is string => text !== null && text.trim().length > 0;
-function normalizedIngredient(item: PublicIngredient, overallVerified: boolean): Ingredient {
-  const identityVerified = item.identityStatus === 'VERIFIED' && nonempty(item.name);
-  const quantityVerified = overallVerified && identityVerified && item.quantityStatus === 'VERIFIED' && item.quantityValue !== null && item.quantityValue > 0 && item.quantityValue <= LIMITS.quantity && nonempty(item.unit);
-  const fallbackText = [item.name, item.rawQuantity, item.rawUnit].filter(nonempty).join(' ');
-  return {
-    ingredientId: null, form: item.preparation ?? '', part: null, raw: nonempty(item.rawText) ? item.rawText : fallbackText,
-    quantity: quantityVerified ? { kind: 'exact', value: item.quantityValue!, unit: item.unit! } : null,
-    trust: identityVerified ? 'reviewed' : 'unknown', compoundResolved: false,
-  };
-}
 export function normalizePublicDish(input: PublicDish): Result<CatalogRecipe> {
   try {
-    requireThat(validateJsonBoundary(input).ok); const dish = parseDish(input);
-    const classification = Object.hasOwn(mapping, dish.type ?? '') ? mapping[dish.type!] : undefined;
-    const quality = dish.quality; const overallVerified = quality?.reviewStatus === 'VERIFIED' && nonempty(dish.contentVersion);
-    const rawIngredients = [dish.ingredientsAmounts, dish.cl].filter(nonempty);
-    const ingredients: Ingredient[] = quality?.ingredients.length ? quality.ingredients.map((i) => normalizedIngredient(i, overallVerified)).filter((i) => i.raw.trim().length > 0)
-      : [...new Set(rawIngredients)].map((raw) => ({ ingredientId: null, form: '', part: null, raw, quantity: null, trust: 'unknown', compoundResolved: false }));
-    const primarySteps = nonempty(dish.steps) ? dish.steps : dish.step;
-    const steps = [primarySteps, dish.tips].filter(nonempty);
-    // The server public projection determines publication. Ordinary suggestions
-    // need usable content, not an assertion that every ingredient was audited.
-    // Explicit rejection/browse-only remains binding; factual trust stays intact.
-    const generationEligible = !!classification && quality?.reviewStatus !== 'REJECTED' && quality?.reviewStatus !== 'BROWSE_ONLY'
-      && nonempty(primarySteps) && ingredients.length > 0;
-    const baseServings = overallVerified && quality?.servingsStatus === 'VERIFIED' && quality.basePeople !== null && Number.isSafeInteger(quality.basePeople) && quality.basePeople >= 1 && quality.basePeople <= 50 ? quality.basePeople : null;
-    const issues = [...(quality?.issueCodes ?? []), 'FAMILY_DATABASE_ID_FALLBACK', 'MEALS_LOCAL_CONVENTION', 'STANDARD_INGREDIENT_IDS_UNKNOWN', 'COMPOUND_COMPOSITION_UNKNOWN'];
-    if (!classification) issues.push('UNMAPPED_TYPE');
-    if (!generationEligible) issues.push('AUTOMATIC_SELECTION_UNAVAILABLE');
-    if (baseServings === null) issues.push('BASE_SERVINGS_UNKNOWN');
-    if (nonempty(dish.fl)) issues.push(`原文份量：${dish.fl}`);
-    const recipe: CatalogRecipe = {
-      recipeId: `eatwhat-db:${dish.id}`, familyId: `eatwhat-db:${dish.id}`, variantId: null, name: dish.name,
-      types: classification ? [classification.type] : [], meals: classification ? [...classification.meals] : [], ingredients, steps,
-      source: { url: null, commit: null, license: null }, catalogVersion: null, contentVersion: nonempty(dish.contentVersion) ? dish.contentVersion : null, baseServings,
-      reviewStatus: quality?.reviewStatus ?? 'UNKNOWN', generationEligible, reviewedAt: null, issues,
-      stepStatus: quality?.stepStatus ?? 'UNKNOWN', servingsStatus: quality?.servingsStatus ?? 'UNKNOWN', familyIdentity: 'database-id-fallback', mealEligibility: 'local-convention',
-    };
-    rememberRecipeImage(recipe, dish.image);
-    return { ok: true, value: recipe };
-  } catch { return { ok: false, error: { code: 'CATALOG', message: 'Invalid public recipe fields', retryable: true } }; }
+    requireThat(validateJsonBoundary(input).ok);const dish=parseDish(input), r=canonicalRecipe(dish.recipe);
+    const type = r.categoryCode.startsWith('CAT_MEAT')?'meat':r.categoryCode.startsWith('CAT_VEGETABLE')?'vegetable':r.categoryCode.startsWith('CAT_SOUP')?'soup':r.categoryCode.startsWith('CAT_STAPLE')?'staple':r.categoryCode.startsWith('CAT_DESSERT')?'breakfastSnack':null;
+    const mealMap:Record<string,Meal>={MEAL_BREAKFAST:'breakfast',MEAL_LUNCH:'lunch',MEAL_DINNER:'dinner',MEAL_SNACK:'snack'};
+    requireThat(r.mealCodes.every(code=>Object.hasOwn(mealMap,code)));
+    const recipe:CatalogRecipe={recipeId:`eatwhat-db:${r.id}`,familyId:r.dishGroupId,variantId:null,name:r.name,
+      types:type?[type]:[],meals:r.mealCodes.map(code=>mealMap[code]!),ingredients:canonicalIngredients(r),steps:r.steps.map(s=>stripStepNumber(s.text)),
+      source:{url:null,commit:null,license:null},catalogVersion:dish.catalogRevision!,contentVersion:dish.contentVersion,baseServings:r.baseServings,
+      generationEligible:!!type&&r.servingRole!=='condiment',issues:[],familyIdentity:'canonical',mealEligibility:'canonical',
+      canonical:{recipeId:r.id,revision:dish.catalogRevision!,dietaryCodes:r.dietaryCodes===null?null:[...r.dietaryCodes],allergenCodes:r.allergenCodes===null?null:[...r.allergenCodes],servingRole:r.servingRole,totalMinutes:r.timing.totalMinutes,nutrition:r.calculatedNutrition?.completeness==='complete'&&completeNutrition(r.calculatedNutrition.total)?r.calculatedNutrition.total:null,optionalIngredients:r.ingredients.filter(i=>i.optional).map(i=>({lineId:i.id,name:i.ingredient.name,defaultEnabled:i.defaultEnabled}))}};
+    rememberRecipeImage(recipe,dish.image);return {ok:true,value:recipe};
+  }catch{return {ok:false,error:{code:'CATALOG',message:'Invalid canonical recipe fields',retryable:true}};}
 }
 function availabilityFor(recipes: CatalogRecipe[]): Catalog['availability'] {
   return Object.fromEntries(meals.map((meal) => [meal, Object.fromEntries(types.map((type) => {
@@ -138,7 +86,7 @@ export async function loadCatalog(provider?: PublicCatalogProvider, options: Cat
   if (!provider) return { ok: false, error: { code: 'UNAVAILABLE', message: 'Online recipe provider is not configured. Retry after setup.', retryable: true } };
   const deadline = Date.now() + Math.min(20000, Math.max(1, options.deadlineMs ?? 20000));
   try {
-    const rows: PublicDish[] = []; let total: number | null = null;
+    const recipes:CatalogRecipe[] = []; const ids=new Set<number>(), aliases:Record<string,string>={}, ambiguous=new Set<string>(); let revision:string|null=null; let total: number | null = null;
     for (let page = 1; ; page++) {
       const query = { page, pageSize: 100 };
       const remaining = deadline - Date.now();
@@ -163,14 +111,24 @@ export async function loadCatalog(provider?: PublicCatalogProvider, options: Cat
       if (!result.ok) return { ok: false, error: { code: result.error.code === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'CATALOG', message: 'Online recipe data could not be loaded. Retry.', retryable: true } };
       const response = parsePage(result.value, query);
       if (total !== null) requireThat(total === response.total);
-      total = response.total; rows.push(...response.list);
-      options.onProgress?.({ loaded: rows.length, total });
-      requireThat(new Set(rows.map((row) => row.id)).size === rows.length);
-      if (rows.length === total) break;
+      const pageRevision:string|null=response.list[0]?.catalogRevision||revision;
+      if(revision)requireThat(revision===pageRevision);
+      requireThat(response.list.every(row=>row.catalogRevision===pageRevision));revision=pageRevision||null;
+      total=response.total;
+      for(const row of response.list){
+        requireThat(!ids.has(row.id));ids.add(row.id);
+        const result=normalizePublicDish(row);if(!result.ok)return result;recipes.push(result.value);
+        for(const line of row.recipe!.ingredients)for(const name of [line.ingredient.name,...(line.ingredient.aliases||[])]){
+          if(Object.hasOwn(aliases,name)&&aliases[name]!==line.ingredientId)ambiguous.add(name);
+          else aliases[name]=line.ingredientId;
+        }
+      }
+      options.onProgress?.({loaded:recipes.length,total});
+      if(recipes.length===total)break;
     }
-    const recipes: CatalogRecipe[] = [];
-    for (const row of rows.sort((a, b) => a.id - b.id)) { const result = normalizePublicDish(row); if (!result.ok) return result; recipes.push(result.value); }
-    const catalog: Catalog = { origin: 'online-provider', version: null, recipes, aliases: {}, recipeAliases: {}, availability: availabilityFor(recipes) };
+    for(const name of ambiguous)delete aliases[name];
+    recipes.sort((a,b)=>a.canonical!.recipeId-b.canonical!.recipeId);
+    const catalog:Catalog={origin:'online-provider',version:revision,recipes,aliases,recipeAliases:{},availability:availabilityFor(recipes)};
     freeze(catalog); trusted.add(catalog); return { ok: true, value: catalog };
   } catch { return { ok: false, error: { code: 'CATALOG', message: 'Online directory changed or could not be loaded. Retry.', retryable: true } }; }
 }

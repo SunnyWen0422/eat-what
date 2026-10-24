@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
 class CatalogQueryPerformanceTest {
     private Dish dish(long id, String name, String tags, String ingredients) {
         Dish value = new Dish(); value.setId(id); value.setName(name); value.setType("veg");
-        value.setTagCodes(tags); value.setCl(ingredients); return value;
+        value.setTagCodes(tags); value.setCl(ingredients); return CanonicalCandidateFixture.ingredients(value,ingredients);
     }
     private List<Dish> rows() {
         List<Dish> rows = new ArrayList<>();
@@ -43,13 +43,13 @@ class CatalogQueryPerformanceTest {
             DishQualityMapper.Row corrupt = new DishQualityMapper.Row(); corrupt.setDishId(8L); corrupt.setProfileJson("invalid off-page profile");
             return Collections.singletonList(corrupt);
         });
-        DishQualityService quality = new DishQualityService(profiles, new ObjectMapper());
+        DishQualityService quality = mock(DishQualityService.class);when(quality.enrich(anyList())).thenAnswer(call->call.getArgument(0));
         DishCandidateQueryService candidates = new DishCandidateQueryService(dishes); candidates.setQuality(quality);
         DishQueryService query = new DishQueryService(dishes, candidates); query.setQuality(quality);
         DishPageDTO page = assertDoesNotThrow(() -> query.getFilteredDishes(7L, "veg", null, exclusions(), 1, 3));
         assertEquals(6, page.getTotal());
         assertEquals(Arrays.asList(1L, 2L, 5L), page.getList().stream().map(Dish::getId).collect(Collectors.toList()));
-        verify(profiles).find(Arrays.asList(1L, 2L, 5L)); verifyNoMoreInteractions(profiles);
+        verify(quality).enrich(org.mockito.ArgumentMatchers.<List<Dish>>argThat(list->list.size()==3)); verifyNoInteractions(profiles);
     }
     @Test void boundedRecommendationCandidatesEnrichOnlyFinalEligibleRows() {
         DishMapper dishes = mock(DishMapper.class);
@@ -57,9 +57,9 @@ class CatalogQueryPerformanceTest {
         when(dishes.selectFilteredPageDetails(anyList(),anyLong())).thenAnswer(call -> {List<Long> ids=call.getArgument(0);return rows().stream().filter(d->ids.contains(d.getId())).collect(Collectors.toList());});
         DishQualityMapper profiles = mock(DishQualityMapper.class); when(profiles.find(anyList())).thenReturn(Collections.emptyList());
         DishCandidateQueryService candidates = new DishCandidateQueryService(dishes);
-        candidates.setQuality(new DishQualityService(profiles, new ObjectMapper()));
+        DishQualityService quality=mock(DishQualityService.class);when(quality.enrich(anyList())).thenAnswer(call->call.getArgument(0));candidates.setQuality(quality);
         assertEquals(2, candidates.findForUser(7L, null, null, exclusions(), 2).size());
-        verify(profiles).find(Arrays.asList(1L, 2L)); verifyNoMoreInteractions(profiles);
+        verify(quality).enrich(org.mockito.ArgumentMatchers.<List<Dish>>argThat(list->list.size()==2)); verifyNoInteractions(profiles);
     }
     private DishMapper simulatedLiteDatabase() {
         return mock(DishMapper.class, call -> {

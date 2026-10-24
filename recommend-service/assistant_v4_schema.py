@@ -89,7 +89,8 @@ BOOL = {"type": "boolean"}
 NUMBER = {"type": "number", "minimum": 0, "maximum": 1e12}
 CURSOR = dict(string(10, nonempty=True), pattern=r"0|[1-9][0-9]{0,9}")
 FILTERS = obj({"type": string(40, TYPES), "cuisine_codes": STRINGS, "include_tag_codes": STRINGS,
-    "exclude_tag_codes": STRINGS, "excluded_ingredients": STRINGS, "max_cook_minutes": integer(1, 240)})
+    "exclude_tag_codes": STRINGS, "excluded_ingredients": STRINGS, "max_cook_minutes": integer(1, 240),
+    "meal_codes": STRINGS, "dietary_codes": STRINGS, "excluded_allergen_codes": STRINGS})
 CRITERIA = obj({"cuisineCodes": nullable(STRINGS), "includeTagCodes": nullable(STRINGS),
     "excludeTagCodes": nullable(STRINGS), "excludedIngredients": nullable(STRINGS), "maxCookMinutes": nullable(integer(1, 240))})
 COUNTS = obj({key: integer(0, 10) for key in TYPES})
@@ -181,7 +182,7 @@ ACTUAL = obj({"date": DATE, "mealType": nullable(string(20, MEALS)), "status": s
 SHOPPING = obj({"id": nullable(ID), "name": nullable(string(200)), "canonicalName": nullable(string(200)),
     "quantityValue": nullable(NUMBER), "quantityMin": nullable(NUMBER), "quantityMax": nullable(NUMBER),
     "quantityText": nullable(string(2000)), "userOverride": BOOL,
-    "quantityProvenance": string(40, ["user_override", "verified_calculation", "unknown"]),
+    "quantityProvenance": string(40, ["user_override", "canonical_calculation", "verified_calculation", "unknown"]),
     "unitCode": nullable(string(40)), "calculationStatus": nullable(string(40)), "checked": BOOL,
     "sourceDishId": nullable(ID), "sourceDishName": nullable(string(200)), "sourceDate": nullable(DATE),
     "sourceMealType": nullable(string(20, MEALS))}, ["quantityText", "userOverride", "quantityProvenance"])
@@ -215,12 +216,23 @@ CONTEXT = obj({"schemaVersion": string(30, [VERSION]), "requestContext": obj({"e
         "supportedTypes": array(string(40, TYPES), 6), "recentActualRange": obj({"startDate": DATE, "endDate": DATE}),
         "truncated": BOOL, "detailsOnDemand": BOOL})}, ["schemaVersion", "capabilities"])
 RECIPE = copy.deepcopy(DISH)
+NUTRIENT_VALUES = obj({key: NUMBER for key in ("energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg")},
+                      ["energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg"])
+RECIPE_NUTRITION = obj({"completeness": string(20, ["complete", "partial"]), "total": nullable(NUTRIENT_VALUES),
+                        "perServing": nullable(NUTRIENT_VALUES),
+                        "perServingUnavailableReason": string(40, ["diners_not_specified"])}, ["completeness", "total", "perServing"])
 RECIPE["properties"].update({"detailLevel": string(10, ["summary", "full"]),
-    "omittedFields": array(string(40, ["ingredients", "ingredientFacts", "steps", "methods", "tagCodes", "name", "contentVersion", "datasetVersion", "cuisineCode"]), 9),
-    "basePeople": nullable(integer(1, 50)), "ingredients": nullable(string(10000)),
-    "ingredientFacts": array(obj({"name": nullable(string(200)), "unit": nullable(string(40)), "identityStatus": nullable(string(40)),
-        "quantityValue": nullable(NUMBER), "quantityStatus": string(40)}), 100), "datasetVersion": nullable(string(100)),
+    "omittedFields": array(string(40, ["ingredients", "ingredientFacts", "steps", "stepFacts", "methods", "tagCodes", "name", "contentVersion", "datasetVersion", "cuisineCode"]), 10),
+    "basePeople": nullable({"type": "number", "minimum": 1, "maximum": 50}), "ingredients": nullable(string(10000)),
+    "catalogRevision": string(100, nonempty=True), "categoryCode": string(40), "mealCodes": STRINGS,
+    "catalogContractVersion": {"type": "integer", "enum": [4]}, "quantityPolicy": string(30, ["fixed-recipe-v1"]), "nutrition": RECIPE_NUTRITION,
+    "dietaryCodes": nullable(STRINGS), "allergenCodes": nullable(STRINGS),
+    "ingredientFacts": array(obj({"lineId": string(100), "ingredientId": string(128), "name": string(200),
+        "unit": string(40), "quantityValue": nullable(NUMBER), "quantityKind": string(20, ["exact", "discretionary"]),
+        "quantityDisplay": nullable(string(200)), "optional": BOOL, "defaultEnabled": BOOL, "preparation": string(2000)}), 100),
+    "stepFacts": array(obj({"id": string(100), "text": string(10000), "ingredientLineIds": array(string(100), 100)}), 100),
     "steps": nullable(string(20000)), "methods": nullable(string(20000))})
+
 READ_ITEMS = {**{k: RECIPE for k in READS[:4]}, "read_current_meal": ACTIVE, "read_calendar": CALENDAR,
               "read_shopping": SHOPPING, "read_actual_diet_review": CALENDAR,
               "read_favorites": RECIPE, "read_saved_menus": MENU,
