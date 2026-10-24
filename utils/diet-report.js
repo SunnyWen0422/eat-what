@@ -11,7 +11,7 @@ function presentNutritionReference(nutrition) {
   const complete=nutrition.complete===true && unknownCount===0 && coveredCount===entryCount && !!valid(nutrition.total)
   const values=complete?nutrition.total:coveredCount>0&&valid(nutrition.knownTotal)?nutrition.knownTotal:null
   return {label:complete?'总值':'已知部分',coverage:`已覆盖 ${coveredCount}/${entryCount} 道`,available:!!values,
-    rows:values?NUTRIENTS.map(([key,label,unit])=>({key,label,unit,value:String(Number(values[key].toFixed(1)))})):[],
+    rows:values?NUTRIENTS.map(([key,label,unit])=>({key,label,unit,value:String(key==='energyKcal'?Math.round(values[key]):Number(values[key].toFixed(1)))})):[],
     note:'按已吃菜品记录保存的基准配方用量汇总，不代表个人实际摄入。'}
 }
 

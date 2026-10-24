@@ -62,7 +62,16 @@ public class FavoriteDishService {
      */
     public List<FavoriteDish> getFavorites(Long userId) {
         List<FavoriteDish> values=favoriteDishMapper.selectFavoritesByUser(userId);
-        java.util.List<com.eatwhat.entity.Dish> dishes=new java.util.ArrayList<>();for(FavoriteDish value:values)if(value.getDish()!=null)dishes.add(value.getDish());
+        java.util.List<com.eatwhat.entity.Dish> dishes=new java.util.ArrayList<>();
+        for(FavoriteDish value:values)if(value.getDish()!=null){
+            com.eatwhat.entity.Dish dish=value.getDish();
+            boolean unavailable=dish.getRecipeJson()==null&&dish.getRecipe()==null;
+            value.setUnavailable(unavailable);
+            if(unavailable){
+                value.setUnavailableReason("该菜品已退出当前菜库，收藏记录仍保留");
+                dish.setName(dish.getName()+"（暂不可用）");
+            }else dishes.add(dish);
+        }
         catalog.enrich(dishes);return values;
     }
 }

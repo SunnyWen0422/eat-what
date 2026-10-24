@@ -49,9 +49,10 @@ public interface DishMapper {
         @Param("cuisineCodes") List<String> cuisineCodes, @Param("includeTagCodes") List<String> includeTagCodes,
         @Param("maxCookMinutes") Integer maxCookMinutes, @Param("beforeId") Long beforeId, @Param("limit") int limit);
 
-    /** All ranking/exclusion/ownership facts; recipe bodies and media load only after selection. */
-    @Select("<script>SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, CL as cl, "
-        + "INGREDIENTS_AMOUNTS as ingredientsAmounts, TAG_CODES as tagCodes, CUISINE_CODE as cuisineCode, "
+    /** Canonical JSON owns ingredient facts; attachFacts derives their normalized fields.
+     * Do not render the compatibility view's two ingredient strings for every candidate. */
+    @Select("<script>SELECT ID as id, RECIPE_JSON as recipeJson, NAME as name, TYPE as type, "
+        + "TAG_CODES as tagCodes, CUISINE_CODE as cuisineCode, "
         + "COOK_MINUTES as cookMinutes, METADATA_VERSION as metadataVersion, user_id as userId, "
         + "CASE WHEN user_id IS NULL THEN 0 ELSE 1 END as isCustom "
         + KEYSET_FROM + "<if test='beforeId != null'>AND ID &lt; #{beforeId} </if>"

@@ -13,6 +13,20 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class AssistantCalendarActionTest {
+ @Test void native_json_roundtrip_of_display_decimals_does_not_change_the_reviewed_business_target() throws Exception {
+  Fixture f=new Fixture();RecipeRecord old=new RecipeRecord();old.setId(90L);old.setRevision(2L);old.setRecipeName("原安排");
+  Dish past=new Dish();past.setId(7L);past.setName("旧菜");CanonicalTestDish.attach(past);
+  com.fasterxml.jackson.databind.node.ObjectNode recipe=past.getRecipe().deepCopy();recipe.putObject("calculatedNutrition").putObject("total").put("energyKcal",new java.math.BigDecimal("0.1234567890123456789012345"));past.setRecipe(recipe);old.setDishDetails(Collections.singletonList(past));f.domain.slots.put("2027-01-01|lunch",old);
+  ControlledToolTask task=f.preview();ObjectMapper nativeJson=new ObjectMapper();
+  // MySQL JSON stores its native numeric representation, unlike the target's historical TEXT snapshot.
+  String stored=(String)f.rows.get(task.id).get("stateJson");f.rows.get(task.id).put("stateJson",nativeJson.writeValueAsString(nativeJson.readTree(stored)));
+  ControlledToolTask saved=f.harness.confirm(1L,task.id,task.previewToken);
+  assertEquals("completed",saved.status);assertEquals(3L,f.domain.slots.get("2027-01-01|lunch").getRevision());verify(f.domain.plans,times(1)).insert(any());
+ }
+ @Test void unchanged_revision_cannot_hide_a_changed_source_content_version() throws Exception {
+  Fixture f=new Fixture();ControlledToolTask task=f.preview();MealWorkspace source=f.domain.service.get(1L,"source");source.getDraft().getDishes().get(0).restoreReceiptContentVersion(String.join("",Collections.nCopies(64,"a")));f.domain.sourceJson=f.domain.json.writeValueAsString(source);
+  assertEquals("WORKFLOW_VERSION_CONFLICT",f.harness.confirm(1L,task.id,task.previewToken).errorCode);verify(f.domain.plans,never()).insert(any());
+ }
  @Test void direct_permanent_failure_is_terminal_and_never_reconfirmed() throws Exception {
   for(boolean expired:Arrays.asList(false,true)){
    Fixture f=new Fixture();ControlledToolTask task=f.workflowPreview(true);

@@ -49,7 +49,7 @@ function CanonicalRecipeFacts({snapshot}:{snapshot:RecipeSnapshot}) {
     {!!facts.optionalIngredients?.length&&<div>{facts.optionalIngredients.map(i=><label key={i.lineId}><input type="checkbox" checked={scaled?scaled.ingredients.some(row=>row.lineId===i.lineId&&row.enabled):i.defaultEnabled} disabled={busy} onChange={e=>void scale({...overrides,[i.lineId]:e.target.checked})}/>{i.name}（可选）</label>)}</div>}
     <h4>做法</h4><ol>{(scaled?.steps||snapshot.steps.map(text=>({text}))).map((step,index)=><li key={index}>{/\{\{\s*amount\b/.test(step.text)?'步骤用量暂未读到，请重新读取':stripStepNumber(step.text)}{'ingredientQuantities' in step&&!!step.ingredientQuantities&&<p>本步用量：{Object.entries(step.ingredientQuantities).map(([id,q])=>{const i=scaled!.ingredients.find(i=>i.lineId===id),v=q!==null&&typeof q==='object'?q:null;return i?`${i.name} ${canonicalAmount(v?v.quantity:typeof q==='number'?q:null,v?v.unit:i.unit,v?v.quantityKind:i.quantityKind)}`:'';}).filter(Boolean).join('、')}</p>}</li>)}</ol>
     {!!dietary?.length&&<p>{dietary.map(code=>factLabels[code]||code).join('、')}</p>}{allergens?.length?<p>过敏原：{allergens.map(code=>factLabels[code]||code).join('、')}</p>:allergens==null&&<p className="muted">过敏原资料未提供</p>}
-    {completeNutrition(nutrition)&&<p className="muted">整道菜合计约 {Number(nutrition.energyKcal.toFixed(1))} 千卡 · 按食材成分计算</p>}</>;
+    {completeNutrition(nutrition)&&<p className="muted">整道菜合计约 {Math.round(nutrition.energyKcal)} 千卡 · 按食材成分计算</p>}</>;
 }
 export function RecipeFacts({ snapshot }: { snapshot: RecipeSnapshot }) {
   if(snapshot.canonical)return <CanonicalRecipeFacts snapshot={snapshot}/>;

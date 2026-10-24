@@ -30,8 +30,9 @@ public interface FavoriteDishMapper {
     /**
      * 查询用户是否收藏了某道菜
      */
-    @Select("SELECT COUNT(*) FROM favorite_dishes fd JOIN food f ON fd.DISH_ID = f.id " +
-            "WHERE fd.USER_ID = #{userId} AND fd.DISH_ID = #{dishId} AND " + VISIBLE_DISH)
+    @Select("SELECT COUNT(*) FROM favorite_dishes fd WHERE fd.USER_ID=#{userId} AND fd.DISH_ID=#{dishId} AND (" +
+            "EXISTS (SELECT 1 FROM catalog_recipe r WHERE r.id=fd.DISH_ID AND ((r.owner_id IS NULL AND r.is_published=1) OR r.owner_id=#{userId})) OR " +
+            "EXISTS (SELECT 1 FROM catalog_retired_source rt WHERE rt.old_id=fd.DISH_ID AND NOT EXISTS (SELECT 1 FROM catalog_recipe r WHERE r.id=rt.old_id)))")
     int isFavorite(@Param("userId") Long userId, @Param("dishId") Long dishId);
 
     /**
@@ -46,37 +47,21 @@ public interface FavoriteDishMapper {
      * 注意：food表的字段都是大写，如ID, NAME, TYPE等
      * MyBatis配置了map-underscore-to-camel-case=true，会自动转换下划线到驼峰
      */
-    @Select("SELECT " +
-            "f.id, f.RECIPE_JSON AS recipeJson, f.name, f.type, " +
-            "f.cl, f.fl, f.step, " +
-            "f.tags, f.image, f.difficulty, " +
-            "f.cook_time as cookTime, " +
-            "f.ingredients_amounts as ingredientsAmounts, " +
-            "f.steps, f.step_images as stepImages, " +
-            "f.tips, f.methods, f.kcal, " +
-            "fd.CREATE_TIME as createTime " +
-            "FROM favorite_dishes fd " +
-            "JOIN food f ON fd.DISH_ID = f.id " +
-            "WHERE fd.USER_ID = #{userId} AND " + VISIBLE_DISH + " " +
-            "ORDER BY fd.CREATE_TIME DESC")
+    @Select("SELECT r.id,r.document AS recipeJson,r.name,NULL AS type,NULL AS image,fd.CREATE_TIME AS createTime " +
+            "FROM favorite_dishes fd JOIN catalog_recipe r ON r.id=fd.DISH_ID " +
+            "WHERE fd.USER_ID=#{userId} AND ((r.owner_id IS NULL AND r.is_published=1) OR r.owner_id=#{userId}) " +
+            "UNION ALL SELECT fd.DISH_ID AS id,NULL AS recipeJson,JSON_UNQUOTE(JSON_EXTRACT(rt.document,'$.name')) AS name," +
+            "JSON_UNQUOTE(JSON_EXTRACT(rt.document,'$.originalRecord.type')) AS type," +
+            "JSON_UNQUOTE(JSON_EXTRACT(rt.document,'$.originalRecord.image')) AS image,fd.CREATE_TIME AS createTime " +
+            "FROM favorite_dishes fd JOIN catalog_retired_source rt ON rt.old_id=fd.DISH_ID " +
+            "WHERE fd.USER_ID=#{userId} AND NOT EXISTS (SELECT 1 FROM catalog_recipe r WHERE r.id=fd.DISH_ID) " +
+            "ORDER BY createTime DESC")
     @Results({
         @Result(property = "dish.id", column = "id"),
         @Result(property = "dish.recipeJson", column = "recipeJson"),
         @Result(property = "dish.name", column = "name"),
         @Result(property = "dish.type", column = "type"),
-        @Result(property = "dish.cl", column = "cl"),
-        @Result(property = "dish.fl", column = "fl"),
-        @Result(property = "dish.step", column = "step"),
-        @Result(property = "dish.tags", column = "tags"),
         @Result(property = "dish.image", column = "image"),
-        @Result(property = "dish.difficulty", column = "difficulty"),
-        @Result(property = "dish.cookTime", column = "cookTime"),
-        @Result(property = "dish.ingredientsAmounts", column = "ingredientsAmounts"),
-        @Result(property = "dish.steps", column = "steps"),
-        @Result(property = "dish.stepImages", column = "stepImages"),
-        @Result(property = "dish.tips", column = "tips"),
-        @Result(property = "dish.methods", column = "methods"),
-        @Result(property = "dish.kcal", column = "kcal"),
         @Result(property = "createTime", column = "createTime")
     })
     List<FavoriteDish> selectFavoritesByUser(@Param("userId") Long userId);

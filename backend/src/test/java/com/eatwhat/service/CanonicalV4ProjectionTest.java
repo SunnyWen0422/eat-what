@@ -33,6 +33,16 @@ class CanonicalV4ProjectionTest {
   ObjectNode r=recipe();ObjectNode line=(ObjectNode)r.path("ingredients").get(0);line.putNull("quantity");line.put("quantityKind","discretionary");line.put("quantityDisplay","适量");r.putObject("provenance").put("privateNote","PRIVATE_PROVENANCE");Dish dish=new Dish();dish.setId(1L);dish.setRecipe(r);String stored=dish.getRecipeJson();service().enrich(dish);
   assertNull(dish.getKcal());assertNull(dish.getCookMinutes());assertNull(dish.getCookTime());assertEquals(stored,dish.getRecipeJson());String rendered=JSON.writeValueAsString(dish);assertFalse(rendered.contains("PRIVATE_"));assertFalse(rendered.contains("{{amount:"));assertFalse(rendered.contains("quantifiedSubtotal"));
  }
+ @Test void candidateFactsKeepVersionAndRecipeButDiscardDuplicateCalculationBody() throws Exception {
+  Dish dish=new Dish();dish.setId(1L);dish.setRecipe(recipe());CanonicalCatalogService catalog=service();String version=dish.getContentVersion(),source=dish.getRecipeJson();
+  catalog.attachFacts(Collections.singletonList(dish));JsonNode facts=dish.getRecipe().deepCopy();
+  assertNull(dish.getScaledRecipe());assertNull(dish.getStep());assertNull(dish.getSteps());
+  assertTrue(facts.path("ingredients").get(0).path("ingredient").isObject());assertFalse(facts.has("calculatedNutrition"));assertFalse(facts.has("steps"));
+  assertEquals(source,dish.getRecipeJson());assertEquals(version,dish.getContentVersion());
+  catalog.enrich(dish);assertNotNull(dish.getScaledRecipe());assertNotNull(dish.getSteps());assertTrue(dish.getRecipe().path("calculatedNutrition").isObject());assertTrue(dish.getRecipe().path("steps").isArray());
+  for(String key:Arrays.asList("id","dishGroupId","categoryCode","mealCodes","timing","allergenCodes","dietaryCodes","compositionCodes"))assertEquals(facts.path(key),dish.getRecipe().path(key));
+  assertEquals(facts.path("ingredients").get(0).path("ingredient").path("name"),dish.getRecipe().path("ingredients").get(0).path("ingredient").path("name"));assertEquals(version,dish.getContentVersion());
+ }
  @Test void authoringAllowsUnknownTimeAndBatchSize() throws Exception {
   ObjectNode r=recipe();r.putNull("baseServings");r.put("servingBasis","recipe_batch");r.putObject("scaling").put("available",false);((ObjectNode)r.path("ingredients").get(0)).putObject("scaleRule").put("type","linear");Dish dish=new Dish();dish.setRecipe(r);service().prepareWrite(dish);assertTrue(dish.getRecipe().path("calculatedNutrition").path("perServing").isNull());assertNull(dish.getFl());assertNull(dish.getCookMinutes());assertFalse(dish.getRecipe().has("scaling"));assertFalse(dish.getRecipe().path("ingredients").get(0).has("scaleRule"));assertEquals("fixed-recipe-v1",dish.getQuantityPolicy());
  }

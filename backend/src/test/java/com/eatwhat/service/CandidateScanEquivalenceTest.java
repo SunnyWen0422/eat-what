@@ -56,7 +56,7 @@ class CandidateScanEquivalenceTest {
         assertTrue(c.hasStatement(id));Map<String,Object> p=new HashMap<>();p.put("userId",7L);p.put("type",null);p.put("keyword",null);p.put("cuisineCodes",Collections.emptyList());p.put("includeTagCodes",Collections.emptyList());p.put("maxCookMinutes",null);p.put("beforeId",null);p.put("limit",256);
         String sql=c.getMappedStatement(id).getBoundSql(p).getSql().toLowerCase(Locale.ROOT);
         assertTrue(!sql.contains("force index")&&sql.contains("order by id desc limit"),"Derived view preserves bounded keyset scans without an invalid table index hint");
-        assertTrue(sql.contains("user_id"));assertTrue(sql.contains("cook_minutes"));assertTrue(sql.contains("cuisine_code"));assertTrue(sql.contains("ingredients_amounts"));assertFalse(sql.contains("step as"));assertFalse(sql.contains("image as"));assertTrue(c.getMappedStatement(id).isFlushCacheRequired());assertFalse(c.getMappedStatement(id).isUseCache());
+        assertTrue(sql.contains("user_id"));assertTrue(sql.contains("cook_minutes"));assertTrue(sql.contains("cuisine_code"));assertTrue(sql.contains("recipe_json"));assertFalse(sql.contains("ingredients_amounts"));assertFalse(sql.contains("cl as cl"));assertFalse(sql.contains("step as"));assertFalse(sql.contains("image as"));assertTrue(c.getMappedStatement(id).isFlushCacheRequired());assertFalse(c.getMappedStatement(id).isUseCache());
     }
     @Test void fixedSeedOrderingAndScoresMatchFullRecipesAndChangedOrForeignDetailsFailClosed(){
         com.eatwhat.dto.EffectiveRecommendationCriteria c=new com.eatwhat.dto.EffectiveRecommendationCriteria();

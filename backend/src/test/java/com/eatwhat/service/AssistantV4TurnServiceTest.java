@@ -10,6 +10,74 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantV4TurnServiceTest {
+ @Test void validated_business_work_survives_model_deadline_without_another_provider_call(){
+  java.util.concurrent.atomic.AtomicLong now=new java.util.concurrent.atomic.AtomicLong(fixture.now);
+  Clock clock=new Clock(){public ZoneId getZone(){return ZoneOffset.UTC;}public Clock withZone(ZoneId zone){return this;}public Instant instant(){return Instant.ofEpochMilli(now.get());}};
+  store=new AssistantV4Store(fixture.db,fixture.locks,fixture.workspaces,json,fixture.tx,clock);registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,c,s)->read(c));
+  runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,clock,Runnable::run);
+  java.util.concurrent.atomic.AtomicInteger calls=new java.util.concurrent.atomic.AtomicInteger();
+  registry.registerDraft("draft_update",(user,step,scope)->{
+   calls.incrementAndGet();assertEquals("awaiting_confirmation",store.turnRecord(user,id).getStatus());
+   assertEquals(0,store.turnRecord(user,id).getModelDeadlineAt());
+   now.addAndGet(31000);
+   TurnResult outcome=new TurnResult();outcome.setStatus("completed");Card receipt=new Card();receipt.setType("menu");receipt.setReceiptRef("workspace:owned:request");outcome.getCards().add(receipt);return outcome;
+  });
+  when(model.step(any())).thenReturn(action("draft_update",draft(1)));
+  runner.runTurn(1L,id);
+  assertNotNull(store.continuation(1L,id));assertEquals(1,calls.get());assertEquals("completed",store.findTurn(1L,id).getStatus());
+  assertEquals("workspace:owned:request",store.findTurn(1L,id).getCards().get(0).getReceiptRef());
+  runner.resumeWorkflow(1L,id);assertEquals(1,calls.get());verify(model,times(1)).step(any());
+ }
+ @Test void model_deadline_still_blocks_late_action_before_business_handoff(){
+  java.util.concurrent.atomic.AtomicLong now=new java.util.concurrent.atomic.AtomicLong(fixture.now);
+  Clock clock=new Clock(){public ZoneId getZone(){return ZoneOffset.UTC;}public Clock withZone(ZoneId zone){return this;}public Instant instant(){return Instant.ofEpochMilli(now.get());}};
+  store=new AssistantV4Store(fixture.db,fixture.locks,fixture.workspaces,json,fixture.tx,clock);registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,c,s)->read(c));
+  runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,clock,Runnable::run);
+  AssistantCapabilityService.ActionExecutor adapter=mock(AssistantCapabilityService.ActionExecutor.class);registry.registerDraft("draft_update",adapter);
+  when(model.step(any())).thenAnswer(call->{now.addAndGet(30001);return action("draft_update",draft(1));});
+  runner.runTurn(1L,id);verifyNoInteractions(adapter);assertEquals("failed",store.findTurn(1L,id).getStatus());assertNull(store.continuation(1L,id));
+ }
+ @Test void cancellation_after_durable_handoff_still_prevents_business_work(){
+  store=spy(store);registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,c,s)->read(c));
+  runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);
+  doAnswer(call->{TurnView view=(TurnView)call.callRealMethod();TurnResult result=call.getArgument(4);if("awaiting_confirmation".equals(result.getStatus()))store.cancelTurn(1L,id);return view;})
+   .when(store).completeTurn(eq(1L),eq(id),eq("running"),anyString(),any(TurnResult.class));
+  AssistantCapabilityService.ActionExecutor adapter=mock(AssistantCapabilityService.ActionExecutor.class);registry.registerDraft("draft_update",adapter);
+  when(model.step(any())).thenReturn(action("draft_update",draft(1)));
+  runner.runTurn(1L,id);verifyNoInteractions(adapter);assertEquals("cancelled",store.findTurn(1L,id).getStatus());
+ }
+ @Test void failure_before_business_write_resumes_same_durable_intent_without_model_resend(){
+  java.util.concurrent.atomic.AtomicInteger calls=new java.util.concurrent.atomic.AtomicInteger();
+  registry.registerDraft("draft_update",(user,step,scope)->{
+   if(calls.incrementAndGet()==1)throw new IllegalStateException("business preparation interrupted");
+   TurnResult outcome=new TurnResult();outcome.setStatus("completed");Card receipt=new Card();receipt.setType("menu");receipt.setReceiptRef("workspace:owned:request");outcome.getCards().add(receipt);return outcome;
+  });
+  when(model.step(any())).thenReturn(action("draft_update",draft(1)));
+  runner.runTurn(1L,id);TurnView pending=store.findTurn(1L,id);assertEquals("awaiting_confirmation",pending.getStatus());assertTrue(pending.isRetryable());assertNull(pending.getPendingAction());
+  runner.resumeWorkflow(1L,id);assertEquals("completed",store.findTurn(1L,id).getStatus());assertEquals(2,calls.get());
+  runner.resumeWorkflow(1L,id);assertEquals(2,calls.get());verify(model,times(1)).step(any());
+ }
+ @Test void resumed_first_step_keeps_searched_dish_authorization_through_real_workspace_adapter() throws Exception {
+  AssistantWorkspaceActionTest.DraftFixture draft=new AssistantWorkspaceActionTest.DraftFixture();
+  com.eatwhat.dto.MealWorkspace current=draft.service.get(1L,"source");
+  when(fixture.workspaces.get(1L,"source")).thenReturn(current);
+  SessionRequest session=new SessionRequest();session.setWorkspaceId("source");session.setRequestId(UUID.randomUUID().toString());
+  TurnRequest request=fixture.request();request.setWorkspaceId("source");request.setExpectedWorkspaceRevision(current.getRevision());request.setExpectedPlanVersion(current.getDraft().getPlanVersion());
+  id=store.claimTurn(1L,store.createSession(1L,session).getSessionId(),request).getTurnId();
+  ModelContext facts=new ModelContext();facts.getActiveMeal().put("currentDishes",Arrays.asList(Collections.singletonMap("id",1L),Collections.singletonMap("id",2L),Collections.singletonMap("id",3L)));when(context.build(any(),any(),any())).thenReturn(facts);
+  registry=new AssistantCapabilityService(true);registry.registerRead("search_dishes",(u,call,scope)->{ReadResult found=read(call);found.getItems().get(0).put("id",4L);return found;});
+  runner=new AssistantV4TurnService(store,context,registry,model,protection,dishes,json,Clock.fixed(Instant.ofEpochMilli(fixture.now),ZoneOffset.UTC),Runnable::run);
+  MealWorkspaceService business=spy(draft.service);java.util.concurrent.atomic.AtomicInteger attempts=new java.util.concurrent.atomic.AtomicInteger();
+  doAnswer(call->{if(attempts.incrementAndGet()==1)throw new IllegalStateException("interrupted before write");return call.callRealMethod();})
+   .when(business).applyAssistantDraft(anyLong(),anyString(),anyLong(),anyLong(),any(com.eatwhat.dto.AssistantActionContract.ValidatedAssistantDraft.class),anyString(),anyString());
+  new WorkspaceAssistantToolAdapter(business,store,json,registry);
+  when(model.step(any())).thenAnswer(call->store.turnRecord(1L,id).getProviderCallsUsed()==1?tools(call.getArgument(0),"searched-new-dish"):action("draft_update",AssistantV4ContextService.map("operation","adjust","targetDishId",2L,"replacementDishId",4L,"keepDishIds",Collections.singletonList(1L))));
+  runner.runTurn(1L,id);assertEquals("awaiting_confirmation",store.findTurn(1L,id).getStatus());
+  assertEquals(Arrays.asList(1L,2L,3L),draft.service.get(1L,"source").getDraft().getDishes().stream().map(Dish::getId).collect(java.util.stream.Collectors.toList()));
+  runner.resumeWorkflow(1L,id);assertEquals("completed",store.findTurn(1L,id).getStatus());
+  assertEquals(Arrays.asList(1L,4L,3L),draft.service.get(1L,"source").getDraft().getDishes().stream().map(Dish::getId).collect(java.util.stream.Collectors.toList()));
+  runner.resumeWorkflow(1L,id);assertEquals(2,attempts.get());verify(model,times(2)).step(any());
+ }
  @Test void negotiated_direct_action_uses_bound_task_once_without_user_confirmation(){
   ControlledToolHarnessService harness=mock(ControlledToolHarnessService.class);runner.setDirectHarness(harness);
   when(model.supportsFlexibleReplies()).thenReturn(true);

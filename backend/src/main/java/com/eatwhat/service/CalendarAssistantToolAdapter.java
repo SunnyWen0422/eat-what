@@ -71,7 +71,7 @@ public class CalendarAssistantToolAdapter implements AssistantCapabilityService.
  }
  private Map<String,Object> save(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index){
   Map<String,Object> current=bind(user,step.arguments);
-  if(!hash(current).equals(hash(step.binding)))throw new MealConsumptionService.VersionConflict("本餐或目标安排已变化，请重新预览");
+  if(!bindingHash(current).equals(bindingHash(step.binding)))throw new MealConsumptionService.VersionConflict("本餐或目标安排已变化，请重新预览");
   WorkspaceRequest request=new WorkspaceRequest();request.setRequestId("harness-"+task.id+"-"+index);request.setExpectedWorkspaceRevision(number(step.binding,"workspaceRevision"));request.setPlanVersion(number(step.binding,"planVersion"));request.setExpectedPlanRevision(number(step.binding,"targetPlanRevision"));
   request.setTargetDate((String)step.binding.get("targetDate"));request.setTargetMealType((String)step.binding.get("targetMealType"));
   MealWorkspace saved=workspaces.mutate(user,(String)step.binding.get("sourceWorkspaceId"),"confirm",request);
@@ -97,6 +97,18 @@ public class CalendarAssistantToolAdapter implements AssistantCapabilityService.
  }
  private Map<String,Object> facts(Map<String,Object> b){Map<String,Object> d=new LinkedHashMap<>();d.put("date",b.get("targetDate"));d.put("mealType",b.get("targetMealType"));d.put("people",b.get("people"));d.put("workspaceId",b.get("sourceWorkspaceId"));d.put("workspaceRevision",b.get("workspaceRevision"));d.put("planVersion",b.get("planVersion"));d.put("planRevision",b.get("targetPlanRevision"));return d;}
  private static Long number(Map<String,Object> b,String key){Object n=b.get(key);if(!(n instanceof Number))throw new IllegalArgumentException("缺少服务器版本");return ((Number)n).longValue();}
+ /** Display snapshots can change numeric representation in MySQL JSON. Execution is
+  * bound to exact server-owned versions, ordered recipe identities and recipe hashes. */
+ private String bindingHash(Map<String,Object> binding){
+  Map<String,Object> guard=new LinkedHashMap<>();
+  for(String key:Arrays.asList("sourceWorkspaceId","sourceDate","sourceMealType","targetDate","targetMealType","contextHash","parentTurnId","continuationStepId"))guard.put(key,binding.get(key));
+  for(String key:Arrays.asList("workspaceRevision","planVersion","targetPlanRevision","people"))guard.put(key,number(binding,key));
+  Object raw=binding.get("dishes"),versions=binding.get("dishContentVersions");if(!(raw instanceof List)||((List<?>)raw).isEmpty()||!(versions instanceof Map))throw new IllegalArgumentException("缺少服务器菜谱版本");
+  List<Long> ids=new ArrayList<>();for(Object item:(List<?>)raw){if(!(item instanceof Map))throw new IllegalArgumentException("菜谱绑定无效");Object id=((Map<?,?>)item).get("id");if(!(id instanceof Number))throw new IllegalArgumentException("菜谱绑定无效");Long value=((Number)id).longValue();Object version=((Map<?,?>)versions).get(String.valueOf(value));if(!(version instanceof String)||!((String)version).matches("[a-fA-F0-9]{64}"))throw new IllegalArgumentException("缺少服务器菜谱版本");ids.add(value);}
+  guard.put("orderedDishIds",ids);guard.put("dishContentVersions",versions);
+  Object replaced=binding.get("replacedPlan"),id=replaced instanceof Map?((Map<?,?>)replaced).get("id"):null;guard.put("replacedPlanId",id instanceof Number?((Number)id).longValue():null);
+  return hash(guard);
+ }
  private String hash(Object value){try{return WorkflowRequestHash.sha256(json.writeValueAsString(value));}catch(Exception e){throw new IllegalArgumentException("预览内容无效",e);}}
  private static String label(String meal){return "breakfast".equals(meal)?"早餐":"lunch".equals(meal)?"午餐":"晚餐";}
 }

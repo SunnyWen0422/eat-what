@@ -179,7 +179,12 @@ public class AssistantV4TurnService {
                     r.setCards(facts);r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 WorkflowContinuation c=AssistantV4Contract.workflow(turnId,output.getActionProposal().getSteps());c=store.checkpointContinuation(user,turnId,lease.getLeaseToken(),c);
-                if(executeStep(user,lease,scope,true,c,input.getReplyContract()!=null?output.getAnswer():null))resumeWorkflow(user,turnId);return;
+                // The bounded model phase has finished. Persist its validated intent before
+                // running local business work, which uses the existing resumable parent guard.
+                // No new model call or action authorization is granted by this transition.
+                TurnResult prepared=result("awaiting_confirmation",null,true);prepared.setContinuation(c);prepared.setWorkspaceRef(reference(scope));finish(user,lease,prepared);
+                c=store.continuation(user,turnId);
+                if(executeStep(user,store.turnRecord(user,turnId),scope,false,c,input.getReplyContract()!=null?output.getAnswer():null))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
         }catch(RuntimeException ex){observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);LOG.info("assistant_turn provider_calls={} read_calls={} read_cache_hits={} workflow_outcome={} duration_ms={}",providerCalls,readCalls,cacheHits,observedOutcome,clock.millis()-observedStart);}}
@@ -257,6 +262,12 @@ public class AssistantV4TurnService {
             // also accepts awaiting_confirmation, so withActiveParent alone is insufficient.
             if(c==null||c.getRevision()!=revision||c.getCursor()!=cursor||cursor>=c.getSteps().size())return false;
             WorkflowStep step=c.getSteps().get(cursor);if(!stepId.equals(step.getStepId())||!"pending".equals(step.getStatus()))return false;
+            // Only immutable, server-validated checkpoint arguments may restore provenance.
+            // A restart/resume must retain searched dish references, without authorizing
+            // arbitrary IDs from the incoming HTTP request. The adapter rechecks readability.
+            if(!running&&"draft_update".equals(step.getKind()))for(String name:Arrays.asList("targetDishId","replacementDishId","selectedDishIds","keepDishIds","releaseDishIds")){
+                Object refs=step.getArguments().get(name);if(refs instanceof List)for(Object id:(List<?>)refs)addDishId(id,scope);else addDishId(refs,scope);
+            }
             TurnView before=store.findTurn(user,row.getId());
             TurnResult outcome=registry.actionExecutor(step.getKind()).execute(user,step,scope);if(outcome==null)throw new IllegalStateException("缺少业务结果");
             if("completed".equals(outcome.getStatus())){

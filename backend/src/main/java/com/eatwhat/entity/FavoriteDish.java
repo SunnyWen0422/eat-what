@@ -25,4 +25,8 @@ public class FavoriteDish {
     // 关联的菜品信息（查询时填充）
     @JsonProperty("dish")
     private Dish dish;
+
+    // The favorite survives retirement; this is a historical bookmark, not a current recipe.
+    private Boolean unavailable;
+    private String unavailableReason;
 }

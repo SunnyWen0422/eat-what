@@ -10,6 +10,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class DishSnapshotReaderTest {
  final ObjectMapper json=new ObjectMapper();
+ @Test void historicalCalendarKeepsReadableDishDespiteOldMetadataAndSqlTimestamp() throws Exception {
+  String stored="[{\"id\":7,\"name\":\"历史青菜\",\"type\":\"veg\",\"cl\":\"青菜\",\"step\":\"煮熟\",\"createTime\":\"2026-10-20 18:30:00\",\"sourceKind\":\"legacy\",\"sourceDishIds\":[1],\"estimated\":true,\"recipeProvenance\":{},\"contentRevision\":2}]";
+  RecipeRecord record=new RecipeRecord();record.setDishDetailsString(stored);
+  assertEquals(1,record.getDishDetails().size());assertEquals("历史青菜",record.getDishDetails().get(0).getName());
+  assertEquals("煮熟",record.getDishDetails().get(0).getStep());assertNull(record.getDishDetails().get(0).getRecipe());
+  assertEquals(java.time.Instant.parse("2026-10-20T10:30:00Z").toEpochMilli(),record.getDishDetails().get(0).getCreateTime().getTime());
+  assertTrue(json.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES),"trusted reader must not relax HTTP mapper");
+ }
+ @Test void trustedDatesAlsoAcceptExistingIsoAndEpochSnapshots() throws Exception {
+  for(String value:Arrays.asList("\"2026-10-20T10:30:00.000Z\"","1792492200000")){
+   List<Dish> restored=DishSnapshotReader.readDishes(json,"[{\"id\":1,\"name\":\"菜\",\"createTime\":"+value+"}]");
+   assertNotNull(restored.get(0).getCreateTime());
+  }
+ }
  Dish dish(){Dish d=new Dish();d.setId(1L);d.setName("青菜");d.setType("veg");d.setCookMinutes(5);CanonicalTestDish.attach(d);CanonicalTestDish.catalog().enrich(d);return d;}
  @Test void trustedWorkspaceHistoryRoundTripKeepsOriginalVersionsButStillRejectsChangedRecipes() throws Exception {
   Dish d=dish();String version=d.getContentVersion();MealWorkspace w=new MealWorkspace();w.getDraft().getDishes().add(d);PlanDraft old=new PlanDraft();old.getDishes().add(d);w.getDraft().getHistory().add(old);

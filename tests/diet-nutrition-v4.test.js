@@ -2,6 +2,16 @@ const test=require('node:test'),assert=require('node:assert/strict')
 const {presentNutritionReference,presentDietReport}=require('../utils/diet-report')
 const totals={energyKcal:420,proteinG:20,fatG:12,carbohydrateG:58,fiberG:0,sodiumMg:600}
 const nutrition=overrides=>({basis:'recipe_baseline',personalIntakeAvailable:false,entryCount:3,coveredCount:2,unknownCount:1,complete:false,knownTotal:totals,total:null,...overrides})
+
+test('energy is rounded to an integer for display while calculation values are preserved',()=>{
+ const precise={...totals,energyKcal:100.6,proteinG:20.36}
+ const view=presentNutritionReference(nutrition({knownTotal:precise}))
+ assert.equal(view.rows.find(row=>row.key==='energyKcal').value,'101')
+ assert.equal(view.rows.find(row=>row.key==='proteinG').value,'20.4')
+ assert.equal(precise.energyKcal,100.6)
+ const label=require('../utils/canonical-recipe').nutritionView({nutrition:{completeness:'complete',total:precise}}).nutritionText
+ assert.match(label,/101 千卡/);assert.doesNotMatch(label,/100\.6/)
+})
 test('partial coverage labels the known part without replacing unknown values with zero',()=>{
  const view=presentNutritionReference(nutrition())
  assert.equal(view.label,'已知部分');assert.equal(view.coverage,'已覆盖 2/3 道');assert.equal(view.rows.find(row=>row.key==='energyKcal').value,'420')

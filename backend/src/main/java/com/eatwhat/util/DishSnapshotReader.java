@@ -24,7 +24,25 @@ public final class DishSnapshotReader {
  }
  public static List<Dish> readDishes(ObjectMapper json,String savedJson) throws IOException {json=exact(json);return dishes(json,json.readTree(savedJson));}
  public static List<Dish> convertDishes(ObjectMapper json,Object trusted){json=exact(json);return dishes(json,json.valueToTree(trusted));}
- private static ObjectMapper exact(ObjectMapper json){return json.copy().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);}
+ private static ObjectMapper exact(ObjectMapper json){
+  com.fasterxml.jackson.databind.module.SimpleModule dates=new com.fasterxml.jackson.databind.module.SimpleModule("trusted-snapshot-dates");
+  dates.addDeserializer(Date.class,new com.fasterxml.jackson.databind.JsonDeserializer<Date>(){
+   @Override public Date deserialize(com.fasterxml.jackson.core.JsonParser parser,com.fasterxml.jackson.databind.DeserializationContext context) throws IOException {
+    if(parser.hasToken(com.fasterxml.jackson.core.JsonToken.VALUE_NUMBER_INT))return new Date(parser.getLongValue());
+    String text=parser.getValueAsString();if(text==null)throw new IOException("Invalid saved timestamp");
+    TimeZone zone=TimeZone.getTimeZone("Asia/Shanghai");
+    try{return new com.fasterxml.jackson.databind.util.StdDateFormat().withLenient(false).withTimeZone(zone).parse(text);}catch(java.text.ParseException ignored){}
+    if(text.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")){
+     java.text.SimpleDateFormat format=new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");format.setLenient(false);format.setTimeZone(zone);
+     try{return format.parse(text);}catch(java.text.ParseException ignored){}
+    }
+    throw new IOException("Invalid saved timestamp");
+   }
+  });
+  // Historical extension fields are not current authoring facts. Only trusted
+  // saved snapshots use this copy; ordinary HTTP deserialization stays strict.
+  return json.copy().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).registerModule(dates);
+ }
  private static List<Dish> dishes(ObjectMapper json,JsonNode node){
   if(node==null||!node.isArray())throw new IllegalArgumentException("Invalid saved dish snapshot");
   List<Dish> out=new ArrayList<>();for(JsonNode item:node){Dish dish=json.convertValue(item,Dish.class);restore(json,item,dish,0);out.add(dish);}return out;

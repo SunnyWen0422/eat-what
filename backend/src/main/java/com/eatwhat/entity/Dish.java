@@ -36,7 +36,7 @@ public class Dish {
     public void setRecipeJson(String value) {
         receiptContentVersion = null;
         recipeJson = value;
-        try { recipe = value == null ? null : new com.fasterxml.jackson.databind.ObjectMapper().enable(com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).readTree(value); }
+        try { recipe = value == null ? null : ExactRecipeDeserializer.READER.readTree(value); }
         catch (java.io.IOException e) { throw new IllegalArgumentException("Invalid canonical recipe", e); }
     }
     public void setRecipe(com.fasterxml.jackson.databind.JsonNode value) {

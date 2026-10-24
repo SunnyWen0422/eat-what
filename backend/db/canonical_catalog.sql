@@ -15,7 +15,7 @@ CREATE TABLE catalog_recipe (
  INDEX ix_catalog_cuisine(cuisine_code,id),
  INDEX ix_catalog_name(name)
 );
-CREATE TABLE catalog_ingredient (id VARCHAR(128) PRIMARY KEY, document JSON NOT NULL);
+CREATE TABLE catalog_ingredient (id VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin PRIMARY KEY, document JSON NOT NULL);
 CREATE TABLE catalog_metadata (id TINYINT PRIMARY KEY, document JSON NOT NULL, CHECK(id=1));
 CREATE TABLE catalog_id_mapping (old_id BIGINT PRIMARY KEY, dish_id BIGINT NOT NULL, INDEX ix_catalog_target(dish_id));
 CREATE TABLE catalog_retired_source (old_id BIGINT PRIMARY KEY, document JSON NOT NULL);
@@ -31,13 +31,13 @@ CREATE VIEW food AS SELECT
  END AS TYPE,
  (SELECT GROUP_CONCAT(JSON_UNQUOTE(JSON_EXTRACT(i.document,'$.name')) ORDER BY m.ord SEPARATOR '、')
  FROM JSON_TABLE(r.document,'$.ingredients[*]' COLUMNS(ord FOR ORDINALITY,ingredient_id VARCHAR(128) PATH '$.ingredientId')) m
- JOIN catalog_ingredient i ON i.id=m.ingredient_id) AS CL,
+ JOIN catalog_ingredient i ON i.id=CONVERT(m.ingredient_id USING utf8mb4) COLLATE utf8mb4_bin) AS CL,
  NULLIF(JSON_UNQUOTE(JSON_EXTRACT(r.document,'$.baseServings')),'null') AS FL,
  (SELECT GROUP_CONCAT(s.txt ORDER BY s.ord SEPARATOR '###') FROM JSON_TABLE(r.document,'$.steps[*]' COLUMNS(ord FOR ORDINALITY,txt TEXT PATH '$.text')) s) AS STEP,
  (SELECT GROUP_CONCAT(s.txt ORDER BY s.ord SEPARATOR '###') FROM JSON_TABLE(r.document,'$.steps[*]' COLUMNS(ord FOR ORDINALITY,txt TEXT PATH '$.text')) s) AS STEPS,
  (SELECT GROUP_CONCAT(CONCAT(JSON_UNQUOTE(JSON_EXTRACT(i.document,'$.name')),'|',COALESCE(CAST(m.qty AS CHAR),'适量'),'|',m.unit,'|',m.role,'|',COALESCE(m.prep,'')) ORDER BY m.ord SEPARATOR '###')
  FROM JSON_TABLE(r.document,'$.ingredients[*]' COLUMNS(ord FOR ORDINALITY,ingredient_id VARCHAR(128) PATH '$.ingredientId',qty DECIMAL(18,8) PATH '$.quantity',unit VARCHAR(20) PATH '$.unit',role VARCHAR(30) PATH '$.role',prep TEXT PATH '$.preparation')) m
- JOIN catalog_ingredient i ON i.id=m.ingredient_id) AS INGREDIENTS_AMOUNTS,
+ JOIN catalog_ingredient i ON i.id=CONVERT(m.ingredient_id USING utf8mb4) COLLATE utf8mb4_bin) AS INGREDIENTS_AMOUNTS,
  r.cuisine_code AS CUISINE_CODE,
  (SELECT GROUP_CONCAT(DISTINCT t.code ORDER BY t.code SEPARATOR ',') FROM JSON_TABLE(JSON_MERGE_PRESERVE(
  JSON_EXTRACT(r.document,'$.mealCodes'),JSON_EXTRACT(r.document,'$.methodCodes'),JSON_EXTRACT(r.document,'$.sceneCodes'),
