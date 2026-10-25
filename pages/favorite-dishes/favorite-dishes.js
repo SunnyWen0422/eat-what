@@ -28,7 +28,7 @@ Page({
       const list = Array.isArray(result) ? result : (result.list || result.data || [])
       const normalized = list.map(item => {
         const dish = item.dish || item
-        return { id: dish.id, name: dish.name, type: dish.type, image: dish.image || '',contentVersion:dish.contentVersion,cookMinutes:dish.cookMinutes,quality:dish.quality, dish: dish }
+        return { id: dish.id, name: item.unavailable===true ? String(dish.name || '菜品').replace(/（暂不可用）$/,'')+'（已下架）' : dish.name, type: dish.type, image: dish.image || '',contentVersion:dish.contentVersion,cookMinutes:dish.cookMinutes,quality:dish.quality, unavailable:item.unavailable===true, unavailableReason:item.unavailableReason || '该菜品已退出当前菜库，收藏记录仍保留', dish: dish }
       })
       this.setData({ favorites: normalized, loading: false })
       this.doFilter()
@@ -54,7 +54,9 @@ Page({
 
   onViewDish(e) {
     const dish = e.detail && e.detail.id ? {id:e.detail.id} : e.currentTarget.dataset.dish
-    if (!dish || !dish.id) return
+    if (!dish || !dish.id || this._unloaded || this._viewScope!==getUserStorageKey('favoriteView')) return
+    const saved=this.data.favorites.find(item=>Number(item.id)===Number(dish.id))
+    if(saved && saved.unavailable)return wx.showToast({title:'该菜品已下架，收藏仍保留',icon:'none'})
     wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${dish.id}` })
   },
 
@@ -62,6 +64,8 @@ Page({
     const id=Number(e.detail && e.detail.id || e.currentTarget.dataset.id),scope=this._viewScope,epoch=this._epoch
     const current=()=>scope===getUserStorageKey('favoriteView')&&scope===this._viewScope&&epoch===this._epoch
     if(!Number.isSafeInteger(id)||id<1||this.data.addingId||!current())return
+    const saved=this.data.favorites.find(item=>Number(item.id)===id)
+    if(saved && saved.unavailable)return wx.showToast({title:'该菜品已下架，请选择其他菜品',icon:'none'})
     if(this.data.selectedMeal && this.data.selectedMeal.dishIds.includes(id))return this.onViewMeal()
     if (this._recipeSelection) return require('../../utils/dish-workspace-handoff').changeSelectionPage(this, 'append', id, this.selectionOptions())
     this.setData({addingId:id,mealAddError:''})

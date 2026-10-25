@@ -1,6 +1,6 @@
 # 吃什么：开发者手册
 
-2026-10-25：餐次事实改为 `recipe_records` 单一来源，保存即记录，未来菜单当日计入回顾。旧实吃写入已退役，须先备份归并再配套发布；见 [本地验收与发布边界](docs/testing/2026-10-25-unified-meal-records.md)。本轮尚未上线。
+2026-10-25：餐次事实改为 `recipe_records` 单一来源，保存即记录，未来菜单当日计入回顾。旧实吃写入已退役，须先备份归并再配套发布；见 [本地验收与发布边界](docs/testing/2026-10-25-unified-meal-records.md)。配套后端与迁移已完成，见 [发布与复查](docs/operations/2026-10-25-unified-records-release.md)；本轮未发布微信客户端。
 
 ## 当前开发流程入口
 

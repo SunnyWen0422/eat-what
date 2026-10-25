@@ -9,6 +9,13 @@ import java.util.List;
  */
 @Mapper
 public interface DishMapper {
+    // Only retired public sources qualify. Existing private recipes retain 404 privacy.
+    @Select("SELECT COUNT(*) FROM catalog_retired_source rt WHERE rt.old_id=#{id} " +
+            "AND NOT EXISTS (SELECT 1 FROM catalog_recipe r WHERE r.id=rt.old_id) " +
+            "AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(rt.document,'$.originalRecord.user_id')),'null')='null' " +
+            "AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(rt.document,'$.originalRecord.userId')),'null')='null'")
+    int countRetiredPublic(@Param("id") Long id);
+
     // Keep the catalog, count and recommendation predicates identical.
     String FILTERED_WHERE = "WHERE ((user_id IS NULL AND COALESCE(IS_PUBLISHED, 1) = 1) OR user_id = #{userId}) " +
         "<if test='type != null'>AND TYPE = #{type} </if>" +

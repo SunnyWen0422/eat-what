@@ -190,6 +190,7 @@ public class DishController {
         
         Dish dish = dishQueryService.getDishById(id, Long.valueOf(currentUserId.toString()));
         if (dish == null) {
+            if (dishQueryService.isRetiredPublic(id)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.GONE, "菜品已下架");
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(dish);

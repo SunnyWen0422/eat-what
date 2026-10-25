@@ -91,6 +91,8 @@ public class DishQueryService {
         return enrich(dishMapper.selectByIdsForUser(ids, userId));
     }
 
+    public boolean isRetiredPublic(Long id) { return dishMapper.countRetiredPublic(id) > 0; }
+
     public int getDishCount() {
         return dishMapper.countAll();
     }

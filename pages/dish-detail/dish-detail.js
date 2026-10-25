@@ -143,8 +143,8 @@ Page({
     } catch (err) {
       if (!this.current(scope) || epoch !== this._epoch) return
       console.error('加载菜品详情失败:', err)
-      const errorKind=[401,403].includes(err.statusCode)?'permission':err.statusCode===404?'unavailable':'network'
-      this.setData({ loading: false, error: true, errorKind,detailError:errorKind==='permission'?'当前账号没有权限查看这份菜谱，请返回或切换到有权限的账号':errorKind==='unavailable'?'这份菜谱已不可用，请返回继续选菜':'菜谱暂未读到，请重试' })
+      const errorKind=[401,403].includes(err.statusCode)?'permission':err.statusCode===410?'retired':err.statusCode===404?'unavailable':'network'
+      this.setData({ loading: false, error: true, errorKind,detailError:errorKind==='retired'?'菜品已下架':errorKind==='permission'?'当前账号没有权限查看这份菜谱，请返回或切换到有权限的账号':errorKind==='unavailable'?'这份菜谱已不可用，请返回继续选菜':'菜谱暂未读到，请重试' })
     }
   },
 
@@ -213,7 +213,8 @@ Page({
     if (!this.current(this._scope) || !this.data.canEditCustom || !dish || !user.id || String(dish.userId) !== String(user.id)) return
     this.setData({ showDetailMore: false }); wx.navigateTo({ url: '/pages/custom-dishes/custom-dishes?edit=' + encodeURIComponent(dish.id) })
   },
-  onRetry() { if (this._dishId) return this._loadAfterLogin(this._dishId) },
+  onBrowseRecipes() { wx.switchTab({url:'/pages/customize/customize'}) },
+  onRetry() { if (['unavailable','retired'].includes(this.data.errorKind)) return; if (this._dishId) return this._loadAfterLogin(this._dishId) },
   onDishImageError(event) {
     const source = event && event.currentTarget && event.currentTarget.dataset.url
     const dataset = event && event.currentTarget && event.currentTarget.dataset || {}

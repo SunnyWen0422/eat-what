@@ -6,7 +6,7 @@
 
 菜库采用统一结构：每道菜沿用食谱固定用量，人数只表示分食；购物量和整菜营养不随人数放大。“适量”保留为空数值，营养无法完整计算时不填总值。能量向用户四舍五入显示为整数千卡，内部计算保留精度。接入方法见 [菜库 V4 接入说明](docs/data/canonical-catalog-v4-integration.md)，本地检查见 [固定用量验收](docs/testing/2026-10-24-fixed-recipe-local-acceptance.md)，后端与数据的线上更新、备份和验证状态见 [2026-10-24 发布记录](docs/operations/2026-10-24-canonical-catalog-release.md)。小程序与网页需分别发布。
 
-本轮“保存即记录”、跨日首页和一次性历史归并的实现与本地证据见 [2026-10-25 统一记录验收](docs/testing/2026-10-25-unified-meal-records.md)。该变更尚未部署；发布需配套迁移和服务更新。
+本轮“保存即记录”、跨日首页和一次性历史归并的实现与本地证据见 [2026-10-25 统一记录验收](docs/testing/2026-10-25-unified-meal-records.md)。配套后端与记录迁移已上线，备份、数据保护及接口复查见 [统一记录发布记录](docs/operations/2026-10-25-unified-records-release.md)。小程序源码需重新编译，微信正式版未在本轮发布。
 
 ## 当前能力
 

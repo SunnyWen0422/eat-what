@@ -144,5 +144,6 @@
 <!-- 错误提示 -->
 <view class="error-container" wx:if="{{!loading && error}}">
   <text class="error-text">{{detailError || '加载失败，请重试'}}</text>
-  <button class="ew-hit-target retry-btn" bindtap="onRetry">重试</button>
+  <button wx:if="{{errorKind !== 'unavailable' && errorKind !== 'retired'}}" class="ew-hit-target retry-btn" bindtap="onRetry">重试</button>
+  <button wx:else class="ew-hit-target retry-btn" bindtap="onBrowseRecipes">去选其他菜品</button>
 </view>
