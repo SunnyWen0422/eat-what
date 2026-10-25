@@ -22,7 +22,7 @@ test('recovery collection reads only the current scope and never mutates origina
  const rows=new Map([['A:meal-workspace:2026-10-15:dinner',{workspace:workspace(),context:target,pending:{body:{requestId:'original'}},syncStatus:'unknown'}],['A:mealActual:pending:2026-10-15:dinner',{scope:'A:mealActual',date:target.date,mealType:'dinner',body:{requestId:'actual-original'}}],['B:meal-workspace:2026-10-15:dinner',{pending:{secret:'other'}}],['A:personalRecipeWrite:dish:copy:9',{requestId:'copy-original',expectedVersion:'v1'}]])
  const before=JSON.stringify([...rows]);const storage={getStorageInfoSync:()=>({keys:[...rows.keys()]}),getStorageSync:k=>rows.get(k)}
  const pointers=collectRecoveryPointers({storage,storageKey:k=>'A:'+k,assistantScope:'A-api'})
- assert.equal(pointers.length,3);assert.deepEqual(pointers.map(p=>p.kind).sort(),['actual','copy_recipe','workspace'])
+ assert.equal(pointers.length,2);assert.deepEqual(pointers.map(p=>p.kind).sort(),['copy_recipe','workspace'])
  assert.equal(JSON.stringify([...rows]),before);assert.equal(pointers.filter(p=>p.requestId==='original').length,1)
  assert.equal(collectRecoveryPointers({storage,storageKey:k=>'C:'+k,assistantScope:'C-api'}).length,0)
 })

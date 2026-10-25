@@ -17,7 +17,7 @@ public class MealConsumptionController {
     @GetMapping("/diet-reviews")
     public Object review(@RequestParam String startDate,@RequestParam String endDate,HttpServletRequest request){return ResponseEntity.ok().header("Cache-Control", "no-store").body(service.review(user(request),startDate,endDate));}
     @PutMapping("/meal-consumptions/{date}/{mealType}")
-    public Object save(@PathVariable String date,@PathVariable String mealType,@RequestBody MealConsumptionRequest body,HttpServletRequest request){return service.save(user(request),date,mealType,body);}
+    public Object save(@PathVariable String date,@PathVariable String mealType,@RequestBody MealConsumptionRequest body,HttpServletRequest request){user(request);return ResponseEntity.status(410).body(Collections.singletonMap("message","保存到日历即记录，请更新小程序后在日历修改或删除"));}
     @ExceptionHandler(MealConsumptionService.VersionConflict.class)
     public ResponseEntity<?> conflict(MealConsumptionService.VersionConflict e){return ResponseEntity.status(409).body(Collections.singletonMap("message",e.getMessage()));}
 }

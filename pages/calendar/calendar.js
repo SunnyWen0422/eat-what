@@ -14,13 +14,13 @@ Page({
     if (this.data.viewMode === 'month') for (let i = 0; i < (flow.parseDay(range.startDate).getDay() + 6) % 7; i++) days.push({ key: `blank-${i}`, blank: true })
     for (let date = range.startDate; date <= range.endDate; date = flow.shiftDay(date, 1)) {
       const d = flow.parseDay(date)
-      const day={key:date,fullDate:date,day:d.getDate(),weekLabel:['日','一','二','三','四','五','六'][d.getDay()],selected:date===current,isToday:date===flow.today(),hasPlan:plans.some(p=>String(p.recordDateString||p.recordDate).slice(0,10)===date),eaten:actual.some(p=>p.mealDate===date&&p.status==='eaten'),skipped:actual.some(p=>p.mealDate===date&&p.status==='skipped')}
+      const day={key:date,fullDate:date,day:d.getDate(),weekLabel:['日','一','二','三','四','五','六'][d.getDay()],selected:date===current,isToday:date===flow.today(),hasPlan:plans.some(p=>String(p.recordDateString||p.recordDate).slice(0,10)===date),eaten:false,skipped:false}
       day.hasActual=day.eaten||day.skipped
       day.accessibleLabel=calendarDayLabel({...day,date});days.push(day)
     }
     const mealCards=flow.mealViews(this.data.overview,current).map(meal=>{
       const presentation=calendarMealPresentation({...meal,date:current,today:flow.today()})
-      return {...meal,presentation,dishSummary:presentation.summary,statusLabel:presentation.statusLabel,accessibleLabel:[meal.label,meal.status==='eaten'?'实际用餐':presentation.statusLabel,presentation.summary].filter(Boolean).join('，')}
+      return {...meal,presentation,dishSummary:presentation.summary,statusLabel:presentation.statusLabel,accessibleLabel:[meal.label,presentation.statusLabel,presentation.summary].filter(Boolean).join('，')}
     })
     this.setData({ days, hasDayMarks:days.some(day=>day.hasPlan||day.hasActual), rangeLabel: `${range.startDate} — ${range.endDate}`, mealCards })
   },

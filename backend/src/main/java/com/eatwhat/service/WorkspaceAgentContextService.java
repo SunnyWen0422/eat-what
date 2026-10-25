@@ -26,8 +26,10 @@ public class WorkspaceAgentContextService {
         List<Map<String,Object>> catalog=new ArrayList<>();
         for(Dish d:planner.attachQuality(user,selected))catalog.add(readable(d));
         Map<String,Object> result=new LinkedHashMap<>();result.put("ownerUserId",user);result.put("catalog",catalog);if(!catalog.isEmpty())result.put("catalogRevision",catalog.get(0).get("catalogRevision"));result.put("preferences",preferences.get(user));
-        String end=c.getDate(),start=MealConsumptionService.date(end).minusDays(6).toString();List<Map<String,Object>> recent=new ArrayList<>();
-        for(MealConsumption meal:actual.range(user,start,end))if("eaten".equals(meal.getStatus())){Map<String,Object> item=new LinkedHashMap<>();item.put("date",meal.getMealDate());item.put("mealType",meal.getMealType());item.put("dishes",meal.getActualDishesJson());recent.add(item);}
+        java.time.LocalDate today=java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+        java.time.LocalDate target=MealConsumptionService.date(c.getDate());
+        String end=(target.isAfter(today)?today:target).toString(),start=MealConsumptionService.date(end).minusDays(6).toString();List<Map<String,Object>> recent=new ArrayList<>();
+        for(MealConsumption meal:actual.range(user,start,end))if("recorded".equals(meal.getStatus())){Map<String,Object> item=new LinkedHashMap<>();item.put("date",meal.getMealDate());item.put("mealType",meal.getMealType());item.put("dishes",meal.getActualDishesJson());recent.add(item);}
         result.put("recentActual",recent);List<Map<String,Object>> savedMenus=new ArrayList<>();
         for(CustomRecipe menu:menus.list(user)){if(savedMenus.size()>=30)break;Map<String,Object> item=new LinkedHashMap<>();item.put("id",menu.getId());item.put("name",menu.getName());item.put("people",menu.getPeople());item.put("dishIds",menu.getDishIds());item.put("version",menu.getVersion());savedMenus.add(item);}
         result.put("menus",savedMenus);result.put("recommendationOptions",metadata.getOptions().getGroups());result.put("metadataVersion",metadata.getMetadataVersion());return result;

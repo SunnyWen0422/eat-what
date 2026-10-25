@@ -185,7 +185,7 @@ test('saving a generated menu reviews a target before confirming and never recor
   assert.equal(f.calls.filter(call => call.type === 'actual').length, 0)
   const template = fs.readFileSync('templates/meal-workspace.wxml', 'utf8')
   assert.match(template, /workspace-save-fields[^>]*>[\s\S]*?saveTarget.date[\s\S]*?mealLabels\[saveMealIndex\]/)
-  assert.match(template, /仅保存计划，不记录吃过/)
+  assert.match(template, /保存即记录/)
   assert.equal(f.calls.filter(call => call.type === 'confirm').length, 1)
   assert.equal(page.data.primaryAction, 'onViewRecipes')
   assert.equal(page.data.actual, null)

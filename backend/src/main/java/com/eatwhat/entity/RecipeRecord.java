@@ -24,6 +24,13 @@ public class RecipeRecord {
     private Long expectedRevision;
     private String requestId;
     private Integer targetPeople;
+    // Request-only source reference; omitted for unchanged legacy request hashes.
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String copySourceDate;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String copySourceMealType;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private Long copySourceRevision;
 
     private static final Logger log = LoggerFactory.getLogger(RecipeRecord.class);
 

@@ -37,7 +37,7 @@ Page({
       {
         icon: 'chart',
         title: '饮食回顾',
-        desc: '查看明确记录的实际用餐',
+        desc: '回顾已保存的餐次',
         url: '/pages/statistics/statistics'
       },
       {

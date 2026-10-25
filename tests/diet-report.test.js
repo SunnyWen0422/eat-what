@@ -20,7 +20,7 @@ function fixture(read) {
 }
 function report(range = flow.weekRange('2026-01-01')) {
   return {
-    metadata: {reportId:'diet-report-abc', startDate:range.startDate,endDate:range.endDate,timezone:'Asia/Shanghai',generatedAt:'2026-01-04T20:00:00+08:00',calculationVersion:'actual-diet-v1',sourceFingerprint:'abc',persisted:false,basis:'explicit_eaten'},
+    metadata: {reportId:'diet-report-abc', startDate:range.startDate,endDate:range.endDate,timezone:'Asia/Shanghai',generatedAt:'2026-01-04T20:00:00+08:00',calculationVersion:'actual-diet-v1',sourceFingerprint:'abc',persisted:false,basis:'calendar_records'},
     mealCount:0, recordedDays:0, uniqueDishCount:0, entryCount:0, classifiedCount:0, unclassifiedCount:0,
     categories:{}, popularDishes:[], dailyMeals:{}, consumptions:[],
     plannedMealsDue:2, plannedMealsFollowed:0, plannedMealsChanged:0, skippedMeals:0, unconfirmedMeals:2,
@@ -32,11 +32,10 @@ test('empty actual report retains all six sections and pending plans with proven
   await view.loadStatistics()
   assert.equal(view.data.reportView.metadata.reportId,'diet-report-abc')
   assert.equal(view.data.reportView.overview.mealCount,0)
-  assert.equal(view.data.reportView.planExecution.unconfirmedMeals,2)
   assert.equal(view.data.reportView.completeness.daysWithoutActualRecord,7)
   assert.equal(view.data.recordRows.length,0)
   const source = fs.readFileSync('pages/statistics/statistics.wxml','utf8')
-  for (const block of ['overview','actualDetails','frequentDishes','categoryCounts','planExecution','completeness']) assert.ok(source.includes(`data-report-block="${block}"`),block)
+  for (const block of ['overview','actualDetails','frequentDishes','categoryCounts','completeness']) assert.ok(source.includes(`data-report-block="${block}"`),block)
 })
 test('nutrition reference reaches the actual page and is cleared on period change and read failure', async () => {
   let failing=false
@@ -79,7 +78,7 @@ test('account change while response is pending prevents private report and navig
 test('daily bars use observed maximum and details preserve unknown names and source targets', async () => {
   const data=report()
   data.dailyMeals={'2026-01-01':1,'2026-01-02':2}
-  data.blocks.actualDetails.records=[{id:9,mealDate:'2026-01-01',mealType:'lunch',status:'eaten',revision:4,actualDishes:[{name:'未识别外食'}]}]
+  data.blocks.actualDetails.records=[{id:9,mealDate:'2026-01-01',mealType:'lunch',status:'recorded',revision:4,actualDishes:[{name:'未识别外食'}]}]
   data.blocks.categoryCounts={categories:{unknown:1},entryCount:1,classifiedCount:0,unclassifiedCount:1}
   const {view}=fixture(async()=>data);await view.loadStatistics()
   assert.equal(view.data.dailyRows.find(x=>x.date==='2026-01-01').width,50)
@@ -106,7 +105,7 @@ test('page unload discards late report responses and classification absence is e
   assert.equal(view.data.report,null)
   const {presentDietReport}=require('../utils/diet-report')
   const data=report();data.metadata.basis='plan'
-  assert.throws(()=>presentDietReport(data,flow.weekRange('2026-01-01')),/实际用餐依据/)
+  assert.throws(()=>presentDietReport(data,flow.weekRange('2026-01-01')),/记录版本/)
 })
 test('unknown rejection still clears stale content and exposes a retryable read error', async () => {
   const {view}=fixture(async()=>{throw null})

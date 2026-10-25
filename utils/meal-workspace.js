@@ -31,7 +31,7 @@ function defaultTarget(now = new Date()) {
 function resolveActiveTarget(mode, params = {}, stored, now = new Date()) {
   const current = defaultTarget(now), saved = stored || {}
   const explicit = /^\d{4}-\d{2}-\d{2}$/.test(params.date || '')
-  const base = mode === 'today' && saved.selectedOn !== current.date ? current : { ...current, ...saved }
+  const base = mode === 'today' && (saved.selectedOn || saved.date) !== current.date ? current : { ...current, ...saved }
   return { date: explicit ? params.date : base.date, mealType: ['breakfast', 'lunch', 'dinner'].includes(params.mealType) ? params.mealType : base.mealType }
 }
 
@@ -83,6 +83,12 @@ function createWorkspaceStore(options = {}) {
       if (workspace && (!response.workspace || (workspace.id === response.workspace.id && workspace.revision > response.workspace.revision))) { persist(); return state() }
       if ((!dirty && !pending) || !workspace) workspace = response.workspace || null; linked = { plan: response.plan || null, actual: response.actual || null, planRevision: response.planRevision || 0 }
       if (!dirty && !pending && workspace) context = clone(workspace.context)
+      if (!dirty && !pending && (!workspace || workspace.status === 'planned') && linked.plan) {
+        const counts={meat:0,veg:0,soup:0,staple:0,dessert:0,side:0}
+        for(const dish of linked.plan.dishDetails||[]){const type=require('./meal-composition').normalizeDishType(dish.type);if(Object.prototype.hasOwnProperty.call(counts,type))counts[type]++}
+        const total=Object.values(counts).reduce((sum,count)=>sum+count,0)
+        context=normalizeContext({...context,people:linked.plan.targetPeople||context.people,...(total>0 && total<=10?{compositionMode:'manual',counts}:{})})
+      }
       await verifyActionTask(workspace,ticket,mutationTicket)
       ensure();if(!owns(ticket,mutationTicket))throw superseded()
       syncStatus = pending ? 'unknown' : dirty ? 'unsynced' : 'synced'; persist(); return state()

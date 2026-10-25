@@ -17,9 +17,9 @@ test('calendar meal entry labels actual records before existing or empty plans',
   const expression = source.match(/action-label="\{\{(.*?)\}\}"/)
   assert.ok(expression, 'calendar retains its single meal-detail entry')
   const cases = [
-    { item: { status: 'eaten', plan: null }, label: '查看' },
-    { item: { status: 'eaten', plan: { recipeName: '原安排' } }, label: '查看' },
-    { item: { status: 'skipped', plan: null }, label: '查看' },
+    { item: { status: 'unrecorded', plan: null }, label: '安排' },
+    { item: { status: 'recorded', plan: { recipeName: '原安排' } }, label: '查看' },
+
     { item: { status: 'unrecorded', plan: { recipeName: '明日午餐' } }, label: '查看' },
     { item: { status: 'unrecorded', plan: null }, label: '安排' },
   ]
@@ -30,29 +30,14 @@ test('calendar meal entry labels actual records before existing or empty plans',
   assert.match(source, /data-meal="\{\{item.mealType\}\}"/)
 })
 
-test('calendar detail labels saving a plan separately from recording food', () => {
-  const source = read('pages/calendar-detail/calendar-detail.wxml')
-  // The approved read-first layout removes the repeated introduction and
-  // gives copying its own destination label instead of generic save wording.
-  assert.match(source, /bindtap="onActualDifferent"[^>]*>更正实际记录/)
-  assert.match(source, /原安排保留，只复制菜单，不复制实际记录/)
-  const expression = source.match(/confirm-label="\{\{(.*?)\}\}"/)
-  assert.ok(expression, 'the form confirm label reflects its action')
-  assert.equal(vm.runInNewContext(expression[1], { formMode: 'plan' }), '保存到日历')
-  assert.equal(vm.runInNewContext(expression[1], { formMode: 'copy' }), '复制安排')
-  assert.equal(vm.runInNewContext(expression[1], { formMode: 'actual' }), '记录饮食')
-})
-
-test('food recording sheet states its actual-only purpose and keeps the meal context', () => {
-  const source = read('templates/meal-actual-sheet.wxml')
-  assert.match(source, /<ui-sheet[^>]*title="记录饮食"/)
-  assert.match(source, />\{\{actualTitle\}\}<\/text>/)
-  assert.match(source, /按实际情况记录，不影响原安排/)
-  const expression = source.match(/slot="footer" label="\{\{(.*?)\}\}"/)
-  assert.ok(expression, 'recording has an explicit confirmation label')
-  assert.equal(vm.runInNewContext(expression[1], { actualMode: 'changed' }), '记录饮食')
-  assert.equal(vm.runInNewContext(expression[1], { actualMode: 'byPlan' }), '记录饮食')
-  assert.equal(vm.runInNewContext(expression[1], { actualMode: 'skipped' }), '确认这餐没吃')
+test('calendar detail saves one record and exposes no mark-eaten editor', () => {
+  const source=read('pages/calendar-detail/calendar-detail.wxml')
+  assert.doesNotMatch(source,/onActualDifferent|meal-actual-sheet|实际吃过/)
+  assert.match(source,/原记录保留，复制后会生成目标日期的餐次记录/)
+  const expression=source.match(/confirm-label="\{\{(.*?)\}\}"/)
+  assert.equal(vm.runInNewContext(expression[1],{formMode:'plan'}),'保存到日历')
+  assert.equal(vm.runInNewContext(expression[1],{formMode:'copy'}),'复制安排')
+  for(const file of ['templates/meal-workspace.wxml','pages/meal-cooking/meal-cooking.wxml'])assert.doesNotMatch(read(file),/meal-actual-sheet/)
 })
 
 test('recipe details are clearly ingredients and cooking instructions', () => {
@@ -64,26 +49,15 @@ test('recipe details are clearly ingredients and cooking instructions', () => {
   assert.doesNotMatch(read('pages/calendar-detail/calendar-detail.wxml'), /实际做法/)
 })
 
-test('diet review separates actual food statistics from plan execution comparisons', () => {
-  const source = read('pages/statistics/statistics.wxml')
-  assert.doesNotMatch(source, /饮食统计只计入实际吃过的记录；计划执行单独对照/)
-  assert.match(source, /wx:if="\{\{hasActualRecords\}\}"[^>]*data-report-block="overview"/)
-  assert.match(source, /明确吃过的餐次/)
-  assert.match(source, /有实际用餐的天数/)
-  assert.match(source, /data-report-block="planExecution"/)
-  assert.match(source, /计划执行对照/)
-  assert.match(source, /仅对照安排是否执行，不计入饮食统计/)
-  assert.match(source, /<ui-state wx:if="\{\{!hasActualRecords\}\}"[^>]*action-label="记录这一餐"[^>]*bind:action="onRecord"/)
-})
-
-test('help distinguishes saving to the calendar from recording food after eating', () => {
-  const source = read('pages/about/about.wxml')
-  assert.match(source, /保存到日历/)
-  assert.match(source, /保存到日历只保存计划，不会记作实际吃过/)
-  assert.match(source, /记录与回顾/)
-  assert.match(source, /“记录饮食”/)
-  assert.match(source, /实际吃过的内容才计入饮食回顾/)
-  assert.doesNotMatch(source, /4 · 确认实际用餐|“实际吃了别的”/)
+test('diet review and help use saved records with the future-date boundary', () => {
+  const source=read('pages/statistics/statistics.wxml')
+  assert.doesNotMatch(source,/计划执行对照|planExecution|明确吃过/)
+  assert.match(source,/有餐次记录的天数/)
+  assert.match(source,/保存即记录；未来菜单到对应日期再计入/)
+  const help=read('pages/about/about.wxml')
+  assert.match(help,/保存到日历即成为餐次记录/)
+  assert.match(help,/未来菜单到当天计入/)
+  assert.doesNotMatch(help,/“记录饮食”|保存到日历只保存计划/)
 })
 
 test('help presents one generation action with optional meal requirements', () => {

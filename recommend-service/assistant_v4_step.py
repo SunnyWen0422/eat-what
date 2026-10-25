@@ -24,7 +24,7 @@ actionProposal中只有steps，每个步骤只能有kind和arguments两个字段
 安排一餐时优先一次均衡候选查询，不要按每种类别重复搜索。现有食材明确时优先一次按食材查询。
 activeMeal含workspaceRevision、planVersion及currentDishes时，它已经是服务端本turn授权快照，避免重复读取当前餐。
 优先复用constraints、recentActual、references及本turn已返回的工具资料；仅缺少必要事实时继续读取。
-实际用餐查询复用recentActual时，final必须设置factSource=recent_actual，且不得附带actionProposal。
+餐次记录查询复用recentActual时，final必须设置factSource=recent_actual，且不得附带actionProposal。
 该来源只代表evidence.recentActualRange内的授权摘要；truncated为true或查询范围超出时必须读取read_actual_diet_review。
 reply不直接展示；服务端只按factSource或本turn工具事实生成查询卡片，不得仅在reply里给出实际回顾。
 不要为普通生成方案额外读取日历、采购或实际回顾；仅用户明确查询或必要来源数据缺失时查询对应资料。
@@ -117,7 +117,7 @@ def prepare_step(value):
     if "handoff_v1" in allowed_actions:
         navigation_hint = ("\n可用navigation建议去既有页面：record_actual/edit_preferences/edit_shopping/copy_recipe/save_personal_menu/use_personal_menu/view_favorite。"
             "ref只用工具或当前餐的真实引用；不提供URL、不自动写入。长期偏好只在用户明确长期意图时交接；本餐临时要求仍留在本餐流程。"
-            "实吃和复用菜单目标不明先澄清，不默认今天。")
+            "记录和复用菜单目标不明先澄清，不默认今天。")
     if "draft_update" in allowed_actions:
         generation_hint = ("\n用户要求生成新方案且事实齐备时，第一步kind=draft_update，在arguments中设operation=generate；"
             "selectedDishIds选1至10个已授权的真实候选ID，遵守保留菜和硬限制。"

@@ -29,7 +29,7 @@ Page({
     try {
       for (const item of this.data.pendingSync) {
         if (scope !== getUserStorageKey('recipeRecords') || this._unloaded) return
-        const approved = await new Promise(resolve => wx.showModal({ title: '确认历史安排草稿', content: `${item.date} ${item.mealName}\n${item.record.name || '本机安排'}\n仅保存为计划，不代表吃过。`, success: result => resolve(result.confirm), fail: () => resolve(false) }))
+        const approved = await new Promise(resolve => wx.showModal({ title: '确认历史安排草稿', content: `${item.date} ${item.mealName}\n${item.record.name || '本机安排'}\n保存为餐次记录，未来菜单到当天计入回顾。`, success: result => resolve(result.confirm), fail: () => resolve(false) }))
         if (scope !== getUserStorageKey('recipeRecords') || this._unloaded) return
         if (!approved) continue
         const saved = await require('../../utils/plan-save').savePlan(this,item.date,item.mealType,{ recipeName: item.record.name || '历史安排', dishIds: (item.record.dishes || []).map(dish => Number(dish.id)).filter(Boolean), isManual: item.record.manual ? 1 : 0, targetPeople: Number(item.record.people) || 2 })

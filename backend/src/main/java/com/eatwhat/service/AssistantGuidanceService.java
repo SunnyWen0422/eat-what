@@ -94,7 +94,7 @@ public class AssistantGuidanceService {
         Map<String,Object> payload=map("kind",kind,"ref",authorized,"prefill",map("userText",userText==null?"":userText));
         if(version!=null)payload.put("sourceVersion",version);if(!target.isEmpty())payload.put("target",target);card.setData(payload);return card;
     }
-    static String navigationLabel(String kind){switch(kind){case "record_actual":return "去记录实际用餐";case "edit_preferences":return "去编辑长期偏好";case "edit_shopping":return "去调整采购条目";case "copy_recipe":return "去编辑菜谱副本";case "save_personal_menu":return "存为常用菜单";case "use_personal_menu":return "查看并用于本餐";case "view_favorite":return "查看收藏菜谱";default:return "请明确要操作的内容";}}
+    static String navigationLabel(String kind){switch(kind){case "record_actual":return "查看或修改餐次记录";case "edit_preferences":return "去编辑长期偏好";case "edit_shopping":return "去调整采购条目";case "copy_recipe":return "去编辑菜谱副本";case "save_personal_menu":return "存为常用菜单";case "use_personal_menu":return "查看并用于本餐";case "view_favorite":return "查看收藏菜谱";default:return "请明确要操作的内容";}}
     @SuppressWarnings("unchecked") private Map<String,Object> mapValue(Object value){if(value==null)return Collections.emptyMap();if(!(value instanceof Map))throw new IllegalArgumentException("交接引用无效");return (Map<String,Object>)value;}
     private Long numericId(Object value){if(!(value instanceof Integer||value instanceof Long)||((Number)value).longValue()<1)throw new IllegalArgumentException("交接编号无效");return ((Number)value).longValue();}
     private String hash(Object value){try{return com.eatwhat.util.WorkflowRequestHash.sha256(json.writeValueAsString(value));}catch(Exception e){throw new IllegalStateException("交接内容不可读取");}}

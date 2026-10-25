@@ -69,6 +69,9 @@ public class MealPlanService {
             record.setDishIds(body.getDishIds());
             record.setIsManual(body.getIsManual() == null ? 0 : body.getIsManual());
             record.setExpectedRevision(body.getExpectedRevision());
+            record.setCopySourceDate(body.getCopySourceDate());
+            record.setCopySourceMealType(body.getCopySourceMealType());
+            record.setCopySourceRevision(body.getCopySourceRevision());
             service.saveRecipeRecord(record);
             response.put("plan",plans.selectByUserAndDate(userId,day).stream().filter(p->meal.equals(p.getMealType())).findFirst().orElse(null));
         }

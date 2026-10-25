@@ -57,7 +57,7 @@ Page({
   async onDeleteV4(e){
     const id=e.currentTarget.dataset.id,selected=this.data.v4Sessions.find(s=>s.sessionId===id),scope=this._scope,epoch=this._epoch
     if(!selected||selected.hasPending||this.data.loading||typeof api.deleteAssistantV4Session!=='function')return
-    const confirmed=await new Promise(resolve=>wx.showModal({title:'删除这段对话？',content:'仅删除对话记录，日历安排、采购清单和实际用餐记录会保留。',confirmText:'删除对话',confirmColor:'#9B463B',success:r=>resolve(r.confirm),fail:()=>resolve(false)}))
+    const confirmed=await new Promise(resolve=>wx.showModal({title:'删除这段对话？',content:'仅删除对话记录，日历记录和购物清单会保留。',confirmText:'删除对话',confirmColor:'#9B463B',success:r=>resolve(r.confirm),fail:()=>resolve(false)}))
     if(!confirmed||!this.current(scope,epoch))return
     this.setData({loading:true,errorMessage:''})
     try{

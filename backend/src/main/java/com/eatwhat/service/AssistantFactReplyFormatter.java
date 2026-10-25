@@ -100,7 +100,7 @@ final class AssistantFactReplyFormatter {
                 else if(energy!=null)line+="。";
                 if(chars+line.length()>900){partial=true;break;}lines.add(line);chars+=line.length();
             }else for(Map<String,Object> meal:rows(row.get("actual"))){
-                if(!"eaten".equals(meal.get("status")))continue;Map<String,Object> n=object(meal.get("nutrition"));
+                if(!"recorded".equals(meal.get("status")))continue;Map<String,Object> n=object(meal.get("nutrition"));
                 if(!"recipe_baseline".equals(n.get("basis")))continue;
                 BigDecimal total=Boolean.TRUE.equals(n.get("complete"))?energy(n.get("total")):null,known=energy(n.get("knownTotal"));
                 String line=date(row.get("date"))+mealType(meal.get("mealType"))+"已记录菜品的配方能量：";
@@ -150,10 +150,10 @@ final class AssistantFactReplyFormatter {
                 return "采购这次查到"+n+"项"+names+"；其中"+checked+"项已勾选、"+pending+"项待采购"+(checked+pending<n?"，其余勾选状态未知":"")+"。";
             case "read_calendar":
             case "read_actual_diet_review":
-                int plans=0,actual=0;for(Map<String,Object> day:rows){plans+=list(day.get("plans")).size();for(Map<String,Object> meal:rows(day.get("actual")))if("eaten".equals(meal.get("status")))actual++;}
+                int plans=0,actual=0;for(Map<String,Object> day:rows){plans+=list(day.get("plans")).size();for(Map<String,Object> meal:rows(day.get("actual")))if("recorded".equals(meal.get("status")))actual++;}
                 String range=dateRange(rows);
-                if("read_calendar".equals(group.name))return "日历"+range+"这次查到"+plans+"餐计划、"+actual+"餐实吃记录。计划安排不代表已经吃过。";
-                return actual==0?"实吃"+range+"这次未查到明确记录；没有记录不能判断是否进餐。":"实吃"+range+"这次查到"+actual+"餐明确记录，仅包含已记录为吃过的餐次。";
+                if("read_calendar".equals(group.name))return "日历"+range+"这次查到"+plans+"餐已保存菜单。未来菜单到对应日期计入饮食回顾。";
+                return actual==0?"回顾"+range+"这次没有查到已保存的餐次记录。":"回顾"+range+"这次查到"+actual+"餐已保存记录，统计至今天。";
             default:return EMPTY;
         }
     }

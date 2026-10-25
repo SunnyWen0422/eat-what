@@ -104,8 +104,8 @@ class AssistantV4StepTest(unittest.TestCase):
 
     def test_recent_actual_source_survives_without_forwarding_model_prose(self):
         request = body()
-        request["context"]["recentActual"] = [{"date": "2026-10-10", "status": "eaten",
-            "dishes": [{"name": "面条"}], "basis": "explicit_eaten"}]
+        request["context"]["recentActual"] = [{"date": "2026-10-10", "status": "recorded",
+            "dishes": [{"name": "面条"}], "basis": "calendar_records"}]
         status, value, requests = self.route(final({"type": "final", "reply": "已保存并采购",
             "factSource": "recent_actual"}), request)
         self.assertEqual(200, status)
@@ -230,8 +230,8 @@ class AssistantV4StepTest(unittest.TestCase):
         context["activeMeal"]["currentDishes"][0]["contentVersion"] = "hash-version"
         context["evidence"] = {"metadataVersion": 2, "supportedTypes": ["veg"], "truncated": False}
         context["references"] = [{"kind": "menu", "id": 42, "name": "我的菜单", "dishIds": [99], "people": 3, "version": 1}]
-        context["recentActual"] = [{"date": "2026-10-10", "status": "eaten", "mealType": "lunch", "revision": 1,
-            "dishes": [{"dishId": 99, "name": "历史菜", "type": "veg"}], "basis": "explicit_eaten"}]
+        context["recentActual"] = [{"date": "2026-10-10", "status": "recorded", "mealType": "lunch", "revision": 1,
+            "dishes": [{"dishId": 99, "name": "历史菜", "type": "veg"}], "basis": "calendar_records"}]
         expected = {"type": "final", "reply": "请核对本餐操作建议。", "actionProposal": {"steps": [
             {"kind": "draft_update", "arguments": {"operation": "adjust", "selectedDishIds": [1],
                 "contextPatch": {"compositionMode": "manual", "people": 3, "counts": {"veg": 1}}}}]}}

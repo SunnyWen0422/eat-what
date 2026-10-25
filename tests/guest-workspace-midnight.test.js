@@ -27,14 +27,29 @@ async function fixture(t) {
   return { page, store, memory, reads, wx }
 }
 
-test('guest unfinished meal survives midnight in its API-scoped workspace cache', async t => {
+test('new day opens today while yesterday unfinished meal remains in its scoped cache', async t => {
   const f = await fixture(t)
   await f.store.load(yesterday.date, yesterday.mealType)
   f.store.edit({ ...yesterday, requirements: 'unfinished dinner' })
   await f.page.initializeWorkspace({})
-  assert.deepEqual(f.reads[0], yesterday)
-  assert.equal(f.page.store.state().context.requirements, 'unfinished dinner')
-  assert.equal(f.wx.getStorageSync(util.getUserStorageKey('activeMealTarget')).date, yesterday.date)
+  assert.equal(f.reads[0].date, '2026-10-10')
+  assert.notEqual(f.page.store.state().context.requirements, 'unfinished dinner')
+  assert.equal(f.wx.getStorageSync(util.getUserStorageKey('activeMealTarget')).date, '2026-10-10')
+  await f.store.load(yesterday.date, yesterday.mealType)
+  assert.equal(f.store.state().context.requirements, 'unfinished dinner')
+})
+
+test('foreground on a new day changes target even with yesterday draft or unknown request', async t => {
+  const f = await fixture(t)
+  await f.page.initializeWorkspace(yesterday)
+  f.page._params = {}
+  f.page.store.edit({...yesterday,requirements:'keep yesterday'})
+  f.wx.setStorageSync(util.getUserStorageKey('activeMealTarget'),{...yesterday,selectedOn:yesterday.date})
+  f.page.setData({context:{...yesterday},confirmationVisible:true,busy:true})
+  await f.page.onShow()
+  assert.equal(f.page.store.state().context.date,'2026-10-10')
+  await f.store.load(yesterday.date,yesterday.mealType)
+  assert.equal(f.store.state().context.requirements,'keep yesterday')
 })
 
 test('guest midnight recovery never revives an unscoped or another API draft', async t => {
@@ -44,4 +59,30 @@ test('guest midnight recovery never revives an unscoped or another API draft', a
   await f.page.initializeWorkspace({})
   assert.equal(f.reads[0].date, '2026-10-10')
   assert.equal(f.memory.get(`user:guest:meal-workspace:${yesterday.date}:${yesterday.mealType}`).dirty, true)
+})
+
+test('stale calendar handoff stays recoverable but cannot reopen yesterday on the home page', async t => {
+  const f = await fixture(t)
+  const key = util.getUserStorageKey('pendingRecipeRecord')
+  f.wx.setStorageSync(key, {...yesterday, selectedOn:yesterday.date, expectedRevision:3})
+  await f.page.initializeWorkspace({})
+  assert.equal(f.reads[0].date,'2026-10-10')
+  assert.equal(f.wx.getStorageSync(key).expectedRevision,3)
+  await f.page.initializeWorkspace(yesterday)
+  assert.equal(f.reads[1].date,yesterday.date)
+})
+
+test('a calendar date explicitly selected today remains valid for this visit', async t => {
+  const f = await fixture(t)
+  f.wx.setStorageSync(util.getUserStorageKey('pendingRecipeRecord'),{...yesterday,selectedOn:'2026-10-10'})
+  await f.page.initializeWorkspace({})
+  assert.equal(f.reads[0].date,yesterday.date)
+})
+
+test('a homepage meal chosen on the previous day does not stay pinned by old route params',async t=>{
+ const f=await fixture(t)
+ await f.page.initializeWorkspace(yesterday)
+ f.page._params={...yesterday};f.page._enteredOn=yesterday.date
+ await f.page.onShow()
+ assert.equal(f.page.store.state().context.date,'2026-10-10')
 })

@@ -42,7 +42,7 @@ public class RecipeRecordService {
 
     @Transactional
     public RecipeRecord saveWorkspaceRecipeRecord(RecipeRecord record,List<Dish> reviewed) {
-        checkPlanVersion(record);validatePlan(record);
+        checkPlanVersion(record);validatePlan(record,false);
         Map<Long,Dish> current=record.getDishDetails().stream().collect(Collectors.toMap(Dish::getId,d->d));
         for(Dish dish:reviewed) if(!MealWorkspaceRules.sameRecipe(dish,current.get(dish.getId())))throw new MealConsumptionService.VersionConflict("菜品配方已变化，请重新安排后确认");
         record.setDishDetails(reviewed);record.setCreateTime(new Date());record.setUpdateTime(new Date());recipeRecordMapper.insert(record);return record;
@@ -177,7 +177,8 @@ public class RecipeRecordService {
         if(revision!=record.getExpectedRevision())throw new MealConsumptionService.VersionConflict("安排已更新，请重新加载后确认");
     }
 
-    private void validatePlan(RecipeRecord record) {
+    private void validatePlan(RecipeRecord record) { validatePlan(record,true); }
+    private void validatePlan(RecipeRecord record,boolean preserveSaved) {
         String day = record.getRecordDateString();
         if (day == null && record.getRecordDate() != null) day = dayString(record.getRecordDate());
         if (day == null) throw new IllegalArgumentException("请指定日期");
@@ -188,6 +189,18 @@ public class RecipeRecordService {
         if(!Arrays.asList("breakfast","lunch","dinner").contains(record.getMealType()))throw new IllegalArgumentException("餐次无效");
         if(record.getRecipeName()==null||record.getRecipeName().trim().isEmpty()||record.getRecipeName().length()>255)throw new IllegalArgumentException("请填写有效的安排名称");
         if(record.getDishIds().size()>30)throw new IllegalArgumentException("一餐最多 30 道菜");
+        if(record.getCopySourceDate()!=null || record.getCopySourceMealType()!=null || record.getCopySourceRevision()!=null) {
+            if(!preserveSaved || record.getCopySourceDate()==null || record.getCopySourceRevision()==null || record.getCopySourceRevision()<1 || !Arrays.asList("breakfast","lunch","dinner").contains(record.getCopySourceMealType()))throw new IllegalArgumentException("复制来源无效");
+            String sourceDay=MealConsumptionService.date(record.getCopySourceDate()).toString();
+            if(sourceDay.equals(record.getRecordDateString()) && record.getCopySourceMealType().equals(record.getMealType()))throw new IllegalArgumentException("请选择其他日期或餐次");
+            RecipeRecord original=recipeRecordMapper.findSlot(record.getUserId(),sourceDay,record.getCopySourceMealType());
+            if(original==null || Boolean.TRUE.equals(original.getIsDeleted()) || !Objects.equals(original.getRevision(),record.getCopySourceRevision()))throw new MealConsumptionService.VersionConflict("原记录已变化，请重新查看后复制");
+            record.setRecipeName(original.getRecipeName());record.setDishIds(original.getDishIds());record.setDishDetails(original.getDishDetails());record.setRecordOrigin("manual");return;
+        }
+        RecipeRecord saved=preserveSaved?recipeRecordMapper.findSlot(record.getUserId(),record.getRecordDateString(),record.getMealType()):null;
+        if(saved!=null && !Boolean.TRUE.equals(saved.getIsDeleted()) && saved.getDishIds().equals(record.getDishIds()) && !saved.getDishDetails().isEmpty()) {
+            record.setDishDetails(saved.getDishDetails());record.setRecordOrigin("manual");return;
+        }
         List<Dish> trusted=dishQueryService.getDishesByIdsForUser(record.getDishIds(),record.getUserId());
         Set<Long> ids=trusted.stream().map(Dish::getId).collect(Collectors.toSet());
         if(!ids.containsAll(record.getDishIds()))throw new IllegalArgumentException("菜品不存在或无权访问");
@@ -201,6 +214,8 @@ public class RecipeRecordService {
     public StatisticsDTO getStatistics(Long userId, Date startDate, Date endDate) {
         // 查询日期范围内的所有记录
         List<RecipeRecord> records = recipeRecordMapper.selectRecordsByUserAndRange(userId, dayString(startDate), dayString(endDate));
+        java.time.LocalDate today=java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+        records=records.stream().filter(r->!Boolean.TRUE.equals(r.getIsDeleted()) && r.calendarDay()!=null && !java.time.LocalDate.parse(r.calendarDay()).isAfter(today)).collect(Collectors.toList());
 
         // 统计有记录的日期数
         Set<String> recordDates = new HashSet<>();

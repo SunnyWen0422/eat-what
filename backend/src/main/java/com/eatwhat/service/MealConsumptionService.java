@@ -62,143 +62,20 @@ public class MealConsumptionService {
             throw new IllegalStateException("用餐记录快照无法读取",e);
         }
     }
-    @Transactional
+    /** Retired command: do not create a second writable representation of a meal. */
     public MealConsumption save(Long userId,String day,String mealType,MealConsumptionRequest request) {
-        LocalDate local=date(day);
-        meal(mealType);
-        RequestIdValidator.requireValid(request.getRequestId());
-        if(request.getExpectedRevision()==null || request.getExpectedRevision()<0) throw new IllegalArgumentException("缺少有效的记录版本");
-        if(!Arrays.asList("eaten","skipped","unrecorded").contains(request.getStatus())) throw new IllegalArgumentException("用餐状态无效");
-        if("eaten".equals(request.getStatus())&&local.isAfter(LocalDate.now(ZoneId.of("Asia/Shanghai")))) throw new IllegalArgumentException("不能提前记录未来用餐");
-        // One user-row lock also serializes first creation and duplicate request replay.
-        if(mapper.lockUser(userId)==null) throw new IllegalArgumentException("用户不存在");
-        String hash=com.eatwhat.util.WorkflowRequestHash.sha256(day+"|"+mealType+"|"+encode(request));
-        Map<String,Object> prior=mapper.request(userId,request.getRequestId());
-        if(prior!=null) {
-            if(!hash.equals(prior.get("requestHash"))) throw new VersionConflict("同一请求标识已用于不同操作");
-            try {
-                return json.readValue(String.valueOf(prior.get("responseJson")),MealConsumption.class);
-            }
-            catch(Exception e) {
-                throw new IllegalStateException("执行记录无法读取",e);
-            }
-        }
-        MealConsumption current=mapper.find(userId,day,mealType);
-        long version=current==null?0:current.getRevision();
-        if(version!=request.getExpectedRevision())throw new VersionConflict("用餐记录已更新，请重新加载后确认");
-        // Deleted plans retain a slot revision for concurrency checks, but cannot supply a meal snapshot.
-        RecipeRecord slot=plans.findSlot(userId,day,mealType);
-        RecipeRecord plan=slot!=null && !Boolean.TRUE.equals(slot.getIsDeleted()) ? slot : null;
-        if ((Boolean.TRUE.equals(request.getUsePlan()) || current == null) && request.getExpectedPlanRevision() != null
-                && request.getExpectedPlanRevision() != (slot == null ? 0 : slot.getRevision()))
-        throw new VersionConflict("本餐安排已更新，请查看最新安排后确认");
-        if (Boolean.TRUE.equals(request.getUsePlan()) && request.getExpectedPlanRevision() == null)
-        throw new IllegalArgumentException("按计划确认时请提供安排版本");
-        List<Map<String,Object>> actual=new ArrayList<>();
-        if("eaten".equals(request.getStatus())) {
-            if(Boolean.TRUE.equals(request.getUsePlan())) {
-                if(plan==null)throw new IllegalArgumentException("本餐没有可确认的安排");
-                Map<Long,Dish> snapshot=plannedDishes(plan);
-                for(Long id:plan.getDishIds())actual.add(snapshot.isEmpty()?trustedDish(id,userId):dishEntry(snapshot.get(id)));
-                if(actual.isEmpty())actual.add(freeEntry(plan.getRecipeName()));
-            }
-            else {
-                if(request.getDishes()==null||request.getDishes().isEmpty()||request.getDishes().size()>30)throw new IllegalArgumentException("请填写 1 至 30 道实际吃过的菜");
-                List<Map<String,Object>> historical = current == null ? Collections.emptyList() : hydrate(current).getActualDishes();
-                Set<Integer> retained = new HashSet<>();
-                for(MealConsumptionRequest.Entry entry:request.getDishes()) {
-                    if(entry==null)throw new IllegalArgumentException("菜品内容无效");
-                    if (entry.getRetainedEntryIndex() != null) {
-                        int index = entry.getRetainedEntryIndex();
-                        if (current == null || !"eaten".equals(current.getStatus()) || index < 0 || index >= historical.size()
-                                || !retained.add(index) || entry.getDishId() != null || entry.getName() != null || entry.getType() != null)
-                            throw new IllegalArgumentException("历史菜品引用无效，请重新读取实际记录");
-                        // The owned record and its revision were checked above; only the server snapshot may supply historical fields.
-                        actual.add(new LinkedHashMap<>(historical.get(index)));
-                    } else {
-                        actual.add(entry.getDishId()==null?freeEntry(entry.getName()):trustedDish(entry.getDishId(),userId));
-                    }
-                }
-            }
-        }
-        MealConsumption value=new MealConsumption();
-        value.setUserId(userId);
-        value.setMealDate(day);
-        value.setMealType(mealType);
-        value.setStatus(request.getStatus());
-        value.setRevision(version+1);
-        value.setActualDishesJson(encode(actual));
-        if(current!=null && !Boolean.TRUE.equals(request.getUsePlan())) {
-            value.setSourceRecordId(current.getSourceRecordId());
-            if (current.getPlannedSnapshotJson() != null) {
-                Map<String,Object> snapshot = new LinkedHashMap<>(hydrate(current).getPlannedSnapshot());
-                snapshot.put("confirmedAsPlanned",false);
-                value.setPlannedSnapshotJson(encode(snapshot));
-            }
-        }
-        else if(plan!=null) {
-            value.setSourceRecordId(plan.getId());
-            Map<String,Object> snapshot=new LinkedHashMap<>();
-            snapshot.put("name",plan.getRecipeName());
-            snapshot.put("dishIds",plan.getDishIds());
-            snapshot.put("revision",plan.getRevision());
-            snapshot.put("recordOrigin",plan.getRecordOrigin());
-            if (plan.getTargetPeople() != null) snapshot.put("targetPeople",plan.getTargetPeople());
-            snapshot.put("confirmedAsPlanned",Boolean.TRUE.equals(request.getUsePlan()) && "eaten".equals(request.getStatus()));
-            value.setPlannedSnapshotJson(encode(snapshot));
-        }
-        mapper.save(value);
-        if (behavior!=null && "eaten".equals(value.getStatus())) behavior.domain(userId,day,mealType,request.getRequestId(),"actual_completed");
-        hydrate(value);
-        mapper.log(userId,request.getRequestId(),hash,encode(value));
-        return value;
-    }
-    private Map<String,Object> freeEntry(String name) {
-        if(name==null||name.trim().isEmpty()||name.trim().length()>255)throw new IllegalArgumentException("菜名需为 1 至 255 个字符");
-        Map<String,Object> value=new LinkedHashMap<>();
-        value.put("name",name.trim());
-        return value;
-    }
-    private Map<String,Object> trustedDish(Long id,Long userId) {
-        Dish dish=dishes.getDishById(id,userId);
-        if(dish==null)throw new IllegalArgumentException("菜品不存在或无权访问");
-        return dishEntry(dish);
-    }
-    private Map<Long,Dish> plannedDishes(RecipeRecord plan) {
-        Map<Long,Dish> snapshots=new LinkedHashMap<>();
-        // New plans contain server-validated snapshots; legacy plans retain the old lookup path.
-        if(!"manual".equals(plan.getRecordOrigin())||plan.getDishDetailsString()==null||plan.getDishDetailsString().trim().isEmpty())return snapshots;
-        try {
-            List<Dish> saved=com.eatwhat.util.DishSnapshotReader.readDishes(json,plan.getDishDetailsString());
-            for(Dish dish:saved) {if(dish==null||dish.getId()==null)throw new IllegalArgumentException("快照缺少菜品标识");snapshots.put(dish.getId(),dish);}
-        } catch(Exception e) {throw new IllegalStateException("计划快照无法读取，请核对本餐安排",e);}
-        if(!snapshots.keySet().containsAll(plan.getDishIds()))throw new IllegalStateException("计划快照不完整，请核对本餐安排");
-        return snapshots;
-    }
-    private Map<String,Object> dishEntry(Dish dish) {
-        Map<String,Object> value=freeEntry(dish.getName());
-        value.put("dishId",String.valueOf(dish.getId()));
-        value.put("nutritionSnapshot",DietNutritionSummary.snapshot(dish,json));
-        String type=dish.getType();
-        Map<String,String> names=new HashMap<>();
-        names.put("荤菜","meat");
-        names.put("素菜","veg");
-        names.put("汤","soup");
-        names.put("汤品","soup");
-        names.put("主食","staple");
-        names.put("甜品","dessert");
-        value.put("type",names.getOrDefault(type,type));
-        return value;
+        throw new IllegalArgumentException("请更新小程序，在日历中修改或删除这餐记录");
     }
     @Transactional(readOnly=true)
     public Map<String,Object> overview(Long userId,String start,String end) {
         LocalDate a=date(start),b=date(end);
         if(b.isBefore(a)||java.time.temporal.ChronoUnit.DAYS.between(a,b)>366)throw new IllegalArgumentException("日期范围应在 367 天以内");
         List<RecipeRecord> records=plans.selectRangeDays(userId,a.toString(),b.toString());
-        List<MealConsumption> actual=mapper.range(userId,start,end);
+        List<MealConsumption> actual=MealRecordProjection.from(records);
         actual.forEach(this::hydrate);
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("plans",records);
+        result.put("recordPolicy","calendar-records-v1");
         result.put("consumptions",actual);
         Map<String,Long> revisions = new LinkedHashMap<>();
         for (RecipeRecord slot : plans.slotRevisions(userId,start,end)) revisions.put(slot.getRecordDateString()+"|"+slot.getMealType(),slot.getRevision());

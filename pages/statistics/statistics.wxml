@@ -10,16 +10,16 @@
     <text>{{rangeLabel}}</text>
     <button class="ew-hit-target period-nav" bindtap="onNextMonth" aria-label="下一周期"><ui-icon class="rotate-right" name="arrow-left" tone="muted" size="20" /></button>
   </view>
-  <ui-state wx:if="{{loading}}" kind="loading" title="正在整理实际记录" />
+  <ui-state wx:if="{{loading}}" kind="loading" title="正在整理餐次记录" />
   <ui-state wx:elif="{{errorMessage}}" kind="error" title="暂时无法读取回顾" description="{{errorMessage}}" action-label="重新加载" bind:action="loadStatistics" />
   <block wx:elif="{{reportView}}">
     <view wx:if="{{hasActualRecords}}" class="ew-notice">{{coverageNotice}}</view>
-    <ui-state wx:if="{{!hasActualRecords}}" kind="empty" title="这一周期还没有用餐记录" description="吃过后记一餐，下次回顾就能看到了。" action-label="记录这一餐" bind:action="onRecord" />
+    <ui-state wx:if="{{!hasActualRecords}}" kind="empty" title="这一周期还没有用餐记录" description="将菜单保存到日历，即可在这里回顾。" action-label="记录这一餐" bind:action="onRecord" />
     <view wx:if="{{hasActualRecords}}" data-report-block="overview">
       <text class="ew-section-title">用餐概览</text>
       <view class="ew-grid metrics">
-        <view class="ew-card"><text class="ew-number">{{reportView.overview.mealCount}}</text><text class="metric-label">明确吃过的餐次</text></view>
-        <view class="ew-card"><text class="ew-number">{{reportView.overview.recordedDays}}</text><text class="metric-label">有实际用餐的天数</text></view>
+        <view class="ew-card"><text class="ew-number">{{reportView.overview.mealCount}}</text><text class="metric-label">已保存的餐次</text></view>
+        <view class="ew-card"><text class="ew-number">{{reportView.overview.recordedDays}}</text><text class="metric-label">有餐次记录的天数</text></view>
         <view class="ew-card"><text class="ew-number">{{reportView.overview.uniqueDishCount}}</text><text class="metric-label">已识别菜品种类</text></view>
         <view class="ew-card"><text class="ew-number">{{reportView.overview.entryCount}}</text><text class="metric-label">实际菜品条目</text></view>
       </view>
@@ -39,34 +39,29 @@
     <button class="ew-hit-target ew-link" bindtap="onToggleReviewDetails" aria-expanded="{{showReviewDetails}}">{{showReviewDetails ? '收起记录与依据' : '查看记录、缺失与计算依据'}}</button>
     <block wx:if="{{showReviewDetails}}">
       <view class="ew-card">
-        <text class="ew-section-title">实际记录分布</text>
+        <text class="ew-section-title">餐次记录分布</text>
         <view aria-role="button" class="ew-hit-target bar-row" wx:for="{{dailyRows}}" wx:key="date" data-date="{{item.date}}" bindtap="onRecord">
           <text>{{item.label}}</text><view class="bar-track"><view class="bar-fill" style="width:{{item.width}}%"></view></view><text>{{item.count}} 餐</text>
         </view>
         <text class="ew-muted">条长相对本周期最多记录的一天，仅用于比较次数，不是记录完成率。</text>
       </view>
     <view class="ew-card" data-report-block="actualDetails">
-      <text class="ew-section-title">实际用餐明细</text>
-      <text wx:if="{{!recordRows.length}}" class="ew-muted">暂无明确吃过的菜品明细。</text>
+      <text class="ew-section-title">餐次记录明细</text>
+      <text wx:if="{{!recordRows.length}}" class="ew-muted">暂无已保存的菜品明细。</text>
       <view aria-role="button" class="ew-hit-target record" wx:for="{{recordRows}}" wx:key="key" data-date="{{item.mealDate}}" data-meal="{{item.mealType}}" bindtap="onRecord">
         <text>{{item.mealDate}} · {{item.label}}</text><text class="ew-muted">{{item.names}}</text><text class="ew-link">查看 / 纠正这一餐 ›</text>
       </view>
     </view>
     <view class="ew-card" data-report-block="frequentDishes">
-      <text class="ew-section-title">常吃与重复菜品</text>
+      <text class="ew-section-title">常用与重复菜品</text>
       <view class="ew-row ew-between ranking" wx:for="{{reportView.frequentDishes.dishes}}" wx:key="dishId"><text>{{item.name}}</text><text class="ew-muted">{{item.count}} 餐出现</text></view>
-      <text wx:if="{{!reportView.frequentDishes.dishes.length}}" class="ew-muted">暂无已识别的菜品。自由填写内容仍保留在实际用餐明细中。</text>
+      <text wx:if="{{!reportView.frequentDishes.dishes.length}}" class="ew-muted">暂无已识别的菜品。自由填写内容仍保留在餐次记录明细中。</text>
       <text class="ew-muted">同一道菜在同一餐只计一次。自由填写的菜名可在用餐明细中查看。</text>
-    </view>
-    <view class="ew-card" data-report-block="planExecution">
-      <text class="ew-section-title">计划执行对照</text>
-      <text class="ew-muted">仅对照安排是否执行，不计入饮食统计。</text>
-      <text class="ew-muted">在所选周期内，截至 {{reportView.metadata.executionAsOfDate}}（{{reportView.metadata.timezone}}）：已到期安排 {{reportView.planExecution.plannedMealsDue}} 餐，按计划确认 {{reportView.planExecution.plannedMealsFollowed}} 餐，实际调整 {{reportView.planExecution.plannedMealsChanged}} 餐，明确没吃 {{reportView.planExecution.skippedMeals}} 餐，未确认 {{reportView.planExecution.unconfirmedMeals}} 餐。未确认不等于没吃；今天与未来的计划不在到期统计内。</text>
     </view>
     <view class="ew-card" data-report-block="completeness">
       <text class="ew-section-title">记录完整性与缺失</text>
-      <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有用餐记录。</text><text class="ew-muted">吃过、明确没吃和更正为未记录都算有记录。没有记录不代表没有吃饭。</text></view>
-      <view class="record"><text>明确没吃 {{reportView.completeness.explicitSkippedMeals}} 餐；明确标记未记录 {{reportView.completeness.explicitUnrecordedMeals}} 餐。</text><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已吃但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
+      <view class="record"><text>所选周期截至今天共 {{reportView.completeness.observedDays}} 天，其中 {{reportView.completeness.daysWithoutActualRecord}} 天没有用餐记录。</text><text class="ew-muted">保存即记录；未来菜单到对应日期再计入。</text></view>
+      <view class="record"><text>自由填写菜品 {{reportView.completeness.freeTextEntryCount}} 条；未分类 {{reportView.completeness.unclassifiedCount}} 条；已保存但菜品明细缺失 {{reportView.completeness.actualMealsWithoutDishes}} 餐。</text></view>
       <text class="ew-muted">没有可靠的实际食用份量，暂不计算个人热量摄入、营养分数或每日用餐完成率。</text>
       <button class="ew-hit-target ew-link" bindtap="onToggleProvenance">{{showProvenance ? '收起计算说明' : '查看计算说明'}}</button><view wx:if="{{showProvenance}}" class="record report-provenance"><text>按北京时间对应的用餐日期整理。</text><text class="ew-muted">这份回顾根据当前记录即时整理；更正用餐记录后会重新计算。</text></view>
     </view>

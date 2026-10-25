@@ -26,7 +26,7 @@ class AssistantFactReplyFormatterTest {
   assertTrue(text.contains("整道能量暂缺"),text);assertFalse(text.contains("100千卡"));assertFalse(text.contains("每人"));
  }
  @Test void actual_nutrition_remains_recipe_reference_and_partial_coverage_is_not_daily_intake(){
-  Map<String,Object> meal=map("status","eaten","mealType","dinner","nutrition",map("basis","recipe_baseline","complete",false,"coveredCount",1,"entryCount",2,"knownTotal",map("energyKcal",100.6),"total",null));
+  Map<String,Object> meal=map("status","recorded","mealType","dinner","nutrition",map("basis","recipe_baseline","complete",false,"coveredCount",1,"entryCount",2,"knownTotal",map("energyKcal",100.6),"total",null));
   String text=reply(fact("read_actual_diet_review",false,map("date","2026-10-10","actual",Arrays.asList(meal))));
   assertTrue(text.contains("完整能量暂缺"),text);assertTrue(text.contains("1/2道"),text);assertTrue(text.contains("101千卡"),text);assertTrue(text.contains("不代表个人摄入"),text);
  }
@@ -52,15 +52,15 @@ class AssistantFactReplyFormatterTest {
  }
  @Test void all_eleven_registered_read_tools_have_specific_factual_templates(){
   Set<String> registered=new HashSet<>(AssistantReadToolService.READS);registered.addAll(AssistantPersonalReadService.READS);assertEquals(11,registered.size());
-  Map<String,String> expected=mapStrings("search_dishes","菜谱","search_by_ingredients","食材","get_dish_details","详情","get_dish_methods","做法","read_current_meal","当前餐","read_calendar","日历","read_shopping","采购","read_actual_diet_review","实吃","get_recommendation_options","筛选","read_favorites","收藏","read_saved_menus","常用菜单");
+  Map<String,String> expected=mapStrings("search_dishes","菜谱","search_by_ingredients","食材","get_dish_details","详情","get_dish_methods","做法","read_current_meal","当前餐","read_calendar","日历","read_shopping","采购","read_actual_diet_review","回顾","get_recommendation_options","筛选","read_favorites","收藏","read_saved_menus","常用菜单");
   assertEquals(registered,expected.keySet());for(String name:registered)assertTrue(reply(fact(name,false)).contains(expected.get(name)),name);
  }
  @Test void empty_actual_records_do_not_mean_the_user_did_not_eat(){
   String text=reply(fact("read_actual_diet_review",false,map("date","2026-10-10","actual",Collections.emptyList(),"summary",map("mealCount",0))));
-  assertTrue(text.contains("没有记录不能判断是否进餐"));assertFalse(text.contains("没吃"));assertFalse(text.contains("没有进餐"));
+  assertTrue(text.contains("没有查到已保存的餐次记录"));assertFalse(text.contains("没吃"));assertFalse(text.contains("没有进餐"));
  }
  private Map<String,Object> actualDay(String... meals){
-  List<Map<String,Object>> actual=new ArrayList<>();for(String meal:meals)actual.add(map("date","2026-10-10","mealType",meal,"status","eaten","dishes",Collections.emptyList()));
+  List<Map<String,Object>> actual=new ArrayList<>();for(String meal:meals)actual.add(map("date","2026-10-10","mealType",meal,"status","recorded","dishes",Collections.emptyList()));
   return map("date","2026-10-10","actual",actual);
  }
  private AuthorizedReadFact actualContext(boolean partial,String... meals){
@@ -69,25 +69,25 @@ class AssistantFactReplyFormatterTest {
  @Test void full_executor_actual_read_wins_over_same_day_clipped_older_context_in_either_order(){
   AuthorizedReadFact executed=fact("read_actual_diet_review",false,actualDay("lunch","dinner")),older=actualContext(true,"dinner");
   for(List<AuthorizedReadFact> order:Arrays.asList(Arrays.asList(executed,older),Arrays.asList(older,executed))){
-   String text=formatter.format(order,new ModelContext());assertTrue(text.contains("2餐明确记录"),text);assertFalse(text.contains("部分"),text);
+   String text=formatter.format(order,new ModelContext());assertTrue(text.contains("2餐已保存记录"),text);assertFalse(text.contains("部分"),text);
   }
  }
  @Test void explicit_empty_actual_read_cannot_borrow_older_context_in_either_order(){
   AuthorizedReadFact empty=fact("read_actual_diet_review",false),older=actualContext(true,"dinner");
   for(List<AuthorizedReadFact> order:Arrays.asList(Arrays.asList(empty,older),Arrays.asList(older,empty))){
-   String text=formatter.format(order,new ModelContext());assertTrue(text.contains("未查到明确记录"),text);assertTrue(text.contains("不能判断是否进餐"),text);assertFalse(text.contains("部分"),text);
+   String text=formatter.format(order,new ModelContext());assertTrue(text.contains("没有查到已保存的餐次记录"),text);assertTrue(text.contains("餐次记录"),text);assertFalse(text.contains("部分"),text);
   }
  }
  @Test void partial_executor_actual_read_keeps_its_own_partial_marker_without_borrowing_context(){
   String text=reply(fact("read_actual_diet_review",true,actualDay("dinner")),actualContext(false,"lunch","dinner"));
-  assertTrue(text.contains("1餐明确记录"),text);assertTrue(text.contains("部分"),text);assertFalse(text.contains("2餐"),text);
+  assertTrue(text.contains("1餐已保存记录"),text);assertTrue(text.contains("部分"),text);assertFalse(text.contains("2餐"),text);
  }
  @Test void context_only_actual_fallback_retains_the_snapshot_partial_marker(){
-  String text=reply(actualContext(true,"dinner"));assertTrue(text.contains("1餐明确记录"));assertTrue(text.contains("部分"));
+  String text=reply(actualContext(true,"dinner"));assertTrue(text.contains("1餐已保存记录"));assertTrue(text.contains("部分"));
  }
  @Test void calendar_plans_and_explicit_actual_meals_are_separate(){
-  String text=reply(fact("read_calendar",false,map("date","2026-10-10","plans",Arrays.asList(map("mealType","dinner")),"actual",Arrays.asList(map("status","eaten","mealType","lunch"),map("status","skipped")))));
-  assertTrue(text.contains("1餐计划"));assertTrue(text.contains("1餐实吃"));assertTrue(text.contains("不代表已经吃过"));
+  String text=reply(fact("read_calendar",false,map("date","2026-10-10","plans",Arrays.asList(map("mealType","dinner")),"actual",Arrays.asList(map("status","recorded","mealType","lunch"),map("status","skipped")))));
+  assertTrue(text.contains("1餐已保存菜单"));assertFalse(text.contains("实吃"));assertTrue(text.contains("未来菜单到对应日期"));
  }
  @Test void current_meal_total_time_is_not_a_per_dish_limit(){
   String text=reply(fact("read_current_meal",false,map("date","2026-10-16","mealType","dinner","people",2,"totalCookMinutes",45,"currentDishes",Arrays.asList(map("id",1,"name","番茄炒蛋")))));

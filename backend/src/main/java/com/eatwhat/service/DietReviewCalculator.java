@@ -22,40 +22,10 @@ public class DietReviewCalculator {
         Map<String,Integer> categories = new LinkedHashMap<>();
         Map<String,Map<String,Object>> popular = new LinkedHashMap<>();
         Map<String,Integer> daily = new TreeMap<>();
-        int mealCount=0, entries=0, unknown=0, plannedEaten=0, followed=0, skipped=0;
-        Set<String> dueSlots = new HashSet<>();
-        for (RecipeRecord plan : plans) {
-            if (plan.calendarDay() == null || !"manual".equals(plan.getRecordOrigin())) continue;
-            LocalDate day = LocalDate.parse(plan.calendarDay());
-            if (day.isBefore(today)) dueSlots.add(day + "|" + plan.getMealType());
-        }
-        for (MealConsumption meal:meals) {
-            boolean plannedPast = false, asPlanned = false;
-            if (LocalDate.parse(meal.getMealDate()).isBefore(today) && meal.getSourceRecordId() != null                     && meal.getPlannedSnapshotJson() != null && !"unrecorded".equals(meal.getStatus())) {
-                try {
-                    Map<String,Object> snapshot = json.readValue(meal.getPlannedSnapshotJson(), new TypeReference<Map<String,Object>>() {
-                    }
-                    );
-                    plannedPast = "manual".equals(snapshot.get("recordOrigin"));
-                    asPlanned = Boolean.TRUE.equals(snapshot.get("confirmedAsPlanned"));
-                }
-                catch (Exception error) {
-                    throw new IllegalStateException("计划快照无法读取", error);
-                }
-            }
-            if (plannedPast) dueSlots.add(meal.getMealDate() + "|" + meal.getMealType());
-            if ("skipped".equals(meal.getStatus())) {
-                if (plannedPast) skipped++;
-                continue;
-            }
-            if (!"eaten".equals(meal.getStatus())) continue;
-            mealCount++;
-            days.add(meal.getMealDate());
-            daily.merge(meal.getMealDate(),1,Integer::sum);
-            if (plannedPast) {
-                plannedEaten++;
-                if (asPlanned) followed++;
-            }
+        int mealCount=0, entries=0, unknown=0;
+        for (MealConsumption meal:MealRecordProjection.from(plans)) {
+            if(LocalDate.parse(meal.getMealDate()).isAfter(today))continue;
+            mealCount++;days.add(meal.getMealDate());daily.merge(meal.getMealDate(),1,Integer::sum);
             List<Map<String,Object>> dishes;
             try {
                 dishes=json.readValue(meal.getActualDishesJson(),new TypeReference<List<Map<String,Object>>>() {
@@ -86,7 +56,7 @@ public class DietReviewCalculator {
         }
         List<Map<String,Object>> ranking=new ArrayList<>(popular.values());
         ranking.sort(Comparator.<Map<String,Object>,Integer>comparing(x->(Integer)x.get("count")).reversed().thenComparing(x->String.valueOf(x.get("dishId"))));
-        int due=dueSlots.size();
+
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("mealCount",mealCount);
         result.put("recordedDays",days.size());
@@ -97,13 +67,7 @@ public class DietReviewCalculator {
         result.put("categories",categories);
         result.put("popularDishes",ranking);
         result.put("dailyMeals",daily);
-        result.put("plannedMealsDue",due);
-        result.put("plannedMealsEaten",plannedEaten);
-        result.put("plannedMealsFollowed",followed);
-        result.put("plannedMealsChanged",plannedEaten-followed);
-        result.put("skippedMeals",skipped);
-        result.put("unconfirmedMeals",Math.max(0,due-plannedEaten-skipped));
-        result.put("description","仅统计明确标记吃过的餐次；菜品类别次数不代表营养摄入。历史安排未自动计入。执行情况以昨日及以前为范围。");
+        result.put("description","按已保存的餐次记录汇总；未来菜单到对应日期计入。配方营养参考不代表个人实际摄入。");
         return result;
     }
 }

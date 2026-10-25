@@ -105,7 +105,7 @@ Page({
   this.setData({ingredientsVisible:false,stepIndex:next},()=>{this.measureCookingActions();if(this.ingredientPositionCurrent(position)&&wx.pageScrollTo)wx.pageScrollTo({selector:'#cooking-step-heading',duration:this.data.reducedMotion?0:180})})
  },
  onActualAdjustment(){if(this.data.actualBusy || this.data.actualLoading || this.data.actualUnknown)return;this.setData({actualQuick:false,actualMode:'changed'})},
- onRecordActual(){if(this.data.recipeMode||!this.data.canRecordActual||this._target.date>flow.today())return;if(this._alive&&this._scope===getUserStorageKey('cooking'))return this.openMealActual({...this._target,quick:true,displayedPlanNames:this.data.dishes.map(d=>d.name).join('、')})},
+ onRecordActual(){if(!this.data.recipeMode&&this._alive&&this._scope===getUserStorageKey('cooking'))wx.navigateTo({url:`/pages/calendar-detail/calendar-detail?date=${this._target.date}&mealType=${this._target.mealType}`})},
  onErrorAction(){return this.data.planChanged?this.onReturnWorkspace():this.onShow()},
  onReturnWorkspace(){if(this.data.recipeMode){if(this._alive&&this._scope===getUserStorageKey('cooking'))wx.redirectTo({url:'/pages/dish-detail/dish-detail?id='+this._recipeId});return}if(this._alive&&this._scope===getUserStorageKey('cooking'))wx.redirectTo({url:`/pages/result/result?date=${this._target.date}&mealType=${this._target.mealType}`})},
 })

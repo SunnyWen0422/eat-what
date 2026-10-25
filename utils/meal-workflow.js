@@ -8,10 +8,8 @@ function weekRange(value) { const d = parseDay(value); const startDate = shiftDa
 function mealViews(overview, day) {
   return Object.keys(mealNames).map(mealType => {
     const plan = (overview.plans || []).find(p => String(p.recordDate || p.recordDateString).slice(0, 10) === day && p.mealType === mealType) || null
-    const actual = (overview.consumptions || []).find(p => p.mealDate === day && p.mealType === mealType) || null
-    const status = actual ? actual.status : 'unrecorded'
-    const statusLabel = status === 'eaten' ? '已记录实际用餐' : status === 'skipped' ? '这餐没吃' : plan ? plan.recordOrigin === 'legacy' ? '历史安排 · 未确认实际用餐' : '已安排 · 未确认吃过' : '还没有安排'
-    return { planRevision: plan ? plan.revision : (overview.planRevisions || {})[`${day}|${mealType}`] || 0, mealType, label: mealNames[mealType], plan, actual, status, statusLabel, actualNames: actual && actual.status === 'eaten' ? (actual.actualDishes || []).map(d => d.name).join('、') : '' }
+    const status=plan?'recorded':'unrecorded'
+    return {planRevision:plan?plan.revision:(overview.planRevisions||{})[`${day}|${mealType}`]||0,mealType,label:mealNames[mealType],plan,actual:null,status,statusLabel:plan?'已记录':'没有记录',actualNames:''}
   })
 }
 function buildActualEntries(text, meal, usePlanIdentity = true) {

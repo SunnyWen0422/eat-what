@@ -45,7 +45,7 @@ class AssistantV4ContextTest {
         verify(f.actual).range(7L,"2026-10-05","2026-10-11");
     }
     @Test void plan_is_not_eaten(){
-        Fixture f=new Fixture();MealConsumption p=new MealConsumption();p.setStatus("unrecorded");p.setMealDate("2026-10-10");p.setActualDishesJson("[]");MealConsumption future=new MealConsumption();future.setStatus("eaten");future.setMealDate("2026-12-25");
+        Fixture f=new Fixture();MealConsumption p=new MealConsumption();p.setStatus("unrecorded");p.setMealDate("2026-10-10");p.setActualDishesJson("[]");MealConsumption future=new MealConsumption();future.setStatus("recorded");future.setMealDate("2026-12-25");
         when(f.actual.range(anyLong(),anyString(),anyString())).thenReturn(Arrays.asList(p,future));assertTrue(f.service().build(7L,f.request,f.session).getRecentActual().isEmpty());
     }
     @Test void budget_trim_keeps_constraints(){

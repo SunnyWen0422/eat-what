@@ -17,8 +17,8 @@ test('zero expense remains a real amount while the ingredient still exists',()=>
  const key=pricing.ingredientKey(item),p=pricing.buildPricing({dishes:[{dishId:1,items:[item]}],expenses:{[key]:{amount:'0',channel:'其他'}}})
  assert.equal(p.recorded,1);assert.equal(p.actualText,'¥0.00');assert.equal(p.rows.length,1)
 })
-test('diet empty state is based on eaten meals and retains pending plans',()=>{
- const range={startDate:'2026-10-12',endDate:'2026-10-18'},report={metadata:{...range,basis:'explicit_eaten'},blocks:{overview:{mealCount:0},actualDetails:{records:[]},frequentDishes:{dishes:[]},categoryCounts:{categories:{},entryCount:0},planExecution:{unconfirmedMeals:2},completeness:{observedDays:7}}}
- const view=require('../utils/diet-report').presentDietReport(report,range);assert.equal(view.hasActualRecords,false);assert.equal(view.reportView.planExecution.unconfirmedMeals,2)
+test('diet empty state has a single recorded-meal basis',()=>{
+ const range={startDate:'2026-10-12',endDate:'2026-10-18'},report={metadata:{...range,basis:'calendar_records'},blocks:{overview:{mealCount:0},actualDetails:{records:[]},frequentDishes:{dishes:[]},categoryCounts:{categories:{},entryCount:0},completeness:{observedDays:7}}}
+ const view=require('../utils/diet-report').presentDietReport(report,range);assert.equal(view.hasActualRecords,false);assert.equal(view.reportView.planExecution,undefined)
  report.blocks.overview.mealCount=1;assert.equal(require('../utils/diet-report').presentDietReport(report,range).hasActualRecords,true)
 })

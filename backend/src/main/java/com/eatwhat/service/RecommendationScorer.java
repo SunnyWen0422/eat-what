@@ -69,7 +69,7 @@ public class RecommendationScorer {
     /** Explicit actual snapshot identities only; never resolve arbitrary food names. */
     public Set<Long> recentActualIds(String status, List<? extends Map<String, ?>> entries) {
         Set<Long> ids = new HashSet<>();
-        if (!"eaten".equals(status)) return ids;
+        if (!"recorded".equals(status)) return ids;
         for (Map<String, ?> entry : entries) {
             Object id = entry.get("dishId");
             if (id != null && String.valueOf(id).matches("[1-9][0-9]*")) ids.add(Long.valueOf(String.valueOf(id)));

@@ -360,9 +360,9 @@ public class AssistantV4TurnService {
         else if("get_recommendation_options".equals(read.getName())){card.setType("recommendation_options");card.setTitle("可选筛选条件");card.getData().put("options",read.getItems());Map<String,List<String>> groups=new LinkedHashMap<>();for(Map<String,Object> item:read.getItems()){String group=optionGroup(item.get("group"));if(group.isEmpty())continue;List<String> labels=groups.computeIfAbsent(group,k->new ArrayList<>());String label=humanLabel(item.get("label"));if(!label.isEmpty()&&!labels.contains(label))labels.add(label);}List<String> lines=new ArrayList<>();for(Map.Entry<String,List<String>> group:groups.entrySet())lines.add(group.getKey()+(group.getValue().isEmpty()?"":"："+String.join("、",group.getValue())));card.setText(readableLines(lines,read.isTruncated()));}
         else if("read_current_meal".equals(read.getName())){card.setType("menu");card.setTitle("当前餐");if(!read.getItems().isEmpty()){Map<String,Object> meal=read.getItems().get(0);card.getData().put("dishes",displayDishes(user,rows(meal.get("currentDishes"))));copyFields(meal,card.getData(),"date","mealType","people");}}
         else if("read_shopping".equals(read.getName())){card.setTitle("采购清单");List<Map<String,Object>> items=new ArrayList<>();for(Map<String,Object> source:read.getItems()){Map<String,Object> item=new LinkedHashMap<>();copyFields(source,item,"name","quantityText","quantityProvenance");item.put("quantity",source.get("quantityValue"));item.put("unit",source.get("unitCode"));item.put("price",null);item.put("selected",false);item.put("checked",source.get("checked"));items.add(item);}card.getData().put("items",items);}
-        else if(Arrays.asList("read_calendar","read_actual_diet_review").contains(read.getName())){card.setTitle("read_calendar".equals(read.getName())?"日历记录":"实际用餐记录");if("read_actual_diet_review".equals(read.getName()))card.setText("仅统计明确记录为已吃的餐次"+(read.isTruncated()?"，以下为部分日期结果":""));List<Map<String,Object>> meals=new ArrayList<>();for(Map<String,Object> day:read.getItems()){
-            for(Map<String,Object> plan:rows(day.get("plans"))){Map<String,Object> meal=new LinkedHashMap<>();meal.put("date",day.get("date"));copyFields(plan,meal,"mealType","people","name");meal.put("status","planned");List<Map<String,Object>> refs=new ArrayList<>();Object ids=plan.get("dishIds");if(ids instanceof List)for(Object id:(List<?>)ids){Map<String,Object> ref=new LinkedHashMap<>();ref.put("id",id);refs.add(ref);}meal.put("dishes",displayDishes(user,refs));meals.add(meal);}
-            for(Map<String,Object> actual:rows(day.get("actual"))){Map<String,Object> meal=new LinkedHashMap<>();meal.put("date",day.get("date"));copyFields(actual,meal,"mealType");meal.put("people",null);meal.put("status","eaten");meal.put("dishes",displayDishes(user,rows(actual.get("dishes"))));meals.add(meal);}
+        else if(Arrays.asList("read_calendar","read_actual_diet_review").contains(read.getName())){card.setTitle("read_calendar".equals(read.getName())?"日历记录":"餐次记录");if("read_actual_diet_review".equals(read.getName()))card.setText("按已保存的餐次记录统计至今天"+(read.isTruncated()?"，以下为部分日期结果":""));List<Map<String,Object>> meals=new ArrayList<>();for(Map<String,Object> day:read.getItems()){
+            for(Map<String,Object> plan:rows(day.get("plans"))){Map<String,Object> meal=new LinkedHashMap<>();meal.put("date",day.get("date"));copyFields(plan,meal,"mealType","people","name");meal.put("status","recorded");List<Map<String,Object>> refs=new ArrayList<>();Object ids=plan.get("dishIds");if(ids instanceof List)for(Object id:(List<?>)ids){Map<String,Object> ref=new LinkedHashMap<>();ref.put("id",id);refs.add(ref);}meal.put("dishes",displayDishes(user,refs));meals.add(meal);}
+            for(Map<String,Object> actual:rows(day.get("actual"))){Map<String,Object> meal=new LinkedHashMap<>();meal.put("date",day.get("date"));copyFields(actual,meal,"mealType");meal.put("people",null);meal.put("status","recorded");meal.put("dishes",displayDishes(user,rows(actual.get("dishes"))));meals.add(meal);}
         }card.getData().put("meals",meals);}
         else return Collections.emptyList();
         if(read.getItems().isEmpty())card.setText("这个范围内暂无记录");return Collections.singletonList(card);
@@ -392,7 +392,7 @@ public class AssistantV4TurnService {
         read.setTruncated(Boolean.TRUE.equals(context.getEvidence().get("truncated")));
         Map<Object,List<Map<String,Object>>> byDay=new LinkedHashMap<>();
         for(Map<String,Object> actual:context.getRecentActual()){
-            if(!"eaten".equals(actual.get("status")))continue;
+            if(!"recorded".equals(actual.get("status")))continue;
             byDay.computeIfAbsent(actual.get("date"),key->new ArrayList<>()).add(actual);
         }
         for(Map.Entry<Object,List<Map<String,Object>>> entry:byDay.entrySet()){Map<String,Object> day=new LinkedHashMap<>();day.put("date",entry.getKey());day.put("actual",entry.getValue());read.getItems().add(day);}
@@ -404,7 +404,7 @@ public class AssistantV4TurnService {
             card.getData().put("factSource","recent_actual");
             Object range=context.getEvidence().get("recentActualRange");
             if(range instanceof Map)card.getData().put("range",new LinkedHashMap<>((Map<?,?>)range));
-            if(read.isTruncated())card.setText("以下为部分实际用餐记录，可缩小日期范围继续查询");
+            if(read.isTruncated())card.setText("以下为部分餐次记录，可缩小日期范围继续查询");
         }
         return cards;
     }

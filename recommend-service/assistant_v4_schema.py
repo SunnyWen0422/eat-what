@@ -185,9 +185,9 @@ ACTUAL_NUTRITION = obj({"basis": string(30, ["recipe_baseline"]), "personalIntak
     "entryCount": integer(), "coveredCount": integer(), "unknownCount": integer(), "complete": BOOL,
     "knownTotal": nullable(NUTRIENT_VALUES), "total": nullable(NUTRIENT_VALUES)},
     ["basis", "personalIntakeAvailable", "entryCount", "coveredCount", "unknownCount", "complete", "knownTotal", "total"])
-ACTUAL = obj({"date": DATE, "mealType": nullable(string(20, MEALS)), "status": string(20, ["eaten"]),
+ACTUAL = obj({"date": DATE, "mealType": nullable(string(20, MEALS)), "status": string(20, ["recorded"]),
     "revision": nullable(integer()), "dishes": array(obj({"dishId": nullable({"anyOf": [ID, string(20)]}),
-        "name": nullable(string(200)), "type": nullable(string(40))}), 30), "nutrition": ACTUAL_NUTRITION, "basis": string(30, ["explicit_eaten"])})
+        "name": nullable(string(200)), "type": nullable(string(40))}), 30), "nutrition": ACTUAL_NUTRITION, "basis": string(30, ["calendar_records"])})
 SHOPPING = obj({"id": nullable(ID), "name": nullable(string(200)), "canonicalName": nullable(string(200)),
     "quantityValue": nullable(NUMBER), "quantityMin": nullable(NUMBER), "quantityMax": nullable(NUMBER),
     "quantityText": nullable(string(2000)), "userOverride": BOOL,
@@ -206,8 +206,8 @@ LAST_ACTION = obj({"type": string(40, ["calendar_save", "shopping_preview", "rec
     ["type", "taskId", "title", "expiresAt", "receiptRef", "outcome", "target"])
 PLAN = obj({"id": ID, "mealType": nullable(string(20, MEALS)), "name": nullable(string(200)),
     "dishIds": nullable(array(ID, 10)), "people": nullable(integer(1, 50)), "revision": nullable(integer()),
-    "basis": string(30, ["planned_only"])})
-CALENDAR = obj({"date": DATE, "actual": array(ACTUAL, 30), "plans": array(PLAN, 30), "basis": string(30, ["explicit_eaten"]),
+    "basis": string(30, ["calendar_records"])})
+CALENDAR = obj({"date": DATE, "actual": array(ACTUAL, 30), "plans": array(PLAN, 30), "basis": string(30, ["calendar_records"]),
     "summary": obj({k: integer() for k in ["mealCount", "recordedDays", "uniqueDishCount", "entryCount", "classifiedCount", "unclassifiedCount"]})})
 CONTEXT = obj({"schemaVersion": string(30, [VERSION]), "requestContext": obj({"entryScene": string(20, ["home", "calendar", "chat"]),
     "clarification": obj({"kind": string(40, ["meal_target","dish_reference","source_choice","missing_people","meal_requirement"]),
@@ -261,7 +261,7 @@ def tool_catalog(capabilities=None):
         "read_current_meal": "仅在activeMeal缺少必要当前餐字段或用户明确要求刷新时读取；activeMeal已有版本及currentDishes时避免重复，优先复用授权快照。",
         "read_calendar": "仅用户明确查询日历或必要日历来源缺失时读取指定日期范围；不为普通生成额外调用。",
         "read_shopping": "仅用户明确查询购物清单或必要采购来源缺失时读取；不为普通生成额外调用，数量未知保持未知。",
-        "read_actual_diet_review": "仅用户明确查询实际回顾或上下文缺少必要实际记录时调用，优先复用recentActual；计划与采购不代表已经吃过。",
+        "read_actual_diet_review": "用户明确查询饮食回顾且上下文缺少必要记录时调用，优先复用recentActual；保存到日历即记录，未来菜单到对应日期才纳入回顾。",
         "get_recommendation_options": "读取现有筛选分类及合法代码。未指定group先返回分类，具体代码按组查询；不得自造代码，include标签仍按OR匹配。",
         "read_favorites": "只读当前用户仍可访问的收藏菜谱，按菜名query筛选及游标分页；返回真实菜ID，不创建菜单。",
         "read_saved_menus": "只读当前用户常用菜单，按query或menuId查询；同名按ID与version区分，不自动应用或覆盖本餐。",

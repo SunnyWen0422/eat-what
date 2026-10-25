@@ -24,7 +24,6 @@ function deriveMealJourney({workspace={},plan,actual,shoppingSources=[],pendingR
  }else if(status==='plan_changed')primary={action:'onViewPlan',label:'查看最新安排',target}
  else if(status==='draft'&&canConfirm)primary={action:'onConfirmPlan',label:'保存到日历',target}
  else if(saveState==='saved'&&targetOf(savedTarget)&&!same(savedTarget,target))primary={action:'onViewSavedMeal',label:'查看已保存的这餐',target:targetOf(savedTarget)}
- else if(actual&&actual.status==='eaten')primary={action:'onViewPlan',label:'查看 / 修改实际记录',target}
  else if(status==='planned'&&plan)primary={action:'onViewRecipes',label:'开始做饭 · 本餐全部做法',target}
  else if(status==='needs_input')primary={action:'onOpenRequirements',label:'调整本餐要求',target}
  const secondary=[]
@@ -50,11 +49,9 @@ function collectRecoveryPointers({storage,storageKey,assistantScope}){
  }
  for(const key of keys){
   if(typeof key!=='string')continue
-  if(key.startsWith(actualPrefix)){
-   const value=storage.getStorageSync(key),target=targetOf(value)
-   if(!value||value.scope!==storageKey('mealActual')||!target||!value.body||!value.body.requestId)continue
-   pointers.push({id:'actual:'+target.date+':'+target.mealType,kind:'actual',state:'unknown',target,label:'实际用餐保存待核对',requestId:value.body.requestId,route:mealSourceUrl(target)+'&recoverActual=1'})
-  }else if(key.startsWith(personalPrefix)){
+  // Old consumption requests belong to the retired writer; never turn them
+  // into a blocking action for the unified calendar record.
+  if(key.startsWith(actualPrefix))continue;else if(key.startsWith(personalPrefix)){
    const value=storage.getStorageSync(key),suffix=key.slice(personalPrefix.length)
    if(!value||!value.requestId)continue
    const copy=/^dish:copy:[1-9][0-9]*$/.test(suffix),menu=/^menu:(?:create|new|edit:[1-9][0-9]*|delete:[1-9][0-9]*|[1-9][0-9]*)$/.test(suffix)

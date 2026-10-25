@@ -1,7 +1,7 @@
 const api = require('./api')
 const { feedbackAction } = require('./meal-feedback')
 const theme = require('./ui-tokens')
-const { validateCounts, compositionRows } = require('./meal-composition')
+const { validateCounts, compositionRows, compositionSummary, normalizeDishType } = require('./meal-composition')
 const experiencePreferences = require('./experience-preferences')
 function savedPreferencesSnapshot(result) {
   const saved=result&&Object.prototype.hasOwnProperty.call(result,'preferences')?result.preferences:result
@@ -106,6 +106,7 @@ module.exports = function workspacePage(options = {}) {
       return this.initializeWorkspace(params)
     },
     async initializeWorkspace(params = {}) {
+      this._enteredOn = defaultTarget().date
       this.disposeControlledHarness();this.setData({actionFeedback:null,legacyLockNotice:'',moreVisible:false,conversationNotice:'',harnessStatus:'idle',harnessMessage:'',harnessReport:null,harnessRetryable:false,harnessTarget:null,harnessTargetLabel:''})
       if(this.disposeMealActual)this.disposeMealActual();this.setData({actualVisible:false,actualBusy:false});if(this.cancelVoiceInput)this.cancelVoiceInput();this._requirementsBinding=null;this._requirementsOperation=null;this._compositionBinding=null;this.setData({peopleVisible:false,compositionVisible:false,compositionContext:null,compositionSaving:false,conditionsNotice:'',compositionPreferenceNotice:'',requirementsVisible:false,voicePhase:'idle',voicePrivacyVisible:false});
       this.stopTimers(); if (this.store) this.store.dispose(); this.store=null; this._draftSave=null;this._actionError=null; this._preservedContext=null;this._confirmation=null;this._exposed=null
@@ -114,13 +115,11 @@ module.exports = function workspacePage(options = {}) {
       this.probeConnectedAssistant(initEpoch)
       const savedTarget=wx.getStorageSync(getUserStorageKey('activeMealTarget'))
       const target = resolveActiveTarget(options.mode || 'today', params, savedTarget)
-      // The existing account-scoped cache remains the source of truth. A new
-      // natural day must not orphan an unfinished menu or unknown request.
-      if((options.mode || 'today')==='today' && !params.date && savedTarget && savedTarget.date && MEALS.includes(savedTarget.mealType)) {
-        const cached=wx.getStorageSync(getUserStorageKey(`meal-workspace:${savedTarget.date}:${savedTarget.mealType}`))
-        if(hasUnfinishedSource(cached))Object.assign(target,{date:savedTarget.date,mealType:savedTarget.mealType})
-      }
-      const pendingPlan = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      // Old drafts and request receipts remain under their original date key.
+      // They must not override the new day's default target.
+      const storedPendingPlan = wx.getStorageSync(getUserStorageKey('pendingRecipeRecord'))
+      const pendingPlan = storedPendingPlan && (params.date || options.mode === 'result' ||
+        (storedPendingPlan.selectedOn || storedPendingPlan.date) === defaultTarget().date) ? storedPendingPlan : null
       if (pendingPlan) { target.date = pendingPlan.date; target.mealType = pendingPlan.mealType }
       if (params.date) target.date = params.date
       if (MEALS.includes(params.mealType)) target.mealType = params.mealType
@@ -186,7 +185,6 @@ module.exports = function workspacePage(options = {}) {
         if(await this.runCommand('select', selection) && this.current() && selectionKey===getUserStorageKey('workspaceSelectedDishes') && JSON.stringify(wx.getStorageSync(selectionKey))===JSON.stringify(selected)) wx.removeStorageSync(selectionKey)
       }
       if(this.current() && params.save==='1')this.onConfirmPlan()
-      if(this.current()&&api.previewControlledTask)this.showControlledState(this.controlledHarness().state())
     },
     async loadLegacyMeals() {
       const key=getUserStorageKey('assistantSessionId'),id=wx.getStorageSync(key),scope=this._scope
@@ -215,8 +213,17 @@ module.exports = function workspacePage(options = {}) {
     },
     async onShow() {
       if (!this._scope) return
+      if ((options.mode || 'today') === 'today' && this._enteredOn && this._enteredOn !== defaultTarget().date) {
+        this._params = {}
+        return this.initializeWorkspace({})
+      }
       if (!this.current()) return this.initializeWorkspace(this._params || {})
       const target = resolveActiveTarget(options.mode || 'today', this._params || {}, wx.getStorageSync(getUserStorageKey('activeMealTarget')))
+      const savedTarget=wx.getStorageSync(getUserStorageKey('activeMealTarget'))
+      if((options.mode || 'today')==='today' && !(this._params || {}).date && savedTarget && savedTarget.selectedOn!==defaultTarget().date && target.date!==this.data.context.date) {
+        // Disposing detaches this view only; the dated cache/request identity survives.
+        return this.initializeWorkspace({})
+      }
       const state=this.store && this.store.state()
       const keepDraft=this.data.confirmationVisible || hasUnfinishedSource(state)
       if (target && (target.date !== this.data.context.date || target.mealType !== this.data.context.mealType)) {
@@ -259,7 +266,9 @@ module.exports = function workspacePage(options = {}) {
       if (!this.current()) return
       const state = this.store.state(), w = state.workspace
       const labels = { synced: '已同步', unsynced: '本机修改尚未同步', saving: '正在同步', unknown: '上次保存结果待确认', offline: '离线内容，仅供查看；恢复后请重试', conflict: '本餐已在另一处更新，请查看最新内容' }
-      const storedDraft = w && w.draft || { dishes: [], history: [], lockedDishIds: [], planVersion: 0 }
+      const displayedSavedRecord=!!(state.linked.plan && !state.dirty && !state.pending && (!w || w.status === 'planned' || !(w.draft && w.draft.dishes.length)))
+      const recordDishes=state.linked.plan && state.linked.plan.dishDetails || []
+      const storedDraft = displayedSavedRecord ? {dishes:recordDishes.length ? recordDishes : state.linked.plan.recipeName ? [{name:state.linked.plan.recipeName}] : [],history:[],lockedDishIds:[],planVersion:0} : w && w.draft || { dishes: [], history: [], lockedDishIds: [], planVersion: 0 }
       const grounded=storedDraft.recommendationEvidence && Array.isArray(storedDraft.recommendationEvidence.codes)
       const explanations=grounded?require('./recommendation-evidence').presentRecommendationEvidence(storedDraft.recommendationEvidence):(storedDraft.explanations || []).slice(0,2)
       if((state.context || this.data.context).mealType==='breakfast'&&storedDraft.source==='manual')explanations.splice(0,2,'本餐由你选菜，请核对早餐适用性')
@@ -268,8 +277,8 @@ module.exports = function workspacePage(options = {}) {
       const settingsKey=`${this._scope}:${settingsContext.date}:${settingsContext.mealType}:${!!draft.dishes.length}`
       if(this._settingsViewKey!==settingsKey){this._settingsViewKey=settingsKey;this.setData({mealSettingsExpanded:!draft.dishes.length})}
       const confirmation=w && w.confirmation,source=state.context || this.data.context
-      const savedTarget=confirmation && confirmation.date && confirmation.mealType ? {date:confirmation.date,mealType:confirmation.mealType} : null
-      const saveState=confirmation ? confirmation.planVersion===draft.planVersion && !state.dirty && w.status!=='needs_regeneration' ? 'saved' : 'changed' : 'unsaved'
+      const savedTarget=displayedSavedRecord ? {date:source.date,mealType:source.mealType} : confirmation && confirmation.date && confirmation.mealType ? {date:confirmation.date,mealType:confirmation.mealType} : null
+      const saveState=displayedSavedRecord ? 'saved' : confirmation ? confirmation.planVersion===draft.planVersion && !state.dirty && w.status!=='needs_regeneration' ? 'saved' : 'changed' : 'unsaved'
       const savedView=savedTarget ? saveTargetView({sourceTarget:source},savedTarget) : null
       const action=state.lastAction,receipt=action&&action.receipt
       // A later authoritative menu or save supersedes a completed notice. Keep
@@ -277,19 +286,25 @@ module.exports = function workspacePage(options = {}) {
       const actionSuperseded=receipt&&w&&receipt.workspaceId===w.id&&action.command&&receipt.requestId===action.command.requestId&&
         !state.pending&&state.syncStatus==='synced'&&w.revision>receipt.revision+(receipt.taskId?1:0)&&
         (!receipt.taskId||action.task&&action.task.status==='draft')
-      const actionFeedback=action&&!actionSuperseded ? deriveActionFeedback({before:action.before,after:{...state,actionReceipt:action.receipt,actionTask:action.task},command:action.command,requestId:action.command.requestId,pending:this.data.busy,error:this._actionError}) : null
+      const actionFeedback=action&&!actionSuperseded&&!displayedSavedRecord ? deriveActionFeedback({before:action.before,after:{...state,actionReceipt:action.receipt,actionTask:action.task},command:action.command,requestId:action.command.requestId,pending:this.data.busy,error:this._actionError}) : null
       const rowBusy=actionFeedback && actionFeedback.state==='pending' && action.command.command==='replace' ? action.command.dishId : null
-      this.setData({actionFeedback,legacyLockNotice:legacyLockNotice(draft)})
+      this.setData({actionFeedback,displayedSavedRecord,legacyLockNotice:legacyLockNotice(draft)})
       this.setData({ context: state.context || this.data.context, draft: { ...draft, dishes: (draft.dishes || []).map(d => ({ ...d, locked: (draft.lockedDishIds || []).includes(d.id), actionBusy:d.id===rowBusy, actionMessage:actionFeedback && actionFeedback.state==='success' && actionFeedback.dishId===d.id ? actionFeedback.message : '' })) },
-        status: w && w.status==='planned' && confirmation && (!savedTarget || savedTarget.date===source.date && savedTarget.mealType===source.mealType) && confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
+        status: displayedSavedRecord ? 'planned' : w && w.status==='planned' && confirmation && (!savedTarget || savedTarget.date===source.date && savedTarget.mealType===source.mealType) && confirmation.planRevision!==state.linked.planRevision ? 'plan_changed' : w && w.status || 'empty', mealIndex: MEALS.indexOf((state.context || this.data.context).mealType), syncStatus: state.syncStatus, syncLabel: labels[state.syncStatus] || '',
         linkedPlan: state.linked.plan || null, actual: state.linked.actual || null, taskMessage: w && w.message ? userError({message:w.message},w.status==='generating'?'正在挑选合适的菜品':w.status==='needs_input'?'请补充本餐要求后继续':'请核对本餐条件后重新安排') : '', suggestedTarget: w && w.suggestedTarget || null, suggestedMealLabel: w && w.suggestedTarget ? LABELS[MEALS.indexOf(w.suggestedTarget.mealType)] : '',
-        canConfirm: !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced',
+        canConfirm: !displayedSavedRecord && !!w && ['draft', 'planned'].includes(w.status) && !!draft.dishes.length && !state.dirty && !state.pending && state.syncStatus === 'synced',
         saveState,savedTarget,savedMessage:savedView ? `已保存到${savedView.label}` : '',saveTargetLocked:!!this.data.busy || !!state.pending,saveRecoveryPending:!!state.pending && state.pending.type==='confirm' })
       const context=this.data.context
+      const contextView=contextPresentation(context)
+      if(displayedSavedRecord){
+        const counts={};let known=0
+        for(const dish of draft.dishes){const type=normalizeDishType(dish.type);if(type){counts[type]=(counts[type]||0)+1;known++}}
+        contextView.compositionLabel=known===draft.dishes.length ? compositionSummary({mealType:context.mealType,counts}) : `${draft.dishes.length}道菜`
+      }
       if(!this.data.peopleError)this.setData({peopleInput:String(context.people)})
       this.setData({todayDate:defaultTarget().date,pageTitle:this.data.mode==='assistant'?'本餐对话':draft.dishes.length?'本餐菜单':context.date===defaultTarget().date?'今天吃什么？':'这餐吃什么？',mealName:LABELS[MEALS.indexOf(context.mealType)] || '当前餐',
         mealViewKey:`${this._scope}:${context.date}:${context.mealType}:${draft.planVersion || 0}`,
-        ...contextPresentation(context),
+        ...contextView,
         conditionsNotice:w && w.status === 'needs_regeneration' ? '条件已更新' : ''})
       const config=require('./config'),pendingReceipts=require('./meal-journey-presentation').collectRecoveryPointers({storage:wx,storageKey:getUserStorageKey,assistantScope:config.getApiBaseUrl?config.getApiBaseUrl()+'|'+getCurrentUserIdentity():null})
       this.setData(require('./meal-workspace-presentation').deriveWorkspacePresentation({...this.data,workspaceId:w&&w.id,dirty:state.dirty,pendingReceipts,busy:this.data.busy}));
@@ -383,7 +398,11 @@ module.exports = function workspacePage(options = {}) {
       if (this.data.busy || !this.store || !this.current()) return
       if(this.store.state().pending || this.data.syncStatus==='conflict' || this.data.status==='generating' && command!=='cancel')return
       if(this.data.peopleError && ['generate','regenerate','select'].includes(command))return
+      // The calendar snapshot is read-only. Only an explicit new arrangement
+      // may leave it; hidden/stale actions cannot operate on an older draft.
+      if(this.data.displayedSavedRecord && !['generate','regenerate','select'].includes(command))return
       if (getCurrentUserIdentity() === 'guest') return this.onLogin()
+      if(this.data.displayedSavedRecord)this.store.edit({...this.data.context})
       clearTimeout(this._draftTimer); const store = this.store,scope=this._scope,source=require('./config').getApiBaseUrl()
       const checkReference=()=>{
         if(expectedRef && (!matchesWorkspaceReference(expectedRef,store.state().workspace,store.state().context) || this.canRunReferencedCommand && !this.canRunReferencedCommand(expectedRef)))throw new Error('本餐或待确认操作已变化，请查看当前菜单或完成当前核对')
@@ -419,7 +438,7 @@ module.exports = function workspacePage(options = {}) {
       if (result.action === 'open_time') return this.onOpenMealSettings()
     },
     onConfirmPlan() {
-      if (!this.data.canConfirm || this.data.peopleError || this.data.busy || !this.current()) return
+      if (this.data.displayedSavedRecord || !this.data.canConfirm || this.data.peopleError || this.data.busy || !this.current()) return
       const state = this.store.state()
       try {
         const snapshot=freezeSaveSnapshot(state,this._scope)
@@ -446,7 +465,7 @@ module.exports = function workspacePage(options = {}) {
       const view=saveTargetView(capture.snapshot,capture.target),plan=capture.plan
       this.setData({saveTarget:{...capture.target},savePeople:capture.snapshot.people,saveMealIndex:MEALS.indexOf(capture.target.mealType),saveDateLabel:view.label,saveCrossDayNotice:view.crossDayNotice,saveNeedsReplacement:!!plan,
         confirmationTitle:'保存到日历',confirmationLabel:plan ? this.data.saveReplacementApproved ? '确认替换' : '继续，核对替换' : '保存到日历',
-        confirmationText:plan ? `原安排：${plan.recipeName || (plan.dishDetails || []).map(d=>d.name).join('、')}\n本餐菜单：${this.data.saveDishSummary}\n替换后只更新计划，不记录实际吃过。` : '仅保存计划，不记录吃过。'})
+        confirmationText:plan ? `原安排：${plan.recipeName || (plan.dishDetails || []).map(d=>d.name).join('、')}\n本餐菜单：${this.data.saveDishSummary}\n替换后将更新这餐记录和饮食回顾。` : '保存为这餐记录，未来菜单到当天计入回顾。'})
     },
     onCloseConfirmation() { if (!this.data.busy) {this._confirmation=null;this.setData({ confirmationVisible:false,saveTargetLoading:false,saveError:'' })} },
     onSaveTargetDate(e) {return this.changeSaveTarget({date:e.detail.value,mealType:this.data.saveTarget && this.data.saveTarget.mealType})},
@@ -661,7 +680,7 @@ module.exports = function workspacePage(options = {}) {
       return this.switchTarget({ date: this.data.context.date, mealType: MEALS[Number(e.detail.value)] }, { followToday })
     },
     async switchTarget(target,options={}) { if (!this.current() || this.data.busy) return; wx.setStorageSync(getUserStorageKey('activeMealTarget'), {...target,selectedOn:defaultTarget().date}); this._params = options.followToday?{}:{...target,selectedOn:defaultTarget().date}; return this.initializeWorkspace(this._params) },
-    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType });wx.setStorageSync(getUserStorageKey('recipeSelectionIntent'),true); wx.switchTab({ url: '/pages/customize/customize' }) } },
+    onChooseDishes() { if (this.current()) { wx.setStorageSync(getUserStorageKey('activeMealTarget'), { date: this.data.context.date, mealType: this.data.context.mealType,selectedOn:defaultTarget().date });wx.setStorageSync(getUserStorageKey('recipeSelectionIntent'),true); wx.switchTab({ url: '/pages/customize/customize' }) } },
     onDishOpen(e) { const id = e.currentTarget.dataset.id || e.detail.id; if (id) wx.navigateTo({ url: `/pages/dish-detail/dish-detail?id=${id}&people=${this.data.context.people}` }) },
     onViewRecipes() { const plan=this.data.linkedPlan;if(plan){wx.navigateTo({url:`/pages/meal-cooking/meal-cooking?date=${this.data.context.date}&mealType=${this.data.context.mealType}&planRevision=${plan.revision}`});return}if(this.data.status==='planned' && plan) {const id=(plan.dishIds || [])[0];if(id)wx.navigateTo({url:`/pages/dish-detail/dish-detail?id=${id}&people=${plan.targetPeople || this.data.context.people}`});else this.onViewPlan();return} const first=this.data.draft.dishes[0];if(first)this.onDishOpen({currentTarget:{dataset:{id:first.id}}});else this.onViewPlan() },
     onViewPlan() { wx.navigateTo({ url: '/pages/calendar-detail/calendar-detail?date=' + this.data.context.date + '&mealType=' + this.data.context.mealType }) },

@@ -9,9 +9,8 @@
       <view wx:if="{{context.date !== todayDate}}" class="workspace-other-day"><text>正在安排{{dateLabel}}</text><button class="ew-hit-target workspace-return-today" disabled="{{busy}}" bindtap="onReturnToday" aria-label="回到今天"><ui-icon name="arrow-left" size="22" /></button></view>
       <ui-state wx:if="{{loading}}" kind="loading" density="inline" title="正在读取这一餐" />
       <block wx:else>
-        <view wx:if="{{resultNotice}}" class="workspace-notice {{resultNotice.kind}}" aria-role="{{resultNotice.kind === 'error' ? 'alert' : 'status'}}">
+        <view wx:if="{{resultNotice && (!journeyRecovery || journeyRecovery.state !== 'unapplied')}}" class="workspace-notice {{resultNotice.kind}}" aria-role="{{resultNotice.kind === 'error' ? 'alert' : 'status'}}">
           <text>{{resultNotice.text}}</text>
-          <button wx:if="{{resultNotice.action !== 'onViewSavedMeal' && journeyRecovery && journeyRecovery.state !== 'busy'}}" class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onPrimaryAction">{{primaryLabel}}</button>
           <button wx:if="{{workspaceNotice.action === 'composition'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenComposition">调整搭配</button>
           <button wx:if="{{workspaceNotice.action === 'requirements'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenRequirements">补充要求</button>
           <button wx:if="{{workspaceNotice.action === 'choose'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onChooseDishes">自己选菜</button>
@@ -31,16 +30,15 @@
         <view wx:if="{{draft.dishes.length}}" class="workspace-menu-section menu-state-{{menuState}}">
           <view class="workspace-menu-heading"><button class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onRegenerate"><ui-icon name="refresh" size="16" /><text>换一套</text></button></view>
           <view class="workspace-menu">
-            <compact-dish-row class="workspace-recipe-row" prominent="{{true}}" font-scale="{{fontScale}}" wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
+            <compact-dish-row class="workspace-recipe-row" mode="{{displayedSavedRecord ? 'read' : 'workspace'}}" prominent="{{true}}" font-scale="{{fontScale}}" wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
           </view>
           <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button wx:if="{{showMenuUndo}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onUndo">撤销上一步</button></view>
           <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>
         </view>
 
         <action-feedback wx:if="{{showActionFeedback}}" feedback="{{actionFeedback}}" busy="{{busy || contextLocked}}" bind:undo="onUndo" />
-        <view wx:if="{{linkedPlan}}" class="workspace-next"><button class="ew-hit-target workspace-next-row" bindtap="onShoppingPreview"><ui-icon name="shopping-basket" tone="muted" size="20" /><text class="ew-title">准备食材</text><ui-icon name="chevron-right" tone="muted" size="16" /></button><button class="ew-hit-target workspace-next-row" bindtap="onViewPlan"><ui-icon name="check" tone="muted" size="20" /><text class="ew-title">{{actual && actual.status === 'eaten' ? '查看饮食记录' : '记录实际用餐'}}</text><ui-icon name="chevron-right" tone="muted" size="16" /></button></view>
-        <view wx:if="{{harnessMessage}}" class="ew-notice" role="status">{{harnessTargetLabel}} {{harnessMessage}}<button class="ew-hit-target ew-link" bindtap="onToggleExtraActions">查看任务与恢复</button></view>
-        <view wx:if="{{actual && actual.status === 'eaten'}}" class="workspace-light-actions"><button class="ew-hit-target ew-link" bindtap="onReview">饮食回顾</button></view>
+        <view wx:if="{{linkedPlan}}" class="workspace-next"><button class="ew-hit-target workspace-next-row" bindtap="onShoppingPreview"><ui-icon name="shopping-basket" tone="muted" size="20" /><text class="ew-title">准备食材</text><ui-icon name="chevron-right" tone="muted" size="16" /></button><button class="ew-hit-target workspace-next-row" bindtap="onViewPlan"><ui-icon name="check" tone="muted" size="20" /><text class="ew-title">查看这餐记录</text><ui-icon name="chevron-right" tone="muted" size="16" /></button></view>
+        <view wx:if="{{linkedPlan}}" class="workspace-light-actions"><button class="ew-hit-target ew-link" bindtap="onReview">饮食回顾</button></view>
 
       </block>
     </view>
@@ -54,11 +52,7 @@
       <button class="ew-hit-target ew-menu-row" disabled="{{contextLocked}}" bindtap="onOpenLongTermPreferences"><text class="ew-menu-label">长期口味偏好</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
       <button class="ew-hit-target ew-menu-row" disabled="{{busy || !draft.dishes.length}}" bindtap="onSaveReusableMenu"><text class="ew-menu-label">存为常用菜单</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
       <button class="ew-hit-target ew-menu-row" disabled="{{busy}}" bindtap="onOpenAdvancedAssistant"><text class="ew-menu-label">助手历史</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
-      <button class="ew-hit-target ew-menu-row" disabled="{{busy || !canConfirm}}" bindtap="onSaveAndReview"><view class="ew-menu-label"><text class="ew-menu-title">保存计划与周回顾</text><text class="ew-menu-description">先预览安排，再查看实际用餐记录</text></view><ui-icon name="chevron-right" tone="muted" size="16" /></button>
     </view>
-    <view wx:if="{{harnessMessage}}" class="ew-notice" role="status">{{harnessTargetLabel}} {{harnessMessage}}</view>
-    <button wx:if="{{harnessRetryable}}" class="ew-hit-target ew-menu-row" disabled="{{busy}}" bindtap="onRecoverControlledTask"><text class="ew-menu-label">查询并恢复原任务</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
-    <button wx:if="{{harnessReport}}" class="ew-hit-target ew-menu-row" disabled="{{busy}}" bindtap="onControlledReport"><text class="ew-menu-label">查看这一周的实际回顾</text><ui-icon name="chevron-right" tone="muted" size="16" /></button>
   </ui-sheet>
   <ui-sheet visible="{{peopleVisible}}" title="用餐人数" busy="{{busy}}" bind:close="onClosePeople">
     <view class="workspace-people"><view class="workspace-stepper"><button class="ew-hit-target ew-link" aria-label="减少一人" disabled="{{loading || contextLocked || context.people <= 1}}" data-delta="-1" bindtap="onPeopleStep">−</button><input class="workspace-people-input" aria-label="用餐人数，1 至 50 人" type="number" value="{{peopleInput}}" disabled="{{loading || contextLocked}}" bindinput="onPeopleInput" /><text>人</text><button class="ew-hit-target ew-link" aria-label="增加一人" disabled="{{loading || contextLocked || context.people >= 50}}" data-delta="1" bindtap="onPeopleStep">+</button></view></view>
@@ -85,10 +79,9 @@
     <ui-field label="已有食材（用顿号分隔）" value="{{ownedText}}" bind:change="onOwnedSetting" />
     <view wx:if="{{settingsError}}" class="ew-error">{{settingsError}}</view><ui-button slot="footer" label="应用本餐设置" bind:action="onApplyMealSettings" />
   </ui-sheet>
-  <include src="meal-actual-sheet.wxml" />
   <ui-sheet visible="{{confirmationVisible}}" title="{{confirmationTitle}}" busy="{{busy}}" bind:close="onCloseConfirmation">
     <text class="ew-title">当前菜单 · {{savePeople}} 人</text><text class="ew-reading">{{saveDishSummary}}</text>
-    <text class="ew-muted">仅保存计划，不记录吃过</text>
+    <text class="ew-muted">保存即记录，未来菜单到当天计入回顾</text>
     <view class="workspace-save-fields"><picker class="ew-hit-target" mode="date" aria-label="保存日期，{{saveTarget.date}}" value="{{saveTarget.date}}" disabled="{{saveTargetLocked}}" bindchange="onSaveTargetDate"><view class="ew-hit-target workspace-save-field"><text>保存日期</text><text>{{saveTarget.date}}</text></view></picker><picker class="ew-hit-target" mode="selector" aria-label="保存餐次，{{mealLabels[saveMealIndex]}}" range="{{mealLabels}}" value="{{saveMealIndex}}" disabled="{{saveTargetLocked}}" bindchange="onSaveTargetMeal"><view class="ew-hit-target workspace-save-field"><text>餐次</text><text>{{mealLabels[saveMealIndex]}}</text></view></picker></view>
     <text class="ew-title">{{saveDateLabel}}</text><text wx:if="{{saveCrossDayNotice}}" class="ew-muted">{{saveCrossDayNotice}}</text><text class="ew-reading">{{confirmationText}}</text>
     <view wx:if="{{saveTargetLoading}}" class="ew-notice" role="status">正在核对目标安排…</view><view wx:if="{{saveError}}" class="ew-error" role="alert">{{saveError}}</view>

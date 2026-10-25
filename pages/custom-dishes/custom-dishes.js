@@ -216,7 +216,7 @@ Page({
     if (!this.ensureOwner()) return
     const identity = this._identity, epoch = this._epoch
     const id = e.currentTarget.dataset.id, scope = getUserStorageKey('customDishesCloud')
-    wx.showModal({ title: '删除这份菜谱？', content: '我的菜谱中会删除这道菜，已记录的实际用餐快照会保留。', confirmText: '删除', success: async result => {
+    wx.showModal({ title: '删除这份菜谱？', content: '我的菜谱中会删除这道菜，已保存的餐次快照会保留。', confirmText: '删除', success: async result => {
       if (!result.confirm || this.data.saving || !this.current(scope, identity) || epoch !== this._epoch) return
       this.setData({ saving: true })
       try {

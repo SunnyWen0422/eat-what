@@ -28,7 +28,7 @@ test('only complete coverage with all six numeric facts gets a total label',()=>
  assert.equal(presentNutritionReference(nutrition({personalIntakeAvailable:true})),null)
 })
 test('optional nutrition preserves the six-block report contract and old responses',()=>{
- const range={startDate:'2026-10-19',endDate:'2026-10-25'},report={metadata:{...range,basis:'explicit_eaten'},blocks:{overview:{mealCount:1},actualDetails:{records:[]},frequentDishes:{},categoryCounts:{},planExecution:{},completeness:{observedDays:7}}}
+ const range={startDate:'2026-10-19',endDate:'2026-10-25'},report={metadata:{...range,basis:'calendar_records'},blocks:{overview:{mealCount:1},actualDetails:{records:[]},frequentDishes:{},categoryCounts:{},planExecution:{},completeness:{observedDays:7}}}
  assert.equal(presentDietReport(report,range).nutritionReference,null)
  report.blocks.actualDetails.nutrition=nutrition();const result=presentDietReport(report,range)
  assert.equal(result.nutritionReference.label,'已知部分');assert.equal(Object.keys(report.blocks).length,6)

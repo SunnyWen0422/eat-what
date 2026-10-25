@@ -69,7 +69,7 @@
       </view>
     </view>
 
-    <view class="ew-section-title">今天的用餐</view><view aria-role="button" wx:if="{{todayError}}" class="ew-hit-target ew-notice" bindtap="onTodayMeal">{{todayError}}</view><meal-card wx:for="{{todayMeals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="{{item.actualNames ? '实际：' + item.actualNames : '安排和实际用餐分别保存'}}" bind:open="onTodayMeal" />
+    <view class="ew-section-title">今天的用餐</view><view aria-role="button" wx:if="{{todayError}}" class="ew-hit-target ew-notice" bindtap="onTodayMeal">{{todayError}}</view><meal-card wx:for="{{todayMeals}}" wx:key="mealType" title="{{item.label}}" name="{{item.plan ? item.plan.recipeName : '还没有安排'}}" status="{{item.statusLabel}}" description="保存的菜单会计入饮食回顾" bind:open="onTodayMeal" />
     <!-- 今日小提示 -->
     <view class="tip-card">
       

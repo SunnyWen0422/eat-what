@@ -66,14 +66,16 @@ public class MealWorkspacePlanner {
     private Set<Long> recentDishIds(Long user,MealContext context,Integer days) {
         if (days == null || days <= 0) return Collections.emptySet();
         java.time.LocalDate end=MealConsumptionService.date(context.getDate());
+        java.time.LocalDate today=java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+        if(end.isAfter(today))end=today;
         java.time.LocalDate start=end.minusDays(Math.min(30,days)-1);
         Set<Long> ids=new HashSet<>();
         for (MealConsumption meal:actual.range(user,start.toString(),end.toString())) {
-            if (!"eaten".equals(meal.getStatus())) continue;
+            if (!"recorded".equals(meal.getStatus())) continue;
             try {
                 List<Map<String,Object>> entries=json.readValue(meal.getActualDishesJson(),new TypeReference<List<Map<String,Object>>>(){});
                 ids.addAll(new RecommendationScorer().recentActualIds(meal.getStatus(),entries));
-            } catch (Exception error) { throw new IllegalStateException("近期实际用餐快照无法读取",error); }
+            } catch (Exception error) { throw new IllegalStateException("近期餐次记录无法读取",error); }
         }
         return ids;
     }
