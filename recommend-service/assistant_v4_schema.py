@@ -93,10 +93,13 @@ FILTERS = obj({"type": string(40, TYPES), "cuisine_codes": STRINGS, "include_tag
     "meal_codes": STRINGS, "dietary_codes": STRINGS, "excluded_allergen_codes": STRINGS})
 CRITERIA = obj({"cuisineCodes": nullable(STRINGS), "includeTagCodes": nullable(STRINGS),
     "excludeTagCodes": nullable(STRINGS), "excludedIngredients": nullable(STRINGS), "maxCookMinutes": nullable(integer(1, 240))})
+PREFERENCES = obj({"cuisineCodes": nullable(STRINGS), "includeTagCodes": nullable(STRINGS),
+    "excludeTagCodes": nullable(array(string(40), 0)), "excludedIngredients": nullable(array(string(40), 0)),
+    "maxCookMinutes": nullable(integer(1, 240))})
 COUNTS = obj({key: integer(0, 10) for key in TYPES})
 CONTEXT_PATCH = obj({"people": integer(1, 50), "counts": COUNTS,
     "compositionMode": string(30, ["auto", "manual"]), "criteria": CRITERIA,
-    "recommendationPreferences": CRITERIA, "expectedTotalCookMinutes": nullable(integer(1,480)), "candidateScope": string(20,["all","favorites"]),
+    "recommendationPreferences": PREFERENCES, "expectedTotalCookMinutes": nullable(integer(1,480)), "candidateScope": string(20,["all","favorites"]),
     "totalCookMinutes": nullable(integer(1, 480)), "requirements": TEXT, "ownedIngredients": STRINGS})
 TOOL_ARGUMENTS = {
     "search_dishes": obj({"query": string(200, nonempty=True), "filters": FILTERS, "top_k": integer(1, 30), "cursor": CURSOR}),
@@ -176,9 +179,15 @@ ACTIVE = obj({"workspaceId": string(100), "workspaceRevision": integer(), "planV
     "source": nullable(string(100))})
 MENU = obj({"kind": string(20, ["menu"]), "id": ID, "name": nullable(string(200)), "people": nullable(integer(1, 50)),
     "dishIds": nullable(array(ID, 10)), "version": nullable(integer())})
+NUTRIENT_VALUES = obj({key: NUMBER for key in ("energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg")},
+                      ["energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg"])
+ACTUAL_NUTRITION = obj({"basis": string(30, ["recipe_baseline"]), "personalIntakeAvailable": {"type": "boolean", "enum": [False]},
+    "entryCount": integer(), "coveredCount": integer(), "unknownCount": integer(), "complete": BOOL,
+    "knownTotal": nullable(NUTRIENT_VALUES), "total": nullable(NUTRIENT_VALUES)},
+    ["basis", "personalIntakeAvailable", "entryCount", "coveredCount", "unknownCount", "complete", "knownTotal", "total"])
 ACTUAL = obj({"date": DATE, "mealType": nullable(string(20, MEALS)), "status": string(20, ["eaten"]),
     "revision": nullable(integer()), "dishes": array(obj({"dishId": nullable({"anyOf": [ID, string(20)]}),
-        "name": nullable(string(200)), "type": nullable(string(40))}), 30), "basis": string(30, ["explicit_eaten"])})
+        "name": nullable(string(200)), "type": nullable(string(40))}), 30), "nutrition": ACTUAL_NUTRITION, "basis": string(30, ["explicit_eaten"])})
 SHOPPING = obj({"id": nullable(ID), "name": nullable(string(200)), "canonicalName": nullable(string(200)),
     "quantityValue": nullable(NUMBER), "quantityMin": nullable(NUMBER), "quantityMax": nullable(NUMBER),
     "quantityText": nullable(string(2000)), "userOverride": BOOL,
@@ -216,14 +225,12 @@ CONTEXT = obj({"schemaVersion": string(30, [VERSION]), "requestContext": obj({"e
         "supportedTypes": array(string(40, TYPES), 6), "recentActualRange": obj({"startDate": DATE, "endDate": DATE}),
         "truncated": BOOL, "detailsOnDemand": BOOL})}, ["schemaVersion", "capabilities"])
 RECIPE = copy.deepcopy(DISH)
-NUTRIENT_VALUES = obj({key: NUMBER for key in ("energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg")},
-                      ["energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg"])
 RECIPE_NUTRITION = obj({"completeness": string(20, ["complete", "partial"]), "total": nullable(NUTRIENT_VALUES),
                         "perServing": nullable(NUTRIENT_VALUES),
                         "perServingUnavailableReason": string(40, ["diners_not_specified"])}, ["completeness", "total", "perServing"])
 RECIPE["properties"].update({"detailLevel": string(10, ["summary", "full"]),
     "omittedFields": array(string(40, ["ingredients", "ingredientFacts", "steps", "stepFacts", "methods", "tagCodes", "name", "contentVersion", "datasetVersion", "cuisineCode"]), 10),
-    "basePeople": nullable({"type": "number", "minimum": 1, "maximum": 50}), "ingredients": nullable(string(10000)),
+    "basePeople": nullable({"type": "number", "minimum": 1, "maximum": 50}), "diners": nullable(integer(1,50)), "ingredients": nullable(string(10000)),
     "catalogRevision": string(100, nonempty=True), "categoryCode": string(40), "mealCodes": STRINGS,
     "catalogContractVersion": {"type": "integer", "enum": [4]}, "quantityPolicy": string(30, ["fixed-recipe-v1"]), "nutrition": RECIPE_NUTRITION,
     "dietaryCodes": nullable(STRINGS), "allergenCodes": nullable(STRINGS),

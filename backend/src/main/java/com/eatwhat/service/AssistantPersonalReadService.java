@@ -28,7 +28,7 @@ public class AssistantPersonalReadService {
         if("get_recommendation_options".equals(call.getName())){
             fields(args,"group");String group=text(args,"group",40);
             if(group!=null&&!GROUPS.contains(group))throw new IllegalArgumentException("筛选分类无效");
-            RecommendationOptionsDTO options=metadata.getOptions();
+            RecommendationOptionsDTO options=metadata.getDefinitions();
             for(String key:GROUPS)if(group==null||key.equals(group)){
                 if(group==null){result.getItems().add(map("group",key));continue;}
                 for(RecommendationOptionsDTO.Option o:orEmpty(options.getGroups().get(key))){

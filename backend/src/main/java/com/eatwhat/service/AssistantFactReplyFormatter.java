@@ -4,6 +4,8 @@ import com.eatwhat.dto.AssistantV4Contract.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /** Server-authored read prose. No provider text, historical message or write receipt is accepted. */
 final class AssistantFactReplyFormatter {
@@ -33,6 +35,7 @@ final class AssistantFactReplyFormatter {
             return new AuthorizedReadFact(read,false,true);
         }
         private static Object snapshot(Object value){
+            if(value instanceof JsonNode)return snapshot(JSON.convertValue(value,Object.class));
             if(value instanceof Map){Map<String,Object> copy=new LinkedHashMap<>();for(Map.Entry<?,?> entry:((Map<?,?>)value).entrySet())if(entry.getKey() instanceof String)copy.put((String)entry.getKey(),snapshot(entry.getValue()));return Collections.unmodifiableMap(copy);}
             if(value instanceof List){List<Object> copy=new ArrayList<>();for(Object item:(List<?>)value)copy.add(snapshot(item));return Collections.unmodifiableList(copy);}
             return value instanceof String||value instanceof Number||value instanceof Boolean?value:null;
@@ -71,10 +74,47 @@ final class AssistantFactReplyFormatter {
             for(Map<String,Object> row:group.rows())if(!list(row.get("omittedFields")).isEmpty())unknown=true;
         }
         if(lines.isEmpty())return EMPTY;
+        String nutrition=nutrition(facts);if(!nutrition.isEmpty()&&chars+nutrition.length()<MAX_REPLY-100)lines.add(nutrition);
         if(unknown)lines.add("部分字段未提供，未知项保持未知。");
         if(bounded)lines.add("其余部分查询结果见卡片。");
         return String.join("\n",lines);
     }
+    /** Only authenticated recipe facts and recorded-meal snapshots supply these numbers. */
+    String nutrition(List<AuthorizedReadFact> facts){
+        Map<String,Group> groups=new LinkedHashMap<>();int count=0;boolean partial=false;
+        for(AuthorizedReadFact fact:facts==null?Collections.<AuthorizedReadFact>emptyList():facts){
+            if(count++==MAX_FACTS){partial=true;break;}
+            if(fact==null||!Arrays.asList("get_dish_details","read_actual_diet_review").contains(fact.name))continue;
+            groups.computeIfAbsent(fact.name,Group::new).add(fact);
+        }
+        List<String> lines=new ArrayList<>();int chars=0;
+        for(Group group:groups.values())for(Map<String,Object> row:group.rows()){
+            partial|=group.partial;
+            if(lines.size()>=10){partial=true;break;}
+            if("get_dish_details".equals(group.name)){
+                Map<String,Object> n=object(row.get("nutrition"));if(n.isEmpty())continue;
+                BigDecimal energy="complete".equals(n.get("completeness"))?energy(n.get("total")):null;
+                String line="「"+label(row.get("name"))+"」"+(energy==null?"整道能量暂缺。":"整道"+rounded(energy)+"千卡");
+                Object diners=row.get("diners");
+                if(energy!=null&&diners instanceof Number&&((Number)diners).intValue()>0){int people=((Number)diners).intValue();line+="；"+people+"人均分每人约"+energy.divide(BigDecimal.valueOf(people),0,RoundingMode.HALF_UP).toPlainString()+"千卡。";}
+                else if(energy!=null)line+="。";
+                if(chars+line.length()>900){partial=true;break;}lines.add(line);chars+=line.length();
+            }else for(Map<String,Object> meal:rows(row.get("actual"))){
+                if(!"eaten".equals(meal.get("status")))continue;Map<String,Object> n=object(meal.get("nutrition"));
+                if(!"recipe_baseline".equals(n.get("basis")))continue;
+                BigDecimal total=Boolean.TRUE.equals(n.get("complete"))?energy(n.get("total")):null,known=energy(n.get("knownTotal"));
+                String line=date(row.get("date"))+mealType(meal.get("mealType"))+"已记录菜品的配方能量：";
+                if(total!=null)line+=rounded(total)+"千卡";
+                else{line+="完整能量暂缺";if(known!=null&&n.get("coveredCount") instanceof Number&&n.get("entryCount") instanceof Number)line+="，其中"+n.get("coveredCount")+"/"+n.get("entryCount")+"道可计算部分为"+rounded(known)+"千卡";}
+                line+="；不代表个人摄入。";if(chars+line.length()>900||lines.size()>=10){partial=true;break;}lines.add(line);chars+=line.length();
+            }
+        }
+        if(partial&&!lines.isEmpty())lines.add("以上仅为本次查询到的部分营养信息。");
+        return String.join("\n",lines);
+    }
+    @SuppressWarnings("unchecked") private static Map<String,Object> object(Object value){return value instanceof Map?(Map<String,Object>)value:Collections.emptyMap();}
+    private static BigDecimal energy(Object value){Object number=object(value).get("energyKcal");if(!(number instanceof Number))return null;try{BigDecimal n=new BigDecimal(number.toString());return n.signum()<0?null:n;}catch(NumberFormatException e){return null;}}
+    private static String rounded(BigDecimal n){return n.setScale(0,RoundingMode.HALF_UP).toPlainString();}
     private static boolean registered(String name){return AssistantReadToolService.READS.contains(name)||AssistantPersonalReadService.READS.contains(name);}
     private static String identity(Map<String,Object> row){
         if(row.get("date")!=null)return "date:"+row.get("date");
@@ -105,9 +145,9 @@ final class AssistantFactReplyFormatter {
             case "read_current_meal":return currentMeal(rows);
             case "read_shopping":
                 if(n==0)return "采购这次查询未返回清单项。";
-                int checked=0,pending=0;boolean quantityUnknown=false;
-                for(Map<String,Object> row:rows){if(Boolean.TRUE.equals(row.get("checked")))checked++;else if(Boolean.FALSE.equals(row.get("checked")))pending++;if(row.get("quantityValue")==null||"unknown".equals(row.get("quantityProvenance")))quantityUnknown=true;}
-                return "采购这次查到"+n+"项"+names+"；其中"+checked+"项已勾选、"+pending+"项待采购"+(checked+pending<n?"，其余勾选状态未知":"")+"。"+(quantityUnknown?"部分用量未确认。":"");
+                int checked=0,pending=0;
+                for(Map<String,Object> row:rows){if(Boolean.TRUE.equals(row.get("checked")))checked++;else if(Boolean.FALSE.equals(row.get("checked")))pending++;}
+                return "采购这次查到"+n+"项"+names+"；其中"+checked+"项已勾选、"+pending+"项待采购"+(checked+pending<n?"，其余勾选状态未知":"")+"。";
             case "read_calendar":
             case "read_actual_diet_review":
                 int plans=0,actual=0;for(Map<String,Object> day:rows){plans+=list(day.get("plans")).size();for(Map<String,Object> meal:rows(day.get("actual")))if("eaten".equals(meal.get("status")))actual++;}

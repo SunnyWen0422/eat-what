@@ -14,9 +14,35 @@ class AssistantFactReplyFormatterTest {
   ToolRead call=new ToolRead();call.setName(name);call.setCallId("read");return AuthorizedReadFact.fromRead(r,call);
  }
  private String reply(AuthorizedReadFact... facts){return formatter.format(Arrays.asList(facts),new ModelContext());}
+ @Test void canonical_energy_survives_json_snapshot_and_is_rounded_after_equal_sharing(){
+  com.fasterxml.jackson.databind.node.ObjectNode n=new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode();
+  n.put("completeness","complete");n.putObject("total").put("energyKcal",100.49);
+  AuthorizedReadFact f=fact("get_dish_details",false,map("id",1,"name","青菜","diners",8,"nutrition",n));
+  n.with("total").put("energyKcal",9999);
+  String text=reply(f);assertTrue(text.contains("整道100千卡"),text);assertTrue(text.contains("8人均分每人约13千卡"),text);assertFalse(text.contains("9999"));
+ }
+ @Test void partial_recipe_never_turns_subtotal_into_whole_recipe_energy(){
+  String text=reply(fact("get_dish_details",false,map("id",1,"name","汤","diners",8,"nutrition",map("completeness","partial","total",null,"quantifiedSubtotal",map("total",map("energyKcal",100))))));
+  assertTrue(text.contains("整道能量暂缺"),text);assertFalse(text.contains("100千卡"));assertFalse(text.contains("每人"));
+ }
+ @Test void actual_nutrition_remains_recipe_reference_and_partial_coverage_is_not_daily_intake(){
+  Map<String,Object> meal=map("status","eaten","mealType","dinner","nutrition",map("basis","recipe_baseline","complete",false,"coveredCount",1,"entryCount",2,"knownTotal",map("energyKcal",100.6),"total",null));
+  String text=reply(fact("read_actual_diet_review",false,map("date","2026-10-10","actual",Arrays.asList(meal))));
+  assertTrue(text.contains("完整能量暂缺"),text);assertTrue(text.contains("1/2道"),text);assertTrue(text.contains("101千卡"),text);assertTrue(text.contains("不代表个人摄入"),text);
+ }
+ @Test void nutrition_keeps_its_own_paging_and_size_limit_notice(){
+  Map<String,Object> dish=map("name","青菜","nutrition",map("completeness","complete","total",map("energyKcal",100)));
+  assertTrue(formatter.nutrition(Arrays.asList(fact("get_dish_details",true,dish))).contains("部分营养信息"));
+  List<AuthorizedReadFact> input=new ArrayList<>();for(int i=0;i<12;i++){Map<String,Object> copy=new HashMap<>(dish);copy.put("id",i);input.add(fact("get_dish_details",false,copy));}
+  assertTrue(formatter.nutrition(input).contains("部分营养信息"));
+ }
  @Test void partial_read_is_not_a_complete_total(){
   String text=reply(fact("read_shopping",true,map("id",1,"name","番茄","checked",false,"quantityValue",null,"quantityProvenance","unknown")));
-  assertTrue(text.contains("这次查到1项"));assertTrue(text.contains("部分"));assertTrue(text.contains("用量未确认"));assertFalse(text.contains("共1项"));assertFalse(text.contains("0元"));
+  assertTrue(text.contains("这次查到1项"));assertTrue(text.contains("部分"));assertFalse(text.contains("用量未确认"));assertFalse(text.contains("共1项"));assertFalse(text.contains("0元"));
+ }
+ @Test void to_taste_shopping_quantities_are_not_reported_as_unconfirmed(){
+  String text=reply(fact("read_shopping",false,map("id",1,"name","盐","checked",false,"quantityValue",null,"quantityText","适量","quantityProvenance","unknown")));
+  assertTrue(text.contains("1项待采购"));assertFalse(text.contains("未确认"));assertFalse(text.contains("0克"));
  }
  @Test void final_page_and_next_cursor_still_do_not_imply_an_entire_total(){
   ReadResult r=new ReadResult();r.setName("read_favorites");r.setCallId("a");r.getItems().add(map("id",1,"name","青菜"));

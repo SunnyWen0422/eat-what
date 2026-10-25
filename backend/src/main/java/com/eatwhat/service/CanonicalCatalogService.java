@@ -47,7 +47,7 @@ public class CanonicalCatalogService {
  /** Only internal selection facts. The immutable source JSON still owns the full content version. */
  private ObjectNode candidateRecipe(JsonNode raw,JsonNode scaled,Map<String,JsonNode> definitions){
   ObjectNode out=json.createObjectNode();
-  for(String field:Arrays.asList("id","name","imageUrl","baseServings","categoryCode","cuisineCode","mealCodes","servingRole","dishGroupId","timing","methodCodes","flavorCodes","sceneCodes","operationCodes"))if(raw.has(field))out.set(field,raw.get(field).deepCopy());
+  for(String field:Arrays.asList("id","name","imageUrl","baseServings","categoryCode","cuisineCode","mealCodes","servingRole","dishGroupId","timing","methodCodes","flavor","sceneCodes","operationCodes"))if(raw.has(field))out.set(field,raw.get(field).deepCopy());
   out.put("catalogContractVersion",4);out.put("quantityPolicy","fixed-recipe-v1");
   for(String field:Arrays.asList("dietaryCodes","allergenCodes","compositionCodes"))out.set(field,scaled.path(field).deepCopy());
   ArrayNode lines=out.putArray("ingredients");for(JsonNode source:raw.path("ingredients")){

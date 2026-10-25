@@ -52,7 +52,7 @@ public class RecommendationMetadataService {
             com.fasterxml.jackson.databind.node.ArrayNode constraints=root.putArray("constraintTagCodes");
             com.fasterxml.jackson.databind.node.ObjectNode groups=root.putObject("groups");for(String group:SUPPORTED_GROUPS)groups.putArray(group);
             java.util.Iterator<JsonNode> entries=catalog.path("taxonomy").path("entries").elements();
-            while(entries.hasNext()) {JsonNode entry=entries.next();String group=entry.path("dimension").asText();if("allergen".equals(group)){constraints.add(entry.path("code").asText());constraintOptions.addObject().put("code",entry.path("code").asText()).put("label",entry.path("label").asText());continue;}if("dietary".equals(group))group="diet";if("baseFlavor".equals(group)||"specialFlavor".equals(group))group="flavor";if(!SUPPORTED_GROUPS.contains(group))continue;
+            while(entries.hasNext()) {JsonNode entry=entries.next();String group=entry.path("dimension").asText();if("allergen".equals(group)){constraints.add(entry.path("code").asText());constraintOptions.addObject().put("code",entry.path("code").asText()).put("label",entry.path("label").asText());continue;}if("dietary".equals(group))group="diet";if("baseFlavor".equals(group)||"specialFlavor".equals(group)||"intensity".equals(group))group="flavor";if(!SUPPORTED_GROUPS.contains(group))continue;
                 com.fasterxml.jackson.databind.node.ObjectNode option=((com.fasterxml.jackson.databind.node.ArrayNode)groups.path(group)).addObject();option.put("code",entry.path("code").asText());option.put("label",entry.path("label").asText());option.putArray("aliases").add(entry.path("label").asText());
             }
             com.fasterxml.jackson.databind.node.ArrayNode quick=root.putArray("homeQuickOptions");
@@ -84,6 +84,24 @@ public class RecommendationMetadataService {
         result.setGroups(withCounts(groups));
         result.setConstraintOptions(withCounts(constraintOptions));
         result.setHomeQuickOptions(withCounts(homeQuickOptions));
+        return result;
+    }
+
+    /** Assistant needs code/label definitions only; it never displays catalog counts. */
+    public RecommendationOptionsDTO getDefinitions() {
+        RecommendationOptionsDTO result = new RecommendationOptionsDTO();
+        result.setMetadataVersion(metadataVersion);
+        result.setMinimumClientVersion(minimumClientVersion);
+        Map<String,List<RecommendationOptionsDTO.Option>> copied = new LinkedHashMap<>();
+        for(Map.Entry<String,List<RecommendationOptionsDTO.Option>> group:groups.entrySet()) {
+            List<RecommendationOptionsDTO.Option> options = new ArrayList<>();
+            for(RecommendationOptionsDTO.Option item:group.getValue()) {
+                RecommendationOptionsDTO.Option option = new RecommendationOptionsDTO.Option();
+                option.setId(item.getId());option.setCode(item.getCode());option.setLabel(item.getLabel());option.setKind(item.getKind());options.add(option);
+            }
+            copied.put(group.getKey(),options);
+        }
+        result.setGroups(copied);
         return result;
     }
 

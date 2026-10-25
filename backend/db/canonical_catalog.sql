@@ -42,7 +42,9 @@ CREATE VIEW food AS SELECT
  (SELECT GROUP_CONCAT(DISTINCT t.code ORDER BY t.code SEPARATOR ',') FROM JSON_TABLE(JSON_MERGE_PRESERVE(
  JSON_EXTRACT(r.document,'$.mealCodes'),JSON_EXTRACT(r.document,'$.methodCodes'),JSON_EXTRACT(r.document,'$.sceneCodes'),
  JSON_EXTRACT(r.document,'$.operationCodes'),JSON_EXTRACT(r.document,'$.dietaryCodes'),JSON_EXTRACT(r.document,'$.allergenCodes'),
- JSON_EXTRACT(r.document,'$.flavor.baseCodes'),JSON_EXTRACT(r.document,'$.flavor.specialCodes')),'$[*]' COLUMNS(code VARCHAR(80) PATH '$')) t) AS TAG_CODES,
+ JSON_EXTRACT(r.document,'$.flavor.baseCodes'),JSON_EXTRACT(r.document,'$.flavor.specialCodes'),
+ CASE WHEN JSON_TYPE(JSON_EXTRACT(r.document,'$.flavor.intensityCode'))='STRING'
+ THEN JSON_ARRAY(JSON_UNQUOTE(JSON_EXTRACT(r.document,'$.flavor.intensityCode'))) ELSE JSON_ARRAY() END),'$[*]' COLUMNS(code VARCHAR(80) PATH '$')) t) AS TAG_CODES,
  r.cook_minutes AS COOK_MINUTES,
  CAST(r.cook_minutes AS CHAR) AS COOK_TIME,
  JSON_UNQUOTE(JSON_EXTRACT(r.document,'$.imageUrl')) AS IMAGE,

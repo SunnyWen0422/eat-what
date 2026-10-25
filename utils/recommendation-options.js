@@ -57,10 +57,12 @@ const FALLBACK_OPTIONS = {
 }
 
 function normalizeOption(item) {
+  const code = String(item.code || '').toUpperCase()
+  const label = typeof item.label === 'string' ? item.label.trim() : ''
   return {
     ...item,
-    code: String(item.code || '').toUpperCase(),
-    label: item.label || item.code,
+    code,
+    label: label && label.toUpperCase() !== code ? label : '其他选项',
     count: Number(item.count) || 0,
   }
 }
@@ -82,6 +84,7 @@ function normalizeOptions(value) {
     recommendationPolicyVersion: source.recommendationPolicyVersion==='balanced-v1'?'balanced-v1':null,
     learningResetEnabled: source.learningResetEnabled===true,
     homeQuickOptions,
+    constraintOptions:(Array.isArray(source.constraintOptions)?source.constraintOptions:[]).map(normalizeOption).filter(item=>item.code),
     groups,
   }
 }
@@ -93,11 +96,12 @@ function sanitizeCriteriaForOptions(value, options) {
   const tagCodes = new Set(['flavor', 'scene', 'diet', 'method']
     .flatMap(group => options.groups[group] || [])
     .map(item => item.code))
+  const excludedCodes = new Set([...tagCodes,...(options.constraintOptions||[]).map(item=>item.code)])
   return {
     ...criteria,
     cuisineCodes: criteria.cuisineCodes.filter(code => cuisineCodes.has(code)),
     includeTagCodes: criteria.includeTagCodes.filter(code => tagCodes.has(code)),
-    excludeTagCodes: criteria.excludeTagCodes.filter(code => tagCodes.has(code)),
+    excludeTagCodes: criteria.excludeTagCodes.filter(code => excludedCodes.has(code)),
   }
 }
 

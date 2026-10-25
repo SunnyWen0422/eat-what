@@ -42,7 +42,7 @@
 - 参数不合规可在原调用预算内进行一次内部纠正；业务成功以实际回执为准，区分明确失败、结果未知和部分完成。
 - 正式模型功能与“是否允许测试调用模型”是两件事。测试必须有有效授权和剩余额度，不能重复使用旧额度。
 
-这些是源码能力，真实模型效果、原生体验与部署状态分别验收。详见 [助手协议与执行说明](docs/testing/2026-10-17-assistant-flexible-execution.md) 和 [当前复审](docs/testing/2026-10-18-assistant-behavior-review.md)。
+这些是源码能力，真实模型效果、原生体验与部署状态分别验收。详见 [助手协议与执行说明](docs/testing/2026-10-17-assistant-flexible-execution.md) 和 [当前线上复审](docs/testing/2026-10-25-production-catalog-audit.md)。
 
 ## 当前限制与数据规则
 
@@ -117,8 +117,9 @@ npm run dev
 - **2026-10-21 后端部署：** 已完成 `V8_40` 增量迁移及 Java/Python 配套更新；新增学习事件、重置回执两表。备份完整恢复与迁移演练通过，旧业务表校验一致，两端能力回查确认为 `balanced-v1`。见 [部署记录](docs/operations/2026-10-21-recommendation-backend-update.md)。
 - **验收边界：** 上述上线未发布小程序或独立网页，未调用真实模型验证用户链路，日志检查未形成完整证据。历史通过数绑定对应提交，不代表全仓、真机或后续任意版本通过。
 - **历史助手复审：** 输入恢复、跨服务参数与执行状态检查见 [2026-10-18 复审](docs/testing/2026-10-18-assistant-behavior-review.md)。
+- **2026-10-25 线上复审：** 全量核对 5,407 道系统菜，完成 20 轮真实助手测试，修复营养回复、续接空值校验、清淡映射与选项读取。后端/Python、独立网页已更新，原有业务记录核对保留；原始失败及最终证据见 [复审报告](docs/testing/2026-10-25-production-catalog-audit.md)，配套产物与备份见 [发布记录](docs/operations/2026-10-25-production-audit-release.md)。小程序前端修复未发布微信版本，未做手机视觉验收，图片网络检查受限流未全量完成。
 
-本次 README 与部署文档维护仅做一致性、链接和差异检查，复用未变化代码的有效验收证据。
+测试与发布结论绑定各报告中的源码和产物；重叠回归集合不累加，历史验证不能替代后续版本验收。
 
 ## GitHub、服务器与发布
 
@@ -139,6 +140,7 @@ npm run dev
 | 本机运行与隔离验证 | [本机验证](docs/testing/local-verification.md) |
 | GitHub / 数据库 / 服务器操作 | [操作经验手册](docs/operations/agent-runbook.md) |
 | 历史助手复审 | [2026-10-18 复审](docs/testing/2026-10-18-assistant-behavior-review.md) |
+| 当前菜库、模型与发布复审 | [2026-10-25 验收](docs/testing/2026-10-25-production-catalog-audit.md)、[配套发布记录](docs/operations/2026-10-25-production-audit-release.md) |
 | 迁移与切换准备 | [候选切换要求](docs/release/local-maturity-cutover.md) |
 | 推荐算法与学习规则 | [策略说明](docs/recommendation-policy.md)、[隔离验收](docs/testing/2026-10-21-recommendation-policy.md) |
 | 推荐策略后端上线 | [2026-10-21 部署记录](docs/operations/2026-10-21-recommendation-backend-update.md) |

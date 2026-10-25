@@ -7,6 +7,18 @@ body=step_fixture.body
 final=step_fixture.final
 
 class FlexibleRouteTest(unittest.TestCase):
+    def test_soft_exclusion_is_repaired_before_business_checkpoint(self):
+        request=body();request.update(replyContract='meal_reply.v2',answerBasis=basis())
+        request['context']['constraints']['recommendationPolicy']='balanced-v1'
+        args={'operation':'regenerate','selectionMode':'recommend','contextPatch':{'criteria':{'excludedIngredients':['花生']},'recommendationPreferences':{'excludeTagCodes':['FLAVOR_HOT','FLAVOR_NUMB'],'maxCookMinutes':20}}}
+        output={'type':'final','reply':'建议','actionProposal':{'steps':[{'kind':'draft_update','arguments':args}]}}
+        _,result,calls=step_fixture.AssistantV4StepTest().route(final(output),request)
+        self.assertEqual({'type':'action_invalid'},result);self.assertEqual(1,len(calls))
+        self.assertIn('偏好只能正向表达',calls[0]['json']['messages'][0]['content'])
+        args['contextPatch']['recommendationPreferences']={'includeTagCodes':['FLAVOR_LIGHT'],'maxCookMinutes':20}
+        _,result,_=step_fixture.AssistantV4StepTest().route(final(output),request)
+        self.assertEqual('final',result['type'])
+
     def test_repair_signal_cannot_be_emitted_by_model_and_v1_remains_compatible(self):
         from assistant_v4_step import SAFE_QUESTION
         for contract,output in [('meal_reply.v2',{'type':'action_invalid'}),('meal_reply.v1',{'type':'final','reply':'建议','actionProposal':{'steps':[{'kind':'calendar_save','arguments':{}}]}})]:

@@ -10,6 +10,26 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantV4TurnServiceTest {
+ @Test void nullable_read_fields_survive_real_transport_serialization_and_repeated_tools() {
+  json.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
+  when(model.step(any())).thenAnswer(invocation->{
+   StepInput in=invocation.getArgument(0);int round=store.turnRecord(1L,id).getProviderCallsUsed();
+   if(round==3)return finalOutput();
+   StepOutput out=tools(in,"wire-"+round);
+   // The default HTTP converter retains nulls, including sourceVersion/nextCursor.
+   if(round==2)out.getProviderContinuation().getMessages().get(1).put("content",new ObjectMapper().writeValueAsString(in.getReadResults().get(0)));
+   out.getProviderContinuation().getAssistantMessage().put("content",null);
+   return out;
+  });
+  runner.runTurn(1L,id);assertEquals("completed",store.findTurn(1L,id).getStatus());verify(model,times(3)).step(any());
+ }
+ @Test void excluded_preferences_are_rejected_before_durable_business_checkpoint(){
+  AssistantCapabilityService.ActionExecutor adapter=mock(AssistantCapabilityService.ActionExecutor.class);registry.registerDraft("draft_update",adapter);
+  Map<String,Object> args=AssistantV4ContextService.map("operation","regenerate","selectionMode","recommend","contextPatch",AssistantV4ContextService.map("criteria",AssistantV4ContextService.map("excludedIngredients",Collections.singletonList("花生")),"recommendationPreferences",AssistantV4ContextService.map("excludeTagCodes",Arrays.asList("FLAVOR_HOT","FLAVOR_NUMB"),"maxCookMinutes",20)));
+  when(model.step(any())).thenReturn(action("draft_update",args));runner.runTurn(1L,id);
+  verifyNoInteractions(adapter);assertNull(store.continuation(1L,id));assertEquals("failed",store.findTurn(1L,id).getStatus());
+  assertThrows(IllegalArgumentException.class,()->WorkspaceAssistantToolAdapter.validateArguments(json.valueToTree(args)));
+ }
  @Test void validated_business_work_survives_model_deadline_without_another_provider_call(){
   java.util.concurrent.atomic.AtomicLong now=new java.util.concurrent.atomic.AtomicLong(fixture.now);
   Clock clock=new Clock(){public ZoneId getZone(){return ZoneOffset.UTC;}public Clock withZone(ZoneId zone){return this;}public Instant instant(){return Instant.ofEpochMilli(now.get());}};

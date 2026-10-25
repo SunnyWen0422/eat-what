@@ -59,7 +59,7 @@ public class AssistantV4ModelGateway {
             @Value("${meal-workspace.service-token:}") String token,ObjectMapper json) {
         this(baseUrl,token,json,null);
     }
-    AssistantV4ModelGateway(String baseUrl,String token,ObjectMapper json,IntFunction<RestTemplate> transport){this.url=baseUrl.replaceAll("/+$","")+"/internal/v4/assistant/step";this.token=token;this.json=json.copy().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);this.transport=transport;}
+    AssistantV4ModelGateway(String baseUrl,String token,ObjectMapper json,IntFunction<RestTemplate> transport){this.url=baseUrl.replaceAll("/+$","")+"/internal/v4/assistant/step";this.token=token;this.json=json.copy().setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS).enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);this.transport=transport;}
     /** One connection per attempt; cancellation closes the socket as well as interrupting its waiter. */
     private static final class TransportCancellation {
         private HttpRequestBase request;private boolean cancelled;
@@ -105,7 +105,7 @@ public class AssistantV4ModelGateway {
         HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("X-Service-Token",token);
         long observedStart=System.nanoTime();String observedOutcome="error";
         Future<String> pending=null;TransportCancellation cancellation=new TransportCancellation();
-        try {pending=requests.submit(()->transport(budgetMillis,cancellation).postForObject(url,new HttpEntity<>(input,headers),String.class));String raw=pending.get(Math.max(1,deadlineNanos-System.nanoTime()),TimeUnit.NANOSECONDS);
+        try {pending=requests.submit(()->transport(budgetMillis,cancellation).postForObject(url,new HttpEntity<>(json.writeValueAsString(input),headers),String.class));String raw=pending.get(Math.max(1,deadlineNanos-System.nanoTime()),TimeUnit.NANOSECONDS);
             if(raw==null||raw.length()>350000)throw new IllegalStateException();StepOutput output=json.readValue(raw,StepOutput.class);observedOutcome="success";return output;
         }catch(InterruptedException interrupted){observedOutcome="cancel";Thread.currentThread().interrupt();throw new IllegalStateException("本次请求已停止");}
         catch(TimeoutException expired){observedOutcome="timeout";throw new IllegalStateException("智能理解暂不可用，请稍后重试");}

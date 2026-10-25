@@ -49,11 +49,15 @@ public class WorkspaceAssistantToolAdapter implements AssistantCapabilityService
    if(patch.hasNonNull("totalCookMinutes"))positiveInteger(patch.get("totalCookMinutes"));
    if(patch.has("counts")){JsonNode counts=patch.get("counts");AssistantV4Contract.fields(counts,"meat","veg","soup","staple","dessert","side");counts.elements().forEachRemaining(value->{if(!value.isIntegralNumber()||value.longValue()<0||value.longValue()>10)throw new IllegalArgumentException("菜数无效");});}
    if(patch.has("criteria"))criteria(patch.get("criteria"));
-   if(patch.has("recommendationPreferences"))criteria(patch.get("recommendationPreferences"));
+   if(patch.has("recommendationPreferences"))validatePreferences(patch.get("recommendationPreferences"));
    if(patch.hasNonNull("expectedTotalCookMinutes"))positiveInteger(patch.get("expectedTotalCookMinutes"));
   }
   if(n.has("targetConstraints"))criteria(n.get("targetConstraints"));
  }
  private static void criteria(JsonNode c){AssistantV4Contract.fields(c,"cuisineCodes","includeTagCodes","excludeTagCodes","excludedIngredients","maxCookMinutes");if(c.hasNonNull("maxCookMinutes"))positiveInteger(c.get("maxCookMinutes"));}
+ static void validatePreferences(JsonNode c){
+  criteria(c);
+  for(String key:Arrays.asList("excludeTagCodes","excludedIngredients"))if(c.hasNonNull(key)&&(!c.get(key).isArray()||!c.get(key).isEmpty()))throw new IllegalArgumentException("偏好只能正向表达，明确排除请使用必须满足的条件");
+ }
  private static void positiveInteger(JsonNode value){if(value==null||!value.isIntegralNumber()||!value.canConvertToLong()||value.longValue()<1)throw new IllegalArgumentException("菜品编号或数量无效");}
 }

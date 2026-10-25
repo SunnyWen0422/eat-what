@@ -188,7 +188,7 @@ public interface DishMapper {
     @Select("SELECT COUNT(*) FROM catalog_recipe WHERE JSON_UNQUOTE(JSON_EXTRACT(document,'$.cuisineCode'))=#{code} AND owner_id IS NULL AND is_published=1")
     int countByCuisineCode(@Param("code") String code);
 
-    @Select("SELECT COUNT(*) FROM catalog_recipe WHERE owner_id IS NULL AND is_published=1 AND (JSON_CONTAINS(JSON_EXTRACT(document,'$.flavor.baseCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.flavor.specialCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.methodCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.sceneCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.dietaryCodes'),JSON_QUOTE(#{code})))")
+    @Select("SELECT COUNT(*) FROM catalog_recipe WHERE owner_id IS NULL AND is_published=1 AND (JSON_UNQUOTE(JSON_EXTRACT(document,'$.flavor.intensityCode'))=#{code} OR JSON_CONTAINS(JSON_EXTRACT(document,'$.flavor.baseCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.flavor.specialCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.methodCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.sceneCodes'),JSON_QUOTE(#{code})) OR JSON_CONTAINS(JSON_EXTRACT(document,'$.dietaryCodes'),JSON_QUOTE(#{code})))")
     int countByTagCode(@Param("code") String code);
 
     /** Bounded public cache query; optional filters and row limit are SQL parameters. */

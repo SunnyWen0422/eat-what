@@ -102,10 +102,30 @@ function criteriaCount(criteria) {
   return value.cuisineCodes.length + value.includeTagCodes.length + value.excludeTagCodes.length + value.excludedIngredients.length + (value.maxCookMinutes ? 1 : 0)
 }
 
-function criteriaSummary(criteria) {
+function criteriaLabels(options) {
+  let source=options
+  if(!source&&typeof wx!=='undefined'&&wx.getStorageSync)try {
+    const version=wx.getStorageSync('recommendationOptionsCurrentVersion')
+    if(version)source=wx.getStorageSync(`recommendationOptionsV${version}`)
+  }catch(error){/* Missing display labels must not block the saved conditions. */}
+  const labels={...CODE_LABELS}
+  const rows=[...Object.values(source&&source.groups||{}).flat(),...(source&&source.constraintOptions||[])]
+  rows.forEach(item=>{
+    if(!item||typeof item.code!=='string'||typeof item.label!=='string')return
+    const label=item.label.trim(),code=item.code.toUpperCase()
+    if(label&&label.toUpperCase()!==code)labels[code]=label
+  })
+  return labels
+}
+
+function criteriaSummary(criteria, options) {
   const value = normalizeCriteria(criteria)
-  const parts = []
-  for (const code of [...value.cuisineCodes, ...value.includeTagCodes]) parts.push(CODE_LABELS[code] || code)
+  const parts = [],labels=criteriaLabels(options)
+  let unknown=0
+  for (const code of [...value.cuisineCodes, ...value.includeTagCodes]) {
+    if(labels[code])parts.push(labels[code]);else unknown++
+  }
+  if(unknown)parts.push(`已选 ${unknown} 项`)
   if (value.excludeTagCodes.length) parts.push(`排除 ${value.excludeTagCodes.length} 项`)
   if (value.excludedIngredients.length) parts.push(`忌口 ${value.excludedIngredients.length} 项`)
   if (value.maxCookMinutes) parts.push(`${value.maxCookMinutes} 分钟内`)
@@ -116,6 +136,7 @@ module.exports = {
   CODE_LABELS,
   HOME_QUICK_OPTIONS,
   criteriaCount,
+  criteriaLabels,
   criteriaSummary,
   emptyCriteria,
   isQuickOptionSelected,

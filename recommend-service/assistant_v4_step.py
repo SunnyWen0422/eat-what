@@ -125,7 +125,9 @@ def prepare_step(value):
     if context.get("constraints", {}).get("recommendationPolicy") == "balanced-v1":
         generation_hint = ("\n本餐采用服务端统一推荐策略。生成/换一套使用draft_update operation=generate或regenerate，selectionMode=recommend，不挑选selectedDishIds。"
             "单菜换一道用operation=adjust、selectionMode=recommend和targetDishId，不指定replacementDishId。Java按完整菜库、偏好权重和持久轮换实际选菜。"
+            "用户给出的手边食材直接写contextPatch.ownedIngredients；自动搭配不必先search_dishes或search_by_ingredients，只有查看具体候选或明确点名时才查询。"
             "想吃、偏向、尽量等写入contextPatch.recommendationPreferences（菜系/标签/maxCookMinutes）及expectedTotalCookMinutes；"
+            "偏好只能正向表达：偏清淡使用已查询的清淡标签includeTagCodes，不能写excludeTagCodes或excludedIngredients，也不能将偏好升级为硬排除。"
             "不要/忌口/只要/必须等明确限制写入criteria或totalCookMinutes。排除不可放宽。只返回本次变更字段；修改标签列表时保留未修改的偏好维度。"
             "只有用户明确点名菜品或指定已保存菜单时使用selectionMode=explicit，并先查到真实ID。明确从收藏挑选才设置candidateScope=favorites，其他推荐设all。"
             "收藏本身不代表偏好。未知用时保持未知。不要预先宣称具体菜名或已满足条件，执行后以真实菜单及解释为准。")

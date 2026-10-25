@@ -9,6 +9,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CanonicalV4ProjectionTest {
+ @Test void intensityIsAnAvailableFlavorPreferenceFromTheCurrentTaxonomy() throws Exception {
+  CanonicalCatalogMapper mapper=mock(CanonicalCatalogMapper.class);
+  when(mapper.metadata()).thenReturn("{\"catalogContractVersion\":4,\"taxonomy\":{\"entries\":{\"INTENSITY_LIGHT\":{\"code\":\"INTENSITY_LIGHT\",\"label\":\"清淡\",\"dimension\":\"intensity\"}}}}");
+  RecommendationMetadataService metadata=new RecommendationMetadataService(mock(com.eatwhat.mapper.DishMapper.class),mapper);
+  assertTrue(metadata.isKnownTag("INTENSITY_LIGHT"));assertEquals("flavor",metadata.groupOf("INTENSITY_LIGHT"));
+  assertTrue(metadata.getDefinitions().getGroups().get("flavor").stream().anyMatch(option->"清淡".equals(option.getLabel())));
+ }
+ @Test void compactCandidatesPreserveFlavorFactsWithoutChangingContentVersions() throws Exception {
+  ObjectNode raw=recipe();raw.putObject("flavor").put("intensityCode","INTENSITY_LIGHT").putArray("baseCodes").add("FLAVOR_SAVORY");
+  Dish dish=new Dish();dish.setRecipe(raw);String version=dish.getContentVersion();service().attachFacts(Collections.singletonList(dish));
+  assertEquals(raw.path("flavor"),dish.getRecipe().path("flavor"));assertEquals(version,dish.getContentVersion());
+ }
  @Test void runtimeMetadataCannotRelabelAnOldQuantityContract() throws Exception {
   for(String metadata:Arrays.asList("{}","{\"catalogContractVersion\":2,\"quantityPolicy\":\"fixed-recipe-v1\"}","{\"catalogContractVersion\":4}","{\"catalogContractVersion\":4,\"quantityPolicy\":\"linear\"}")){
    CanonicalCatalogMapper mapper=mock(CanonicalCatalogMapper.class);when(mapper.metadata()).thenReturn(metadata);CanonicalCatalogService service=new CanonicalCatalogService(mapper,JSON);assertThrows(IllegalStateException.class,service::metadata);

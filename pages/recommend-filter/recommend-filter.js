@@ -62,7 +62,7 @@ Page({
       criteria: sanitizeCriteriaForOptions(criteria, this.options),
       candidateScope,
       recommendationPolicyEnabled: result.synced&&editingPolicy==='balanced-v1'&&this.options.recommendationPolicyVersion==='balanced-v1',
-      requiredSummary: editingPolicy==='balanced-v1'?require('../../utils/recommendation-criteria').criteriaSummary({...required,excludeTagCodes:[],excludedIngredients:[]}):'',
+      requiredSummary: editingPolicy==='balanced-v1'?require('../../utils/recommendation-criteria').criteriaSummary({...required,excludeTagCodes:[],excludedIngredients:[]},this.options):'',
       loading: false,
       offline: !result.synced,
       featureEnabled: this.options.preferencesEnabled !== false && (editingPolicy!=='balanced-v1'||(result.synced&&this.options.recommendationPolicyVersion==='balanced-v1')),

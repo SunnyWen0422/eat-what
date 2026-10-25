@@ -37,8 +37,8 @@ def validate_result(value: dict, context: dict, sourced_ids: set[int]) -> dict:
             raise ValueError("invalid criterion values")
     result["criteria"] = criteria
     if balanced:
-        from assistant_v4_schema import validate, CRITERIA, integer, nullable
-        validate(result.get("recommendationPreferences", {}), CRITERIA)
+        from assistant_v4_schema import validate, PREFERENCES, integer, nullable
+        validate(result.get("recommendationPreferences", {}), PREFERENCES)
         validate(result.get("expectedTotalCookMinutes"), nullable(integer(1,480)))
         if result.get("selectionMode", "recommend") not in ("recommend", "explicit") or result.get("candidateScope", "all") not in ("all", "favorites"):
             raise ValueError("invalid selection scope")
@@ -73,7 +73,8 @@ def run_task(workspace: dict, user_id: int, model=None, execute=None) -> dict[st
     if context.get("recommendationPolicy") == "balanced-v1":
         instruction=json.loads(messages[0]["content"])
         instruction["instruction"] += " 当前由Java统一选菜。默认selectionMode=recommend，dishIds=[]，不必查询候选。将想吃、偏向、尽量放入recommendationPreferences或expectedTotalCookMinutes；只有不要、只要、必须等明确限制才写criteria或totalCookMinutes。明确点名时selectionMode=explicit并读取真实ID。只有明确从收藏选才candidateScope=favorites，否则all。"
-        instruction["contract"].update({"selectionMode":"recommend|explicit","candidateScope":"all|favorites","recommendationPreferences":instruction["contract"]["criteria"],"expectedTotalCookMinutes":"null or positive integer"})
+        instruction["instruction"] += " 偏好只能用正向标签表达，例如偏清淡使用清淡标签；recommendationPreferences不能含排除，不把偏好升级为硬限制。"
+        instruction["contract"].update({"selectionMode":"recommend|explicit","candidateScope":"all|favorites","recommendationPreferences":{"cuisineCodes":[],"includeTagCodes":[],"maxCookMinutes":None},"expectedTotalCookMinutes":"null or positive integer"})
         messages[0]["content"]=json.dumps(instruction,ensure_ascii=False)
     sourced = set()
     started = time.monotonic()

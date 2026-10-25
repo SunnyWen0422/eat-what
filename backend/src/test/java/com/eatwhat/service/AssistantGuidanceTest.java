@@ -11,6 +11,17 @@ import org.springframework.web.server.ResponseStatusException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class AssistantGuidanceTest {
+    @Test void assistant_option_definitions_do_not_scan_catalog_counts_and_remain_isolated() {
+        com.eatwhat.mapper.DishMapper db=mock(com.eatwhat.mapper.DishMapper.class);
+        RecommendationMetadataService metadata=new RecommendationMetadataService(db);
+        RecommendationOptionsDTO first=metadata.getDefinitions();
+        assertFalse(first.getGroups().get("flavor").isEmpty());
+        String label=first.getGroups().get("flavor").get(0).getLabel();
+        first.getGroups().get("flavor").get(0).setLabel("changed");
+        assertEquals(label,metadata.getDefinitions().getGroups().get("flavor").get(0).getLabel());
+        verifyNoInteractions(db);
+    }
+
     final ObjectMapper json=new ObjectMapper();
     MealWorkspace workspace(){MealWorkspace w=new MealWorkspace();w.setId("w");MealContext c=new MealContext();c.setDate("2026-10-15");c.setMealType("dinner");w.setContext(c);return w;}
     TurnScope scope(){TurnScope s=new TurnScope();s.setUserId(7L);s.setWorkspaceId("w");s.setExpectedWorkspaceRevision(0L);s.setExpectedPlanVersion(0L);return s;}
@@ -98,7 +109,7 @@ class AssistantGuidanceTest {
     @Test void optionCodesComeFromExistingDictionaryAndEmptyFavoritesStayEmpty(){
         MealWorkspaceService w=mock(MealWorkspaceService.class);when(w.get(7L,"w")).thenReturn(workspace());
         RecommendationMetadataService metadata=mock(RecommendationMetadataService.class);RecommendationOptionsDTO options=new RecommendationOptionsDTO();
-        RecommendationOptionsDTO.Option o=new RecommendationOptionsDTO.Option();o.setCode("LIGHT");o.setLabel("清淡");o.setKind("tag");options.getGroups().put("flavor",Collections.singletonList(o));when(metadata.getOptions()).thenReturn(options);
+        RecommendationOptionsDTO.Option o=new RecommendationOptionsDTO.Option();o.setCode("LIGHT");o.setLabel("清淡");o.setKind("tag");options.getGroups().put("flavor",Collections.singletonList(o));when(metadata.getDefinitions()).thenReturn(options);
         AssistantPersonalReadService reads=new AssistantPersonalReadService(w,mock(FavoriteDishService.class),mock(PersonalMenuService.class),mock(DishQueryService.class),metadata,json,new AssistantCapabilityService(true));
         assertEquals("LIGHT",reads.read(7L,call("get_recommendation_options",Collections.singletonMap("group","flavor")),scope()).getItems().get(0).get("code"));
         assertThrows(IllegalArgumentException.class,()->reads.read(7L,call("get_recommendation_options",Collections.singletonMap("group","invented")),scope()));

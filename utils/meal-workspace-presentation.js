@@ -51,7 +51,7 @@ function continuityPresentation(value, journey, workspaceNotice) {
 function contextPresentation(context) {
   const balanced=require('./recommendation-policy').supported(context.recommendationPolicy)
   let summary=require('./recommendation-criteria').criteriaSummary(require('./recommendation-policy').wishes(context))
-  if(balanced)summary=summary.replace(/(\d+)分钟内/g,'期望 $1 分钟')
+  if(balanced)summary=summary.replace(/(\d+)\s*分钟内/g,'期望 $1 分钟')
   if(context.candidateScope==='favorites')summary=['仅从收藏中选',summary].filter(Boolean).join(' · ')
   return {
     dateLabel:`${Number(context.date.slice(5,7))}月${Number(context.date.slice(8,10))}日`,
@@ -91,9 +91,8 @@ function deriveWorkspacePresentation(value) {
 }
 
 function hardExclusionSummary(preferences, options) {
-  const groups = (options || require('./recommendation-options').FALLBACK_OPTIONS).groups || {}
-  const labels = Object.values(groups).flat().reduce((all, item) => ({ ...all, [item.code]: item.label }), {})
-  const exclusions = [...(preferences.excludedIngredients || []), ...(preferences.excludedTagCodes || []).map(code => labels[code] || code)]
+  const labels = require('./recommendation-criteria').criteriaLabels(options)
+  const exclusions = [...(preferences.excludedIngredients || []), ...(preferences.excludedTagCodes || []).map(code => labels[code] || '已设排除项')]
   return exclusions.length ? `长期忌口：${exclusions.join('、')}` : '长期忌口：未设置'
 }
 

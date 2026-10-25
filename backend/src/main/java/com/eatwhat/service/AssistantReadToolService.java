@@ -55,7 +55,7 @@ public class AssistantReadToolService {
         RecommendationCriteria hard=new RecommendationCriteriaResolver().resolveMeal(w.getContext(),preferences.get(user));
         Map<Long,Dish> available=new HashMap<>();for(Dish d:orEmpty(dishes.getDishesByIdsForUser(ids,user))){checkDish(d,user);if(matches(d,hard,null)&&ids.contains(d.getId()))available.put(d.getId(),d);}
         // Fail the whole detail call; never substitute another recipe for an inaccessible ID.
-        for(Long id:ids){Dish d=available.get(id);if(d==null)throw new IllegalArgumentException("菜品不存在、不可访问或不满足本餐限制");Map<String,Object> item=recipe(d,out);out.getItems().add(item);scope.getAuthorizedDishIds().add(id);}
+        for(Long id:ids){Dish d=available.get(id);if(d==null)throw new IllegalArgumentException("菜品不存在、不可访问或不满足本餐限制");Map<String,Object> item=recipe(d,out);item.put("diners",w.getContext().getPeople());out.getItems().add(item);scope.getAuthorizedDishIds().add(id);}
     }
     private void search(Long user,MealWorkspace w,TurnScope scope,Map<String,Object> args,ReadResult out,boolean ingredientsSearch){
         Map<String,Object> filters=object(args.get("filters"));fields(filters,"type","cuisine_codes","include_tag_codes","exclude_tag_codes","excluded_ingredients","max_cook_minutes","meal_codes","dietary_codes","excluded_allergen_codes");
