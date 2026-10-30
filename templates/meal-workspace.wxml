@@ -15,7 +15,6 @@
           <button wx:if="{{workspaceNotice.action === 'requirements'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onOpenRequirements">补充要求</button>
           <button wx:if="{{workspaceNotice.action === 'choose'}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onChooseDishes">自己选菜</button>
           <button wx:if="{{savedTarget}}" class="ew-hit-target ew-link" bindtap="onViewSavedMeal">查看这餐</button>
-          <button wx:if="{{savedTarget && canConfirm && !journeyRecovery}}" class="ew-hit-target ew-link" disabled="{{busy}}" bindtap="onConfirmPlan">另存到日历</button>
         </view>
         <ui-button wx:if="{{conflictDraftAvailable}}" label="重新应用保留的输入" variant="secondary" bind:action="onRestoreLocalDraft" />
         <ui-button wx:if="{{suggestedTarget}}" label="切换到 {{suggestedTarget.date}} {{suggestedMealLabel}} 并安排" variant="secondary" bind:action="onSuggestedTarget" />
@@ -32,7 +31,7 @@
           <view class="workspace-menu">
             <compact-dish-row class="workspace-recipe-row" mode="{{displayedSavedRecord ? 'read' : 'workspace'}}" prominent="{{true}}" font-scale="{{fontScale}}" wx:for="{{draft.dishes}}" wx:key="id" dish="{{item}}" busy="{{item.actionBusy}}" disabled="{{busy || contextLocked}}" feedback="{{item.actionMessage || ''}}" bind:view="onDishOpen" bind:replace="onReplace" bind:feedback="onDishFeedback" />
           </view>
-          <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button wx:if="{{showMenuUndo}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onUndo">撤销上一步</button></view>
+          <view class="workspace-menu-footer"><text wx:if="{{draft.totalCookMinutes}}" class="ew-muted">已知用时约 {{draft.totalCookMinutes}} 分钟 · 依次制作</text><button wx:if="{{showMenuUndo}}" class="ew-hit-target ew-link" disabled="{{contextLocked}}" bindtap="onUndo" aria-label="撤销最近一次菜单修改">撤销换菜</button></view>
           <view wx:if="{{draft.explanations.length}}" class="workspace-reasons"><text wx:for="{{draft.explanations}}" wx:key="*this" class="ew-muted">{{item}}</text></view>
         </view>
 
@@ -82,12 +81,10 @@
   <ui-sheet visible="{{confirmationVisible}}" title="{{confirmationTitle}}" busy="{{busy}}" bind:close="onCloseConfirmation">
     <text class="ew-title">当前菜单 · {{savePeople}} 人</text><text class="ew-reading">{{saveDishSummary}}</text>
     <text class="ew-muted">保存即记录，未来菜单到当天计入回顾</text>
-    <view class="workspace-save-fields"><picker class="ew-hit-target" mode="date" aria-label="保存日期，{{saveTarget.date}}" value="{{saveTarget.date}}" disabled="{{saveTargetLocked}}" bindchange="onSaveTargetDate"><view class="ew-hit-target workspace-save-field"><text>保存日期</text><text>{{saveTarget.date}}</text></view></picker><picker class="ew-hit-target" mode="selector" aria-label="保存餐次，{{mealLabels[saveMealIndex]}}" range="{{mealLabels}}" value="{{saveMealIndex}}" disabled="{{saveTargetLocked}}" bindchange="onSaveTargetMeal"><view class="ew-hit-target workspace-save-field"><text>餐次</text><text>{{mealLabels[saveMealIndex]}}</text></view></picker></view>
     <text class="ew-title">{{saveDateLabel}}</text><text wx:if="{{saveCrossDayNotice}}" class="ew-muted">{{saveCrossDayNotice}}</text><text class="ew-reading">{{confirmationText}}</text>
     <view wx:if="{{saveTargetLoading}}" class="ew-notice" role="status">正在核对目标安排…</view><view wx:if="{{saveError}}" class="ew-error" role="alert">{{saveError}}</view>
-    <view wx:if="{{saveReplacementApproved}}" class="ew-notice" role="status">请核对原安排和当前菜单，再确认替换。</view>
-    <ui-button wx:if="{{saveRecoveryPending}}" label="查询并重试原保存" variant="secondary" disabled="{{busy}}" bind:action="onRetryWorkspace" />
-    <ui-button wx:if="{{saveError && !saveRecoveryPending}}" label="重新核对原菜单与目标安排" variant="secondary" disabled="{{busy || saveTargetLoading}}" bind:action="onRefreshSaveTarget" />
+    <ui-button wx:if="{{saveRecoveryPending}}" label="继续完成保存" variant="secondary" disabled="{{busy}}" bind:action="onRetryWorkspace" />
+    <ui-button wx:if="{{saveError && !saveRecoveryPending}}" label="重新读取这餐" variant="secondary" disabled="{{busy || saveTargetLoading}}" bind:action="onRefreshSaveTarget" />
     <ui-button slot="footer" label="{{confirmationLabel}}" loading="{{busy}}" disabled="{{busy || saveTargetLocked || saveTargetLoading || saveError || peopleError}}" bind:action="onApproveReplacement" />
   </ui-sheet>
 </view>

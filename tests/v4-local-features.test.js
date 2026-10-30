@@ -6,10 +6,10 @@ test('presentation prioritizes an unknown write over an already saved plan', () 
   const result = deriveWorkspacePresentation({ status: 'planned', syncStatus: 'unknown', linkedPlan: { id: 1 }, context: { date: '2026-10-06', mealType: 'dinner' } })
   assert.equal(result.primaryAction, 'onRetryWorkspace')
 })
-test('a changed requirement cannot be confirmed and a planned meal opens all recipes', () => {
+test('changed requirements leave the existing menu saveable and a recorded meal opens all recipes', () => {
   const { deriveWorkspacePresentation: derive } = require('../utils/meal-workspace-presentation')
-  // Changed conditions use the existing whole-menu regenerate command.
-  assert.equal(derive({ status: 'needs_regeneration', syncStatus: 'synced' }).primaryAction, 'onRegenerate')
+  assert.equal(derive({ status: 'needs_regeneration', syncStatus: 'synced',canConfirm:true,draft:{dishes:[{id:7}]} }).primaryAction, 'onConfirmPlan')
+  assert.equal(derive({ status: 'needs_regeneration', syncStatus: 'synced' }).primaryAction, 'onGenerate')
   assert.equal(derive({ status: 'planned', syncStatus: 'synced', linkedPlan: { id: 1 } }).primaryAction, 'onViewRecipes')
   assert.equal(derive({ status: 'generating', syncStatus: 'synced' }).primaryAction, 'onCancelTask')
 })

@@ -16,6 +16,14 @@ public class MealWorkspaceService {
     @org.springframework.beans.factory.annotation.Autowired(required=false) private org.springframework.context.ApplicationEventPublisher events;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private RecommendationLearningService learning;
 
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private HistoricalRecipeNutritionService historicalNutrition;
+    void setHistoricalNutrition(HistoricalRecipeNutritionService value){historicalNutrition=value;}
+    public MealWorkspace presentation(Long user,MealWorkspace source){
+        if(source==null||historicalNutrition==null)return source;
+        MealWorkspace view=com.eatwhat.util.DishSnapshotReader.convert(json,source,MealWorkspace.class);
+        view.getDraft().setDishes(historicalNutrition.displayDishes(user,source.getDraft().getDishes()));return view;
+    }
+
     private final MealWorkspaceMapper db;
     private final MealConsumptionMapper locks;
     private final RecipeRecordMapper plans;
@@ -30,7 +38,12 @@ public class MealWorkspaceService {
     private String encode(Object o) {try{return json.writeValueAsString(o);}catch(Exception e){throw new IllegalStateException("工作区保存失败",e);}}
     private <T> T decode(String value,Class<T> type) {try{return com.eatwhat.util.DishSnapshotReader.read(json,value,type);}catch(Exception e){throw new IllegalStateException("工作区读取失败",e);}}
     private void lock(Long user) {if(user==null||locks.lockUser(user)==null)throw new IllegalArgumentException("用户不存在");}
-    private MealWorkspace read(WorkspaceRow row) {if(row==null)return null;MealWorkspace w=decode(row.getStateJson(),MealWorkspace.class);if(row.getRevision()!=null)w.setRevision(row.getRevision());return w;}
+    private MealWorkspace read(WorkspaceRow row) {if(row==null)return null;MealWorkspace w=decode(row.getStateJson(),MealWorkspace.class);if(row.getRevision()!=null)w.setRevision(row.getRevision());MealWorkspaceRules.normalizeMenuUndo(w.getDraft());if("needs_regeneration".equals(w.getStatus()))w.setStatus(menuStatus(w));return w;}
+    private String menuStatus(MealWorkspace w) {
+        if(w.getDraft().getDishes().isEmpty())return "empty";
+        Object saved=w.getConfirmation()==null?null:w.getConfirmation().get("planVersion");
+        return saved instanceof Number&&((Number)saved).longValue()==w.getDraft().getPlanVersion()?"planned":"draft";
+    }
     /** Owner-scoped read for server-side assistant context and session binding. */
     public MealWorkspace get(Long user,String id) {
         if(user==null)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
@@ -49,11 +62,11 @@ public class MealWorkspaceService {
         return linked(user,w,w==null?null:w.getContext().getDate(),w==null?null:w.getContext().getMealType());
     }
     public Map<String,Object> linked(Long user,MealWorkspace w,String date,String meal) {
-        Map<String,Object> result=new LinkedHashMap<>();result.put("workspace",w);
+        Map<String,Object> result=new LinkedHashMap<>();result.put("workspace",presentation(user,w));
         result.put("recommendationPolicyVersion",BalancedRecommendationPolicy.VERSION);
         if(date!=null && meal!=null) {
             RecipeRecord plan=plans.findSlot(user,date,meal);
-            result.put("plan",plan!=null&&!Boolean.TRUE.equals(plan.getIsDeleted())?plan:null);
+            result.put("plan",plan!=null&&!Boolean.TRUE.equals(plan.getIsDeleted())?(historicalNutrition==null?plan:historicalNutrition.displayRecords(user,Collections.singletonList(plan)).get(0)):null);
             result.put("planRevision",plan==null?0L:plan.getRevision());
             MealConsumption actual=locks.find(user,date,meal);
             if(actual!=null && actual.getActualDishesJson()!=null)try{actual.setActualDishes(json.readValue(actual.getActualDishesJson(),new com.fasterxml.jackson.core.type.TypeReference<List<Map<String,Object>>>(){}));}catch(Exception e){throw new IllegalStateException("实际记录快照无法读取",e);}
@@ -89,28 +102,25 @@ public class MealWorkspaceService {
             if("context".equals(operation)) {
                 MealContext c=MealWorkspaceRules.normalize(json.convertValue(request.getContext(),MealContext.class));
                 if(!Objects.equals(c.getDate(),w.getContext().getDate())||!Objects.equals(c.getMealType(),w.getContext().getMealType()))throw new IllegalArgumentException("请切换目标工作区后修改条件");
-                boolean sharingOnly=MealWorkspaceRules.onlyDinersChanged(w.getContext(),c)
-                    &&MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())&&!w.getDraft().getDishes().isEmpty();
+                boolean sharingOnly=!Objects.equals(w.getContext().getPeople(),c.getPeople())&&!w.getDraft().getDishes().isEmpty();
                 if(sharingOnly){
-                    PlanDraft checkpoint=MealWorkspaceRules.copy(w.getDraft());checkpoint.setHistory(new ArrayList<>());
-                    checkpoint.setContextSnapshot(json.convertValue(w.getContext(),MealContext.class));
-                    List<PlanDraft> history=new ArrayList<>(w.getDraft().getHistory());history.add(checkpoint);if(history.size()>10)history.remove(0);
-                    w.getDraft().setHistory(history);w.getDraft().setContextSnapshot(null);
-                    w.getDraft().setPlanVersion(w.getDraft().getPlanVersion()+1);w.getDraft().setReplacementFeedbackVersion(null);
+                    w.getDraft().setContextSnapshot(null);
+                    w.getDraft().setPlanVersion(w.getDraft().getPlanVersion()+1);
                     w.getDraft().setAdjustedBeforeConfirmation(true);
                 }
                 db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setContext(c);
+                w.getDraft().setChangeKind("configuration");
                 if(sharingOnly){w.getDraft().setContextFingerprint(MealWorkspaceRules.contextFingerprint(c));w.setStatus("draft");w.setMessage("用餐人数已更新，菜品用量保持不变");}
-                else{w.getDraft().setRequirementsFingerprint(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":"needs_regeneration");w.setMessage("本餐条件已保存，重新安排后生效");}
+                else{w.setStatus(menuStatus(w));w.setMessage("");}
             } else {
                 if(!Objects.equals(w.getDraft().getPlanVersion(),request.getPlanVersion()))throw conflict("方案版本已更新");
                 if("confirm".equals(operation)) confirm(user,w,request);
-                else if("cancel".equals(command)) {db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("已停止，原方案已保留");}
+                else if("cancel".equals(command)) {db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setStatus(menuStatus(w));w.setMessage("已停止，原方案已保留");}
                 else if(Arrays.asList("keep","release","undo").contains(command)) {
                     db.cancel(id,user,w.getTaskId());w.setTaskId(null);
                     if("undo".equals(command))undoDraft(user,w,request.getReleaseLegacyLocks());
                     else w.setDraft(MealWorkspaceRules.command(w.getDraft(),command,request.getDishId(),null,request.getReleaseLegacyLocks()));
-                    w.setStatus(MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("条件已变化时需要重新安排");
+                    w.setStatus(menuStatus(w));w.setMessage("undo".equals(command)?"已恢复上一版菜单":"");
                 } else if(Arrays.asList("generate","regenerate","replace","select").contains(command)) {
                     w.setDraft(MealWorkspaceRules.prepareInteraction(w.getDraft(),command,request.getReleaseLegacyLocks()));
                     db.cancel(id,user,w.getTaskId());WorkspaceTask task=new WorkspaceTask();task.setId(UUID.randomUUID().toString());task.setWorkspaceId(id);task.setUserId(user);task.setBaseRevision(before+1);
@@ -122,13 +132,11 @@ public class MealWorkspaceService {
                     w.setTaskId(task.getId());w.setStatus("generating");w.setMessage("正在安排本餐");
                 } else throw new IllegalArgumentException("工作区操作无效");
             }
-            w.setRevision(before+1);if(db.save(id,user,w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");
+            MealWorkspaceRules.normalizeMenuUndo(w.getDraft());w.setRevision(before+1);if(db.save(id,user,w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");
             receipt(user,request.getRequestId(),hash,w);return w;
         });
     }
     private void confirm(Long user,MealWorkspace w,WorkspaceRequest request) {
-        if("needs_regeneration".equals(w.getStatus()) || !MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext()))throw new IllegalArgumentException("条件已更改，请重新安排后确认");
-        if(!MealWorkspaceRules.understandsRequirements(w.getDraft(),w.getContext()))throw new IllegalArgumentException("本餐文字限制尚未校验，请重新安排");
         if("generating".equals(w.getStatus()))throw conflict("请等待当前安排完成");
         if(request.getExpectedPlanRevision()==null||request.getExpectedPlanRevision()<0)throw new IllegalArgumentException("请提供目标安排版本");
         if(w.getDraft().getDishes().isEmpty())throw new IllegalArgumentException("请先生成方案");
@@ -141,9 +149,10 @@ public class MealWorkspaceService {
         }
         RecipeRecord slot=plans.findSlot(user,targetDate,targetMeal);long current=slot==null?0:slot.getRevision();
         if(current!=request.getExpectedPlanRevision())throw conflict("原安排已更新，请重新查看替换内容");
-        // Validate current ownership and hard restrictions again at the authoritative write boundary.
+        // Save the reviewed menu, not a fresh recommendation under next-generation settings.
+        // Access and recipe content still have to match at the authoritative write boundary.
         List<Long> ids=w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList());
-        planner.lockAndValidate(user,w,ids);
+        planner.lockMenuForSave(user,w,ids);
         RecipeRecord plan=new RecipeRecord();plan.setUserId(user);plan.setRecordDateString(targetDate);plan.setMealType(targetMeal);plan.setTargetPeople(w.getContext().getPeople());
         plan.setRecipeName(w.getDraft().getDishes().stream().map(Dish::getName).collect(Collectors.joining("、")));plan.setDishIds(ids);plan.setIsManual(0);plan.setExpectedRevision(current);
         planService.saveWorkspaceRecipeRecord(plan,w.getDraft().getDishes());
@@ -155,16 +164,13 @@ public class MealWorkspaceService {
         db.event(WorkflowRequestHash.sha256(user+"|plan|"+request.getRequestId()),user,w.getId(),w.getDraft().getPlanVersion(),"plan_saved",w.getDraft().getSource());
     }
     private void undoDraft(Long user,MealWorkspace w,Boolean releaseLocks) {
-        if(learning!=null)learning.undo(user,w);
         PlanDraft restored=MealWorkspaceRules.command(w.getDraft(),"undo",null,null,releaseLocks);
-        boolean completeContext=restored.getContextSnapshot()!=null;
-        if(restored.getContextSnapshot()!=null){
-            w.setContext(MealWorkspaceRules.normalize(json.convertValue(restored.getContextSnapshot(),MealContext.class)));
-            restored.setContextSnapshot(null);
-            restored.setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));
-        }
-        w.setDraft(restored);
-        if(completeContext&&!restored.getDishes().isEmpty())planner.validateRestoredDraft(user,w,true);
+        if(learning!=null)learning.undo(user,w);
+        Map<String,Integer> counts=new LinkedHashMap<>();for(Dish dish:restored.getDishes()){String type=MealWorkspaceRules.category(dish,w.getContext());counts.put(type,counts.getOrDefault(type,0)+1);}
+        w.getContext().setCounts(counts);restored.setContextFingerprint(MealWorkspaceRules.contextFingerprint(w.getContext()));restored.setRequirementsFingerprint(w.getDraft().getRequirementsFingerprint());w.setDraft(restored);
+        // Next-generation conditions do not reselect a historical menu. Its owned
+        // recipe snapshots must still be current and readable at the write boundary.
+        planner.lockMenuForUndo(user,w,restored.getDishes().stream().map(Dish::getId).collect(Collectors.toList()));
     }
     /** Caller is the authenticated adapter inside the active turn transaction. No legacy generation is dispatched. */
     public MealWorkspace applyAssistantDraft(Long user,String id,Long expectedRevision,Long expectedPlanVersion,
@@ -182,9 +188,7 @@ public class MealWorkspaceService {
             MealContext originalContext=json.convertValue(w.getContext(),MealContext.class);PlanDraft original=MealWorkspaceRules.copy(w.getDraft());
             if("undo".equals(intent.getOperation())) {
                 if(intent.getContextPatch()!=null||intent.getTargetDishId()!=null||intent.getReplacementDishId()!=null||intent.getTargetConstraints()!=null||intent.getSelectedDishIds()!=null||intent.getKeepDishIds()!=null||intent.getReleaseDishIds()!=null)throw new IllegalArgumentException("撤销不能同时修改其他内容");
-                boolean completeContext=!original.getHistory().isEmpty()&&original.getHistory().get(original.getHistory().size()-1).getContextSnapshot()!=null;
                 undoDraft(user,w,false);
-                if(!completeContext&&!w.getDraft().getDishes().isEmpty())planner.validateRestoredDraft(user,w,false);
             } else {
                 Set<Long> currentIds=original.getDishes().stream().map(Dish::getId).collect(Collectors.toCollection(LinkedHashSet::new));
                 Set<Long> locks=new LinkedHashSet<>(original.getLockedDishIds());
@@ -192,10 +196,16 @@ public class MealWorkspaceService {
                 for(Long dish:orEmpty(intent.getKeepDishIds())){if(!currentIds.contains(dish))throw new IllegalArgumentException("保留的菜不在当前餐");locks.add(dish);}
                 MealContext context=json.convertValue(originalContext,MealContext.class);
                 if(intent.getSelectionMode()!=null)context.setRecommendationPolicy(BalancedRecommendationPolicy.VERSION);
+                boolean configurationOnly="adjust".equals(intent.getOperation())&&intent.getTargetDishId()==null
+                    &&intent.getReplacementDishId()==null&&intent.getTargetConstraints()==null
+                    &&(intent.getSelectedDishIds()==null||intent.getSelectedDishIds().equals(new ArrayList<>(currentIds)));
                 if(intent.getContextPatch()!=null){
                     Set<String> allowed=new HashSet<>(Arrays.asList("people","counts","compositionMode","criteria","totalCookMinutes","requirements","ownedIngredients","recommendationPreferences","expectedTotalCookMinutes","candidateScope"));
                     if(!allowed.containsAll(intent.getContextPatch().keySet()))throw new IllegalArgumentException("本餐条件字段无效");
                     Map<String,Object> merged=json.convertValue(context,Map.class);merged.putAll(intent.getContextPatch());
+                    // In a bounded assistant patch, supplied counts are an explicit composition.
+                    // Automatic dish selection is selectionMode=recommend; it must not discard them.
+                    if(intent.getContextPatch().containsKey("counts"))merged.put("compositionMode","manual");
                     if(intent.getContextPatch().containsKey("criteria")){
                         Object patch=intent.getContextPatch().get("criteria");if(!(patch instanceof Map))throw new IllegalArgumentException("筛选条件无效");
                         Map<String,Object> criteria=json.convertValue(originalContext.getCriteria(),Map.class);criteria.putAll((Map<String,Object>)patch);merged.put("criteria",criteria);
@@ -205,28 +215,29 @@ public class MealWorkspaceService {
                         Map<String,Object> wishes=json.convertValue(originalContext.getRecommendationPreferences(),Map.class);wishes.putAll((Map<String,Object>)patch);merged.put("recommendationPreferences",wishes);
                     }
                     context=json.convertValue(merged,MealContext.class);MealWorkspaceRules.normalize(context);
+                    // An exact restatement of the original IDs is still sharing this menu.
+                    // Auto composition defaults apply to an explicit new selection, not to diners alone.
+                    if(configurationOnly&&!intent.getContextPatch().containsKey("counts")&&!intent.getContextPatch().containsKey("compositionMode"))context.setCounts(new LinkedHashMap<>(originalContext.getCounts()));
                     // Uninterpreted text cannot be erased or claimed understood by a model flag.
                     if(!Objects.equals(context.getRequirements(),originalContext.getRequirements())&&(!originalContext.getRequirements().trim().isEmpty()||!context.getRequirements().trim().isEmpty()))throw new IllegalArgumentException("请先将文字限制明确为筛选条件");
                     if(!context.getCriteria().getExcludedIngredients().containsAll(originalContext.getCriteria().getExcludedIngredients())||!context.getCriteria().getExcludeTagCodes().containsAll(originalContext.getCriteria().getExcludeTagCodes()))throw new IllegalArgumentException("本餐忌口仍然有效，不能放宽已设置的限制");
                     if(!preservesInterpretedLimits(originalContext,context))throw new IllegalArgumentException("明确限制仍然有效，请先在本餐设置中调整");
                 }
-                if(!MealWorkspaceRules.understandsRequirements(original,context))throw new IllegalArgumentException("本餐文字限制尚未校验，请先明确筛选条件");
                 MealContext comparable=json.convertValue(context,MealContext.class);comparable.setRecommendationPolicy(originalContext.getRecommendationPolicy());
                 boolean policyOnlyUpgrade=originalContext.getRecommendationPolicy()==null&&BalancedRecommendationPolicy.enabled(context)
-                    &&json.valueToTree(comparable).equals(json.valueToTree(originalContext))&&MealWorkspaceRules.matchesContext(original,originalContext);
-                boolean contextChanged=(!policyOnlyUpgrade&&!MealWorkspaceRules.contextFingerprint(originalContext).equals(MealWorkspaceRules.contextFingerprint(context)))||!MealWorkspaceRules.matchesContext(original,originalContext);
-                boolean sharingOnlyAdjustment="adjust".equals(intent.getOperation())&&intent.getTargetDishId()==null
-                    &&intent.getReplacementDishId()==null&&intent.getTargetConstraints()==null&&intent.getSelectedDishIds()==null
-                    &&!original.getDishes().isEmpty()&&MealWorkspaceRules.matchesContext(original,originalContext)
-                    &&MealWorkspaceRules.onlyDinersChanged(originalContext,comparable);
+                    &&json.valueToTree(comparable).equals(json.valueToTree(originalContext));
+                boolean contextChanged=!policyOnlyUpgrade&&!MealWorkspaceRules.contextFingerprint(originalContext).equals(MealWorkspaceRules.contextFingerprint(context));
+                boolean preserveMenu=configurationOnly;
+                if(!preserveMenu&&!MealWorkspaceRules.understandsRequirements(original,context))throw new IllegalArgumentException("本餐文字限制尚未校验，请先明确筛选条件");
                 if(intent.getSelectionMode()!=null&&!Arrays.asList("recommend","explicit").contains(intent.getSelectionMode()))throw new IllegalArgumentException("选菜方式无效");
                 boolean automaticRecommendation=BalancedRecommendationPolicy.enabled(context)&&!"explicit".equals(intent.getSelectionMode())
-                    &&(Arrays.asList("generate","regenerate").contains(intent.getOperation())||intent.getTargetDishId()!=null||(contextChanged&&!sharingOnlyAdjustment&&intent.getSelectedDishIds()==null));
+                    &&(Arrays.asList("generate","regenerate").contains(intent.getOperation())||intent.getTargetDishId()!=null||(contextChanged&&!configurationOnly&&intent.getSelectedDishIds()==null));
                 List<Long> ids;PlanDraft next;
-                if(sharingOnlyAdjustment){
+                if(preserveMenu){
                     // Preserve the server-owned manual/automatic origin; changing diners is not a new selection.
                     ids=new ArrayList<>(currentIds);w.setContext(context);w.getDraft().setLockedDishIds(locks);
-                    next=MealWorkspaceRules.copy(original);next.setReplacementFeedbackVersion(null);next.setCycleAfterSelection(null);
+                    if(intent.getContextPatch()!=null)planner.validateContext(context);
+                    next=MealWorkspaceRules.copy(original);next.setCycleAfterSelection(null);
                 } else if(automaticRecommendation){
                     if(intent.getTargetDishId()!=null&&(contextChanged||!"adjust".equals(intent.getOperation())))throw new IllegalArgumentException("整餐条件变化时请重新生成完整菜单");
                     w.setContext(context);w.getDraft().setLockedDishIds(locks);
@@ -241,7 +252,7 @@ public class MealWorkspaceService {
                 } else {
                     if(intent.getTargetConstraints()!=null)throw new IllegalArgumentException("单菜限制需要明确替换对象");
                     ids=intent.getSelectedDishIds()==null?new ArrayList<>(currentIds):new ArrayList<>(intent.getSelectedDishIds());
-                    if(((contextChanged&&!sharingOnlyAdjustment)||Arrays.asList("generate","regenerate").contains(intent.getOperation()))&&intent.getSelectedDishIds()==null)throw new IllegalArgumentException("请提供满足新条件的完整菜单");
+                    if(((contextChanged&&!configurationOnly)||Arrays.asList("generate","regenerate").contains(intent.getOperation()))&&intent.getSelectedDishIds()==null)throw new IllegalArgumentException("请提供满足新条件的完整菜单");
                 }
                 if(ids.isEmpty()||ids.size()>10||new HashSet<>(ids).size()!=ids.size()||!ids.containsAll(locks))throw new IllegalArgumentException("菜单数量、重复项或保留项无效");
                 Set<Long> authorized=new HashSet<>(validated.authorizedDishIds);authorized.addAll(currentIds);
@@ -259,16 +270,16 @@ public class MealWorkspaceService {
                 Map<Long,Dish> selected=next.getDishes().stream().collect(Collectors.toMap(Dish::getId,d->d));
                 next.setDishes(ids.stream().map(selected::get).collect(Collectors.toList()));next.setLockedDishIds(locks);
                 next.setContextFingerprint(MealWorkspaceRules.contextFingerprint(context));next.setRequirementsFingerprint(original.getRequirementsFingerprint());
-                if(!sharingOnlyAdjustment)next.setSource("assistant");
+                if(!MealWorkspaceRules.sameMenu(original,next))next.setSource("assistant");
                 next.setAdjustedBeforeConfirmation(!original.getDishes().isEmpty()||original.isAdjustedBeforeConfirmation());
-                PlanDraft checkpoint=MealWorkspaceRules.copy(original);checkpoint.setHistory(new ArrayList<>());checkpoint.setContextSnapshot(originalContext);
-                List<PlanDraft> history=new ArrayList<>(original.getHistory());history.add(checkpoint);if(history.size()>10)history.remove(0);
-                next.setHistory(history);next.setContextSnapshot(null);next.setPlanVersion(original.getPlanVersion()+1);next.setTotalCookMinutes(MealWorkspaceRules.totalMinutes(next.getDishes()));w.setDraft(next);
-                planner.lockAndValidateAssistant(user,w,ids);
+                next=MealWorkspaceRules.advance(original,next);w.setDraft(next);
+                if((preserveMenu||intent.getTargetDishId()!=null)&&!ids.isEmpty())planner.lockMenuForSave(user,w,ids);
+                else if(preserveMenu){/* Empty-workspace configuration has no menu to select or lock. */}
+                else planner.lockAndValidateAssistant(user,w,ids);
                 if(next.getCycleAfterSelection()!=null)w.setRecommendationCycle(next.getCycleAfterSelection());
                 if(learning!=null&&intent.getTargetDishId()!=null)learning.record(user,w,"single_replaced",original.getDishes().stream().filter(d->Objects.equals(d.getId(),intent.getTargetDishId())).collect(Collectors.toList()));
             }
-            db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setSuggestedTarget(null);w.setStatus(w.getDraft().getDishes().isEmpty()?"empty":MealWorkspaceRules.matchesContext(w.getDraft(),w.getContext())?"draft":"needs_regeneration");w.setMessage("本餐已调整，可以撤销最近一次修改");
+            db.cancel(id,user,w.getTaskId());w.setTaskId(null);w.setSuggestedTarget(null);w.setStatus(menuStatus(w));w.setMessage("undo".equals(intent.getOperation())?"已恢复上一版菜单":MealWorkspaceRules.sameMenu(original,w.getDraft())?"本餐设置已更新，菜品未变":"本餐菜单已更新");
             long before=w.getRevision();w.setRevision(before+1);
             if(db.save(id,user,w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");
             receipt(user,requestId,hash,w);return w;
@@ -301,7 +312,7 @@ public class MealWorkspaceService {
                 if(learning!=null){try{WorkspaceRequest command=json.treeToValue(json.readTree(task.getInputJson()).get("request"),WorkspaceRequest.class);if("replace".equals(command.getCommand())){List<Dish> removed=w.getDraft().getDishes().stream().filter(d->Objects.equals(d.getId(),command.getDishId())).collect(Collectors.toList());MealWorkspace feedback=com.eatwhat.util.DishSnapshotReader.convert(json,w,MealWorkspace.class);feedback.setDraft(draft);learning.record(task.getUserId(),feedback,"single_replaced",removed);}}catch(com.fasterxml.jackson.core.JsonProcessingException error){throw new IllegalStateException("替换反馈无法记录",error);}}
                 if(!w.getDraft().getDishes().isEmpty())db.event("adjusted:"+task.getId(),task.getUserId(),w.getId(),draft.getPlanVersion(),"replaced",draft.getSource());
                 w.setDraft(draft);if(interpreted!=null)w.setContext(interpreted);db.event("generated:"+task.getId(),task.getUserId(),w.getId(),draft.getPlanVersion(),"generated",draft.getSource());}
-            w.setStatus(status);w.setMessage(message);w.setSuggestedTarget(target);w.setTaskId(null);long before=w.getRevision();w.setRevision(before+1);
+            w.setStatus(status);w.setMessage(message);w.setSuggestedTarget(target);w.setTaskId(null);MealWorkspaceRules.normalizeMenuUndo(w.getDraft());long before=w.getRevision();w.setRevision(before+1);
             if(db.save(w.getId(),task.getUserId(),w.getRevision(),before,encode(w))!=1)throw conflict("工作区已更新");return w;
         });
         // Publish only the committed attempt outcome to its worker; no extra database read.

@@ -30,7 +30,7 @@ it('optional switching requests server computation and accepts partial nutrition
 });
 it('does not fall back to original nutrition after a partial recalculation and rejects raw tokens',async()=>{
  const before=snapshot();before.canonical!.nutrition={energyKcal:100,proteinG:1,fatG:1,carbohydrateG:1,fiberG:0,sodiumMg:0};const fetcher=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify(scale()),{headers:{'Content-Type':'application/json'}}));vi.stubGlobal('fetch',fetcher);
- render(<RecipeFacts snapshot={before}/>);expect(screen.getByText(/100 千卡/)).toBeTruthy();fireEvent.click(screen.getByRole('checkbox'));await waitFor(()=>expect(screen.queryByText(/100 千卡/)).toBeNull());
+ render(<RecipeFacts snapshot={before}/>);expect(screen.getByText(/100 千卡/)).toBeTruthy();expect(screen.getByText('仅参考').tagName).toBe('SMALL');expect(document.body.textContent).not.toContain('整道菜合计');fireEvent.click(screen.getByRole('checkbox'));await waitFor(()=>expect(screen.queryByText(/100 千卡/)).toBeNull());expect(screen.queryByText('仅参考')).toBeNull();
  const bad=scale();bad.steps[0]!.text='加入 {{amount:i1}}';await expect(fetchCanonicalScale(1,null,'v4',async()=>new Response(JSON.stringify(bad),{headers:{'Content-Type':'application/json'}}))).rejects.toThrow();
 });
 it('shopping keeps discretionary amounts null and requests a whole batch when servings are unknown',async()=>{

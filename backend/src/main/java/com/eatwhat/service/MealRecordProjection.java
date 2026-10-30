@@ -10,13 +10,16 @@ public final class MealRecordProjection {
  private static final ObjectMapper JSON=new ObjectMapper();
  private MealRecordProjection(){}
  public static MealConsumption from(RecipeRecord record){
+  return from(record,null);
+ }
+ private static MealConsumption from(RecipeRecord record,Map<Dish,Map<String,Object>> nutrition){
   if(record==null||Boolean.TRUE.equals(record.getIsDeleted()))return null;
   MealConsumption out=new MealConsumption();out.setId(record.getId());out.setUserId(record.getUserId());out.setMealDate(record.calendarDay());out.setMealType(record.getMealType());out.setRevision(record.getRevision());out.setStatus("recorded");out.setSourceRecordId(record.getId());
   List<Map<String,Object>> entries=new ArrayList<>();
   for(Dish dish:record.getDishDetails()){
    Map<String,Object> entry=new LinkedHashMap<>();if(dish.getId()!=null)entry.put("dishId",String.valueOf(dish.getId()));entry.put("name",dish.getName());
    String type=dish.getType();Map<String,String> names=new HashMap<>();names.put("荤菜","meat");names.put("素菜","veg");names.put("汤","soup");names.put("汤品","soup");names.put("主食","staple");names.put("甜品","dessert");entry.put("type",names.getOrDefault(type,type));
-   entry.put("nutritionSnapshot",DietNutritionSummary.snapshot(dish,JSON));entries.add(entry);
+   entry.put("nutritionSnapshot",nutrition==null?DietNutritionSummary.snapshot(dish,JSON):nutrition.get(dish));entries.add(entry);
   }
   if(entries.isEmpty()&&record.getRecipeName()!=null&&!record.getRecipeName().trim().isEmpty()){
    Map<String,Object> entry=new LinkedHashMap<>();entry.put("name",record.getRecipeName());entries.add(entry);
@@ -26,10 +29,16 @@ public final class MealRecordProjection {
   return out;
  }
  public static List<MealConsumption> from(List<RecipeRecord> records){
+  return from(records,null);
+ }
+ static List<MealConsumption> from(List<RecipeRecord> records,Map<Dish,Map<String,Object>> nutrition){
+  List<MealConsumption> result=new ArrayList<>();for(RecipeRecord record:latestRecords(records)){MealConsumption item=from(record,nutrition);if(item!=null)result.add(item);}return result;
+ }
+ static Collection<RecipeRecord> latestRecords(List<RecipeRecord> records){
   Map<String,RecipeRecord> slots=new LinkedHashMap<>();
   for(RecipeRecord record:records){if(record==null||record.calendarDay()==null)continue;String key=record.getUserId()+"|"+record.calendarDay()+"|"+record.getMealType();RecipeRecord prior=slots.get(key);
    if(prior==null||Objects.toString(record.getRevision(),"0").equals(Objects.toString(prior.getRevision(),"0"))||(record.getRevision()!=null&&(prior.getRevision()==null||record.getRevision()>prior.getRevision())))slots.put(key,record);
   }
-  List<MealConsumption> result=new ArrayList<>();for(RecipeRecord record:slots.values()){MealConsumption item=from(record);if(item!=null)result.add(item);}return result;
+  return slots.values();
  }
 }

@@ -156,7 +156,7 @@ public class AssistantV4TurnService {
                     if(authorizedFacts.isEmpty()&&!rows(context.getActiveMeal().get("currentDishes")).isEmpty()){ReadResult current=new ReadResult();current.setCallId("current-meal");current.setName("read_current_meal");current.getItems().add(context.getActiveMeal());authorizedFacts.add(AssistantFactReplyFormatter.AuthorizedReadFact.fromContext(current));facts.addAll(factCards(user,current));}
                     TurnResult r=result("completed",new AssistantFactReplyFormatter().format(authorizedFacts,context),false);r.setCards(facts);
                     if(input.getReplyContract()!=null){AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(output.getAnswer(),input.getAnswerBasis());
-                        if(answer.isAccepted()){String nutrition=new AssistantFactReplyFormatter().nutrition(authorizedFacts);r.setReply(answer.getReply()+(nutrition.isEmpty()?"":"\n"+nutrition));r.setCards(selectAnswerDishCards(facts,answer.getCardRefs()));if("meal_reply.v2".equals(input.getReplyContract()))applyCardLabels(r.getCards(),output.getAnswer());}}
+                        if(answer.isAccepted()){AssistantFactReplyFormatter formatter=new AssistantFactReplyFormatter();String nutrition=formatter.nutrition(authorizedFacts),shopping=formatter.shoppingEstimate(authorizedFacts);r.setReply(answer.getReply()+(nutrition.isEmpty()?"":"\n"+nutrition)+(shopping.isEmpty()?"":"\n"+shopping));r.setCards(selectAnswerDishCards(facts,answer.getCardRefs()));if("meal_reply.v2".equals(input.getReplyContract()))applyCardLabels(r.getCards(),output.getAnswer());}}
                     r.setWorkspaceRef(reference(scope));finish(user,lease,r);return;
                 }
                 if("meal_reply.v1".equals(input.getReplyContract())&&actual.contains("meal_requirements_v1")){
@@ -186,7 +186,7 @@ public class AssistantV4TurnService {
                 // No new model call or action authorization is granted by this transition.
                 TurnResult prepared=result("awaiting_confirmation",null,true);prepared.setContinuation(c);prepared.setWorkspaceRef(reference(scope));finish(user,lease,prepared);
                 c=store.continuation(user,turnId);
-                if(executeStep(user,store.turnRecord(user,turnId),scope,false,c,input.getReplyContract()!=null?output.getAnswer():null))resumeWorkflow(user,turnId);return;
+                if(executeStep(user,store.turnRecord(user,turnId),scope,false,c,input.getReplyContract()!=null?output.getAnswer():null,context.getActiveMeal()))resumeWorkflow(user,turnId);return;
             }
             throw new IllegalArgumentException("本次查询未完成");
         }catch(RuntimeException ex){LOG.warn("assistant_turn_failure exception={} site={} deadline_expired={}",ex.getClass().getSimpleName(),failureSite(ex),lease!=null&&clock.millis()>=lease.getModelDeadlineAt());observedOutcome=failRunning(user,lease);}finally{try{if(acquired)protection.release();}finally{ExperienceMetrics.observe(metrics,"task_execution",observedOutcome,clock.millis()-observedStart,1);LOG.info("assistant_turn provider_calls={} read_calls={} read_cache_hits={} workflow_outcome={} duration_ms={}",providerCalls,readCalls,cacheHits,observedOutcome,clock.millis()-observedStart);}}
@@ -259,9 +259,9 @@ public class AssistantV4TurnService {
         });}catch(RuntimeException changed){return store.findTurn(user,id);}
     }
     private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected){
-        return executeStep(user,row,scope,running,expected,null);
+        return executeStep(user,row,scope,running,expected,null,Collections.emptyMap());
     }
-    private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected,AnswerDraft explanation){
+    private boolean executeStep(Long user,TurnRecord row,TurnScope scope,boolean running,WorkflowContinuation expected,AnswerDraft explanation,Map<String,Object> previousMeal){
         final long revision=expected.getRevision();final int cursor=expected.getCursor();final String stepId=expected.getSteps().get(cursor).getStepId();
         Supplier<Boolean> work=()->{
             WorkflowContinuation c=store.continuation(user,row.getId());
@@ -279,11 +279,12 @@ public class AssistantV4TurnService {
             TurnResult outcome=registry.actionExecutor(step.getKind()).execute(user,step,scope);if(outcome==null)throw new IllegalStateException("缺少业务结果");
             if("completed".equals(outcome.getStatus())){
                 String receipt=null;for(Card card:outcome.getCards())if(card.getReceiptRef()!=null&&!card.getReceiptRef().trim().isEmpty())receipt=card.getReceiptRef();if(receipt==null)throw new IllegalStateException("缺少业务回执");step.setStatus("completed");step.setReceiptRef(receipt);c.setCursor(c.getCursor()+1);outcome.setStatus(c.getCursor()==c.getSteps().size()?"completed":"awaiting_confirmation");
-                String feedback="draft_update".equals(step.getKind())?"已更新本餐":"calendar_save".equals(step.getKind())?"已保存计划":"已加入采购清单";outcome.setReply(feedback+(c.getCursor()==c.getSteps().size()?"":"，正在准备下一步"));
+                List<Card> completedCards=new ArrayList<>(before.getCards());completedCards.addAll(outcome.getCards());
+                outcome.setReply(AssistantActionReplyFormatter.completed(c,completedCards,previousMeal));
                 if("draft_update".equals(step.getKind())&&c.getCursor()==c.getSteps().size()&&explanation!=null){
                     ModelContext actual=new ModelContext();for(Card card:outcome.getCards())if("menu".equals(card.getType()))actual.getActiveMeal().put("currentDishes",card.getData().get("dishes"));
                     AssistantAnswerPolicy.Decision answer=new AssistantAnswerPolicy().evaluate(explanation,new AssistantAnswerBasisService(json).build(actual,Collections.emptyList()));
-                    if(answer.isAccepted()){outcome.setReply(feedback+"。\n"+answer.getReply());applyCardLabels(outcome.getCards(),explanation);}
+                    if(answer.isAccepted())applyCardLabels(outcome.getCards(),explanation);
                 }
             }else if("awaiting_confirmation".equals(outcome.getStatus())){PendingAction p=outcome.getPendingAction();if(p==null||!step.getStepId().equals(p.getStepId())||p.getTaskId()==null||p.getPreviewToken()==null||p.getExpiresAt()==null||p.getExpiresAt()<=clock.millis())throw new IllegalStateException("缺少确认预览");step.setStatus("awaiting_confirmation");step.setTaskId(p.getTaskId());boolean direct=directRequest(store.turnRequest(user,row.getId()));outcome.setReply(direct?"正在办理这次请求":"请核对以下内容后确认");if(direct){outcome.setRetryable(false);for(Card card:outcome.getCards())card.getData().put("executionMode","direct");}
             }else throw new IllegalStateException("业务结果无效");

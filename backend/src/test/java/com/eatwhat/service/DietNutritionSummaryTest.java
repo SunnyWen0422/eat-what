@@ -12,7 +12,7 @@ class DietNutritionSummaryTest {
  private Dish dish(String completeness) throws Exception {
   Dish dish=new Dish();dish.setId(1L);dish.setCatalogRevision("test-v4");
   ObjectNode recipe=json.createObjectNode();recipe.put("baseServings",2);
-  ObjectNode nutrition=recipe.putObject("calculatedNutrition");nutrition.put("completeness",completeness);
+  ObjectNode nutrition=recipe.putObject("calculatedNutrition");nutrition.put("scope",CanonicalRecipeCalculator.NUTRITION_SCOPE);nutrition.put("completeness",completeness);
   ObjectNode total=nutrition.putObject("total");for(String key:CanonicalRecipeCalculator.NUTRIENTS)total.put(key,10);
   dish.setRecipe(recipe);return dish;
  }
@@ -31,6 +31,12 @@ class DietNutritionSummaryTest {
   Map<String,Object> report=DietNutritionSummary.summarize(Arrays.asList(entry(partial),Collections.emptyMap(),entry(DietNutritionSummary.snapshot(dish("complete"),json))),json);
   assertEquals(1,report.get("coveredCount"));assertEquals(2,report.get("unknownCount"));assertNull(report.get("total"));assertNotNull(report.get("knownTotal"));
   assertNull(DietNutritionSummary.summarize(Collections.emptyList(),json).get("total"));
+ }
+ @Test void oldWholeRecipeTotalsCannotBeRelabeledAsMainIngredients() throws Exception {
+  Dish old=dish("complete");((ObjectNode)old.getRecipe().path("calculatedNutrition")).remove("scope");
+  assertNull(DietNutritionSummary.snapshot(old,json).get("total"));
+  Map<String,Object> scoped=DietNutritionSummary.snapshot(dish("complete"),json);scoped.remove("scope");
+  assertNull(DietNutritionSummary.summarize(Arrays.asList(entry(scoped)),json).get("knownTotal"));
  }
  @Test void malformedSnapshotIsUnknownNotZero() throws Exception {
   Map<String,Object> snapshot=DietNutritionSummary.snapshot(dish("complete"),json);

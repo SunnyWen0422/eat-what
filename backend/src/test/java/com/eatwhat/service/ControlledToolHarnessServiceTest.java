@@ -78,7 +78,7 @@ class ControlledToolHarnessServiceTest {
     }
     @Test void previewIsServerBoundAndNeverWritesThenConfirmationReturnsActualOnlyReport() {
         Fixture f=fixture();ControlledToolTask task=f.service.preview(1L,request("confirm-week"));
-        assertEquals("awaiting_confirmation",task.status);assertNotNull(task.previewToken);assertTrue(task.summary.contains("不计入实际"));
+        assertEquals("awaiting_confirmation",task.status);assertNotNull(task.previewToken);assertTrue(task.summary.contains("保存即记录"));
         verify(f.workspaces,never()).mutate(anyLong(),anyString(),anyString(),any());
         ControlledToolTask done=f.service.confirm(1L,task.id,task.previewToken);
         assertEquals("completed",done.status);assertEquals(0,done.report.get("mealCount"));

@@ -143,7 +143,7 @@ test('explicit historical and future meal edits remain pinned after meal selecti
 
 test('meal picker preserves a pending calendar edit target instead of treating it as following Today', async () => {
   const f = fixture(), view = f.workspace()
-  f.memory.set('A:pendingRecipeRecord', { date: '2026-09-30', mealType: 'lunch' })
+  f.memory.set('A:pendingRecipeRecord', { date: '2026-09-30', mealType: 'lunch',selectedOn:'2026-10-08' })
   await view.onLoad({}); await view.onMealTarget({ detail: { value: '2' } })
   assert.equal(view.data.context.date, '2026-09-30')
   assert.equal(view.data.context.mealType, 'dinner')
@@ -246,9 +246,12 @@ test('new-menu action cannot discard an unresolved edit write and retry retains 
   assert.deepEqual(f.writes[1].body, f.writes[0].body)
 })
 
-test('an unsaved Today menu retains its source after midnight without an open save panel', async () => {
+test('Today opens the new China day while the previous unsaved menu remains in its dated cache', async () => {
   const f = fixture(), view = f.workspace()
-  await view.onLoad({}); f.advance('2026-10-08T16:01:00Z'); await view.onShow()
-  assert.equal(view.data.context.date, '2026-10-08'); assert.equal(view.data.draft.dishes[0].id, 7)
-  assert.equal(view.data.todayDate, '2026-10-09'); assert.match(view.data.midnightNotice, /仍归属2026-10-08/)
+  await view.onLoad({});const source={date:view.data.context.date,mealType:view.data.context.mealType}
+  const key=`user:A:meal-workspace:${source.date}:${source.mealType}`,before=JSON.stringify(f.memory.get(key))
+  f.advance('2026-10-08T16:01:00Z'); await view.onShow()
+  assert.equal(view.data.context.date, '2026-10-09');assert.equal(view.data.context.mealType,'breakfast')
+  assert.equal(view.data.todayDate, '2026-10-09');assert.equal(view.data.midnightNotice,'')
+  assert.equal(JSON.stringify(f.memory.get(key)),before,'old menu and request identity stay under their original key')
 })

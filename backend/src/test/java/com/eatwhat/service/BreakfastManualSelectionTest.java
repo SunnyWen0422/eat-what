@@ -95,4 +95,13 @@ class BreakfastManualSelectionTest {
         assertEquals("generate", request.getCommand());
         assertFalse(json.valueToTree(request).has("source")); assertFalse(json.valueToTree(request).has("draft"));
     }
+
+    @Test void saving_the_reviewed_menu_ignores_next_generation_filters_but_checks_content_and_access() {
+        Fixture f=new Fixture();MealWorkspace w=f.breakfast();
+        w.setDraft(f.planner.generate(7L,w,"select",null,Arrays.asList(1L,2L)));
+        w.getContext().setCounts(Collections.singletonMap("veg",4));w.getContext().setTotalCookMinutes(1);
+        assertEquals(2,f.planner.lockMenuForSave(7L,w,Arrays.asList(1L,2L)).getDishes().size());
+        when(f.dishes.lockReadableDishes(anyList(),eq(7L))).thenReturn(Collections.emptyList());
+        assertThrows(MealConsumptionService.VersionConflict.class,()->f.planner.lockMenuForSave(7L,w,Arrays.asList(1L,2L)));
+    }
 }

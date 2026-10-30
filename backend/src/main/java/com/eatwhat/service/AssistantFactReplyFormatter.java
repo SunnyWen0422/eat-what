@@ -19,20 +19,23 @@ final class AssistantFactReplyFormatter {
         final String name;
         final List<Map<String,Object>> items;
         final boolean partial,unknown,contextSnapshot;
-        private AuthorizedReadFact(ReadResult read,boolean paged,boolean contextSnapshot){
+        final boolean pricesRequested;
+        final Map<String,Object> priceEstimate;
+        private AuthorizedReadFact(ReadResult read,boolean paged,boolean contextSnapshot,boolean pricesRequested){
             name=read.getName();items=Collections.unmodifiableList(rows(snapshot(read.getItems())));
             this.contextSnapshot=contextSnapshot;
+            this.pricesRequested=pricesRequested;priceEstimate=object(snapshot(read.getPriceEstimate()));
             partial=paged||read.isTruncated()||read.getNextCursor()!=null;
             unknown=read.getUnknownFields()!=null&&!read.getUnknownFields().isEmpty();
         }
         static AuthorizedReadFact fromRead(ReadResult read,ToolRead call){
             if(read==null||call==null||!Objects.equals(read.getName(),call.getName())||!Objects.equals(read.getCallId(),call.getCallId()))throw new IllegalArgumentException("查询结果不匹配");
-            return new AuthorizedReadFact(read,call.getArguments()!=null&&call.getArguments().get("cursor")!=null,false);
+            return new AuthorizedReadFact(read,call.getArguments()!=null&&call.getArguments().get("cursor")!=null,false,call.getArguments()!=null&&Boolean.TRUE.equals(call.getArguments().get("includePrices")));
         }
         /** ContextService has already checked user, workspace and version; not a model fact source. */
         static AuthorizedReadFact fromContext(ReadResult read){
             if(read==null||!Arrays.asList("read_current_meal","read_actual_diet_review").contains(read.getName()))throw new IllegalArgumentException("上下文来源无效");
-            return new AuthorizedReadFact(read,false,true);
+            return new AuthorizedReadFact(read,false,true,false);
         }
         private static Object snapshot(Object value){
             if(value instanceof JsonNode)return snapshot(JSON.convertValue(value,Object.class));
@@ -66,18 +69,49 @@ final class AssistantFactReplyFormatter {
             if(fact==null||!registered(fact.name))continue;
             groups.computeIfAbsent(fact.name,Group::new).add(fact);
         }
+        String shopping=shoppingEstimate(facts);
         LinkedHashSet<String> lines=new LinkedHashSet<>();int chars=0;boolean unknown=false;
         for(Group group:groups.values()){
             group.partial|=bounded;String line=sentence(group)+(group.partial?"（部分结果）":"");
-            if(chars+line.length()+1>MAX_REPLY-80){bounded=true;break;}
+            if(chars+line.length()+1>MAX_REPLY-100-shopping.length()){bounded=true;break;}
             lines.add(line);chars+=line.length()+1;unknown|=group.unknown;
             for(Map<String,Object> row:group.rows())if(!list(row.get("omittedFields")).isEmpty())unknown=true;
         }
         if(lines.isEmpty())return EMPTY;
-        String nutrition=nutrition(facts);if(!nutrition.isEmpty()&&chars+nutrition.length()<MAX_REPLY-100)lines.add(nutrition);
+        String nutrition=nutrition(facts);if(!nutrition.isEmpty()&&chars+nutrition.length()+shopping.length()<MAX_REPLY-100)lines.add(nutrition);
+        if(!shopping.isEmpty())lines.add(shopping);
         if(unknown)lines.add("部分字段未提供，未知项保持未知。");
         if(bounded)lines.add("其余部分查询结果见卡片。");
         return String.join("\n",lines);
+    }
+    /** The latest requested estimate covers pending source lines, independently of material paging. */
+    String shoppingEstimate(List<AuthorizedReadFact> facts){
+        AuthorizedReadFact latest=null;int count=0;
+        for(AuthorizedReadFact fact:facts==null?Collections.<AuthorizedReadFact>emptyList():facts){
+            if(count++==MAX_FACTS)break;
+            if(fact!=null&&!fact.contextSnapshot&&"read_shopping".equals(fact.name)&&fact.pricesRequested)latest=fact;
+        }
+        if(latest==null)return "";
+        String unknown="待买清单参考价暂缺，暂不能估算整单。";Map<String,Object> estimate=latest.priceEstimate;
+        if(!"pending_source_items".equals(estimate.get("scope")))return unknown;
+        Long covered=estimateInteger(estimate.get("coveredCount")),missing=estimateInteger(estimate.get("missingCount")),total=estimateInteger(estimate.get("totalCount")),known=estimateInteger(estimate.get("knownSubtotalCents"));
+        if(covered==null||missing==null||total==null||covered+missing!=total||!(estimate.get("serviceAvailable") instanceof Boolean))return unknown;
+        boolean complete=covered>0&&missing==0,available=Boolean.TRUE.equals(estimate.get("serviceAvailable"));
+        if(!Objects.equals(estimate.get("complete"),complete)||(covered==0?estimate.get("knownSubtotalCents")!=null:known==null)
+                ||(complete?!Objects.equals(estimateInteger(estimate.get("totalCents")),known):estimate.get("totalCents")!=null)||!available&&covered>0)return unknown;
+        if(total==0)return "待买清单当前没有待买项目，暂无参考估价。";
+        String text="待买清单参考价覆盖"+covered+"/"+total+"项";
+        if(!available)return text+"，参考价暂不可用，暂不能估算整单。";
+        if(covered==0)return text+"，参考价暂缺，暂不能估算整单。";
+        text+=complete?"，参考总计":"，已知小计";text+=BigDecimal.valueOf(known,2).setScale(2).toPlainString()+"元";
+        text+=complete?"。":"；部分项目缺价或用量，不能作为整单总价。";
+        LinkedHashSet<String> dates=new LinkedHashSet<>();for(Object value:list(estimate.get("quoteDates"))){String day=date(value);if(!day.isEmpty())try{if(java.time.LocalDate.parse(day).getYear()>0)dates.add(day);}catch(java.time.DateTimeException invalid){/* Never invent a quote date. */}if(dates.size()==8)break;}
+        return text+(dates.isEmpty()?"报价日期暂缺。":"报价日期："+String.join("、",dates)+"。");
+    }
+    private static Long estimateInteger(Object value){
+        if(!(value instanceof Number))return null;
+        try{long number=new BigDecimal(value.toString()).longValueExact();return number>=0&&number<=9007199254740991L?number:null;}
+        catch(ArithmeticException|NumberFormatException invalid){return null;}
     }
     /** Only authenticated recipe facts and recorded-meal snapshots supply these numbers. */
     String nutrition(List<AuthorizedReadFact> facts){
@@ -92,21 +126,21 @@ final class AssistantFactReplyFormatter {
             partial|=group.partial;
             if(lines.size()>=10){partial=true;break;}
             if("get_dish_details".equals(group.name)){
-                Map<String,Object> n=object(row.get("nutrition"));if(n.isEmpty())continue;
+                Map<String,Object> n=object(row.get("nutrition"));if(n.isEmpty()||!CanonicalRecipeCalculator.NUTRITION_SCOPE.equals(n.get("scope")))continue;
                 BigDecimal energy="complete".equals(n.get("completeness"))?energy(n.get("total")):null;
-                String line="「"+label(row.get("name"))+"」"+(energy==null?"整道能量暂缺。":"整道"+rounded(energy)+"千卡");
+                String line="「"+label(row.get("name"))+"」"+(energy==null?"主料能量暂缺。":"主料约"+rounded(energy)+"千卡");
                 Object diners=row.get("diners");
                 if(energy!=null&&diners instanceof Number&&((Number)diners).intValue()>0){int people=((Number)diners).intValue();line+="；"+people+"人均分每人约"+energy.divide(BigDecimal.valueOf(people),0,RoundingMode.HALF_UP).toPlainString()+"千卡。";}
                 else if(energy!=null)line+="。";
                 if(chars+line.length()>900){partial=true;break;}lines.add(line);chars+=line.length();
             }else for(Map<String,Object> meal:rows(row.get("actual"))){
                 if(!"recorded".equals(meal.get("status")))continue;Map<String,Object> n=object(meal.get("nutrition"));
-                if(!"recipe_baseline".equals(n.get("basis")))continue;
+                if(!"recipe_baseline".equals(n.get("basis"))||!CanonicalRecipeCalculator.NUTRITION_SCOPE.equals(n.get("scope")))continue;
                 BigDecimal total=Boolean.TRUE.equals(n.get("complete"))?energy(n.get("total")):null,known=energy(n.get("knownTotal"));
-                String line=date(row.get("date"))+mealType(meal.get("mealType"))+"已记录菜品的配方能量：";
+                String line=date(row.get("date"))+mealType(meal.get("mealType"))+"已记录菜品的主料参考能量：";
                 if(total!=null)line+=rounded(total)+"千卡";
                 else{line+="完整能量暂缺";if(known!=null&&n.get("coveredCount") instanceof Number&&n.get("entryCount") instanceof Number)line+="，其中"+n.get("coveredCount")+"/"+n.get("entryCount")+"道可计算部分为"+rounded(known)+"千卡";}
-                line+="；不代表个人摄入。";if(chars+line.length()>900||lines.size()>=10){partial=true;break;}lines.add(line);chars+=line.length();
+                line+="；不含调味料和辅料，不代表个人摄入。";if(chars+line.length()>900||lines.size()>=10){partial=true;break;}lines.add(line);chars+=line.length();
             }
         }
         if(partial&&!lines.isEmpty())lines.add("以上仅为本次查询到的部分营养信息。");

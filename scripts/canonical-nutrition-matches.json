@@ -1,0 +1,422 @@
+{
+  "version": "eatwhat-official-exact-nutrition-20261028-v1",
+  "matchingPolicy": "Explicit reviewed identity + specification + raw/cooked equivalence only. Six source nutrients required. No guessed amount, density, yield, mixture or zero fill.",
+  "archives": [
+    {
+      "format": "tfda",
+      "publisher": "衛生福利部食品藥物管理署",
+      "url": "https://data.fda.gov.tw/data/opendata/export/20/csv",
+      "metadataUrl": "https://data.gov.tw/dataset/8543",
+      "license": "政府資料開放授權條款第1版",
+      "snapshotDate": "2026-10-22",
+      "file": "TFDA_food_nutrition_20261022.zip",
+      "sha256": "9aeb0cdbefad3f82be9b4089f044c8d0bc087a6b7453ba96832d126ff6ea3aa1"
+    },
+    {
+      "format": "usda",
+      "publisher": "USDA FoodData Central",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "metadataUrl": "https://fdc.nal.usda.gov/download-datasets/",
+      "snapshotDate": "2026-10-22",
+      "file": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sha256": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0"
+    },
+    {
+      "format": "mext",
+      "publisher": "文部科学省",
+      "location": "supplementary",
+      "url": "https://www.mext.go.jp/content/20260327-mxt_kagsei-mext-000029402_02.xlsx",
+      "metadataUrl": "https://www.mext.go.jp/a_menu/syokuhinseibun/mext_00001.html",
+      "usagePolicyUrl": "https://www.mext.go.jp/a_menu/syokuhinseibun/",
+      "license": "食品成分データは自由に利用可能。アプリケーション等への二次利用は出典明記。",
+      "requiredAttribution": "日本食品標準成分表（八訂）増補2023年から引用（2026年3月27日訂正版）",
+      "snapshotDate": "2026-10-28",
+      "file": "mext-food-composition-20260327.xlsx",
+      "sha256": "0d5a77077dd6cd91cbc2e6e317b8b218a38728c409eed452f1c10635a0d3099c"
+    }
+  ],
+  "matches": [
+    {
+      "ingredientId": "welsh-onion-raw",
+      "expectedName": "大葱（生净葱白及嫩叶）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "E2300102",
+      "expectedSourceName": "山東大蔥",
+      "equivalenceEvidence": "目标明确大葱而非小葱；官方山東大蔥的生净葱白与嫩叶，去根部、叶尾及外叶，与目标生净料一致。不采用青蔥或韭葱。",
+      "expectedDefinitionSha256": "e02d74f6cb444c957e2818975f527456dbcb3b364b3533f9a9bd73d802c04f5b"
+    },
+    {
+      "ingredientId": "identity-large-scallion-raw",
+      "expectedName": "大葱（生）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "E2300102",
+      "expectedSourceName": "山東大蔥",
+      "equivalenceEvidence": "目标明确大葱而非小葱；官方山東大蔥的生净葱白与嫩叶，去根部、叶尾及外叶，与目标生净料一致。不采用青蔥或韭葱。",
+      "expectedDefinitionSha256": "daf2ee5a4a4d11712edde2a9397e6d21737e21a84e67f5e389a642f1e15ee246"
+    },
+    {
+      "ingredientId": "lettuce-head-raw",
+      "expectedName": "包心生菜（结球生菜，鲜）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "E5300601",
+      "expectedSourceName": "結球萵苣",
+      "equivalenceEvidence": "包心生菜是结球莴苣；官方結球萵苣为生可食净料，与目标结球生菜一致，不使用散叶生菜。",
+      "expectedDefinitionSha256": "bcaad678f78c32d2ed04d25253d40ce810290a4c6b9758d34abae1a4af26172a"
+    },
+    {
+      "ingredientId": "pea-shoot-raw",
+      "expectedName": "豌豆苗（鲜嫩茎叶）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "E5400101",
+      "expectedSourceName": "豌豆苗",
+      "equivalenceEvidence": "目标鲜豌豆嫩茎叶，对应官方生高山嫩豆苗；不使用成熟豆粒、豆荚或连种皮根毛豆芽。",
+      "expectedDefinitionSha256": "0aad3d9b02822878fed9c7e4217d245778997268642e211b200da0a2aac3d77d"
+    },
+    {
+      "ingredientId": "recheck-g8-30",
+      "expectedName": "豌豆苗（鲜）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "E5400101",
+      "expectedSourceName": "豌豆苗",
+      "equivalenceEvidence": "目标鲜豌豆嫩茎叶，对应官方生高山嫩豆苗；不使用成熟豆粒、豆荚或连种皮根毛豆芽。",
+      "expectedDefinitionSha256": "02c66ae480aa852f3817085e793719550c7e7a7994517de6d11b5bc1e662083b"
+    },
+    {
+      "ingredientId": "sesame-black-roasted",
+      "expectedName": "熟黑芝麻",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "C1610201",
+      "expectedSourceName": "黑芝麻(熟)",
+      "equivalenceEvidence": "目标熟黑芝麻，对应官方黑芝麻(熟)，描述明确烤制；不使用生芝麻或芝麻酱。",
+      "expectedDefinitionSha256": "021076f0eeb1b0338c41e2bf7da6334980f36f31421456cadaabc75bd72768c2"
+    },
+    {
+      "ingredientId": "recheck-g5-mungbean-hulled-dry",
+      "expectedName": "去皮绿豆（干）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "H0710101",
+      "expectedSourceName": "綠豆仁",
+      "equivalenceEvidence": "目标去皮绿豆干粒，对应官方乾貨去皮綠豆仁；不使用未去皮全豆或煮熟豆。",
+      "expectedDefinitionSha256": "6ef9b9f09d9315bb2eda7c2695c8b3541ed8f62080dbf07fd8267c9f3c375314"
+    },
+    {
+      "ingredientId": "recheck-g7-instant-oats",
+      "expectedName": "即食燕麦片（可直接拌食成品）",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "A0810201",
+      "expectedSourceName": "即食燕麥片",
+      "equivalenceEvidence": "目标可直接拌食的即食燕麦片/即溶燕麦片，对应官方沖泡即食燕麥片；不使用燕麦整粒或加糖奶三合一麦片。",
+      "expectedDefinitionSha256": "afb820e320d504cb08f86a21d6a711c304a547f0a5f236f3605e5588229128b2"
+    },
+    {
+      "ingredientId": "recheck-g8-33",
+      "expectedName": "即溶燕麦片",
+      "archive": "TFDA_food_nutrition_20261022.zip",
+      "sourceId": "A0810201",
+      "expectedSourceName": "即食燕麥片",
+      "equivalenceEvidence": "目标可直接拌食的即食燕麦片/即溶燕麦片，对应官方沖泡即食燕麥片；不使用燕麦整粒或加糖奶三合一麦片。",
+      "expectedDefinitionSha256": "7db51ab33d712a96607e658759fb08d13401e1c471c11740b77ef08c8489d3e9"
+    },
+    {
+      "ingredientId": "cumin-ground",
+      "expectedName": "孜然粉",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "170923",
+      "expectedSourceName": "Spices, cumin seed",
+      "equivalenceEvidence": "目标是纯孜然粉；官方孜然种子为同种干香辛料，单纯磨碎不改变每100克组成；不使用复合孜然烧烤粉。",
+      "expectedDefinitionSha256": "e0d647cacea391831304880a8249d0f8d089c5633ef955ed8784b2589f8716ab"
+    },
+    {
+      "ingredientId": "nutmeg-dried",
+      "expectedName": "肉豆蔻（干香料）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171326",
+      "expectedSourceName": "Spices, nutmeg, ground",
+      "equivalenceEvidence": "目标纯干肉豆蔻，对应官方Spices, nutmeg, ground；同种干种仁，单纯研磨不改变组成，不使用草豆蔻或白豆蔻。",
+      "expectedDefinitionSha256": "45e2c0841b7f2be541651b19efbd882fec92e36f011cea5dd42fdb689f99be6c"
+    },
+    {
+      "ingredientId": "onion-powder",
+      "expectedName": "洋葱粉",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171327",
+      "expectedSourceName": "Spices, onion powder",
+      "equivalenceEvidence": "目标纯洋葱粉，对应官方Spices, onion powder；不采用TFDA加盐洋葱粉条目。",
+      "expectedDefinitionSha256": "f27f91c5c289acdb1deac04e6dfed8919198903c33b19411f3bbcb322fe0c9f0"
+    },
+    {
+      "ingredientId": "thyme-fresh",
+      "expectedName": "百里香（鲜叶）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "173470",
+      "expectedSourceName": "Thyme, fresh",
+      "equivalenceEvidence": "目标明确鲜百里香叶，对应官方Thyme, fresh；不使用干百里香，也不给未说明鲜干的通用香草定义补值。",
+      "expectedDefinitionSha256": "851761668e75c03c0fd6f57f01c8374ad8392685869278b03fc7ec11487ffb4c"
+    },
+    {
+      "ingredientId": "jackfruit-fresh",
+      "expectedName": "菠萝蜜（鲜果肉）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "174687",
+      "expectedSourceName": "Jackfruit, raw",
+      "equivalenceEvidence": "目标鲜菠萝蜜可食果肉，对应官方Jackfruit, raw；不使用糖水罐头或种子。",
+      "expectedDefinitionSha256": "83198c9d2195626587ccbec7bf17cbcc2f4aba2cde970884e719af32451e7700"
+    },
+    {
+      "ingredientId": "identity-jackfruit-flesh",
+      "expectedName": "菠萝蜜（鲜可食果肉）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "174687",
+      "expectedSourceName": "Jackfruit, raw",
+      "equivalenceEvidence": "目标鲜菠萝蜜可食果肉，对应官方Jackfruit, raw；不使用糖水罐头或种子。",
+      "expectedDefinitionSha256": "566b2a85bbf3dddfbe12e09e14120a7aa6731336c66a161f38d59bbfe6987595"
+    },
+    {
+      "ingredientId": "jalapeno-fresh",
+      "expectedName": "墨西哥青辣椒（鲜 jalapeño）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "168576",
+      "expectedSourceName": "Peppers, jalapeno, raw",
+      "equivalenceEvidence": "目标鲜墨西哥jalapeño，对应官方Peppers, jalapeno, raw；不使用其他辣椒或腌制jalapeño。",
+      "expectedDefinitionSha256": "bca556b16e6a8c7580f2af468bb852530fd75d51b9cfcb0e91da286e15bcba76"
+    },
+    {
+      "ingredientId": "prune-dry",
+      "expectedName": "西梅干",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "168162",
+      "expectedSourceName": "Plums, dried (prunes), uncooked",
+      "equivalenceEvidence": "目标干西梅，对应官方Plums, dried (prunes), uncooked；不使用糖渍、西梅汁或炖煮品。",
+      "expectedDefinitionSha256": "57048d480b873442904fa1516de36901c5d44c4a6d32069e694d07c5f9a5f794"
+    },
+    {
+      "ingredientId": "brussels-sprouts-raw",
+      "expectedName": "抱子甘蓝（鲜小球芽）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "170383",
+      "expectedSourceName": "Brussels sprouts, raw",
+      "equivalenceEvidence": "目标鲜抱子甘蓝小球芽，对应官方Brussels sprouts, raw；不使用普通包菜或熟制抱子甘蓝。",
+      "expectedDefinitionSha256": "1a46904e360e4082f264dff3a40e7406c090c1487e55e6b818a48ebf35e07ec7"
+    },
+    {
+      "ingredientId": "cucumber-peeled-raw",
+      "expectedName": "黄瓜（生去皮净料）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "169225",
+      "expectedSourceName": "Cucumber, peeled, raw",
+      "equivalenceEvidence": "目标生去皮黄瓜净料，对应官方Cucumber, peeled, raw；不使用带皮黄瓜。",
+      "expectedDefinitionSha256": "8db6dc612ca9b5cecd3d88ebfb3d3bf579a22739be03f3b6f95baa7cbee882d8"
+    },
+    {
+      "ingredientId": "recheck-g7-peeled-apple",
+      "expectedName": "苹果（生去皮去核）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171689",
+      "expectedSourceName": "Apples, raw, without skin",
+      "equivalenceEvidence": "目标生去皮去核苹果，对应官方Apples, raw, without skin；不使用带皮苹果、果酱或熟苹果。",
+      "expectedDefinitionSha256": "a41a4fd50a7abb1f14000bf4915d6b6dc40013dceddd48ff92b95b621d523588"
+    },
+    {
+      "ingredientId": "recheck-g6-avocado",
+      "expectedName": "牛油果（鲜）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171705",
+      "expectedSourceName": "Avocados, raw, all commercial varieties",
+      "equivalenceEvidence": "目标鲜牛油果，对应官方Avocados, raw, all commercial varieties，无额外调料；未指定品种所以采用官方通用品种汇总。",
+      "expectedDefinitionSha256": "ed20f87ebd18a1d3ff9827a191f883c4105b58bf836fb1590805202869207996"
+    },
+    {
+      "ingredientId": "recheck-g8-38",
+      "expectedName": "干葱头（鲜）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "170499",
+      "expectedSourceName": "Shallots, raw",
+      "equivalenceEvidence": "中文干葱头（鲜）指鲜红葱/shallot鳞茎，非脱水葱；官方Shallots, raw形态一致。",
+      "expectedDefinitionSha256": "a7924ca19ac4d65dc28783a5003454c0b2833b610dc58fce40db2d7f376e179c"
+    },
+    {
+      "ingredientId": "peanut-roasted-unsalted",
+      "expectedName": "熟花生仁（无盐，炒烘制成品）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "173806",
+      "expectedSourceName": "Peanuts, all types, dry-roasted, without salt",
+      "equivalenceEvidence": "目标明确无盐炒烘熟花生仁，对应官方干烘无盐花生仁；不使用油炸、盐焗或泛指熟花生类别。",
+      "expectedDefinitionSha256": "4d454426000beaf87c75004273fea58ebbbc25e711f6411326ffa847639e42f3"
+    },
+    {
+      "ingredientId": "condensed-milk-sweetened",
+      "expectedName": "炼奶（甜炼乳）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171275",
+      "expectedSourceName": "Milk, canned, condensed, sweetened",
+      "equivalenceEvidence": "目标明确加糖甜炼乳，对应官方Milk, canned, condensed, sweetened；不使用无糖淡奶、植脂炼乳或未说明加糖的浓缩乳类别。",
+      "expectedDefinitionSha256": "fc88d1cc82ff901b4561f2644b80b082b8c3684ab1a6b8b5c86e57267058e830"
+    },
+    {
+      "ingredientId": "milk-condensed-sweetened",
+      "expectedName": "炼乳（加糖）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171275",
+      "expectedSourceName": "Milk, canned, condensed, sweetened",
+      "equivalenceEvidence": "目标明确加糖甜炼乳，对应官方Milk, canned, condensed, sweetened；不使用无糖淡奶、植脂炼乳或未说明加糖的浓缩乳类别。",
+      "expectedDefinitionSha256": "0a44cf6554d444e91693529a84a1c381b1e9600e48bc72f2911e2e4599339d1f"
+    },
+    {
+      "ingredientId": "sweetened-condensed-milk",
+      "expectedName": "甜炼乳（成品）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171275",
+      "expectedSourceName": "Milk, canned, condensed, sweetened",
+      "equivalenceEvidence": "目标明确加糖甜炼乳，对应官方Milk, canned, condensed, sweetened；不使用无糖淡奶、植脂炼乳或未说明加糖的浓缩乳类别。",
+      "expectedDefinitionSha256": "37ce5b36163dc36a9a9648cf1113753725e033af7937037e3f557ba3b0eec900"
+    },
+    {
+      "ingredientId": "recheck-g4-sweet-condensed-milk",
+      "expectedName": "甜炼乳（成品）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "171275",
+      "expectedSourceName": "Milk, canned, condensed, sweetened",
+      "equivalenceEvidence": "目标明确加糖甜炼乳，对应官方Milk, canned, condensed, sweetened；不使用无糖淡奶、植脂炼乳或未说明加糖的浓缩乳类别。",
+      "expectedDefinitionSha256": "7d8729755dc8903b38ad49c885f906c5b1ea7e9aa17f683ec190d8139547918c"
+    },
+    {
+      "ingredientId": "egg-chicken-boiled",
+      "expectedName": "鸡蛋（煮熟剥壳）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "173424",
+      "expectedSourceName": "Egg, whole, cooked, hard-boiled",
+      "equivalenceEvidence": "目标煮熟剥壳鸡蛋，对应官方Egg, whole, cooked, hard-boiled；不使用生蛋、蛋黄或带壳质量。",
+      "expectedDefinitionSha256": "d1e294cc823a6de3d08a80269cf86bf666c8f0299a33e6a348974542dfdeb2c3"
+    },
+    {
+      "ingredientId": "recheck-g7-breadcrumbs",
+      "expectedName": "面包碎（干面包屑）",
+      "archive": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "sourceId": "174928",
+      "expectedSourceName": "Bread, crumbs, dry, grated, plain",
+      "equivalenceEvidence": "目标干面包屑，对应官方Bread, crumbs, dry, grated, plain；不使用加香辛料或湿面包屑。",
+      "expectedDefinitionSha256": "9782335b64b9aff0b15f3a12697a3e7d4ebf29353dec12d3dd2f947b0919d554"
+    },
+    {
+      "ingredientId": "garlic-scape-raw",
+      "expectedName": "蒜薹（鲜蒜花茎）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "06224",
+      "expectedSourceName": "（にんにく類）　茎にんにく　花茎　生",
+      "equivalenceEvidence": "目标明确鲜蒜花茎（蒜薹）；官方Allium sativum/Garlic scape raw（茎にんにく 花茎 生），部位和生鲜形态相同；不使用蒜苗叶或大蒜瓣。",
+      "expectedDefinitionSha256": "d7c184df181730e337fb3910842b230bc73ca5056280526a90b68be33dcf83b3"
+    },
+    {
+      "ingredientId": "yuba-dry",
+      "expectedName": "腐竹（干制）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "04060",
+      "expectedSourceName": "だいず　［その他］　湯葉　干し　乾",
+      "equivalenceEvidence": "目标腐竹（干制）为豆浆表面揭膜后干燥的豆制品；官方Yuba film formed on surface of warmed soy milk, dried, uncooked 同种大豆揭膜干品。不用于压制千张、油炸豆皮或已泡发腐竹。",
+      "expectedDefinitionSha256": "03599ccba13408c09b93ae2f420fbeaae81c336513a9e04b7bb98fe2c2a6ff9c"
+    },
+    {
+      "ingredientId": "crucian-carp-raw",
+      "expectedName": "鲫鱼净肉（生）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "10238",
+      "expectedSourceName": "＜魚類＞　ふな　生",
+      "equivalenceEvidence": "目标鲫鱼生净肉；官方crucian carp/Carassius auratus 生可食部，备注排除头、内脏、骨和鳍，与目标去不可食部分净肉等同；不用于整条带骨鲫鱼。纤维(0)是官方发布推定值而非本地补零。",
+      "allowPublishedEstimates": true,
+      "expectedDefinitionSha256": "0e35185b7dd9050caaef76a1c3595b96c7a3807d38b2f10eb5c5bc8ec522f6e1"
+    },
+    {
+      "ingredientId": "sweetpotato-starch",
+      "expectedName": "红薯淀粉（精制甘薯淀粉）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "02033",
+      "expectedSourceName": "＜でん粉・でん粉製品＞　（でん粉類）　さつまいもでん粉",
+      "equivalenceEvidence": "目标精制甘薯淀粉，官方さつまいもでん粉（甘薯淀粉）；不使用甘薯全粉、粉条或混合淀粉。纤维(0)为官方发布推定值。",
+      "allowPublishedEstimates": true,
+      "expectedDefinitionSha256": "6412cdea56f2fa6188897f4920e8574493c69609aa1106faa9c330b41313804e"
+    },
+    {
+      "ingredientId": "recheck-g2-wheat-starch",
+      "expectedName": "澄面（小麦淀粉）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "02031",
+      "expectedSourceName": "＜でん粉・でん粉製品＞　（でん粉類）　小麦でん粉",
+      "equivalenceEvidence": "目标澄面明确小麦淀粉；官方小麦でん粉，相同精制淀粉类别，不是普通小麦面粉。纤维(0)为官方发布推定值。",
+      "allowPublishedEstimates": true,
+      "expectedDefinitionSha256": "f7702f3a72e9cd1239466787f77be1cf8f24919a5a456419df735eda82fd9c98"
+    },
+    {
+      "ingredientId": "recheck-g5-kudzu-starch",
+      "expectedName": "葛根粉（食用葛根淀粉）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "02029",
+      "expectedSourceName": "＜でん粉・でん粉製品＞　（でん粉類）　くずでん粉",
+      "equivalenceEvidence": "目标明确食用葛根淀粉；官方くずでん粉（葛淀粉），不使用葛根全粉或莲藕/马铃薯复合冲调品。纤维(0)为官方发布推定值。",
+      "allowPublishedEstimates": true,
+      "expectedDefinitionSha256": "b9ba8e762aead36fd8de8c803969082189598b75857f9751265b06289481a4ba"
+    },
+    {
+      "ingredientId": "ginger-tender-raw",
+      "expectedName": "子姜（鲜嫩姜）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "06386",
+      "expectedSourceName": "（しょうが類）　新しょうが　根茎　生",
+      "equivalenceEvidence": "目标子姜（鲜嫩姜）对应官方新しょうが 根茎 生（鲜嫩姜根茎），不是成熟老姜、干姜或腌姜。",
+      "expectedDefinitionSha256": "0d99cd5ebb1220ba37a8ee008fcb753ffa9654e67e45b9a0a218492870a91813"
+    },
+    {
+      "ingredientId": "rakkyo-bulb-fresh",
+      "expectedName": "藠头（鲜薤白净鳞茎）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "06305",
+      "expectedSourceName": "（らっきょう類）　らっきょう　りん茎　生",
+      "equivalenceEvidence": "目标鲜薤白净鳞茎，对应官方らっきょう りん茎 生（Allium chinense净鲜鳞茎）；不使用红葱头、糖醋藠头。",
+      "expectedDefinitionSha256": "5d43ca8068baa3af34faebff7fb979edf11798dfd9aae1a2bd7cf8d26dd19e5d"
+    },
+    {
+      "ingredientId": "radish-seedling-raw",
+      "expectedName": "萝卜苗（鲜食用嫩苗）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "06128",
+      "expectedSourceName": "（だいこん類）　かいわれだいこん　芽ばえ　生",
+      "equivalenceEvidence": "目标萝卜鲜食用嫩苗，对应官方かいわれだいこん 芽ばえ 生（萝卜嫩芽生），不使用成熟萝卜叶或萝卜根。",
+      "expectedDefinitionSha256": "fe113d595f470907167b24fca8d23dcefff228faaf11a8d2ecea85de9748102e"
+    },
+    {
+      "ingredientId": "recheck-g4-yanghua-radish",
+      "expectedName": "洋花萝卜（鲜樱桃萝卜）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "06240",
+      "expectedSourceName": "はつかだいこん　根　生",
+      "equivalenceEvidence": "目标洋花萝卜明确为鲜樱桃萝卜，对应官方はつかだいこん 根 生（樱桃萝卜根生）；不使用大白萝卜、青萝卜或单独萝卜皮。",
+      "expectedDefinitionSha256": "c7437eabd94b7bc4b47139ddd79d02e854b62fa9ee29d33c56330d71f3ed9c9c"
+    },
+    {
+      "ingredientId": "sweet-pea-pod-raw",
+      "expectedName": "甜豆荚（鲜）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "06022",
+      "expectedSourceName": "（えんどう類）　スナップえんどう　若ざや　生",
+      "equivalenceEvidence": "目标鲜甜豆荚对应官方スナップえんどう 若ざや 生（糖荚豌豆鲜嫩荚）；不使用豌豆仁或扁荷兰豆。",
+      "expectedDefinitionSha256": "270a48cb5597030c3f83968798bcd658705416ba42c535f3029b55407d9d3fd7"
+    },
+    {
+      "ingredientId": "dumpling-wrapper-raw",
+      "expectedName": "饺子皮（生面皮成品）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "01074",
+      "expectedSourceName": "こむぎ　［その他］　ぎょうざの皮　生",
+      "equivalenceEvidence": "目标生饺子面皮成品，对应官方小麦類 ぎょうざの皮 生（wheat dumpling wrapper raw），同生面皮商品类别；不使用已煮熟饺皮、馄饨皮或含馅饺子。",
+      "expectedDefinitionSha256": "8bb8aa12bc36c7d4c1c2734bee532f0159463b4640e40f1e9e5710ac382db9c2"
+    },
+    {
+      "ingredientId": "recheck-g5-mungbean-cooked",
+      "expectedName": "熟绿豆（煮汤后沥出的熟豆）",
+      "archive": "mext-food-composition-20260327.xlsx",
+      "sourceId": "04072",
+      "expectedSourceName": "りょくとう　全粒　ゆで",
+      "equivalenceEvidence": "目标煮汤后沥出的熟绿豆，对应官方りょくとう 全粒 ゆで（整粒绿豆无额外调味煮熟）；不使用干绿豆、去皮绿豆仁或糖渍豆馅。",
+      "expectedDefinitionSha256": "73fec2957286ee7d8e7c5ebce5be3eb21bc0048a7be275447090e64651f5ca8d"
+    }
+  ]
+}

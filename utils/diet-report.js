@@ -10,9 +10,9 @@ function presentNutritionReference(nutrition) {
   const valid=value=>value && NUTRIENTS.every(([key])=>typeof value[key]==='number'&&Number.isFinite(value[key])&&value[key]>=0)
   const complete=nutrition.complete===true && unknownCount===0 && coveredCount===entryCount && !!valid(nutrition.total)
   const values=complete?nutrition.total:coveredCount>0&&valid(nutrition.knownTotal)?nutrition.knownTotal:null
-  return {label:complete?'总值':'已知部分',coverage:`已覆盖 ${coveredCount}/${entryCount} 道`,available:!!values,
+  return {title:'营养',emptyText:'暂无完整营养资料',label:complete?'总值':'已知部分',coverage:`已覆盖 ${coveredCount}/${entryCount} 道`,available:!!values,
     rows:values?NUTRIENTS.map(([key,label,unit])=>({key,label,unit,value:String(key==='energyKcal'?Math.round(values[key]):Number(values[key].toFixed(1)))})):[],
-    note:'按日历记录中的整道菜配方用量汇总，不代表个人实际摄入。'}
+    note:values?'仅参考':''}
 }
 
 function recordUrl(date, mealType) {

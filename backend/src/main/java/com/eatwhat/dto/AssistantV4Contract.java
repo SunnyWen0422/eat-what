@@ -72,6 +72,7 @@ public final class AssistantV4Contract {
     @Data public static class ReadResult {
         private String callId,name;private List<Map<String,Object>> items=new ArrayList<>();private String nextCursor,sourceVersion;
         private boolean truncated;private List<String> unknownFields=new ArrayList<>();
+        @JsonInclude(JsonInclude.Include.NON_NULL) private Map<String,Object> priceEstimate;
     }
     @Data public static class ActionIntent {private String kind;private Map<String,Object> arguments=new LinkedHashMap<>();}
     @Data public static class ActionProposal {private List<ActionIntent> steps=new ArrayList<>();}

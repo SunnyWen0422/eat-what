@@ -10,6 +10,29 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 class AssistantV4TurnServiceTest {
+ @Test void generated_menu_reply_uses_actual_result_without_future_model_promise(){
+  when(model.supportsNaturalReplies()).thenReturn(true);
+  registry.registerDraft("draft_update",(u,step,scope)->completedMenu(2,mealDish(1,"veg"),mealDish(2,"meat")));
+  StepOutput out=action("draft_update",draft(1));AnswerDraft answer=new AnswerDraft();AnswerSegment segment=new AnswerSegment();segment.setText("生成后会给出这餐的菜品安排。");answer.getSegments().add(segment);out.setAnswer(answer);when(model.step(any())).thenReturn(out);
+  runner.runTurn(1L,id);TurnView view=store.findTurn(1L,id);
+  assertEquals("completed",view.getStatus());assertEquals("已安排好晚餐，共2道菜",view.getReply());assertEquals("workspace:real",view.getCards().get(0).getReceiptRef());
+ }
+ @Test void successful_replacement_describes_only_proven_changed_slot(){
+  ModelContext actual=new ModelContext();actual.getActiveMeal().put("currentDishes",Arrays.asList(mealDish(1,"veg"),mealDish(2,"meat")));when(context.build(any(),any(),any())).thenReturn(actual);
+  registry.registerDraft("draft_update",(u,step,scope)->completedMenu(2,mealDish(3,"veg"),mealDish(2,"meat")));
+  when(model.step(any())).thenReturn(action("draft_update",AssistantV4ContextService.map("operation","adjust","selectionMode","recommend","targetDishId",1L)));
+  runner.runTurn(1L,id);assertEquals("已换好素菜，其余菜品未变",store.findTurn(1L,id).getReply());
+ }
+ @Test void successful_diners_only_update_reports_actual_people_and_preserved_dishes(){
+  ModelContext actual=new ModelContext();actual.getActiveMeal().put("currentDishes",Arrays.asList(mealDish(1,"veg"),mealDish(2,"meat")));when(context.build(any(),any(),any())).thenReturn(actual);
+  registry.registerDraft("draft_update",(u,step,scope)->completedMenu(3,mealDish(1,"veg"),mealDish(2,"meat")));
+  when(model.step(any())).thenReturn(action("draft_update",AssistantV4ContextService.map("operation","adjust","contextPatch",Collections.singletonMap("people",3))));
+  runner.runTurn(1L,id);assertEquals("已改为3人分食，菜品未变",store.findTurn(1L,id).getReply());
+ }
+ @SafeVarargs final TurnResult completedMenu(int people,Map<String,Object>... dishes){
+  TurnResult result=new TurnResult();result.setStatus("completed");Card card=new Card();card.setType("menu");card.setReceiptRef("workspace:real");card.getData().putAll(AssistantV4ContextService.map("people",people,"mealType","dinner","dishes",Arrays.asList(dishes)));result.getCards().add(card);return result;
+ }
+ Map<String,Object> mealDish(long id,String type){return AssistantV4ContextService.map("id",id,"type",type,"name","菜"+id);}
  @Test void nullable_read_fields_survive_real_transport_serialization_and_repeated_tools() {
   json.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
   when(model.step(any())).thenAnswer(invocation->{

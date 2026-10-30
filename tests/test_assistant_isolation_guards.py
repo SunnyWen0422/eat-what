@@ -7,6 +7,22 @@ from assistant_v4_isolation import isolated_service
 
 
 class AssistantIsolationGuardsTest(unittest.TestCase):
+    def test_incomplete_connect_is_not_treated_as_a_connected_pair(self):
+        sockets = []
+
+        def pending(client, address):
+            sockets.append(client)
+            raise BlockingIOError("synthetic incomplete connection")
+
+        with patch.object(socket.socket, "connect", pending):
+            with isolated_service():
+                with patch.object(socket.socket, "accept", side_effect=AssertionError(
+                        "accept attempted before successful connection")):
+                    with self.assertRaises(BlockingIOError):
+                        socket.socketpair()
+        self.assertTrue(sockets)
+        self.assertTrue(all(client.fileno() == -1 for client in sockets))
+
     def test_socketpair_does_not_open_connect_for_other_threads_or_destinations(self):
         original_connect, original_listen = socket.socket.connect, socket.socket.listen
         owner = threading.get_ident(); escaped = []; blocked = []

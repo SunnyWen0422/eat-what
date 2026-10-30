@@ -20,7 +20,7 @@ async function savePlan(owner, date, mealType, draft, expectedRevision) {
     const revision = view.plan ? view.plan.revision : view.planRevision || 0
     if (expectedRevision != null && expectedRevision !== revision) throw { statusCode: 409 }
     if (view.plan) {
-      const approved = await new Promise(resolve => wx.showModal({ title: '更新该餐安排？', content: `${date} ${flow.mealNames[mealType]}\n原安排：${view.plan.recipeName}\n新安排：${draft.recipeName}\n实际用餐记录会保留。`, confirmText: '更新安排', success: r => resolve(r.confirm), fail: () => resolve(false) }))
+      const approved = await new Promise(resolve => wx.showModal({ title: '更新这餐记录？', content: `${date} ${flow.mealNames[mealType]}\n原菜单：${view.plan.recipeName}\n新菜单：${draft.recipeName}\n日历和饮食回顾会随之更新。`, confirmText: '更新记录', success: r => resolve(r.confirm), fail: () => resolve(false) }))
       if (!approved) return false
       if (!current()) throw { statusCode: 401, isAccountChanged: true }
     }

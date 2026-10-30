@@ -74,7 +74,7 @@ Page({
   refreshPricing(){
     if(!this._full)return
     const view=pricing.buildPricing(this._full,this._quotes||{})
-    this.setData({pricingRows:view.rows,pendingPrice:view.pendingText,actualSpend:view.actualText,pendingMissing:view.pendingMissing})
+    this.setData({pricingRows:view.rows,pendingPrice:view.pendingText,actualSpend:view.actualText,pendingMissing:view.pendingMissing,pendingPriced:view.pendingPriced,pendingTotal:view.pendingTotal})
   },
   async loadPrices(scope,epoch){
     if(!this.data.detailsExpanded||!this.current(scope)||epoch!==this._epoch)return
@@ -90,11 +90,11 @@ Page({
       if(config.pricesEnabled){
         const rows=pricing.buildPricing(this._full).rows.map(row=>({ingredientKey:row.ingredientKey,canonicalName:row.canonicalName,normalizedVariant:row.normalizedVariant}))
         try{for(let i=0;i<rows.length;i+=500){const batch=await api.getIngredientPriceQuotes(rows.slice(i,i+500));if(!current())return;Object.assign(this._quotes,batch)}}
-        catch(error){if(!current())return;if(error.statusCode===404)capabilities.markQuotesUnavailable();notice='参考价暂不可用；实际支出仍可单独记录'}
+        catch(error){if(!current())return;this._quotes={};if(error.statusCode===404)capabilities.markQuotesUnavailable();notice='参考价暂不可用；实际支出仍可单独记录'}
       }
       if(!current())return
       this.setData({expensesEnabled:config.expensesEnabled===true,priceNotice:notice});this.refreshPricing()
-    }catch(error){if(current())this.setData({priceNotice:'费用服务暂不可用，清单可继续使用'})}
+    }catch(error){if(current()){this._quotes={};this.setData({priceNotice:'费用服务暂不可用，清单可继续使用'});this.refreshPricing()}}
     finally{if(this.current(scope)&&run===this._priceEpoch)this.setData({priceLoading:false})}
   },
   onEditExpense(e) {const row=this.data.pricingRows.find(r=>r.ingredientKey===e.currentTarget.dataset.key);if(!row||!this.current(this._scope)||!this.data.expensesEnabled)return;this._expenseKey=row.ingredientKey;this._expenseVersion=this.data.version;this.setData({expenseVisible:true,expenseName:row.displayName,expenseAmount:row.expense?String(row.expense.amount):'',expenseChannel:row.channel||'',formError:''})},

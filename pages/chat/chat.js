@@ -135,7 +135,8 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
       taskStage: state.taskStage || (session.task && session.task.status) || '', mode: state.mode || session.mode || '',
       howto: require('../../utils/recipe-steps').presentHowto(state.howto || session.howto),
       alternatives: state.alternatives || session.alternatives || [],
-      canUndo: !!(session.can_undo || state.plan_history && state.plan_history.length > 1),
+      // This retired API has no version-bound single-menu-undo declaration.
+      canUndo: false,
       actions: session.actions || [], errorMessage: '',
     })
     this.scrollToLatest()
@@ -199,7 +200,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
     }) })
     this.addMessage('assistant', result.reply || '我已经整理好一套方案。', { dishes: result.dishes || [] })
     this.stopStageAnimation()
-    this.setData({ sessionId: result.session_id || this.data.sessionId, task: result.task || null, taskStage: (result.task && result.task.status) || 'completed', mode: result.mode || '', plan: result.plan || null, howto: require('../../utils/recipe-steps').presentHowto(result.howto), alternatives: result.alternatives || [], canUndo: !!result.can_undo, actions: result.actions || [], loading: false, errorMessage: '' })
+    this.setData({ sessionId: result.session_id || this.data.sessionId, task: result.task || null, taskStage: (result.task && result.task.status) || 'completed', mode: result.mode || '', plan: result.plan || null, howto: require('../../utils/recipe-steps').presentHowto(result.howto), alternatives: result.alternatives || [], canUndo: false, actions: result.actions || [], loading: false, errorMessage: '' })
     if (result.task_id) this._activeTaskId = result.task_id
     if (result.session_id) wx.setStorageSync(this.sessionKey, result.session_id)
   },
@@ -237,6 +238,7 @@ Page(require('../../utils/config').ENABLE_MEAL_WORKSPACE ? require('../../utils/
   },
   onUndoPlan() { return this.planCommand('undo') },
   async planCommand(action, target = {}) {
+    if(action==='undo'&&!this.data.canUndo)return
     if (!this.data.sessionId || !this.data.plan || this.data.loading || this.data.pendingAction) return
     const context = this._contextVersion, scope = this.sessionKey, flow = require('../../utils/meal-workflow')
     const body = { action, plan_version: this.data.plan.version, ...(target.id ? { dish_id: target.id, date: target.date, meal_type: target.meal } : {}) }

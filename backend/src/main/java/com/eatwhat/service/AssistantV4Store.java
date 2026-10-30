@@ -159,7 +159,7 @@ public class AssistantV4Store {
                 if(Objects.equals(row.getWorkspaceId(),next.getWorkspaceId())&&next.getWorkspaceRevision()!=null&&next.getPlanVersion()!=null&&next.getWorkspaceRevision()>=0&&next.getPlanVersion()>=0
                         &&(old==null||((old.getWorkspaceRevision()==null||next.getWorkspaceRevision()>=old.getWorkspaceRevision())&&(old.getPlanVersion()==null||next.getPlanVersion()>=old.getPlanVersion()))))result.setWorkspaceRef(copy(next,WorkspaceRef.class));
             }
-            result.setReply(c.getCursor()==c.getSteps().size()?"已完成":"已保存，正在准备下一步");return saveResult(row,row.getStatus(),row.getLeaseToken(),result,true);
+            result.setReply(AssistantActionReplyFormatter.completed(c,receipts,Collections.emptyMap()));return saveResult(row,row.getStatus(),row.getLeaseToken(),result,true);
         });
     }
     public TurnRecord acquireTurn(Long user,String id){return tx.execute(t->{lock(user);turnRecord(user,id);String lease=UUID.randomUUID().toString();long deadline=clock.millis()+30000;if(db.acquire(user,id,lease,deadline,deadline)!=1)throw conflict();return turnRecord(user,id);});}

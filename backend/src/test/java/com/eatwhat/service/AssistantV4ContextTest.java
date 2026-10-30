@@ -12,6 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AssistantV4ContextTest {
+    @Test void menu_undo_eligibility_is_an_explicit_authoritative_boolean_without_history(){
+        Fixture f=new Fixture();PlanDraft old=new PlanDraft();old.setDishes(Collections.singletonList(Fixture.dish(99,"旧菜单")));f.w.getDraft().getHistory().add(old);
+        ModelContext unavailable=f.service().build(7L,f.request,f.session);
+        assertEquals(false,unavailable.getActiveMeal().get("canUndo"));
+        assertFalse(unavailable.getActiveMeal().containsKey("history"));
+        f.w.getDraft().setCanUndo(true);ModelContext available=f.service().build(7L,f.request,f.session);
+        assertEquals(true,available.getActiveMeal().get("canUndo"));
+        assertTrue(f.json.valueToTree(available).path("activeMeal").path("canUndo").isBoolean());
+        assertFalse(f.json.valueToTree(available).toString().contains("旧菜单"));
+        f.w.getDraft().setCanUndo(false);
+        assertFalse(f.json.valueToTree(f.service().build(7L,f.request,f.session)).path("activeMeal").path("canUndo").booleanValue());
+    }
     @Test void negotiationMovesSavedTimeToSoftWithoutMutatingLegacyWorkspace(){
         Fixture f=new Fixture();f.preference.setMaxCookMinutes(20);AssistantV4ContextService service=f.service();ModelContext result=service.build(7L,f.request,f.session);
         assertEquals(20,((Map<?,?>)result.getConstraints().get("hard")).get("maxCookMinutes"));service.negotiateBalanced(7L,f.request,result);

@@ -42,11 +42,12 @@ def main():
     process=subprocess.Popen([str(binary),'--no-defaults',f'--datadir={data}','--bind-address=127.0.0.1',f'--port={port}',f'--log-error={out / "mysql.log"}','--mysqlx=OFF','--default-time-zone=+08:00'],creationflags=flags)
     connection=None
     try:
+        last_error=None
         for _ in range(100):
             if process.poll() is not None:break
-            try:connection=pymysql.connect(host='127.0.0.1',port=port,user='root',password='',charset='utf8mb4',autocommit=True,cursorclass=pymysql.cursors.DictCursor);break
-            except pymysql.Error:time.sleep(.2)
-        if not connection:raise RuntimeError('Owned MySQL failed to start')
+            try:connection=pymysql.connect(host='127.0.0.1',port=port,user='root',password='',connect_timeout=1,charset='utf8mb4',autocommit=True,cursorclass=pymysql.cursors.DictCursor);break
+            except pymysql.Error as error:last_error=error;time.sleep(.2)
+        if not connection:raise RuntimeError(f'Owned MySQL unavailable (process exit={process.poll()}, connection={last_error})')
         password=secrets.token_urlsafe(24);database='eatwhat_v4_test_'+secrets.token_hex(5)
         with connection.cursor() as c:
             c.execute("ALTER USER 'root'@'localhost' IDENTIFIED BY %s",(password,));c.execute(f'CREATE DATABASE `{database}` CHARACTER SET utf8mb4');c.execute(f'USE `{database}`')

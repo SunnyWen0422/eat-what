@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class RecipeRecordService {
+    private HistoricalRecipeNutritionService historicalNutrition;
+    @org.springframework.beans.factory.annotation.Autowired public void setHistoricalNutrition(HistoricalRecipeNutritionService service){historicalNutrition=service;}
     private DishQualityService quality;
     @org.springframework.beans.factory.annotation.Autowired public void setQuality(DishQualityService q){quality=q;}
     private Dish enrich(Dish dish){return quality==null?dish:quality.enrich(dish);}
@@ -65,8 +67,14 @@ public class RecipeRecordService {
      * 获取指定日期的菜谱记录，并填充菜品名称
      * @param dateString 日期字符串，格式 "yyyy-MM-dd"
      */
+    @Transactional(readOnly=true)
     public List<RecipeRecord> getRecordsByDate(Long userId, String dateString) {
         List<RecipeRecord> records = recipeRecordMapper.selectByUserAndDate(userId, dateString);
+        if(historicalNutrition!=null){
+            List<RecipeRecord> views=historicalNutrition.displayRecords(userId,records);
+            for(RecipeRecord record:views)record.setDishNames(record.getDishDetails().stream().map(Dish::getName).filter(Objects::nonNull).collect(Collectors.joining(",")));
+            return views;
+        }
 
         // 收集所有dishIds，批量查询food表获取菜名
         Set<Long> allDishIds = new HashSet<>();

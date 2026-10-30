@@ -58,7 +58,7 @@ public class CalendarAssistantToolAdapter implements AssistantCapabilityService.
  @SuppressWarnings("unchecked") public String summary(Map<String,Object> b){
   String names=((List<Map<String,Object>>)b.get("dishes")).stream().map(d->String.valueOf(d.get("name"))).collect(Collectors.joining("、"));
   Map<String,Object> old=(Map<String,Object>)b.get("replacedPlan");
-  return "保存 "+b.get("targetDate")+" "+label((String)b.get("targetMealType"))+"，"+b.get("people")+" 人："+names+"。"+(old==null?"当前没有已保存安排。":"将替换原安排："+old.get("recipeName")+"。")+"保存计划不计入实际用餐。";
+  return "保存 "+b.get("targetDate")+" "+label((String)b.get("targetMealType"))+"，"+b.get("people")+" 人："+names+"。"+(old==null?"当前没有已保存安排。":"将替换原安排："+old.get("recipeName")+"。")+"保存即记录，未来菜单到对应日期计入饮食回顾。";
  }
  public Map<String,Object> execute(Long user,ControlledToolTask task,ControlledToolTask.Step step,int index){
   String parent=(String)step.binding.get("parentTurnId"),stepId=(String)step.binding.get("continuationStepId");
@@ -79,12 +79,12 @@ public class CalendarAssistantToolAdapter implements AssistantCapabilityService.
   receipt.setSourceWorkspaceId(saved.getId());receipt.setSourcePlanVersion(number(step.binding,"planVersion"));receipt.setSourceWorkspaceRevision(number(step.binding,"workspaceRevision"));receipt.setSourceDate((String)step.binding.get("sourceDate"));receipt.setSourceMealType((String)step.binding.get("sourceMealType"));receipt.setSourceContentHash((String)step.binding.get("sourceContentHash"));
   receipt.setTargetDate((String)saved.getConfirmation().get("date"));receipt.setTargetMealType((String)saved.getConfirmation().get("mealType"));receipt.setTargetPlanRevision(number(saved.getConfirmation(),"planRevision"));receipt.setReceiptRef("calendar:"+request.getRequestId());
   Card card=new Card();card.setId(task.id);card.setType("receipt");card.setTitle("安排已保存");card.setText(receipt.getTargetDate()+" "+label(receipt.getTargetMealType())+"，"+saved.getContext().getPeople()+" 人");card.setReceiptRef(receipt.getReceiptRef());card.setWorkspaceRef(WorkspaceAssistantToolAdapter.reference(saved));
-  card.setData(facts(step.binding));card.getData().put("planRevision",receipt.getTargetPlanRevision());card.getData().put("workspaceRevision",saved.getRevision());card.getData().put("countsAsActual",false);
+  card.setData(facts(step.binding));card.getData().put("planRevision",receipt.getTargetPlanRevision());card.getData().put("workspaceRevision",saved.getRevision());card.getData().put("reviewBasis","calendar_records");card.getData().put("reviewFromDate",receipt.getTargetDate());
   if(receipt.getParentTurnId()!=null)store.completeWorkflowStep(user,receipt.getParentTurnId(),receipt.getContinuationStepId(),receipt.getReceiptRef(),card);
-  Map<String,Object> result=json.convertValue(receipt,Map.class);result.put("executed",true);result.put("countsAsActual",false);result.put("card",json.convertValue(card,Map.class));return result;
+  Map<String,Object> result=json.convertValue(receipt,Map.class);result.put("executed",true);result.put("reviewBasis","calendar_records");result.put("reviewFromDate",receipt.getTargetDate());result.put("card",json.convertValue(card,Map.class));return result;
  }
  public void afterCommit(Long user,ControlledToolTask task,ControlledToolTask.Step step){
-  Map<String,Object> fields=new LinkedHashMap<>(step.result);fields.remove("executed");fields.remove("countsAsActual");fields.remove("card");CalendarSavedReceipt receipt=json.convertValue(fields,CalendarSavedReceipt.class);
+  Map<String,Object> fields=new LinkedHashMap<>(step.result);fields.remove("executed");fields.remove("countsAsActual");fields.remove("reviewBasis");fields.remove("reviewFromDate");fields.remove("card");CalendarSavedReceipt receipt=json.convertValue(fields,CalendarSavedReceipt.class);
   listeners.orderedStream().forEach(listener->listener.afterSaved(user,receipt));
   if(receipt.getParentTurnId()!=null){
    try{if("awaiting_confirmation".equals(store.turnRecord(user,receipt.getParentTurnId()).getStatus())){AssistantV4TurnService turns=runner.getIfAvailable();if(turns!=null)turns.resumeWorkflow(user,receipt.getParentTurnId());}}

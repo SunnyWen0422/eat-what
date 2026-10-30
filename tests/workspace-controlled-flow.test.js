@@ -46,7 +46,7 @@ test('dirty workspace cannot begin a controlled write and cancel never confirms'
   assert.equal(page.data.busy,false)
 })
 
-test('unknown task remains visible after reentry and recovery never creates another preview', async t => {
+test('removed composite entry stays hidden after reentry and explicit recovery never creates another preview', async t => {
   const f=setup(), page=f.createPage(); t.after(()=>page.onUnload())
   await page.initializeWorkspace(target)
   assert.equal(typeof page.onSaveAndReview,'function')
@@ -54,8 +54,8 @@ test('unknown task remains visible after reentry and recovery never creates anot
   await page.onSaveAndReview()
   assert.equal(page.data.harnessStatus,'unknown')
   await page.initializeWorkspace(target)
-  assert.equal(page.data.harnessStatus,'unknown')
-  assert.equal(page.data.harnessRetryable,true)
+  assert.equal(page.data.harnessStatus,'idle')
+  assert.equal(page.data.harnessRetryable,false)
   page.data.canConfirm=false
   await page.onRecoverControlledTask()
   assert.equal(page.data.harnessStatus,'completed')

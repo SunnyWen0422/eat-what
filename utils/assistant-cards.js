@@ -8,7 +8,7 @@ function conversationBlocksMenu(state={}) {
 function presentMenuActions({card,workspace,conversationState={},workspaceState={}}={}) {
  const data=card && card.data || {},source=card && card.workspaceRef
  const expectedRef=source?{workspaceId:source.workspaceId,workspaceRevision:source.workspaceRevision,planVersion:source.planVersion,date:source.date || data.date,mealType:source.mealType || data.mealType}:null
- const exact=card && card.type==='menu' && require('./meal-workspace').matchesWorkspaceReference(expectedRef,workspace,workspaceState.context || workspace && workspace.context) && data.date===expectedRef.date && data.mealType===expectedRef.mealType
+ const exact=card && card.type==='menu' && require('./meal-record-view').workspaceRepresentsRecord({...workspaceState,workspace}) && require('./meal-workspace').matchesWorkspaceReference(expectedRef,workspace,workspaceState.context || workspace && workspace.context) && data.date===expectedRef.date && data.mealType===expectedRef.mealType
  const enabled=!!exact && !conversationBlocksMenu(conversationState) && !workspaceState.pending && !['loading','saving','unknown','offline','conflict','account_changed'].includes(workspaceState.syncStatus) && !workspaceState.busy && workspace.status!=='generating'
  const dishes=workspace && workspace.draft && workspace.draft.dishes || [],locks=workspace && workspace.draft && workspace.draft.lockedDishIds || []
  const rows=(Array.isArray(data.dishes)?data.dishes:[]).flatMap(dish=>{
@@ -23,9 +23,12 @@ function presentMenuActions({card,workspace,conversationState={},workspaceState=
   expectedRef.date===(workspace.context&&workspace.context.date)&&expectedRef.mealType===(workspace.context&&workspace.context.mealType)
  const adopted=!!sameMenu&&!!receipt&&receipt.planVersion===expectedRef.planVersion&&receipt.date===expectedRef.date&&receipt.mealType===expectedRef.mealType&&
   (!workspaceState.linked||workspaceState.linked.planRevision===receipt.planRevision)
- const hasHistory=!!(workspace&&workspace.draft&&Array.isArray(workspace.draft.history)&&workspace.draft.history.length)
+ const undoEligible=require('./menu-undo').canUndoMenu(workspace)
+ // The synthetic current-menu projection has a placeholder false; only that view reads live eligibility.
+ // A configuration reply never inherits an earlier menu checkpoint from the shared workspace.
+ const cardAllowsUndo=data.changeKind!=='configuration'&&((card&&card.id==='current-menu')||data.canUndo!==false)
  return {enabled,rows,expectedRef,current:!!exact,showCurrent:!!card&&card.type==='menu'&&!exact,
-  canUndo:!!writable&&hasHistory,canAdopt:!!writable&&dishes.length>0&&!adopted,adopted}
+  canUndo:!!writable&&undoEligible&&cardAllowsUndo,canAdopt:!!writable&&dishes.length>0&&!adopted,adopted}
 }
 function clarificationOptions(card,now=Date.now()){
  const data=card.data||{},options=data.authorizedOptions,ref=card.workspaceRef
@@ -49,6 +52,6 @@ function presentCard(card={}, now=Date.now()) {
  let url='',actionLabel=''
  if(shoppingReceipt){url='/pages/shopping-list/shopping-list';actionLabel='查看清单'}
  else if(receipt && (type==='calendar_save' || data.action==='calendar_save' || (type==='receipt'&&date&&meal)) && date&&meal){url=`/pages/calendar-detail/calendar-detail?date=${date}&mealType=${meal}`;actionLabel='查看日历'}
- return {choices,canClarify:choices.length>0,canHandoff:type==='handoff'&&Number(card.expiresAt)>now&&!!require('./assistant-action-handoff').validate(data),id:card.id,type,title:safeText(card.title)||({menu:'本餐菜单',recipe:'菜谱做法',calendar_save:'保存到日历',shopping_preview:'准备食材',receipt:'已完成',clarification:'一起确认一下'}[type] || '这一餐'),text:safeText(card.text),targetLabel:date&&meal?`${date} ${meals[meal]}`:'',peopleLabel:Number.isInteger(data.people)&&data.people>0?`${data.people}人`:'',rows,facts,canSelect:data.executionMode!=='direct'&&write&&type==='shopping_preview'&&!receipt&&!!card.taskId&&!!card.previewToken&&rows.every(r=>r.sourceKey),canConfirm:data.executionMode!=='direct'&&write&&!receipt&&!!card.taskId&&!!card.previewToken&&Number(card.expiresAt)>now,canUndo:type==='menu'&&!!card.workspaceRef&&data.canUndo===true,url,actionLabel,expired:write&&!receipt&&!!card.previewToken&&Number(card.expiresAt)<=now}
+ return {choices,canClarify:choices.length>0,canHandoff:type==='handoff'&&Number(card.expiresAt)>now&&!!require('./assistant-action-handoff').validate(data),id:card.id,type,title:safeText(card.title)||({menu:'本餐菜单',recipe:'菜谱做法',calendar_save:'保存到日历',shopping_preview:'准备食材',receipt:'已完成',clarification:'一起确认一下'}[type] || '这一餐'),text:safeText(card.text),targetLabel:date&&meal?`${date} ${meals[meal]}`:'',peopleLabel:Number.isInteger(data.people)&&data.people>0?`${data.people}人`:'',rows,facts,canSelect:data.executionMode!=='direct'&&write&&type==='shopping_preview'&&!receipt&&!!card.taskId&&!!card.previewToken&&rows.every(r=>r.sourceKey),canConfirm:data.executionMode!=='direct'&&write&&!receipt&&!!card.taskId&&!!card.previewToken&&Number(card.expiresAt)>now,canUndo:type==='menu'&&!!card.workspaceRef&&data.canUndo===true&&data.changeKind!=='configuration',url,actionLabel,expired:write&&!receipt&&!!card.previewToken&&Number(card.expiresAt)<=now}
 }
 module.exports={presentCard,presentMenuActions,conversationBlocksMenu,safeText,clarificationOptions}

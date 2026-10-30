@@ -66,12 +66,12 @@ class WorkspaceTargetSaveTest {
         assertFalse(f.slots.containsKey("2026-12-31|dinner"));assertEquals("2026-12-31",saved.getContext().getDate());assertEquals("dinner",saved.getContext().getMealType());
         assertEquals("2027-01-01",saved.getConfirmation().get("date"));assertEquals("lunch",saved.getConfirmation().get("mealType"));assertEquals(3L,saved.getConfirmation().get("planVersion"));
         verify(f.db,never()).slot(anyLong(),anyString(),anyString());verify(f.actual,never()).find(anyLong(),anyString(),anyString());
-        verify(f.validator).lockAndValidate(eq(1L),any(MealWorkspace.class),eq(Collections.singletonList(7L)));verify(f.validator,never()).generate(anyLong(),any(),anyString(),any(),anyList());assertEquals(1,f.commits);
+        verify(f.validator).lockMenuForSave(eq(1L),any(MealWorkspace.class),eq(Collections.singletonList(7L)));verify(f.validator,never()).generate(anyLong(),any(),anyString(),any(),anyList());assertEquals(1,f.commits);
     }
     @Test void targetRevisionIsCheckedIncludingDeletedSlotsBeforeAnyWrite() throws Exception {
         Fixture f=new Fixture();RecipeRecord existing=new RecipeRecord();existing.setRevision(6L);existing.setIsDeleted(true);f.slots.put("2027-01-01|lunch",existing);
         WorkspaceRequest request=f.request("2027-01-01","lunch");assertThrows(MealConsumptionService.VersionConflict.class,()->f.save(request));
-        verify(f.plans,never()).insert(any());verify(f.validator,never()).lockAndValidate(anyLong(),any(),anyList());
+        verify(f.plans,never()).insert(any());verify(f.validator,never()).lockMenuForSave(anyLong(),any(),anyList());
         request.setExpectedPlanRevision(6L);MealWorkspace saved=f.save(request);assertEquals(7L,saved.getConfirmation().get("planRevision"));
     }
     @Test void replayUsesOriginalRequestAndDifferentTargetCannotReuseTheIdentifier() throws Exception {
@@ -95,7 +95,7 @@ class WorkspaceTargetSaveTest {
     }
     @Test void unavailableDishPermissionAndHardRestrictionStillRejectAtWriteBoundary() throws Exception {
         for(RuntimeException rejection:Arrays.asList(new MealConsumptionService.VersionConflict("菜已删除"),new MealConsumptionService.VersionConflict("权限已失效"),new IllegalArgumentException("长期忌口"))) {
-            Fixture f=new Fixture();String before=f.sourceJson;when(f.validator.lockAndValidate(eq(1L),any(),anyList())).thenThrow(rejection);
+            Fixture f=new Fixture();String before=f.sourceJson;when(f.validator.lockMenuForSave(eq(1L),any(),anyList())).thenThrow(rejection);
             assertSame(rejection,assertThrows(RuntimeException.class,()->f.save(f.request("2027-01-01","lunch"))));assertTrue(f.slots.isEmpty());assertEquals(before,f.sourceJson);verify(f.plans,never()).insert(any());assertEquals(1,f.rollbacks);
         }
     }

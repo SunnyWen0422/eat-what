@@ -17,6 +17,8 @@ PATHS = {
     "close": 'M6 6l12 12 M18 6 6 18',
     "more": 'M4 12h.1 M12 12h.1 M20 12h.1',
     "search": 'M3 10a7 7 0 1 0 14 0a7 7 0 1 0-14 0 M15 15l6 6',
+    "microphone": 'M9 6a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0z M5 10v2a7 7 0 0 0 14 0v-2 M12 19v3 M8 22h8',
+    "stop": 'M6 6h12v12H6z',
     "filter": 'M4 6h16 M7 12h10 M10 18h4',
     "add": 'M12 4v16 M4 12h16',
     "edit": 'M16 4l4 4 M4 20l2-6L17 3l4 4-11 11z M4 20h7',

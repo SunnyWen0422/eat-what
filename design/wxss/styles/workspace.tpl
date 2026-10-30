@@ -16,11 +16,11 @@
 @supports (-webkit-background-clip:text) {
   .workspace-assistant-label { background-image:linear-gradient(105deg,#256C59 0%,#48629A 38%,#82549C 66%,#8D5837 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 }
-.workspace-assistant-pressed .workspace-assistant-face { opacity:.76; }
+.workspace-assistant-pressed .workspace-assistant-face { transform:translateY(1px); }
 .workspace-screen button.workspace-assistant[disabled] { color:{{muted}}; }
-.workspace-assistant[disabled] .workspace-assistant-face { background:{{brandSoft}}; border-color:{{border}}; box-shadow:none; opacity:.65; }
+.workspace-assistant[disabled] .workspace-assistant-face { background:{{disabled}}; border-color:{{border}}; box-shadow:none; opacity:1; }
 .workspace-assistant[disabled] .workspace-assistant-label { background-image:none; color:{{muted}}; -webkit-text-fill-color:{{muted}}; }
-.workspace-menu-picker { display:block; width:100%; }
+.workspace-menu-picker { display:block; width:100%; min-width:{{controls.touchSize.px}}; min-height:{{controls.touchSize.px}}; }
 .workspace-meals { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:4px 0; }
 .workspace-meals .workspace-meal { flex:0 0 auto; width:auto; min-width:60px; min-height:44px; padding:8px 14px; margin:0; border:0; border-radius:24px; background:{{brandSoft}}; color:{{brand}}; font-size:{{font.secondary.em}}; font-weight:400; line-height:1.5; box-sizing:border-box; }
 .workspace-meal.is-active { background:{{brand}}; color:{{card}}; font-weight:500; }

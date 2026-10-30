@@ -9,13 +9,16 @@ import java.util.*;
 
 @Component
 public class DietReviewCalculator {
+    private HistoricalRecipeNutritionService historicalNutrition;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setHistoricalNutrition(HistoricalRecipeNutritionService service){historicalNutrition=service;}
     private final ObjectMapper json;
     public DietReviewCalculator(ObjectMapper json) {
         this.json = json;
     }
     public Map<String,Object> report(Long userId, List<MealConsumption> meals, List<RecipeRecord> plans,
                                      LocalDate start, LocalDate end, java.time.Instant generatedAt) {
-        return new DietReviewReport(json, this).build(userId, meals, plans, start, end, generatedAt);
+        return new DietReviewReport(json, this, historicalNutrition).build(userId, meals, plans, start, end, generatedAt);
     }
     public Map<String,Object> calculate(List<MealConsumption> meals,List<RecipeRecord> plans,LocalDate today) {
         Set<String> days = new TreeSet<>();
@@ -67,7 +70,7 @@ public class DietReviewCalculator {
         result.put("categories",categories);
         result.put("popularDishes",ranking);
         result.put("dailyMeals",daily);
-        result.put("description","按已保存的餐次记录汇总；未来菜单到对应日期计入。配方营养参考不代表个人实际摄入。");
+        result.put("description","按已保存的餐次记录汇总；未来菜单到对应日期计入。主料营养参考不含调味料和辅料，不代表整道菜总营养或个人实际摄入。");
         return result;
     }
 }

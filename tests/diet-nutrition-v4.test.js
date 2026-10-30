@@ -15,7 +15,7 @@ test('energy is rounded to an integer for display while calculation values are p
 test('partial coverage labels the known part without replacing unknown values with zero',()=>{
  const view=presentNutritionReference(nutrition())
  assert.equal(view.label,'已知部分');assert.equal(view.coverage,'已覆盖 2/3 道');assert.equal(view.rows.find(row=>row.key==='energyKcal').value,'420')
- assert.equal(view.rows.find(row=>row.key==='fiberG').value,'0');assert.match(view.note,/不代表个人实际摄入/)
+ assert.equal(view.rows.find(row=>row.key==='fiberG').value,'0');assert.equal(view.note,'仅参考')
  const missing=presentNutritionReference(nutrition({coveredCount:0,unknownCount:3,knownTotal:null}))
  assert.equal(missing.rows.length,0);assert.equal(missing.coverage,'已覆盖 0/3 道');assert.equal(missing.available,false)
 })

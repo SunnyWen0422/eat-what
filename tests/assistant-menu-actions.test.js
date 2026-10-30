@@ -7,6 +7,15 @@ const {presentMenuActions}=require('../utils/assistant-cards')
 
 async function setup(t){
  const f=fixture(),page=assistantPage(f.createPage('assistant'),{api:f.api,platform:f.wx})
+ const command=f.api.commandMealWorkspace
+ f.api.commandMealWorkspace=async(id,body)=>{
+  const checkpoint=plain(f.row().draft.history&&f.row().draft.history[0]),result=await command(id,body)
+  if(body.command==='undo'){
+   const current=f.row();current.draft={...current.draft,dishes:checkpoint.dishes,history:[],canUndo:false}
+   return plain(current)
+  }
+  return result
+ }
  page.setData=(data,cb)=>{Object.assign(page.data,data);if(cb)cb()}
  page._assistantAlive=true;page._alive=true;page._assistantVisible=false
  await page.initializeWorkspace(target)
@@ -26,13 +35,33 @@ test('view opens the current menu independently of the settings panel',async t=>
  assert.equal(f.page.data.conversationScrollTarget,'conversation-current-menu')
  assert.equal(f.state.input,'未发送的想法')
 })
-test('current menu has a visible undo action based on real history, independent of latest dialogue',async t=>{
+test('current menu exposes server-qualified single menu undo independently of latest dialogue',async t=>{
  const f=await setup(t),w=f.row()
  w.draft.history=[{dishes:[{id:8,name:'番茄炒蛋'}]}]
+ w.draft.canUndo=true
  await f.page.store.reloadLatest();f.page.renderWorkspace()
  assert.equal(f.page.data.conversationCurrentMenu.menuActions.canUndo,true)
  await f.action('undo')
  assert.equal(f.calls.filter(c=>c.type==='command'&&c.body.command==='undo').length,1)
+ assert.equal(f.page.data.conversationCurrentMenu.menuActions.canUndo,false)
+ await f.action('undo');assert.equal(f.calls.filter(c=>c.type==='command'&&c.body.command==='undo').length,1)
+})
+
+test('configuration reply hides and refuses undo while the current menu can restore its earlier dish change',async t=>{
+ const f=await setup(t),w=f.row()
+ w.draft.history=[{dishes:[{id:8,name:'番茄炒蛋'}]}];w.draft.canUndo=true
+ const card={id:'configuration-reply',type:'menu',workspaceRef:workspaceReference(w),data:{...target,dishes:plain(w.draft.dishes),changeKind:'configuration',canUndo:false}}
+ f.state.messages=[{id:'configuration-message',role:'assistant',cards:[card]}]
+ f.page.data.conversationMessages=plain(f.state.messages)
+ await f.page.store.reloadLatest();f.page.renderWorkspace()
+ assert.equal(f.page.data.conversationMessages[0].cards[0].menuActions.canUndo,false)
+ assert.equal(f.page.data.conversationCurrentMenu.menuActions.canUndo,true)
+ await f.action('undo',card.id,card.workspaceRef)
+ assert.equal(f.calls.length,0)
+ await f.action('undo')
+ assert.equal(f.calls.filter(c=>c.type==='command'&&c.body.command==='undo').length,1)
+ assert.equal(f.page.data.conversationCurrentMenu.menuActions.canUndo,false)
+ assert.equal(f.state.input,'未发送的想法')
 })
 test('adopt saves exactly this meal once and marks the matching receipt adopted',async t=>{
  const f=await setup(t)
@@ -54,11 +83,67 @@ test('replacement of an existing calendar meal is explicit and cancellation writ
  f.wx.showModal=options=>{prompt=options;options.success({confirm:false})}
  await f.action('adopt')
  assert.equal(prompt.confirmText,'采用');assert.equal(prompt.cancelText,'取消')
+ assert.match(prompt.content,/晚餐/);assert.doesNotMatch(prompt.content,/undefined/)
  assert.equal(f.calls.length,0);assert.deepEqual(f.plans.get(f.row().id).dishIds,[9])
  f.wx.showModal=options=>options.success({confirm:true})
  await f.action('adopt')
  assert.equal(f.calls.filter(c=>c.type==='confirm').length,1)
  assert.equal(f.calls[0].body.expectedPlanRevision,4)
+})
+
+test('assistant current menu uses the latest saved record and blocks the old draft actions',async t=>{
+ const f=await setup(t),row=f.row(),old=f.page.data.conversationCurrentMenu
+ row.status='planned';row.confirmation={...target,planVersion:1,planRevision:2}
+ row.draft.history=[{dishes:[{id:8,name:'更旧的菜单'}]}]
+ f.plans.set(row.id,{revision:8,targetPeople:4,dishIds:[9],dishDetails:[{id:9,name:'日历改成的汤',type:'soup'}]})
+ f.state.messages=[{id:'old-message',role:'assistant',cards:[{...old,id:'old-card'}]}]
+ f.page.data.conversationMessages=plain(f.state.messages)
+ await f.page.store.load(target.date,target.mealType);f.page.renderWorkspace();await f.action('current')
+ const live=f.page.data.conversationCurrentMenu
+ assert.equal(live.data.dishes[0].name,'日历改成的汤');assert.equal(live.data.people,4)
+ assert.equal(live.menuActions.canAdopt,false);assert.equal(live.menuActions.canUndo,false)
+ assert.equal(f.page.data.conversationMessages[0].cards[0].menuActions.enabled,false)
+ await f.action('adopt','old-card',old.workspaceRef);await f.action('undo','old-card',old.workspaceRef)
+ assert.equal(f.calls.length,0)
+})
+
+test('assistant can view a saved meal even when there is no generated workspace',async t=>{
+ const f=await setup(t)
+ const plan={revision:3,targetPeople:3,dishIds:[9],dishDetails:[{id:9,name:'手动保存的面',type:'staple'}]}
+ const fresh={...target,mealType:'lunch'}
+ f.api.getMealWorkspace=async()=>({workspace:null,plan,planRevision:3})
+ await f.page.initializeWorkspace(fresh);f.page.renderWorkspace();f.page.onConversationCurrentMenu()
+ const live=f.page.data.conversationCurrentMenu
+ assert.ok(live);assert.equal(live.data.dishes[0].name,'手动保存的面');assert.equal(live.data.people,3)
+ assert.equal(live.menuActions.canAdopt,false);assert.equal(f.calls.length,0)
+})
+
+test('matched adopted menu undo changes only dishes and preserves current people without a settings write',async t=>{
+ const f=await setup(t),row=f.row()
+ row.context.people=4;row.status='planned';row.confirmation={...target,planVersion:1,planRevision:2}
+ row.draft.history=[{dishes:[{id:8,name:'旧菜'}],contextSnapshot:{...row.context,people:2}}]
+ row.draft.canUndo=true
+ f.plans.set(row.id,{revision:2,targetPeople:4,dishIds:[7],dishDetails:plain(row.draft.dishes)})
+ await f.page.store.reloadLatest();f.page.renderWorkspace()
+ assert.equal(f.page.data.conversationCurrentMenu.menuActions.canUndo,true)
+ await f.action('undo')
+ assert.deepEqual(f.calls.map(c=>c.type),['command'])
+ assert.equal(f.page.store.state().workspace.context.people,4)
+ assert.equal(f.page.store.state().context.people,4);assert.equal(f.page.data.context.people,4)
+ assert.equal(f.plans.get(row.id).targetPeople,4)
+})
+
+test('an adopted draft superseded during the pre-adoption read cannot overwrite the new record',async t=>{
+ const f=await setup(t),row=f.row()
+ row.status='planned';row.confirmation={...target,planVersion:1,planRevision:2}
+ await f.page.store.reloadLatest();f.page.renderWorkspace()
+ f.plans.set(row.id,{revision:4,targetPeople:4,dishIds:[9],dishDetails:[{id:9,name:'另一处保存的汤',type:'soup'}]})
+ let prompts=0
+ f.wx.showModal=options=>{prompts++;options.success({confirm:true})}
+ await f.action('adopt')
+ assert.equal(f.calls.length,0);assert.equal(prompts,0)
+ assert.equal(f.page.data.conversationCurrentMenu.data.dishes[0].name,'另一处保存的汤')
+ assert.equal(f.plans.get(row.id).revision,4)
 })
 test('double tap during adoption makes one write',async t=>{
  const f=await setup(t),hold=deferred(),started=deferred(),confirm=f.api.confirmMealWorkspace

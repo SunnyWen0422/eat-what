@@ -59,39 +59,57 @@ function createPreferenceStore(dependencies = {}) {
   const wxRuntime = dependencies.wx || wx
   const cacheKey = () => getUserStorageKey('userPreferencesV2')
   const legacyKey = () => getUserStorageKey('userPreferences')
+  const pendingKey = (key = cacheKey()) => key + ':pending'
+
+  function readPending(key = cacheKey()) {
+    const saved = wxRuntime.getStorageSync(pendingKey(key))
+    return saved && saved.id && saved.preferences ? saved : null
+  }
 
   function readCache() {
-    return normalizePreferences(wxRuntime.getStorageSync(cacheKey()) || defaultPreferences())
+    const pending = readPending()
+    return normalizePreferences(pending ? pending.preferences : wxRuntime.getStorageSync(cacheKey()) || defaultPreferences())
   }
 
   function writeCache(value, key = cacheKey()) {
     const normalized = normalizePreferences(value)
     wxRuntime.setStorageSync(key, normalized)
+    const generation = Number(wxRuntime.getStorageSync(key + ':generation')) || 0
+    wxRuntime.setStorageSync(key + ':generation', generation + 1)
     return normalized
   }
 
   async function load() {
     const key = cacheKey()
+    const before = wxRuntime.getStorageSync(key + ':generation')
     try {
       const result = await backend.getUserPreferences()
       if (key !== cacheKey()) return { preferences: readCache(), synced: false, accountChanged: true }
+      if (readPending(key)) return { preferences: readCache(), synced: false, pending: true }
+      // A save or a newer read may have completed while this read was in flight.
+      if (before !== wxRuntime.getStorageSync(key + ':generation')) return { preferences: readCache(), synced: false, superseded: true }
       const preferences = writeCache((result && result.preferences) || result || defaultPreferences(), key)
       return { preferences, synced: true }
     } catch (error) {
-      return { preferences: readCache(), synced: false, error }
+      return { preferences: readCache(), synced: false, pending: !!readPending(), error, accountChanged: key !== cacheKey() }
     }
   }
 
   async function save(value) {
     const key = cacheKey()
-    const pending = writeCache(value, key)
+    const pending = normalizePreferences(value)
+    const operation = { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, preferences: pending }
+    wxRuntime.setStorageSync(pendingKey(key), operation)
+    writeCache(pending, key)
     try {
       const result = await backend.updateUserPreferences(pending)
       if (key !== cacheKey()) return { preferences: readCache(), synced: false, accountChanged: true }
+      if ((readPending(key) || {}).id !== operation.id) return { preferences: readCache(), synced: false, pending: !!readPending(key), superseded: true }
       const preferences = writeCache((result && result.preferences) || pending, key)
+      wxRuntime.removeStorageSync(pendingKey(key))
       return { preferences, synced: true }
     } catch (error) {
-      return { preferences: pending, synced: false, error, accountChanged: key !== cacheKey() }
+      return { preferences: readCache(), synced: false, pending: !!readPending(), error, accountChanged: key !== cacheKey() }
     }
   }
 

@@ -2,7 +2,7 @@ const {validateMealTarget}=require('./meal-save-target')
 const {mealSourceUrl}=require('./meal-next-step')
 const same=(a,b)=>!!a&&!!b&&a.date===b.date&&a.mealType===b.mealType
 const targetOf=value=>{try{return validateMealTarget(value)}catch(_){return null}}
-function deriveMealJourney({workspace={},plan,actual,shoppingSources=[],pendingReceipts=[],syncStatus,busy=false,dirty=false,canConfirm,savedTarget,saveState}={}){
+function deriveMealJourney({workspace={},plan,actual,shoppingSources=[],pendingReceipts=[],syncStatus,busy=false,dirty=false,canConfirm,savedTarget,saveState,saveRecoveryPending=false}={}){
  const context=workspace.context||{},target=targetOf(context),draft=workspace.draft||{},status=workspace.status
  const relevant=pendingReceipts.filter(p=>p&&same(p.target,target))
  const unknown=relevant.find(p=>p.state==='unknown')
@@ -10,19 +10,19 @@ function deriveMealJourney({workspace={},plan,actual,shoppingSources=[],pendingR
  if(unknown||['unknown','offline'].includes(syncStatus)){
   recovery=unknown||{kind:'workspace',state:'unknown',label:'核对原请求',target}
   primary={action:recovery.kind==='workspace'?'onRetryWorkspace':'onRecoverJourney',label:recovery.label||'核对并重试同步',target}
-  if(recovery.kind==='workspace')primary.label='核对并重试同步'
+  if(recovery.kind==='workspace')primary.label=saveRecoveryPending?'继续完成保存':'继续查看结果'
  }else if(syncStatus==='conflict'||relevant.some(p=>p.state==='conflict')){
   recovery=relevant.find(p=>p.state==='conflict')||{kind:'workspace',state:'conflict',label:'本餐已有更新',target};primary={action:recovery.kind==='workspace'?'onLoadLatest':'onRecoverJourney',label:'读取最新安排',target}
  }else if(busy||status==='generating'||relevant.some(p=>p.state==='busy')){
   recovery=relevant.find(p=>p.state==='busy')||{kind:'workspace',state:'busy',label:'正在处理本餐',target};primary={action:recovery.kind!=='workspace'?'onRecoverJourney':'onCancelTask',label:recovery.kind!=='workspace'?'查看正在处理的请求':status==='generating'?'停止本次安排':'正在处理',target}
- }else if(dirty||status==='needs_regeneration'){
-  recovery={kind:'workspace',state:'unapplied',label:'条件已修改',target}
-  const regenerate=status==='needs_regeneration'||draft.dishes&&draft.dishes.length
-  primary={action:regenerate?'onRegenerate':'onGenerate',label:regenerate?(context.compositionMode==='manual'?'按新搭配换一套':'按新条件换一套'):'生成本餐菜单',target}
+ }else if(dirty){
+  primary={action:draft.dishes&&draft.dishes.length?'onConfirmPlan':'onGenerate',label:draft.dishes&&draft.dishes.length?'保存到日历':'生成本餐菜单',target}
+ }else if(syncStatus==='unsynced'){
+  recovery={kind:'workspace',state:'refresh',label:'重新读取这餐',target};primary={action:'onRetryWorkspace',label:'重新读取这餐',target}
  }else if(relevant.some(p=>p.state==='confirmation')){
   recovery=relevant.find(p=>p.state==='confirmation');primary={action:'onRecoverJourney',label:'核对助手安排',target}
  }else if(status==='plan_changed')primary={action:'onViewPlan',label:'查看最新安排',target}
- else if(status==='draft'&&canConfirm)primary={action:'onConfirmPlan',label:'保存到日历',target}
+ else if(['draft','needs_regeneration'].includes(status)&&canConfirm)primary={action:'onConfirmPlan',label:'保存到日历',target}
  else if(saveState==='saved'&&targetOf(savedTarget)&&!same(savedTarget,target))primary={action:'onViewSavedMeal',label:'查看已保存的这餐',target:targetOf(savedTarget)}
  else if(status==='planned'&&plan)primary={action:'onViewRecipes',label:'开始做饭 · 本餐全部做法',target}
  else if(status==='needs_input')primary={action:'onOpenRequirements',label:'调整本餐要求',target}
@@ -61,7 +61,7 @@ function collectRecoveryPointers({storage,storageKey,assistantScope}){
    const value=storage.getStorageSync(key);if(!value||!(value.pending||value.renewal||value.confirmation&&value.confirmation.unknown))continue
    const target=workspaces.get(value.sessionBody&&value.sessionBody.workspaceId)||null,status=value.lastTurn&&value.lastTurn.status
    const unknown=value.renewal||value.confirmation&&value.confirmation.unknown||value.pending&&!value.pending.turnId
-   const state=unknown?'unknown':['queued','running'].includes(status)?'busy':status==='awaiting_confirmation'?'confirmation':'unknown'
+   const state=unknown?'unknown':require('./assistant-turn-state').isBusy(value.lastTurn)?'busy':status==='awaiting_confirmation'?'confirmation':'unknown'
    pointers.push({id:'assistant:'+String(value.sessionId||key.slice(assistantPrefix.length)),kind:'assistant',state,target,label:state==='confirmation'?'助手安排待确认':state==='busy'?'助手正在处理':'助手操作结果待核对',route:'/pages/assistant-history/assistant-history'})
   }
  }

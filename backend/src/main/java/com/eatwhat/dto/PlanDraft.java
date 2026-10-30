@@ -21,6 +21,9 @@ public class PlanDraft {
     private Map<String,Object> recommendationEvidence = new LinkedHashMap<>();
     private Integer totalCookMinutes;
     private List<PlanDraft> history = new ArrayList<>();
+    /** Authoritative single-step menu undo eligibility; configuration changes never grant it. */
+    private boolean canUndo;
+    private String changeKind = "none";
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Map<String, Set<String>> cycleAfterSelection;
 }

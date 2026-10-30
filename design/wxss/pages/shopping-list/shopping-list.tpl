@@ -75,6 +75,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 
 .shopping-costs { margin:12px 0 24px; padding:16px; border:1px solid {{border}}; border-radius:16px; background:{{card}}; }
 .cost-totals { display:flex; flex-wrap:wrap; gap:8px 16px; padding:8px 0; }
+.cost-coverage { display:block; color:{{muted}}; font-size:{{font.secondary.em}}; line-height:1.5; }
 .cost-row { display:flex; gap:8px; align-items:center; padding:12px 0; border-top:1px solid {{divider}}; }
 .cost-row .ew-grow { min-width:0; flex:1; overflow-wrap:anywhere; }
 .cost-row text { display:block; }
@@ -137,7 +138,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 /* Delete mode uses the existing header action slot, without an extra toolbar. */
 .shopping-page .shopping-clear-all { display:flex; align-items:center; justify-content:center; flex:0 0 auto; min-width:44px; min-height:44px; margin:0; padding:0 10px; border:0; border-radius:12px; background:{{dangerSoft}}; color:{{danger}}; font-size:.8125em; line-height:1.4; white-space:nowrap; }
 .shopping-clear-all::after { border:0; }
-.shopping-clear-all[disabled] { opacity:.4; }
+.shopping-page .shopping-clear-all[disabled] { background:{{disabled}}; color:{{muted}}; opacity:1; }
 
 .shopping-page > .shopping-header > view.shopping-title { flex:1 0 auto; white-space:nowrap; }
 .shopping-page > .shopping-header > .shopping-header-actions { margin-left:auto; }

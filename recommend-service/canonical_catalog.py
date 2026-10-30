@@ -155,7 +155,7 @@ def project_recipe(source: dict, definitions: dict, metadata: dict) -> dict:
     recipe.pop("provenance", None)
     if isinstance(recipe.get("calculatedNutrition"), dict):
         recipe["calculatedNutrition"] = {key: value for key, value in recipe["calculatedNutrition"].items()
-                                         if key in {"completeness", "total", "perServing", "perServingUnavailableReason"}}
+                                         if key in {"completeness", "total", "perServing", "perServingUnavailableReason", "scope", "ruleVersion", "description", "includedMainCount", "unavailableReason"}}
     steps = [step["text"] for step in recipe["steps"]]
     return {"id": recipe["id"], "name": recipe["name"], "type": menu_type(recipe["categoryCode"]),
             "catalogRevision": release, "catalogContractVersion": 4, "quantityPolicy": QUANTITY_POLICY, "recipe": recipe,

@@ -14,9 +14,43 @@ import urllib.parse
 import urllib.request
 from datetime import timedelta
 
-from assistant_v4_acceptance import Acceptance, MockCompletion, local_provider, require, uid
+from assistant_v4_acceptance import Acceptance as BaseAcceptance, MockCompletion, local_provider, require, uid
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class Acceptance(BaseAcceptance):
+    """Canonical client continuation; legacy confirmation acceptance keeps its own poll."""
+    def poll(self, user, turn_id):
+        deadline=time.monotonic()+40
+        resumed=set()
+        result=None
+        while time.monotonic()<deadline:
+            if result is None:
+                result=self.http('/assistant/v4/turns/'+turn_id,user=user)
+            require(isinstance(result,dict) and result.get('turnId')==turn_id,
+                    'Canonical assistant turn identity differs')
+            if result.get('status') in ('queued','running'):
+                result=None;time.sleep(.07);continue
+            continuation=result.get('continuation') or {}
+            steps=continuation.get('steps') or []
+            cursor=continuation.get('cursor')
+            normal_checkpoint=(result.get('status')=='awaiting_confirmation'
+                and result.get('pendingAction') is None
+                and isinstance(cursor,int) and not isinstance(cursor,bool)
+                and 0<=cursor<len(steps) and steps[cursor].get('status')=='pending'
+                and (not result.get('reply') or result.get('retryable') is False))
+            if not normal_checkpoint:
+                return result
+            # Resume the existing durable step, never resend the model question,
+            # create a new turn, or confirm an actual pending write preview.
+            checkpoint=(continuation.get('revision'),cursor,steps[cursor].get('stepId'))
+            if checkpoint not in resumed:
+                resumed.add(checkpoint)
+                result=self.http('/assistant/v4/turns/'+turn_id+'/resume',{},user)
+            else:
+                result=None;time.sleep(.07)
+        raise AssertionError('Canonical turn did not settle within 40 seconds')
 
 
 def fixed_menu_facts(dishes):
@@ -177,6 +211,15 @@ print(json.dumps({'catalogRevision':metadata['catalogRevision'],'catalogRows':le
             workspace = acceptance.workspace(workspace, user)
             selected = workspace['draft']['dishes']
             require(selected and all('MEAL_BREAKFAST' in dish['recipe']['mealCodes'] for dish in selected), 'Shared generation ignored canonical meal facts')
+            original = fixed_menu_facts(selected)
+            require(workspace['draft'].get('canUndo') is False, 'First menu must not offer undo to an empty state')
+            replaced = acceptance.turn(user, workspace, session, 'canonical replace one ' + uid(),
+                [{'kind':'draft_update','arguments':{'operation':'adjust','targetDishId':selected[0]['id'],'selectionMode':'recommend'}}])
+            require(replaced['status']=='completed', 'Actual assistant single replacement did not complete')
+            workspace = acceptance.workspace(workspace, user)
+            selected = workspace['draft']['dishes']
+            require(fixed_menu_facts(selected)!=original and workspace['draft'].get('canUndo') is True,
+                    'Actual menu change did not create a single undo target')
             before = fixed_menu_facts(selected)
             selected_ids = [dish['id'] for dish in selected]
             shopping_before = acceptance.http('/shopping-list/preview',
@@ -188,16 +231,21 @@ print(json.dumps({'catalogRevision':metadata['catalogRevision'],'catalogRows':le
             require(workspace['context']['people'] == 8, 'Assistant did not update diners')
             require(fixed_menu_facts(workspace['draft']['dishes']) == before,
                     'Assistant diner adjustment changed dish quantities, steps or whole nutrition')
+            require(not any(card.get('data',{}).get('canUndo') for card in changed.get('cards',[])),
+                    'Configuration reply incorrectly offered menu undo')
             shopping_after = acceptance.http('/shopping-list/preview',
                 {'dishIds':selected_ids, 'targetPeople':8, 'clientRequestId':uid()}, user)
             require(shopping_quantities(shopping_after) == shopping_quantities(shopping_before),
                     'Assistant diner adjustment changed shopping quantities')
-            undone = acceptance.turn(user, workspace, session, 'canonical undo diners ' + uid(),
+            undone = acceptance.turn(user, workspace, session, 'canonical undo menu replacement ' + uid(),
                 [{'kind':'draft_update','arguments':{'operation':'undo'}}])
-            require(undone['status'] == 'completed', 'Assistant diner adjustment could not be undone')
+            require(undone['status'] == 'completed', 'Assistant menu replacement could not be undone')
             workspace = acceptance.workspace(workspace, user)
-            require(workspace['context']['people'] == 3 and fixed_menu_facts(workspace['draft']['dishes']) == before,
-                    'Assistant undo lost the original diners or fixed menu')
+            require(workspace['context']['people'] == 8 and fixed_menu_facts(workspace['draft']['dishes']) == original,
+                    'Assistant menu undo changed current diners or lost the original menu')
+            require(workspace['draft'].get('canUndo') is False and not workspace['draft'].get('history'),
+                    'Assistant menu undo did not consume its sole target')
+            selected = workspace['draft']['dishes']
             recipe_id = selected[0]['id']
             turn = acceptance.turn(user, workspace, session, 'canonical methods ' + uid(), reads=[
                 {'name':'get_dish_methods','arguments':{'dish_id':recipe_id}},
@@ -210,7 +258,8 @@ print(json.dumps({'catalogRevision':metadata['catalogRevision'],'catalogRows':le
             try: opener.open(request,timeout=3);raise AssertionError('Standalone selector still available')
             except urllib.error.HTTPError as error:require(error.code==410,'Unexpected retired-selector status')
             report = {**facts, 'actualFastApi':True,'diagnostic':diagnostic,'capabilityReadiness':readiness,'javaSharedGeneration':'passed','javaPythonCanonicalReads':'passed',
-                      'assistantPeopleChange':{'from':3,'to':8,'fixedMenu':True,'fixedShopping':True,'undoRestored':True},
+                      'assistantPeopleChange':{'from':3,'to':8,'fixedMenu':True,'fixedShopping':True,'configurationUndoOffered':False},
+                      'assistantMenuUndo':{'restoredPriorMenu':True,'preservedCurrentPeople':True,'consumedOnce':True},
                       'ownerIsolation':'passed','mockProviderHttpCalls':len(model.calls),'externalProviderCalls':0,
                       'legacySelectorStatus':410}
             (destination / 'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')

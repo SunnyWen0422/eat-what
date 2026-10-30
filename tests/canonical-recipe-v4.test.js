@@ -20,7 +20,7 @@ test('unknown servings and discretionary quantities remain readable without inve
   assert.equal(JSON.stringify(dish),before)
 })
 test('complete whole batch nutrition is usable, partial subtotals and missing energy are not totals',()=>{
-  assert.equal(canonical.nutritionView({servings:null,nutrition:{completeness:'complete',total:{energyKcal:120,proteinG:1,fatG:1,carbohydrateG:1,fiberG:0,sodiumMg:0},perServing:null}}).nutritionText,'整道菜合计约 120 千卡（按食材成分计算）')
+  assert.equal(canonical.nutritionView({servings:null,nutrition:{completeness:'complete',total:{energyKcal:120,proteinG:1,fatG:1,carbohydrateG:1,fiberG:0,sodiumMg:0},perServing:null}}).nutritionText,'约 120 千卡')
   assert.equal(canonical.nutritionView({servings:2,nutrition:{completeness:'partial',total:{energyKcal:100}}}).nutritionAvailable,false)
   assert.equal(canonical.nutritionView({servings:2,nutrition:{completeness:'complete',total:{energyKcal:null}}}).nutritionAvailable,false)
   assert.equal(canonical.nutritionView({nutrition:{total:{energyKcal:120}}}).nutritionAvailable,false)

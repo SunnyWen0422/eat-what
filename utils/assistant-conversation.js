@@ -1,4 +1,5 @@
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value))
+const {canResume,automaticContinuation,isBusy}=require('./assistant-turn-state')
 const capabilities = new Map()
 const valueOf = value => typeof value === 'function' ? value() : value
 const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {const n=Math.floor(Math.random()*16);return (c==='x'?n:(n&3)|8).toString(16)})
@@ -28,10 +29,9 @@ function createAssistantConversation(options = {}) {
  const exclusive=action=>{if(cancellation)return cancellation;if(running)return running;if(!current())return Promise.resolve(state());running=Promise.resolve().then(action).finally(()=>{running=null});return running}
  const workspace=()=>store && store.state().workspace
  const fail=(message='连接暂未完成，输入已保留，请重试刚才的请求')=>{if(!current())return state();view.busy=false;view.error=record&&record.workspaceSyncRef?'最新菜单尚未同步，请继续查看结果':message;view.recoverable=!!(record&&(!record.sessionId||record.workspaceSyncRef||record.steering||record.pending||record.renewal||record.confirmation&&record.confirmation.unknown));if(record&&!record.draftEdited){if(record.steering)view.input=record.steering.additions.join('\n');else if(record.pending)view.input=record.pending.body.message;}persist();return state()}
- const canResume=turn=>turn&&turn.status==='awaiting_confirmation'&&((turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct')||!turn.pendingAction&&turn.continuation&&turn.continuation.steps&&turn.continuation.steps[turn.continuation.cursor]&&turn.continuation.steps[turn.continuation.cursor].status==='pending')
  function adopt(turn) {
   if(!current())return
-  view.turn=clone(turn);view.busy=['queued','running'].includes(turn.status)||((turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct')&&turn.retryable===false);view.recoverable=view.busy||!!canResume(turn)
+  view.turn=clone(turn);view.continuationBusy=automaticContinuation(turn);view.busy=isBusy(turn);view.recoverable=view.busy||!!canResume(turn)
   const message={id:turn.turnId,turnId:turn.turnId,role:'assistant',text:turn.reply || '',cards:clone(turn.cards || []),workflow:require('./assistant-workflow-presentation').presentWorkflow({turn}).rows}
   const index=view.messages.findIndex(m=>m.id===turn.turnId || (m.role==='assistant'&&m.turnId===turn.turnId))
   if(index>=0)view.messages[index]=message;else view.messages.push(message)
@@ -221,7 +221,7 @@ function createAssistantConversation(options = {}) {
     return await resumeCurrent()
    }
    if(record.renewal)return await resolveRenewal(true)
-   if(turnId){await poll(turnId);if(current()&&(view.turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct'))return await resumeCurrent();return state()}
+   if(turnId){await poll(turnId);if(current()&&(automaticContinuation(view.turn)||(view.turn.cards||[]).some(c=>c.data&&c.data.executionMode==='direct')))return await resumeCurrent();return state()}
    if(view.turn&&['queued','running'].includes(view.turn.status))return await poll(view.turn.turnId)
    if(record.pending){await dispatch();if(!current())return state();return await resumeCurrent()}
    // A restored session may have a pending preview but no local send record.

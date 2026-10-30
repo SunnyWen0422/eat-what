@@ -19,6 +19,14 @@ public class AssistantReadToolService {
     private final MealWorkspaceService workspaces;private final DishQueryService dishes;private final DishCandidateQueryService candidates;
     private final UserPreferenceService preferences;private final RecommendationMetadataService metadata;private final MealConsumptionService meals;
     private final ShoppingListService shopping;private final ObjectMapper json;
+    private HistoricalRecipeNutritionService historicalNutrition;
+    private ShoppingEstimateService shoppingEstimates;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setShoppingEstimates(ShoppingEstimateService service){shoppingEstimates=service;}
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setHistoricalNutrition(HistoricalRecipeNutritionService service){
+        historicalNutrition=service;
+    }
     private org.springframework.transaction.support.TransactionTemplate readTransaction;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     public void configureReadTransaction(org.springframework.transaction.PlatformTransactionManager manager){
@@ -46,7 +54,7 @@ public class AssistantReadToolService {
             case "search_by_ingredients":fields(args,"ingredients","filters","top_k","cursor");search(user,w,scope,args,result,true);break;
             case "read_calendar":fields(args,"startDate","endDate","cursor");calendar(user,args,result,false);break;
             case "read_actual_diet_review":fields(args,"startDate","endDate","cursor");calendar(user,args,result,true);break;
-            case "read_shopping":fields(args,"status","cursor","limit");shopping(user,args,result);break;
+            case "read_shopping":fields(args,"status","cursor","limit","includePrices");if(args.containsKey("includePrices")&&!(args.get("includePrices") instanceof Boolean))throw new IllegalArgumentException("估价参数无效");shopping(user,args,result);break;
             default:throw new IllegalArgumentException("不支持的查询");
         }
         if(result.getSourceVersion()==null)result.setSourceVersion(fingerprint(result.getItems()));return result;
@@ -130,10 +138,11 @@ public class AssistantReadToolService {
     private Map<String,Object> recipe(Dish d,ReadResult out){return CanonicalAssistantFacts.details(d);}
     @SuppressWarnings("unchecked") private void calendar(Long user,Map<String,Object> args,ReadResult out,boolean review){
         LocalDate start=date(args.get("startDate")),end=date(args.get("endDate"));if(end.isBefore(start)||ChronoUnit.DAYS.between(start,end)>366)throw new IllegalArgumentException("查询范围应在 367 天以内");LocalDate page=args.containsKey("cursor")?date(args.get("cursor")):start;if(page.isBefore(start)||page.isAfter(end))throw new IllegalArgumentException("分页日期无效");LocalDate through=page.plusDays(6).isAfter(end)?end:page.plusDays(6);
-        Map<String,Object> data=meals.overview(user,page.toString(),through.toString());List<RecipeRecord> plans=data.get("plans") instanceof List?(List<RecipeRecord>)data.get("plans"):Collections.emptyList();List<MealConsumption> actual=MealRecordProjection.from(plans);
+        Map<String,Object> data=meals.overview(user,page.toString(),through.toString());List<RecipeRecord> plans=data.get("plans") instanceof List?(List<RecipeRecord>)data.get("plans"):Collections.emptyList();
+        List<MealConsumption> actual=data.get("nutritionVersion")!=null&&data.get("consumptions") instanceof List?(List<MealConsumption>)data.get("consumptions"):(historicalNutrition==null?MealRecordProjection.from(plans):historicalNutrition.project(user,plans));
         List<MealConsumption> reviewMeals=new ArrayList<>();LocalDate today=LocalDate.now(ZoneId.of("Asia/Shanghai"));for(LocalDate day=page;!day.isAfter(through);day=day.plusDays(1)){String date=day.toString();List<Map<String,Object>> planRows=new ArrayList<>(),actualRows=new ArrayList<>();if(!review)for(RecipeRecord p:plans)if(date.equals(p.calendarDay())&&!Boolean.TRUE.equals(p.getIsDeleted())){if(p.getUserId()!=null&&!Objects.equals(user,p.getUserId()))throw new IllegalArgumentException("日历不可访问");planRows.add(map("id",p.getId(),"mealType",p.getMealType(),"name",p.getRecipeName(),"dishIds",p.getDishIds(),"people",p.getTargetPeople(),"revision",p.getRevision(),"basis","calendar_records"));}for(MealConsumption a:actual)if(review&&date.equals(a.getMealDate())&&"recorded".equals(a.getStatus())&&!day.isAfter(today)){if(a.getUserId()!=null&&!Objects.equals(user,a.getUserId()))throw new IllegalArgumentException("用餐记录不可访问");actualRows.add(actual(a,json));reviewMeals.add(a);}Map<String,Object> row=map("date",date,"actual",actualRows);if(!review)row.put("plans",planRows);else row.put("basis","calendar_records");out.getItems().add(row);}
         if(review){Map<String,Object> report=new DietReviewCalculator(json).calculate(reviewMeals,plans,today);if(report!=null){Map<String,Object> overview=new LinkedHashMap<>();for(String key:Arrays.asList("mealCount","recordedDays","uniqueDishCount","entryCount","classifiedCount","unclassifiedCount")){Object value=report.get(key);if(value instanceof Number)overview.put(key,value);}if(!out.getItems().isEmpty())out.getItems().get(0).put("summary",overview);}}
-        out.setTruncated(through.isBefore(end));out.setNextCursor(out.isTruncated()?through.plusDays(1).toString():null);out.setSourceVersion(fingerprint(map("items",out.getItems(),"planRevisions",data.get("planRevisions"))));
+        out.setTruncated(through.isBefore(end));out.setNextCursor(out.isTruncated()?through.plusDays(1).toString():null);out.setSourceVersion(fingerprint(map("items",out.getItems(),"planRevisions",data.get("planRevisions"),"nutritionVersion",data.get("nutritionVersion"))));
     }
     private void shopping(Long user,Map<String,Object> args,ReadResult out){String status=args.containsKey("status")?text(args.get("status"),20):"pending";if(!Arrays.asList("pending","checked","all").contains(status))throw new IllegalArgumentException("采购状态无效");ShoppingListResponse list=shopping.getList(user,status);int limit=args.containsKey("limit")?integer(args.get("limit"),1,30):30,offset=offset(args.get("cursor"));List<Map<String,Object>> rows=new ArrayList<>();for(ShoppingDishDTO group:list.getDishes())for(ShoppingPreviewItemDTO i:group.getItems()){
         boolean explicit=i.isUserOverride()&&"USER_OVERRIDE".equals(i.getCalculationStatus());
@@ -142,7 +151,15 @@ public class AssistantReadToolService {
         rows.add(map("id",i.getId(),"name",i.getDisplayName(),"canonicalName",i.getCanonicalName(),"quantityValue",known?i.getQuantityValue():null,"quantityMin",known?i.getQuantityMin():null,"quantityMax",known?i.getQuantityMax():null,
             "quantityText",i.getQuantityText(),"userOverride",i.isUserOverride(),"quantityProvenance",explicit?"user_override":calculated?"canonical_calculation":"unknown",
             "unitCode",i.getUnitCode(),"calculationStatus",i.getCalculationStatus(),"checked",i.isChecked(),"sourceDishId",group.getDishId(),"sourceDishName",group.getDishName(),"sourceDate",group.getSourceDate(),"sourceMealType",group.getSourceMealType()));}
-        if(offset>rows.size())throw new IllegalArgumentException("分页位置无效，请重新查询");int end=(int)Math.min(rows.size(),(long)offset+limit);out.setItems(new ArrayList<>(rows.subList(offset,end)));out.setTruncated(end<rows.size());out.setNextCursor(out.isTruncated()?String.valueOf(end):null);out.setSourceVersion(String.valueOf(list.getVersion()));}
+        if(offset>rows.size())throw new IllegalArgumentException("分页位置无效，请重新查询");int end=(int)Math.min(rows.size(),(long)offset+limit);out.setItems(new ArrayList<>(rows.subList(offset,end)));out.setTruncated(end<rows.size());out.setNextCursor(out.isTruncated()?String.valueOf(end):null);out.setSourceVersion(String.valueOf(list.getVersion()));
+        if(Boolean.TRUE.equals(args.get("includePrices"))){
+            if(shoppingEstimates==null){out.getUnknownFields().add("priceEstimate");return;}
+            Map<String,Object> estimate=new LinkedHashMap<>(shoppingEstimates.summarize("checked".equals(status)?shopping.getList(user,"pending"):list));
+            Object rawSources=estimate.get("sources");if(rawSources instanceof List){List<?> sources=(List<?>)rawSources;estimate.put("sourcesTruncated",sources.size()>8);estimate.put("sources",new ArrayList<>(sources.subList(0,Math.min(8,sources.size()))));}
+            out.setPriceEstimate(estimate);
+            try{out.setSourceVersion(com.eatwhat.util.WorkflowRequestHash.sha256(json.writeValueAsString(map("listVersion",list.getVersion(),"priceEstimate",estimate))));}catch(Exception e){throw new IllegalStateException("参考价暂不可用",e);}
+        }
+    }
     private static void fields(Map<String,Object> args,String... names){Set<String> allowed=new HashSet<>(Arrays.asList(names));for(String field:args.keySet())if(!allowed.contains(field))throw new IllegalArgumentException("查询包含不支持的参数");}
     @SuppressWarnings("unchecked") private static Map<String,Object> object(Object raw){if(raw==null)return Collections.emptyMap();if(!(raw instanceof Map))throw new IllegalArgumentException("筛选参数无效");for(Object key:((Map<?,?>)raw).keySet())if(!(key instanceof String))throw new IllegalArgumentException("筛选参数无效");return (Map<String,Object>)raw;}
     private static String text(Object raw,int max){if(!(raw instanceof String)||((String)raw).trim().isEmpty()||((String)raw).length()>max)throw new IllegalArgumentException("查询文字无效");return ((String)raw).trim();}

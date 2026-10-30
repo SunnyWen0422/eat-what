@@ -35,7 +35,7 @@ function deriveActionFeedback({before,after,command,requestId,pending=false,erro
     const restored=dishes.filter((d,i)=>!oldDishes[i] || d.id!==oldDishes[i].id || d.name!==oldDishes[i].name)
     message=`已恢复${(restored.length?restored:dishes).map(d=>d.name).filter(Boolean).join('、') || '上一版菜单'}`
   }
-  return {...value,state:'success',message,dishId,undoAvailable:['replace','select','generate','regenerate','undo'].includes(kind) && !!(workspace.draft.history || []).length}
+  return {...value,state:'success',message,dishId,undoLabel:'撤销换菜',undoAvailable:kind!=='undo'&&['replace','select','generate','regenerate'].includes(kind) && require('./menu-undo').canUndoMenu(workspace)}
 }
 function legacyLockNotice(draft) {
   return draft && (draft.lockedDishIds || []).length ? '已保留的菜会留在这餐，可在菜品更多操作中取消保留。' : ''

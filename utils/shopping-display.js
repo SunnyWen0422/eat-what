@@ -9,7 +9,7 @@ const removePreparation = value => value.replace(/[（(]([^（）()]*)[）)]/g, 
 
 function ingredientName(item = {}) {
   const name = removePreparation(clean(item.displayName || item.name || item.canonicalName)) || '未命名食材'
-  const variant = clean(item.normalizedVariant)
+  const variant = clean(typeof item.variantLabel === 'string' ? item.variantLabel : item.normalizedVariant)
   // Keep purchasing distinctions such as 里脊切丝 / 五花切片; omit cooking directions.
   return variant && !preparation.test(variant) && !name.includes(variant) ? `${name}（${variant}）` : name
 }

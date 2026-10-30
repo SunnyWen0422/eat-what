@@ -339,13 +339,13 @@ test('F06 remote owner controls the detail edit entry and navigation', async () 
   assert.match(template, /<button\b[^>]*wx:if="\{\{canEditCustom\}\}"[^>]*bindtap="onEditCustom"/)
 })
 
-test('F07 calendar recipe navigation passes plan and actual people to the real detail preview', async () => {
+test('F07 unified calendar recipe navigation passes recorded people and ignores obsolete actual snapshots', async () => {
   const template = fs.readFileSync('pages/calendar-detail/calendar-detail.wxml', 'utf8')
   const links = [...template.matchAll(/<compact-dish-row\b[^>]*bind:view="onViewDish"[^>]*>/g)].map(match => match[0])
   for (const fixture of [
     { meal: 'breakfast', source: 'plan', planPeople: 6, want: 6 },
     { meal: 'lunch', source: 'plan', planPeople: 4, want: 4 },
-    { meal: 'dinner', source: 'actual', planPeople: 6, actualPeople: 3, want: 3 },
+    { meal: 'dinner', source: 'plan', planPeople: 6, actualPeople: 3, want: 6 },
   ]) {
     const { page, navigation } = load('pages/calendar-detail/calendar-detail')
     const item = { status: fixture.source === 'actual' ? 'eaten' : 'unrecorded', mealType: fixture.meal, plan: { targetPeople: fixture.planPeople }, actual: { plannedSnapshot: { targetPeople: fixture.actualPeople } } }

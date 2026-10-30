@@ -48,6 +48,6 @@ function facts(dish) {
 function nutritionView(scaled) {
   const nutrition=scaled && scaled.nutrition, total = nutrition && nutrition.total
   const available=!!total && nutrition.completeness === 'complete' && ['energyKcal','proteinG','fatG','carbohydrateG','fiberG','sodiumMg'].every(key=>typeof total[key]==='number'&&Number.isFinite(total[key])&&total[key]>=0)
-  return { nutritionAvailable:available, nutritionText:available ? `整道菜合计约 ${Math.round(total.energyKcal)} 千卡（按食材成分计算）` : '' }
+  return { nutritionAvailable:available, nutritionText:available ? `约 ${Math.round(total.energyKcal)} 千卡` : '', nutritionNote:available?'仅参考':'' }
 }
 module.exports = { recipeOf, ingredientRows, stepLines, amount, facts, nutritionView, fixedCalculation, servingLabel, optionalRows }

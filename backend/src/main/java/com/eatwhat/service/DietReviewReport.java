@@ -16,16 +16,20 @@ final class DietReviewReport {
     static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private final ObjectMapper json;
     private final DietReviewCalculator calculator;
+    private final HistoricalRecipeNutritionService historicalNutrition;
 
-    DietReviewReport(ObjectMapper json, DietReviewCalculator calculator) {
+    DietReviewReport(ObjectMapper json, DietReviewCalculator calculator, HistoricalRecipeNutritionService historicalNutrition) {
         this.json = json;
         this.calculator = calculator;
+        this.historicalNutrition = historicalNutrition;
     }
 
     Map<String,Object> build(Long userId, List<MealConsumption> meals, List<RecipeRecord> plans,
                              LocalDate start, LocalDate end, Instant generatedAt) {
         LocalDate today = generatedAt.atZone(ZONE).toLocalDate();
-        List<MealConsumption> ordered = new ArrayList<>(MealRecordProjection.from(plans));
+        if(historicalNutrition!=null)for(RecipeRecord p:plans)if(p!=null&&p.getUserId()!=null&&!Objects.equals(userId,p.getUserId()))throw new IllegalArgumentException("餐次记录不可访问");
+        List<RecipeRecord> observed=plans.stream().filter(p -> p!=null && p.calendarDay()!=null && !LocalDate.parse(p.calendarDay()).isAfter(today) && !LocalDate.parse(p.calendarDay()).isBefore(start) && !LocalDate.parse(p.calendarDay()).isAfter(end)).collect(java.util.stream.Collectors.toList());
+        List<MealConsumption> ordered = new ArrayList<>(historicalNutrition==null?MealRecordProjection.from(observed):historicalNutrition.project(userId,observed));
         ordered.removeIf(m -> LocalDate.parse(m.getMealDate()).isAfter(today) || LocalDate.parse(m.getMealDate()).isBefore(start) || LocalDate.parse(m.getMealDate()).isAfter(end));
         ordered.sort(Comparator.comparing(MealConsumption::getMealDate)
             .thenComparing(MealConsumption::getMealType).thenComparing(m -> String.valueOf(m.getId())));
@@ -58,13 +62,17 @@ final class DietReviewReport {
                 "mealType", plan.getMealType(), "recordOrigin", plan.getRecordOrigin(), "recipeName", plan.getRecipeName(),
                 "dishIds", plan.getDishIds(), "targetPeople", plan.getTargetPeople()));
         }
-        String fingerprint = WorkflowRequestHash.sha256(encode(values("consumptions", sortedSources(actualSources), "plans", sortedSources(planSources))));
+        Map<String,Object> nutrition=DietNutritionSummary.summarize(nutritionEntries,json);
+        Object nutritionVersion=historicalNutrition==null?null:nutrition.getOrDefault("nutritionVersion",historicalNutrition.currentVersion());
+        String calculationVersion=historicalNutrition==null?CALCULATION_VERSION:"calendar-records-v2-current-nutrition";
+        String fingerprint = WorkflowRequestHash.sha256(encode(values("consumptions", sortedSources(actualSources), "plans", sortedSources(planSources),"nutritionVersion",nutritionVersion)));
         String identity = WorkflowRequestHash.sha256(encode(values("userId", userId, "startDate", start.toString(), "endDate", end.toString(),
-            "timezone", ZONE.getId(), "executionAsOfDate", today.toString(), "sourceFingerprint", fingerprint, "calculationVersion", CALCULATION_VERSION)));
+            "timezone", ZONE.getId(), "executionAsOfDate", today.toString(), "sourceFingerprint", fingerprint, "calculationVersion", calculationVersion)));
         Map<String,Object> metadata = values("reportId", "diet-report-" + identity, "startDate", start.toString(), "endDate", end.toString(),
             "timezone", ZONE.getId(), "generatedAt", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(generatedAt.atZone(ZONE)),
             "executionAsOfDate", today.toString(), "sourceFingerprint", fingerprint,
-            "calculationVersion", CALCULATION_VERSION, "basis", "calendar_records", "persisted", false);
+            "calculationVersion", calculationVersion, "basis", "calendar_records", "persisted", false);
+        if(nutritionVersion!=null)metadata.put("nutritionVersion",nutritionVersion);
         LocalDate through = end.isBefore(today) ? end : today;
         int observedDays = through.isBefore(start) ? 0 : (int) ChronoUnit.DAYS.between(start, through) + 1;
         Map<String,Object> completeness = values("observedDays", observedDays,
@@ -73,11 +81,11 @@ final class DietReviewReport {
             "explicitSkippedMeals", skipped, "explicitUnrecordedMeals", unrecorded,
             "freeTextEntryCount", freeText, "unclassifiedCount", result.get("unclassifiedCount"),
             "actualMealsWithoutDishes", noDishes, "nutritionAvailable", false,
-            "description", "按日历中已保存的餐次记录回顾；未来菜单到当天计入。配方参考营养不等于个人实际摄入。");
+            "description", "按日历中已保存的餐次记录回顾；未来菜单到当天计入。主料营养参考不含调味料和辅料，不等于个人实际摄入。");
         Map<String,Object> frequent = values("dishes", result.get("popularDishes"), "basis", "known_dish_id_once_per_record");
         Map<String,Object> blocks = values(
             "overview", select(result, "mealCount", "recordedDays", "uniqueDishCount", "entryCount", "dailyMeals"),
-            "actualDetails", values("records", details, "basis", "calendar_record_snapshots", "nutrition", DietNutritionSummary.summarize(nutritionEntries,json)),
+            "actualDetails", values("records", details, "basis", "calendar_record_snapshots", "nutrition", nutrition),
             "frequentDishes", frequent,
             "categoryCounts", select(result, "categories", "entryCount", "classifiedCount", "unclassifiedCount"),
             "completeness", completeness);

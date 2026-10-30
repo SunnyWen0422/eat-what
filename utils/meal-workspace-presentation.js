@@ -31,7 +31,7 @@ function continuityPresentation(value, journey, workspaceNotice) {
     // The affected dish owns replacement progress. Keep only the old receipt here.
     if (saved) resultNotice = { kind:'info', text:`此前已保存到${targetLabel(savedTarget)}，日历安排仍保留`, target:savedTarget, action:'onViewSavedMeal' }
   } else if (recovery) {
-    const text = { unknown:'本次结果待核对，原菜单仍保留', conflict:'这餐已有更新，请先读取最新安排', busy:'正在处理本餐', unapplied:'条件已修改，按新条件换一套后生效', confirmation:'本餐安排待确认' }[state] || recovery.label
+    const text = state === 'refresh' && workspaceNotice ? workspaceNotice.text : { unknown:'本次结果待核对，原菜单仍保留', conflict:'这餐已有更新，请先读取最新安排', busy:'正在处理本餐', confirmation:'本餐安排待确认' }[state] || recovery.label
     resultNotice = {
       kind: state === 'busy' ? 'loading' : state === 'confirmation' ? 'info' : 'warning',
       text: text + (saved ? `。此前已保存到${targetLabel(savedTarget)}，本次操作尚未确认保存` : ''),
@@ -72,21 +72,20 @@ function deriveWorkspacePresentation(value) {
   const compositionUnknownNotice = status === 'needs_input' && unknown ? '部分菜品分类未提供，无法确认准确缺额。可调整搭配、筛选或自己选菜。' : ''
   const generationLimitNotice = ['needs_input','failed'].includes(status) ? '自动安排尚未完成，当前菜单仍保留。智能服务不可用时，仍可自己选菜、查看做法或日历。' : ''
   const recovering = ['unknown', 'offline', 'conflict'].includes(syncStatus)
-  const journey=require('./meal-journey-presentation').deriveMealJourney({workspace:{id:value.workspaceId,context,draft:value.draft,status},plan:linkedPlan,actual,pendingReceipts:value.pendingReceipts||[],syncStatus,busy,dirty:value.dirty,canConfirm,savedTarget:value.savedTarget,saveState:value.saveState})
+  const journey=require('./meal-journey-presentation').deriveMealJourney({workspace:{id:value.workspaceId,context,draft:value.draft,status},plan:linkedPlan,actual,pendingReceipts:value.pendingReceipts||[],syncStatus,busy,dirty:value.dirty,canConfirm,savedTarget:value.savedTarget,saveState:value.saveState,saveRecoveryPending:value.saveRecoveryPending})
   const primaryAction=journey.primary.action,primaryLabel=journey.primary.label
   let workspaceNotice=null
   const recovery=journey.recovery,feedback=value.actionFeedback
   if(recovery&&recovery.state==='unknown')workspaceNotice={kind:'warning',text:recovery.kind==='workspace'?'上次结果待核对，原菜单仍保留':recovery.label}
   else if(recovery&&recovery.state==='conflict')workspaceNotice={kind:'warning',text:'这餐已有更新，请先读取最新安排'}
   else if(status==='generating'&&!(feedback&&feedback.kind==='replace'&&feedback.state==='pending'))workspaceNotice={kind:'loading',text:'正在安排这餐'}
-  else if(recovery&&recovery.state==='unapplied')workspaceNotice={kind:'warning',text:'条件已修改，按新条件换一套后生效'}
   else if(status==='needs_input')workspaceNotice={kind:'warning',text:missingCompositionLabel||compositionUnknownNotice||'请补充要求或调整条件后再试',action:missing.length||unknown?'composition':'requirements'}
   else if(value.errorMessage)workspaceNotice={kind:'error',text:require('./meal-workflow').errorMessage({message:value.errorMessage},'暂未完成，请稍后再试，原菜单仍保留')}
   else if(status==='failed')workspaceNotice={kind:'warning',text:'安排暂未完成，可以重试或自己选菜',action:'choose'}
   else if(feedback&&feedback.state==='error')workspaceNotice={kind:'error',text:require('./meal-workflow').errorMessage({message:feedback.message},'这次调整未完成，原菜单仍保留')}
   else if(feedback&&feedback.state==='unknown')workspaceNotice={kind:'warning',text:'刚才的操作仍待核对，原菜单已保留'}
   const showActionFeedback=!!(!workspaceNotice&&feedback&&feedback.state==='success'&&feedback.kind==='undo')
-  const showMenuUndo=!!((value.draft&&value.draft.history||[]).length&&!showActionFeedback)
+  const showMenuUndo=!!(require('./menu-undo').canUndoMenu(value)&&!showActionFeedback)
   return { ...continuityPresentation(value, journey, workspaceNotice), workspaceNotice,showActionFeedback,showMenuUndo,journeyRecovery:journey.recovery, hasMenu:!!dishes.length, settingsInitiallyCollapsed:!!dishes.length, generationLimitNotice, missingCompositionLabel, compositionUnknownNotice, primaryAction, primaryLabel, primaryDisabled: !!busy || (!!peopleError && ['onGenerate', 'onRegenerate', 'onConfirmPlan'].includes(primaryAction)), contextLocked: !!busy || recovering || status === 'generating' || !!journey.recovery&&['unknown','conflict','busy'].includes(journey.recovery.state), showRequirements: status === 'empty' || !(value.draft && value.draft.dishes && value.draft.dishes.length) }
 }
 

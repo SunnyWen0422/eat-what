@@ -142,7 +142,7 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-stepper { display:flex; align-items:center; justify-content:center; flex:none; min-width:0; border:1px solid #DAE2DA; border-radius:13px; background:rgba(255,255,255,.7); overflow:hidden; }
 .connected-assistant .connected-stepper button { display:flex; align-items:center; justify-content:center; width:44px; height:44px; min-width:44px; min-height:44px; padding:0; margin:0; border:0; border-radius:0; background:transparent; color:{{brand}}; font-size:1.15em; line-height:1; }
 .connected-stepper button::after { border:0; }
-.connected-stepper button[disabled] { opacity:.35; }
+.connected-assistant .connected-stepper button[disabled] { background:{{disabled}}; color:{{muted}}; opacity:1; }
 .connected-stepper input,.connected-count-value { width:32px; min-width:32px; height:44px; line-height:44px; padding:0; margin:0; border:0; background:transparent; color:{{text}}; font-size:1em; text-align:center; }
 .connected-count-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; }
 .connected-count-item { min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:4px; }
@@ -155,12 +155,24 @@ button.ew-hit-target, .ew-page button.ew-hit-target { min-height:{{controls.prim
 .connected-editor-actions button::after { border:0; }
 .connected-editor-cancel { background:#E7EEE8; color:#3E6150; }
 .connected-editor-apply { background:linear-gradient(125deg,#2D7560,#426D7F 60%,#695B8E); color:#FFFFFF; transition:opacity 140ms ease,transform 140ms ease; }
-.connected-editor-actions button[disabled] { opacity:.5; }
-@keyframes assistant-reveal { from { opacity:.8; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.connected-assistant .connected-editor-actions button[disabled] { background:{{disabled}}; color:{{muted}}; opacity:1; }
+@keyframes assistant-reveal { from { transform:translateY(4px); } to { transform:translateY(0); } }
 @keyframes assistant-orbit { to { transform:rotate(360deg); } }
 @keyframes assistant-breathe { 0%,100% { opacity:.45; transform:translateY(0); } 50% { opacity:1; transform:translateY(-2px); } }
 .assistant-reduced-motion .connected-message,.assistant-reduced-motion .connected-context-details,.assistant-reduced-motion .connected-progress,.assistant-reduced-motion .connected-wait-orbit,.assistant-reduced-motion .connected-wait-dots view { animation:none; }
 .assistant-reduced-motion .connected-shortcut,.assistant-reduced-motion .connected-send,.assistant-reduced-motion .connected-editor-apply { transition:none; transform:none; }
+.connected-input-row .connected-voice { display:flex; align-items:center; justify-content:center; flex:0 0 44px; width:44px; min-width:44px; height:44px; min-height:44px; padding:0; border:0; border-radius:17px; background:transparent; }
+.connected-input-row .connected-voice.is-recording { background:{{brandSoft}}; }
+.connected-voice-status { display:flex; align-items:center; gap:8px; padding:0 8px; min-height:44px; color:{{brand}}; font-size:{{font.secondary.em}}; }
+.connected-voice-status text { flex:1; min-width:0; }
+.connected-voice-status button,.connected-voice-privacy-actions button { margin:0; }
+.connected-voice-pulse { flex:0 0 7px; width:7px; height:7px; border-radius:50%; background:{{brand}}; }
+.connected-voice-pulse.is-recording { animation:connected-voice-breathe 1100ms ease-in-out infinite; }
+.connected-voice-privacy { padding:8px 12px; border:1px solid {{controlBorder}}; border-radius:16px; background:{{card}}; font-size:{{font.secondary.em}}; }
+.connected-voice-privacy-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+.connected-voice-privacy-actions .connected-privacy-agree { background:{{brand}}; color:{{card}}; padding:0 16px; border-radius:14px; font-size:inherit; }
+@keyframes connected-voice-breathe { 0%,100% { opacity:.45; transform:scale(.85); } 50% { opacity:1; transform:scale(1.12); } }
+.assistant-reduced-motion .connected-voice-pulse { animation:none; }
 /* User-requested default-on lightweight motion; no OS setting suppresses waiting feedback. */
 /* Keep the legacy compatibility indicator static. */
 .task-dot-loading,.dot { animation:none; }

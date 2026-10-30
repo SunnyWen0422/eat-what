@@ -64,7 +64,7 @@ const cases = [
   ['generating', { status: 'generating' }, 'working', 'onCancelTask'],
   ['saved meal', { status: 'planned', canConfirm: false, linkedPlan: { revision: 1 }, saveState: 'saved', savedTarget: current }, 'saved', 'onViewRecipes'],
   ['modified saved menu', { saveState: 'changed', savedTarget: saved }, 'changed', 'onConfirmPlan'],
-  ['unapplied conditions outrank confirmation', { dirty: true, saveState: 'saved', savedTarget: saved, pendingReceipts: [receipt('confirmation')] }, 'changed', 'onRegenerate'],
+  ['pending settings do not invalidate the menu', { dirty: true, saveState: 'saved', savedTarget: saved }, 'saved', 'onConfirmPlan'],
   ['confirmation outranks old save', { status: 'planned', canConfirm: false, saveState: 'saved', savedTarget: saved, pendingReceipts: [receipt('confirmation')] }, 'draft', 'onRecoverJourney'],
   ['busy outranks unapplied conditions', { busy: true, dirty: true }, 'working', 'onCancelTask'],
   ['conflict outranks busy', { syncStatus: 'conflict', busy: true, dirty: true }, 'conflict', 'onLoadLatest'],

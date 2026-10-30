@@ -102,12 +102,12 @@
     <view wx:if="{{dish.recipeFacts.dietary.length}}" class="section"><text>{{dish.recipeFacts.dietary}}</text></view>
     <view wx:if="{{dish.recipeFacts.allergens.length}}" class="section"><text>过敏原：{{dish.recipeFacts.allergens}}</text></view>
     <view wx:elif="{{!dish.recipeFacts.allergensKnown}}" class="section"><text class="ew-muted">过敏原资料未提供</text></view>
-    <view wx:if="{{qualityView.nutritionAvailable}}" class="section"><text class="ew-muted">{{qualityView.nutritionText}}</text></view>
+    <view wx:if="{{qualityView.nutritionAvailable}}" class="section"><text>{{qualityView.nutritionText}}</text><view class="ew-muted ew-small">{{qualityView.nutritionNote}}</view></view>
   </view>
   <view wx:if="{{copyMessage}}" class="ew-notice" role="status">{{copyMessage}}</view>
   <view wx:if="{{mealAddError}}" class="ew-error">{{mealAddError}}</view>
   <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" />
-  <ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
+  <ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="继续查看结果" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
   <view class="detail-action-spacer" style="height:{{detailActionHeight}}px" aria-hidden="true" />
   <view class="detail-bottom">
     <view class="detail-context-row">

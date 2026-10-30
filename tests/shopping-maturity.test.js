@@ -35,3 +35,12 @@ test('expense edit cannot silently save against a later list version',async()=>{
  const f=harness();await f.page.onPriceDetails();f.page.onEditExpense({currentTarget:{dataset:{key:f.page.data.pricingRows[0].ingredientKey}}});f.page.data.version=2
  let writes=0;f.page.perform=()=>writes++;f.page.data.expenseAmount='0';f.page.saveExpense();assert.equal(writes,0);assert.match(f.page.data.formError,/清单已变化/)
 })
+test('failed quote refresh clears old estimates while preserving items and a real zero expense',async()=>{
+ const f=harness({caps:{pricesEnabled:true,expensesEnabled:true},quote:async()=>{throw Object.assign(new Error('offline fixture'),{statusCode:503})}})
+ const item=f.list.dishes[0].items[0],key=pricing.ingredientKey({...item,sourceDishId:7})
+ f.list.expenses[key]={amount:'0.00'};f.page._quotes={[key]:{status:'AVAILABLE',quoteDate:pricing.shanghaiDate(),price:'10',unitQuantity:500,unitCode:'g',unitFamily:'mass'}}
+ const before=JSON.stringify(f.list);await f.page.onPriceDetails()
+ assert.equal(Object.keys(f.page._quotes).length,0);assert.equal(f.page.data.pendingPrice,'—');assert.equal(f.page.data.pendingMissing,1)
+ assert.equal(f.page.data.actualSpend,'¥0.00');assert.equal(f.page.data.expensesEnabled,true);assert.equal(f.page.data.priceLoading,false)
+ assert.match(f.page.data.priceNotice,/参考价暂不可用/);assert.equal(JSON.stringify(f.list),before)
+})

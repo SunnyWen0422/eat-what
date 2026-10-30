@@ -31,16 +31,19 @@ def isolated_service():
         connector = accepted = None
         try:
             with socket.socket(family, type, proto) as listener:
+                listener.settimeout(2.0)
                 listener.bind((host, 0)); listener.listen()
                 address = listener.getsockname()[:2]
                 connector = socket.socket(family, type, proto)
-                connector.setblocking(False)
-                try: real_connect(connector, address)
-                except (BlockingIOError, InterruptedError): pass
-                connector.setblocking(True)
+                # An in-progress nonblocking connect does not prove a peer will
+                # reach accept on Windows. Complete only this owned handshake,
+                # with bounded waits, while all global connect guards stay active.
+                connector.settimeout(2.0)
+                real_connect(connector, address)
                 accepted, _ = listener.accept()
             if accepted.getsockname() != connector.getpeername() or connector.getsockname() != accepted.getpeername():
                 raise ConnectionError("Unexpected socketpair peer")
+            accepted.settimeout(None); connector.settimeout(None)
             return accepted, connector
         except BaseException:
             if accepted is not None: accepted.close()

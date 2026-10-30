@@ -35,6 +35,23 @@ class AssistantGuidanceTest(unittest.TestCase):
             with self.assertRaises(StepValidationError):final_output(nav,set(),{'handoff_v1'})
             nav['navigationIntent']['url']='https://evil.test'
             with self.assertRaises(StepValidationError):final_output(nav,{7},{'handoff_v1'})
+    def test_navigation_target_matches_the_server_kind_contract(self):
+        with isolated_service():
+            from assistant_v4_schema import final_output,StepValidationError
+            refs={'edit_preferences':{},'edit_shopping':{'itemId':7},'copy_recipe':{'dishId':7},
+                  'save_personal_menu':{'workspaceId':'w'},'view_favorite':{'dishId':7}}
+            for kind,ref in refs.items():
+                with self.subTest(kind=kind):
+                    nav={'type':'navigation','navigationIntent':{'kind':kind,'ref':ref}}
+                    self.assertEqual(final_output(nav,{7},{'handoff_v1'})['type'],'navigation')
+                    nav['navigationIntent']['target']={}
+                    self.assertEqual(final_output(nav,{7},{'handoff_v1'})['type'],'navigation')
+                    nav['navigationIntent']['target']={'date':'2026-10-28','mealType':'dinner'}
+                    with self.assertRaises(StepValidationError):final_output(nav,{7},{'handoff_v1'})
+            for kind,ref in {'record_actual':{},'use_personal_menu':{'menuId':7}}.items():
+                nav={'type':'navigation','navigationIntent':{'kind':kind,'ref':ref,
+                    'target':{'date':'2026-10-28','mealType':'dinner'}}}
+                self.assertEqual(final_output(nav,{7},{'handoff_v1'})['navigationIntent']['target']['date'],'2026-10-28')
     def test_all_enabled_output_schemas_fit_the_existing_bounded_envelope(self):
         with isolated_service():
             from assistant_v4_step import prepare_step
@@ -43,4 +60,13 @@ class AssistantGuidanceTest(unittest.TestCase):
             messages=prepare_step(request)[0]
             self.assertIn('navigationIntent',messages[0]['content'])
             self.assertIn('clarificationKind',messages[0]['content'])
+    def test_active_menu_undo_is_a_boolean_server_fact(self):
+        with isolated_service():
+            from assistant_v4_schema import step_input,StepValidationError
+            request=body()
+            for value in (True,False):
+                request['context']['activeMeal']['canUndo']=value
+                self.assertIs(step_input(request)['context']['activeMeal']['canUndo'],value)
+            request['context']['activeMeal']['canUndo']='yes'
+            with self.assertRaises(StepValidationError):step_input(request)
 if __name__=='__main__':unittest.main()

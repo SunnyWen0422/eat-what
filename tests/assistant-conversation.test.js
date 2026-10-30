@@ -71,6 +71,12 @@ test('committed calendar pending next step resumes despite legacy retryable fals
  let committed=false,resumes=0;const pending={turnId:'t1',status:'awaiting_confirmation',retryable:false,cards:[{id:'receipt',type:'receipt',receiptRef:'calendar-real'}],continuation:{cursor:1,steps:[{status:'completed',receiptRef:'calendar-real'},{status:'pending'}]}};
  const f=fixture({getAssistantV4Turn:async()=>committed?pending:confirmationTurn(),confirmControlledTask:async(...args)=>{f.confirms.push(args);committed=true;return{status:'completed',retryable:true}},resumeAssistantV4Turn:async()=>{resumes++;return{...pending,status:'completed'}}});await f.conversation.load();await f.conversation.send('保存并准备食材');await f.conversation.confirm('save');assert.equal(f.conversation.state().recoverable,true);await f.conversation.recover();assert.equal(resumes,1);assert.equal(f.confirms.length,1)
 })
+for(const reply of ['', '已更新本餐，正在准备下一步'])test(`a normal execution checkpoint stays busy and resumes locally without resending a user question: ${reply||'initial'}`,async()=>{
+ let resumes=0;const pending={turnId:'t1',status:'awaiting_confirmation',reply,retryable:!reply,cards:[],continuation:{cursor:0,steps:[{kind:'draft_update',status:'pending'}]}};
+ const f=fixture({getAssistantV4Turn:async()=>pending,resumeAssistantV4Turn:async()=>{resumes++;return{turnId:'t1',status:'completed',reply:'菜单已安排',cards:[]}}});
+ await f.conversation.load();await f.conversation.send('今晚两个人吃');assert.equal(f.conversation.state().busy,true);assert.equal(f.conversation.state().continuationBusy,true);
+ await f.conversation.recover('t1');assert.equal(resumes,1);assert.equal(f.bodies.length,1);assert.equal(f.conversation.state().busy,false)
+})
 test('empty selection is local and definitive shopping rejection restores correctable parent',async()=>{
  let calls=0;const turn={...confirmationTurn(),cards:[{...confirmationTurn().cards[0],type:'shopping_preview',data:{items:[{sourceKey:'a',selected:true},{sourceKey:'b',selected:true}]}}]};
  const f=fixture({getAssistantV4Turn:async()=>turn,repreviewAssistantShopping:async()=>{calls++;throw{statusCode:409}}});await f.conversation.load();await f.conversation.send('食材');await f.conversation.selectShopping('save',[]);assert.equal(calls,0);assert.equal(f.conversation.state().selectionPending,false);await f.conversation.selectShopping('save',['a']);assert.equal(f.conversation.state().selectionPending,false);await f.conversation.selectShopping('save',['a','b']);assert.equal(calls,2)

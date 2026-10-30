@@ -44,7 +44,7 @@ public class ShoppingAssistantToolAdapter implements AssistantCapabilityService.
   if(continuation!=null)for(WorkflowStep dependency:continuation.getSteps())if(step.getDependsOn().contains(dependency.getStepId())&&"calendar_save".equals(dependency.getKind())){
    ControlledToolTask calendar=harness.byRequest(user,dependency.getRequestId());
    if(calendar==null||calendar.steps.size()!=1||!"completed".equals(calendar.steps.get(0).status)||!Objects.equals(dependency.getReceiptRef(),calendar.steps.get(0).result.get("receiptRef")))throw new IllegalStateException("请先恢复已保存安排的回执");
-   Map<String,Object> fields=new LinkedHashMap<>(calendar.steps.get(0).result);fields.remove("executed");fields.remove("countsAsActual");fields.remove("card");
+   Map<String,Object> fields=new LinkedHashMap<>(calendar.steps.get(0).result);fields.remove("executed");fields.remove("countsAsActual");fields.remove("reviewBasis");fields.remove("reviewFromDate");fields.remove("card");
    CalendarSavedReceipt receipt=json.convertValue(fields,CalendarSavedReceipt.class);scopes.afterSaved(user,receipt);
    ShoppingSourceRef ref=new ShoppingSourceRef();ref.setKind("plan");ref.setDate(receipt.getTargetDate());ref.setMealType(receipt.getTargetMealType());intent.setSourceRef(ref);
   }

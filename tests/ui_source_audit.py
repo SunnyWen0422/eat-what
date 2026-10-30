@@ -160,6 +160,35 @@ def blend(foreground, background, opacity=1):
     return tuple(foreground[i] * alpha + background[i] * (1 - alpha) for i in range(3)) + (1,)
 
 
+def text_backgrounds(declaration, underlying):
+    """Composite CSS background layers at the content area, frontmost layer last.
+
+    Gradient stops are conservative samples, not a rendered pixel measurement.
+    Commas in gradients, colors and URLs do not separate background layers.
+    """
+    layers, start, depth, quote = [], 0, 0, None
+    for index, char in enumerate(declaration):
+        if quote:
+            if char == quote and (index == 0 or declaration[index - 1] != '\\'):
+                quote = None
+        elif char in ('"', "'"):
+            quote = char
+        elif char == '(':
+            depth += 1
+        elif char == ')':
+            depth -= 1
+        elif char == ',' and depth == 0:
+            layers.append(declaration[start:index])
+            start = index + 1
+    layers.append(declaration[start:])
+    backgrounds = underlying
+    for layer in reversed(layers):
+        stops = colors(layer)
+        if stops:
+            backgrounds = list(dict.fromkeys(blend(a, b) for a, b in itertools.product(stops, backgrounds)))
+    return backgrounds
+
+
 def contrast(first, second):
     def luminance(value):
         rgb = [channel / 255 for channel in value[:3]]
@@ -224,7 +253,7 @@ def page_audit(route):
                 declared = style.get('background-color', style.get('background', ''))
                 layer = colors(declared)
                 if layer:
-                    backgrounds = [blend(a, b) for a, b in itertools.product(layer, backgrounds)]
+                    backgrounds = text_backgrounds(declared, backgrounds)
                 if 'url(' in declared:
                     image_dependent = not layer or any(c[3] < 1 for c in layer)
             ratios = [contrast(blend(foreground, bg, opacity), bg) for bg in backgrounds]

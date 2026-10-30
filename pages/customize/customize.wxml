@@ -102,7 +102,7 @@
         <ui-icon name="chevron-right" tone="muted" size="16" />
       </view>
       <button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && !selectedMeal && selectedTotal}}" class="ew-hit-target save-btn" loading="{{savingPlan}}" disabled="{{savingPlan}}" bindtap="onSaveToCalendar">保存到日历</button>
-      <ui-button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" disabled="{{selectionBusy}}" bind:action="onRetrySelection" />
+      <ui-button wx:if="{{!menuFormVisible && !menuEditingId && !menuPending && selectionFeedback.state === 'unknown'}}" label="继续查看结果" variant="secondary" loading="{{selectionBusy}}" disabled="{{selectionBusy}}" bind:action="onRetrySelection" />
       <button wx:if="{{menuFormVisible || menuEditingId || menuPending}}" class="ew-hit-target menu-next" disabled="{{menuBusy || (!selectedTotal && !menuPending)}}" bindtap="onResumeMenuForm">{{menuPending ? '核对保存' : '下一步'}}</button>
     </view>
   <ui-sheet visible="{{showBrowseFilters}}" title="本次筛选" bind:close="onToggleBrowseFilters">

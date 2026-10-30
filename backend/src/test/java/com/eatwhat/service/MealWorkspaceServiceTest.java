@@ -36,7 +36,7 @@ class MealWorkspaceServiceTest {
         req.getContext().setPeople(3);
         assertThrows(MealConsumptionService.VersionConflict.class,()->s.mutate(1L,"ws1","context",req));
     }
-    @Test void changingCriteriaInvalidatesEvenUnchangedTextUnderstanding() throws Exception {
+    @Test void changingCriteriaPreservesReviewedMenuAndRequiresExplicitGenerationForNewConditions() throws Exception {
         MealWorkspaceMapper db=mock(MealWorkspaceMapper.class);
         when(db.request(anyLong(),anyString())).thenReturn(null);
         MealConsumptionMapper locks=mock(MealConsumptionMapper.class);
@@ -54,9 +54,9 @@ class MealWorkspaceServiceTest {
         MealWorkspaceService service=new MealWorkspaceService(db,locks,mock(RecipeRecordMapper.class),mock(RecipeRecordService.class),mock(MealWorkspacePlanner.class),json,transactions());
         MealWorkspace saved=service.mutate(1L,w.getId(),"context",request);
         assertEquals(c.getRequirements(),saved.getContext().getRequirements());
-        assertNull(saved.getDraft().getRequirementsFingerprint());
+        assertEquals("already-interpreted",saved.getDraft().getRequirementsFingerprint());
         assertFalse(MealWorkspaceRules.understandsRequirements(saved.getDraft(),saved.getContext()));
-        assertEquals("needs_regeneration",saved.getStatus());
+        assertEquals("draft",saved.getStatus());
     }
     @Test void wrongOwnerAndStaleVersionCannotChangeWorkspace() {
         MealWorkspaceMapper db=mock(MealWorkspaceMapper.class);MealConsumptionMapper locks=mock(MealConsumptionMapper.class);

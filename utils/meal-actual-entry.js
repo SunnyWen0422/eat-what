@@ -5,6 +5,14 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
   const owns=(page,binding)=>page._actualBinding===binding&&binding.scope===scope()&&page._actualAlive!==false
   const planNames=meal=>meal.plan?(meal.plan.dishDetails||[]).map(d=>d.name).filter(Boolean).join('、')||meal.plan.recipeName||'':''
   const planChanged=(b,meal)=>Number.isFinite(b.planRevision)&&b.planRevision!==meal.planRevision
+  // Retired writer compatibility only. Public mealViews intentionally projects
+  // unified calendar records without an eaten/skipped workflow. An old editor
+  // must still retain its original snapshot/revision when recovering that API.
+  const legacyMeal=(overview,target)=>{
+    const meal=flow.mealViews(overview,target.date).find(m=>m.mealType===target.mealType)
+    const actual=(overview.consumptions||[]).find(item=>String(item.mealDate||'').slice(0,10)===target.date&&item.mealType===target.mealType)||null
+    return {...meal,actual,actualNames:actual?(actual.actualDishes||[]).map(d=>d.name).filter(Boolean).join('、'):''}
+  }
   return {
     async openMealActual(target) {
       try{require('./meal-save-target').validateMealTarget(target)}catch(_){return}
@@ -14,7 +22,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
       try {
         const overview=await api.getMealOverview(target.date,target.date)
         if(!owns(this,binding))return
-        const meal=flow.mealViews(overview,target.date).find(m=>m.mealType===target.mealType)
+        const meal=legacyMeal(overview,target)
         binding.meal=meal;binding.expectedRevision=meal.actual?meal.actual.revision:0;binding.expectedPlanRevision=meal.planRevision
         if(!Number.isFinite(binding.planRevision))binding.planRevision=meal.planRevision
         const pending=platform().getStorageSync(key)
@@ -50,7 +58,7 @@ function createMealActualEntry({api,onSaved=async()=>{},wx:providedWx,scope=()=>
       try{
         const overview=await api.getMealOverview(b.date,b.date)
         if(!owns(this,b))return
-        const meal=flow.mealViews(overview,b.date).find(m=>m.mealType===b.mealType)
+        const meal=legacyMeal(overview,b)
         b.meal=meal;b.expectedRevision=meal.actual?meal.actual.revision:0;b.expectedPlanRevision=meal.planRevision
         if(!Number.isFinite(b.planRevision))b.planRevision=meal.planRevision
         this.setData({actualNeedsReload:false,actualHasPlan:!!meal.plan,actualPlanChanged:planChanged(b,meal),actualPlanNames:planNames(meal),actualError:'已读取最新记录，输入已保留；请核对当前计划后再次确认'})

@@ -12,11 +12,13 @@ from ui_source_audit import ROOT, Template, page_audit, rules, styles, declared_
 
 
 class UiSelfCheckTest(unittest.TestCase):
-    def test_workspace_full_width_and_light_actions_survive_global_button_rules(self):
+    def test_workspace_compact_tools_and_light_actions_survive_global_button_rules(self):
         template = Template((ROOT / 'templates/meal-workspace.wxml').read_text(encoding='utf-8'))
         css = rules(ROOT / 'app.wxss') + rules(ROOT / 'pages/index/index.wxss')
-        entry = next(node for node in template.nodes if 'workspace-requirements-entry' in node.classes())
-        self.assertEqual('100%', styles(entry, css).get('width'))
+        self.assertFalse(any('workspace-requirements-entry' in node.classes() for node in template.nodes))
+        entry = next(node for node in template.nodes if 'workspace-meal-tools' in node.classes())
+        self.assertEqual('nowrap', styles(entry, css).get('flex-wrap'))
+        self.assertEqual('center', styles(entry, css).get('align-items'))
         for handler in ['onOpenFilter', 'onChooseDishes', 'onRegenerate']:
             node = next(node for node in template.nodes if node.attrs.get('bindtap') == handler)
             result = styles(node, css)
@@ -64,13 +66,14 @@ class UiSelfCheckTest(unittest.TestCase):
         self.assertNotRegex(style.get('line-height', ''), r'^\d+px$')
 
     def test_result_favorite_and_refresh_keep_44px_through_actual_pressed_ancestors(self):
-        route = 'pages/result/result'
-        css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
-        template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
-        targets = [node for node in template.nodes if node.attrs.get('catchtap') in ('onToggleFavorite', 'onRefreshDish')]
-        self.assertEqual(2, len(targets))
-        for target in targets:
-            with self.subTest(handler=target.attrs['catchtap']):
+        result = Template((ROOT / 'pages/result/result.wxml').read_text(encoding='utf-8'))
+        self.assertTrue(any(n.tag == 'compact-dish-row' and n.attrs.get('bind:replace') == 'onRefreshDish' for n in result.nodes))
+        for route, handler in [('components/compact-dish-row/index', 'onReplace'),
+                               ('components/dish-favorite/index', 'onToggle')]:
+            template = Template((ROOT / (route + '.wxml')).read_text(encoding='utf-8'))
+            css = rules(ROOT / 'app.wxss') + rules(ROOT / (route + '.wxss'))
+            target = next(node for node in template.nodes if node.attrs.get('catchtap') == handler)
+            with self.subTest(handler=handler):
                 bounds = declared_hit_bounds(target, css)
                 self.assertEqual([], bounds['unresolvedTransformGeometry'], bounds)
                 self.assertGreaterEqual(bounds['minWidthAfterDeclaredScale'], 44, bounds)
@@ -177,7 +180,8 @@ class UiSelfCheckTest(unittest.TestCase):
                         self.assertIsNotNone(node, 'Node runtime must be on PATH for the native font contract')
                         values = subprocess.check_output([node, '-e', "global.wx={getAppBaseInfo:()=>({fontSizeScaleFactor:1.5})};const scale=require('./utils/font-scale');process.stdout.write(JSON.stringify([scale.base,scale.base*scale()]));"], cwd=isolated, text=True)
                         expected_base = mutated['font']['body']
-                        self.assertEqual([expected_base, expected_base * 1.5], json.loads(values))
+                        # The product uses standard scale even when the device prefers large text.
+                        self.assertEqual([expected_base, expected_base], json.loads(values))
                     consumers = [output for source, output in sources if re.search(r'\{\{' + re.escape(f'{group}.{key}.') , (isolated / source).read_text(encoding='utf-8'))]
                     self.assertTrue(consumers, f'{group}.{key} has no WXSS consumers')
                     for file in [*consumers, 'utils/ui-tokens.js']:

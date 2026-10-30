@@ -22,9 +22,12 @@ function journey() {
     saveWorkspaceContext: async (id, body) => { const r = rows.get(id); r.context = plain(body.context); r.revision++; r.status = r.draft.dishes.length ? 'needs_regeneration' : 'empty'; return plain(r) },
     commandMealWorkspace: async (id, body) => { commands.push({ id, ...plain(body) }); const r = rows.get(id), before = plain(r.draft); r.revision++; r.status = 'draft';
       if (['generate', 'regenerate'].includes(body.command)) r.draft.dishes = plain(r.context.compositionMode === 'manual' ? dishes : [dishes[0], dishes[2]])
-      if (body.command === 'replace') { r.draft.history.push(before); r.draft.dishes = r.draft.dishes.map(d => d.id === body.dishId ? { ...d, id: 11, name: '蒸蛋' } : d) }
-      if (body.command === 'undo') r.draft = r.draft.history.pop()
+      if (body.command === 'replace') r.draft.dishes = r.draft.dishes.map(d => d.id === body.dishId ? { ...d, id: 11, name: '蒸蛋' } : d)
+      if (body.command === 'undo') r.draft = {...r.draft.history.pop(),history:[],canUndo:false}
       if (body.command === 'select') r.draft.dishes = body.dishIds.map(id => plain(dishes.find(d => d.id === id)))
+      if(['generate','regenerate','select','replace'].includes(body.command)&&before.dishes.length&&JSON.stringify(before.dishes)!==JSON.stringify(r.draft.dishes)){
+        r.draft.history=[{...before,history:[]}];r.draft.canUndo=true
+      }
       r.draft.planVersion = before.planVersion + 1; return plain(r) },
     confirmMealWorkspace: async (id, body) => { const r = rows.get(id), date = body.targetDate, mealType = body.targetMealType; const plan = { recordDate: date, mealType, revision: 1, targetPeople: r.context.people, dishIds: r.draft.dishes.map(d => d.id), dishDetails: plain(r.draft.dishes), recipeName: '本餐菜单' }; planWrites.push({ date, mealType, ...plain(body) }); plans.set(date + ':' + mealType, plan); r.revision++; r.status = 'planned'; r.confirmation = { date, mealType, planRevision: 1, planVersion: body.planVersion, requestId: body.requestId }; return plain(r) },
     getMealOverview: async date => ({ plans: [...plans.values()].filter(p => p.recordDate === date).map(plain), consumptions: [] }),
@@ -56,7 +59,7 @@ function journey() {
   }
   return { page: route => mount(`pages/${route}/${route}.js`), component: (name, props) => mount(`components/${name}/index.js`, 'Component', props), target, row, read, wx, memory, navigation, commands, planWrites, shoppingWrites, recipeWrites, menuWrites, workspaceReads }
 }
-test('first use through tomorrow, shopping undo, own recipe and next menu application', async t => {
+test('first use through current-day saving, shopping undo, own recipe and next menu application', async t => {
   const h = journey(), home = h.page('index'); home._alive = true; t.after(() => home.onUnload())
   await home.onLoad(h.target)
   assert.equal(home.data.requirementsDraft, ''); assert.equal(home.data.primaryAction, 'onGenerate')
@@ -82,12 +85,12 @@ test('first use through tomorrow, shopping undo, own recipe and next menu applic
   assert.equal(home.data.context.date, h.target.date); assert.equal(home.data.context.mealType, h.target.mealType)
   assert.equal(h.planWrites.length, writesBeforeReturn); assert.equal(writesBeforeReturn, 0)
   assert.equal(home.data.primaryAction, 'onConfirmPlan'); assert.equal(home.data.busy, false); assert.equal(home.data.loading, false)
-  await home.onConfirmPlan(); await home.onSaveTargetDate(event({}, '2026-10-10')); await home.onApproveReplacement()
+  await home.onConfirmPlan()
   const planWrites = h.planWrites
   assert.equal(planWrites.length, 1)
-  assert.equal(planWrites[0].date, '2026-10-10')
-  assert.equal(planWrites[0].targetMealType, 'dinner'); assert.equal(home.data.savedTarget.date, '2026-10-10'); home.onViewSavedMeal(); assert.match(h.navigation.at(-1), /date=2026-10-10&mealType=dinner/)
-  const calendar = h.page('calendar-detail'); calendar.onLoad({ date: '2026-10-10', mealType: 'dinner' }); await calendar.loadMealRecords(); assert.deepEqual(plain(calendar.meal('dinner').plan.dishIds), [7, 8, 9, 10]); assert.equal(calendar.meal('dinner').actual, null)
+  assert.equal(planWrites[0].date, h.target.date)
+  assert.equal(planWrites[0].targetMealType, 'dinner'); assert.equal(home.data.savedTarget.date, h.target.date); home.onViewSavedMeal(); assert.match(h.navigation.at(-1), new RegExp('date='+h.target.date+'&mealType=dinner'))
+  const calendar = h.page('calendar-detail'); calendar.onLoad({ date: h.target.date, mealType: 'dinner' }); await calendar.loadMealRecords(); assert.deepEqual(plain(calendar.meal('dinner').plan.dishIds), [7, 8, 9, 10]); assert.equal(calendar.meal('dinner').actual, null)
   calendar.onAddMealToShoppingList(event({ meal: 'dinner' })); assert.match(h.navigation.at(-1), /shopping-preview/)
   const preview = h.page('shopping-preview'); preview.onLoad(); await settle(); assert.equal(preview.data.itemCount, 4); await preview.onConfirm(); await preview.onConfirm(); assert.equal(h.shoppingWrites.length, 1); assert.match(preview.data.resultMessage, /已加入/)
   const shopping = h.page('shopping-list'); await shopping.loadList(); assert.equal(shopping.data.pendingCount, 4); await shopping.onToggleSummary(event({ key: shopping.data.summaryRows[0].key })); assert.equal(shopping.data.checkedCount, 1); await shopping.onUndoCheck({ detail: { requestId: shopping.data.feedback.requestId } }); assert.equal(shopping.data.checkedCount, 0)
@@ -111,9 +114,10 @@ test('optional shopping reference costs are folded and preserve missing-price di
  assert.match(text,/aria-expanded="\{\{detailsExpanded\}\}"[^>]*bindtap="onPriceDetails"/)
  const note=text.match(/<text wx:if="\{\{pendingMissing\}\}" class="cost-note">\{\{(.+?)\}\}<\/text>/)
  assert.ok(note)
- assert.equal(require('node:vm').runInNewContext(note[1],{pendingPrice:'—'}),'暂无可用参考价')
- assert.equal(require('node:vm').runInNewContext(note[1],{pendingPrice:'¥12.00'}),'参考合计不含未报价食材')
- assert.match(text,/待买参考[\s\S]*?\{\{pendingPrice\}\}/)
+ assert.equal(require('node:vm').runInNewContext(note[1],{pendingPrice:'—'}),'暂无可估算项目')
+ assert.equal(require('node:vm').runInNewContext(note[1],{pendingPrice:'¥12.00'}),'缺有效报价或明确用量的食材未计入')
+ assert.match(text,/待买已知小计[\s\S]*?\{\{pendingPrice\}\}/)
+ assert.match(text,/已估算 \{\{pendingPriced\}\}\/\{\{pendingTotal\}\} 项/)
  assert.match(text,/实际支出[\s\S]*?\{\{actualSpend\}\}/)
  assert.match(text,/wx:if="\{\{item.quote\}\}" class="cost-reference"/)
 })

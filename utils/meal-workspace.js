@@ -83,7 +83,9 @@ function createWorkspaceStore(options = {}) {
       if (workspace && (!response.workspace || (workspace.id === response.workspace.id && workspace.revision > response.workspace.revision))) { persist(); return state() }
       if ((!dirty && !pending) || !workspace) workspace = response.workspace || null; linked = { plan: response.plan || null, actual: response.actual || null, planRevision: response.planRevision || 0 }
       if (!dirty && !pending && workspace) context = clone(workspace.context)
-      if (!dirty && !pending && (!workspace || workspace.status === 'planned') && linked.plan) {
+      const receipt=workspace&&workspace.confirmation
+      const sameSavedMenu=receipt&&linked.plan&&receipt.planVersion===workspace.draft.planVersion&&receipt.planRevision===linked.planRevision
+      if (!dirty && !pending && (!workspace || workspace.status === 'planned'&&!sameSavedMenu) && linked.plan) {
         const counts={meat:0,veg:0,soup:0,staple:0,dessert:0,side:0}
         for(const dish of linked.plan.dishDetails||[]){const type=require('./meal-composition').normalizeDishType(dish.type);if(Object.prototype.hasOwnProperty.call(counts,type))counts[type]++}
         const total=Object.values(counts).reduce((sum,count)=>sum+count,0)
@@ -168,6 +170,7 @@ function createWorkspaceStore(options = {}) {
       workspace = accepted; pending = null
       if (operation.type === 'create' && canonicalContext(result.context) !== canonicalContext(operation.body.context)) { dirty=true;syncStatus='conflict';persist();return state() }
       if (operation.body.context && JSON.stringify(operation.body.context) === JSON.stringify(context)) dirty = false
+      if (operation.type === 'command' && !dirty && workspace.context) context = clone(workspace.context)
       syncStatus = dirty ? 'unsynced' : 'synced'; persist(); return state()
     } catch (error) {
       ensure(); if (owns(ticket,mutationTicket)) {
@@ -210,12 +213,12 @@ function createWorkspaceStore(options = {}) {
     checkReference()
     return send({ type: 'command', id: workspace.id, body: { ...extra, requestId: extra.requestId || requestId(), expectedWorkspaceRevision: workspace.revision, planVersion: workspace.draft.planVersion, command } })
   }
-  async function confirm(planRevision, target, snapshot) {
+  async function confirm(planRevision, target, snapshot, ui = {}) {
     available()
     if (dirty || !workspace) throw new Error('条件未同步，请先保存并重新安排')
     if (snapshot && !matchesSaveSnapshot(snapshot, state(), scope)) throw new Error('菜单已变化，请重新打开保存面板核对方案')
     const destination = target == null ? {} : validateMealTarget(target)
-    return send({ type: 'confirm', id: workspace.id, body: { requestId: requestId(), expectedWorkspaceRevision: workspace.revision, planVersion: workspace.draft.planVersion, expectedPlanRevision: planRevision,
+    return send({ type: 'confirm', presentation: ui.presentation === 'inline' ? 'inline' : 'sheet', id: workspace.id, body: { requestId: requestId(), expectedWorkspaceRevision: workspace.revision, planVersion: workspace.draft.planVersion, expectedPlanRevision: planRevision,
       ...(target == null ? {} : { targetDate: destination.date, targetMealType: destination.mealType }) } })
   }
   function revalidateConfirmation(snapshot, latest) {

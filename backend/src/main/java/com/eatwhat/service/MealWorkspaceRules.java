@@ -101,15 +101,33 @@ public final class MealWorkspaceRules {
     public static boolean understandsRequirements(PlanDraft draft,MealContext c) { return c.getRequirements().trim().isEmpty() || Objects.equals(draft.getRequirementsFingerprint(),requirementsFingerprint(c)); }
     public static boolean matchesContext(PlanDraft draft,MealContext context) { return Objects.equals(draft.getContextFingerprint(),contextFingerprint(context)); }
 
+    public static boolean sameMenu(PlanDraft a,PlanDraft b) {
+        if(a.getDishes().size()!=b.getDishes().size())return false;
+        for(int i=0;i<a.getDishes().size();i++)if(!sameRecipe(a.getDishes().get(i),b.getDishes().get(i)))return false;
+        return true;
+    }
+    private static PlanDraft menuUndoTarget(PlanDraft current){
+        List<PlanDraft> history=current.getHistory();if(history==null)return null;
+        for(int i=history.size()-1;i>=0;i--){PlanDraft prior=history.get(i);if(prior!=null&&!prior.getDishes().isEmpty()&&!sameMenu(current,prior))return prior;}
+        return null;
+    }
+    /** Legacy multi-step/configuration checkpoints become at most one actual menu difference. */
+    public static void normalizeMenuUndo(PlanDraft current){
+        PlanDraft prior=menuUndoTarget(current);List<PlanDraft> history=new ArrayList<>();
+        if(prior!=null){PlanDraft snapshot=copy(prior);snapshot.setHistory(new ArrayList<>());snapshot.setContextSnapshot(null);snapshot.setCanUndo(false);history.add(snapshot);}
+        current.setHistory(history);current.setCanUndo(!history.isEmpty());
+    }
+
     public static PlanDraft copy(PlanDraft value) { return com.eatwhat.util.DishSnapshotReader.convert(JSON,value, PlanDraft.class); }
 
     public static PlanDraft command(PlanDraft current, String command, Long dishId, Dish replacement) {
         PlanDraft next = copy(current);
         if ("undo".equals(command)) {
-            if (next.getHistory().isEmpty()) throw new IllegalArgumentException("没有可以撤销的调整");
-            PlanDraft restored = copy(next.getHistory().remove(next.getHistory().size() - 1));
+            PlanDraft target=menuUndoTarget(current);
+            if (target==null) throw new IllegalArgumentException("没有可以撤销的菜单修改");
+            PlanDraft restored = copy(target);
             restored.setAdjustedBeforeConfirmation(current.isAdjustedBeforeConfirmation() || restored.isAdjustedBeforeConfirmation());
-            restored.setHistory(next.getHistory()); restored.setPlanVersion(current.getPlanVersion() + 1);
+            restored.setHistory(new ArrayList<>());restored.setContextSnapshot(null);restored.setCanUndo(false);restored.setChangeKind("menu_undo");restored.setReplacementFeedbackVersion(null);restored.setPlanVersion(current.getPlanVersion() + 1);
             return restored;
         }
         int index = -1;
@@ -142,7 +160,7 @@ public final class MealWorkspaceRules {
         return next;
     }
     private static boolean preparedSnapshot(PlanDraft current,List<PlanDraft> history) {
-        if(history.isEmpty() || !current.getLockedDishIds().isEmpty())return false;
+        if(history==null || history.isEmpty() || !current.getLockedDishIds().isEmpty())return false;
         PlanDraft prior=history.get(history.size()-1);
         if(prior.getLockedDishIds().isEmpty() || !Objects.equals(prior.getPlanVersion(),current.getPlanVersion()) || prior.getDishes().size()!=current.getDishes().size())return false;
         for(int i=0;i<prior.getDishes().size();i++)if(!sameRecipe(prior.getDishes().get(i),current.getDishes().get(i)))return false;
@@ -150,14 +168,13 @@ public final class MealWorkspaceRules {
     }
 
     public static PlanDraft advance(PlanDraft current, PlanDraft next) {
-        List<PlanDraft> history = new ArrayList<>(current.getHistory());
-        if (!current.getDishes().isEmpty() && !preparedSnapshot(current,history)) {
-            PlanDraft snapshot = copy(current); snapshot.setHistory(new ArrayList<>()); history.add(snapshot);
-        }
-        if (history.size() > 10) history.remove(0);
+        List<PlanDraft> history = new ArrayList<>();boolean changed=!sameMenu(current,next);
+        PlanDraft prior=changed&&!current.getDishes().isEmpty()?(preparedSnapshot(current,current.getHistory())?current.getHistory().get(current.getHistory().size()-1):current):menuUndoTarget(current);
+        if(prior!=null){PlanDraft snapshot=copy(prior);snapshot.setHistory(new ArrayList<>());snapshot.setContextSnapshot(null);snapshot.setCanUndo(false);history.add(snapshot);}
         next.setAdjustedBeforeConfirmation(current.isAdjustedBeforeConfirmation() || next.isAdjustedBeforeConfirmation());
-        next.setHistory(history); next.setPlanVersion(current.getPlanVersion() + 1);
-        next.setReplacementFeedbackVersion(null);
+        next.setHistory(history);next.setContextSnapshot(null);next.setCanUndo(!history.isEmpty());next.setPlanVersion(current.getPlanVersion() + 1);
+        next.setChangeKind(changed?"menu":"configuration");
+        next.setReplacementFeedbackVersion(changed?null:current.getReplacementFeedbackVersion());
         next.setTotalCookMinutes(totalMinutes(next.getDishes()));
         return next;
     }

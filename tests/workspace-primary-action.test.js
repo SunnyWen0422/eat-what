@@ -13,9 +13,8 @@ for (const command of ['select', 'keep', 'cancel']) {
     assert.equal(page.data.primaryDisabled, false)
     assert.equal(page.data.primaryAction, 'onConfirmPlan')
     await page.onPrimaryAction()
-    assert.equal(page.data.confirmationVisible, true)
-    assert.equal(f.calls.filter(c => c.type === 'confirm').length, 0)
-    await page.onApproveReplacement()
+    assert.equal(page.data.confirmationVisible, false)
+    assert.equal(page.data.saveState, 'saved')
     assert.equal(f.calls.filter(c => c.type === 'confirm').length, 1)
   })
 }
@@ -25,7 +24,6 @@ test('confirmed plan enables the cooking action after its refresh finishes', asy
   t.after(() => page.onUnload())
   await page.initializeWorkspace(target)
   await page.onConfirmPlan()
-  await page.onApproveReplacement()
   assert.equal(page.data.busy, false)
   assert.equal(page.data.primaryDisabled, false)
   assert.equal(page.data.primaryAction, 'onViewRecipes')
@@ -55,7 +53,6 @@ test('failed confirmation can be retried without leaving its next action disable
   await page.initializeWorkspace(target)
   f.api.confirmMealWorkspace = async () => { throw { statusCode: 503 } }
   await page.onConfirmPlan()
-  await page.onApproveReplacement()
   assert.equal(page.data.primaryAction, 'onRetryWorkspace')
   assert.equal(page.data.primaryDisabled, false)
   f.api.confirmMealWorkspace = original
@@ -103,7 +100,7 @@ test('busy state disables the primary action and still blocks duplicate submissi
   assert.equal(page.data.primaryDisabled, false)
 })
 
-test('unsaved context cannot be confirmed even when the page is idle', async t => {
+test('saving flushes next-generation settings and records the unchanged current menu', async t => {
   const f = fixture(), page = f.createPage()
   t.after(() => page.onUnload())
   await page.initializeWorkspace(target)
@@ -111,7 +108,7 @@ test('unsaved context cannot be confirmed even when the page is idle', async t =
   page.renderWorkspace()
   assert.equal(page.data.canConfirm, false)
   await page.onConfirmPlan()
-  assert.equal(f.calls.length, 0)
+  assert.deepEqual(f.calls.map(c=>c.type), ['context','confirm']); assert.equal(f.calls.some(c=>c.type==='command'),false)
 })
 
 for (const fail of [false, true]) {

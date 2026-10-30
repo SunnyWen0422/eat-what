@@ -13,6 +13,9 @@ public class ShoppingPreviewItemDTO {
     private String canonicalName;
     private String displayName;
     private String normalizedVariant;
+    /** Display-only purchasing specification; empty hides a catalog identity. */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String variantLabel;
     private String quantityKind;
     private BigDecimal quantityValue;
     private BigDecimal quantityMin;

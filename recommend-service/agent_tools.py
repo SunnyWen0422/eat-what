@@ -56,7 +56,7 @@ _CATALOG: List[Dict[str, Any]] = [
      "input_schema": _schema([], {})},
     {"name": "check_plan_constraints", "description": "校验方案中的硬约束和整餐搭配", "mutates": False, "requires_confirmation": False,
      "input_schema": _schema(["plan"], {"plan": {"type": "object"}, "excluded_ingredients": {"type": "array", "items": {"type": "string"}}})},
-    {"name": "scale_recipe_ingredients", "description": "读取固定配方和整道菜营养；target_people 仅用于均分营养参考，不改变食材或采购量。省略人数时不提供人均值；可选食材改变时由服务端重新计算。", "mutates": False, "requires_confirmation": False,
+    {"name": "scale_recipe_ingredients", "description": "读取固定配方和服务端营养参考（scope=main_ingredients 时仅含主料，不含调味料及辅料）；target_people 仅用于均分营养参考，不改变食材或采购量。省略人数时不提供人均值；可选食材改变时由服务端重新计算。", "mutates": False, "requires_confirmation": False,
      "input_schema": _schema(["dish"], {"dish": {"type": "object"}, "target_people": {"type": "number", "minimum": 1, "maximum": 50},
                                        "optional_overrides": {"type": "object", "additionalProperties": {"type": "boolean"}}})},
     {"name": "compose_meal_plan", "description": "将工具查到的菜品组合为当前任务方案", "mutates": False, "requires_confirmation": False,

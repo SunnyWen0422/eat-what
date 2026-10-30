@@ -8,7 +8,7 @@ test('partial nutrition does not display a fake whole recipe total or verificati
 test('complete nutrition displays whole dish energy even with unknown source servings',()=>{
  assert.ok(fs.existsSync(file),'recipe quality renderer missing')
  const view=require(file).presentRecipeQuality({recipe:{baseServings:null,calculatedNutrition:{completeness:'complete',total:{energyKcal:100,proteinG:2,fatG:4,carbohydrateG:10,fiberG:1,sodiumMg:12},perServing:null}}})
- assert.equal(view.nutritionAvailable,true);assert.equal(view.nutritionText,'整道菜合计约 100 千卡（按食材成分计算）')
+ assert.equal(view.nutritionAvailable,true);assert.equal(view.nutritionText,'约 100 千卡')
 })
 test('legacy calorie and verification fields cannot replace canonical nutrition',()=>{
  assert.ok(fs.existsSync(file),'recipe quality renderer missing')

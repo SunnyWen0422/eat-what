@@ -25,8 +25,8 @@ function fixture(mode='today') {
     commandMealWorkspace:async(id,body)=>{
       calls.push({type:'command',body:plain(body)});if(wait)await wait.promise;if(failure)throw failure
       const before=plain(row.draft),draft=plain(before)
-      if(body.command==='replace'){draft.dishes=draft.dishes.map(d=>d.id===body.dishId?{id:9,name:'西兰花',type:'veg'}:d);draft.history=[...before.history,{...before,history:[]}]}
-      if(body.command==='undo'){const restored=draft.history.pop();Object.assign(draft,restored,{history:draft.history})}
+      if(body.command==='replace'){draft.dishes=draft.dishes.map(d=>d.id===body.dishId?{id:9,name:'西兰花',type:'veg'}:d);draft.history=[{...before,history:[]}];draft.canUndo=true}
+      if(body.command==='undo'){const restored=draft.history.pop();Object.assign(draft,restored,{history:[],canUndo:false})}
       if(body.releaseLegacyLocks)draft.lockedDishIds=[]
       draft.planVersion=before.planVersion+1;row={...row,draft,revision:row.revision+1,status:'draft'};return plain(row)
     },
@@ -39,10 +39,10 @@ function fixture(mode='today') {
 function feedbackInput(overrides={}) {
   const before={id:'w',revision:4,status:'draft',draft:{planVersion:3,dishes:[{id:7,name:'青菜'}],history:[]}}
   const command={command:'replace',dishId:7,expectedWorkspaceRevision:4,planVersion:3}
-  const after={workspace:{...plain(before),revision:5,draft:{planVersion:4,dishes:[{id:9,name:'西兰花'}],history:[before.draft]}},syncStatus:'synced',actionReceipt:{requestId:'one',workspaceId:'w',revision:5,planVersion:4,taskId:null}}
+  const after={workspace:{...plain(before),revision:5,draft:{planVersion:4,dishes:[{id:9,name:'西兰花'}],history:[before.draft],canUndo:true}},syncStatus:'synced',actionReceipt:{requestId:'one',workspaceId:'w',revision:5,planVersion:4,taskId:null}}
   return {before,after,command,requestId:'one',...overrides}
 }
-test('real matched result says replaced dish and exposes real history undo',()=>{
+test('real matched result says replaced dish and exposes server-qualified menu undo',()=>{
   const derive=actionModule().deriveActionFeedback;assert.equal(typeof derive,'function')
   const feedback=derive(feedbackInput());assert.equal(feedback.state,'success');assert.equal(feedback.message,'已换为西兰花');assert.equal(feedback.undoAvailable,true)
 })
@@ -88,7 +88,8 @@ test('more operations use a visible sheet and the header offers the contextual a
   assert.doesNotMatch(template,/workspace-keep-control/);assert.match(template,/bindtap="onOpenConnectedAssistant"[^>]*>[\s\S]*?<text[^>]*>饮食助手<\/text>/)
   const requirements=template.slice(template.indexOf('<ui-sheet visible="{{requirementsVisible}}"'),template.indexOf('<ui-sheet visible="{{settingsVisible}}"'))
   assert.match(requirements,/继续本餐对话/)
-  assert.match(template,/<ui-sheet[^>]*moreVisible[\s\S]*bindtap="onSaveAndReview"[\s\S]*保存计划与周回顾/)
+  assert.doesNotMatch(template,/bindtap="onSaveAndReview"|保存计划与周回顾/)
+  assert.match(template,/<ui-sheet[^>]*moreVisible[\s\S]*bindtap="onSaveReusableMenu"/)
 })
 test('late receipt cannot replace next account menu or feedback',async t=>{
   const f=fixture(),page=f.page,waiting=deferred();t.after(()=>page.onUnload());await page.initializeWorkspace(target);f.wait(waiting)

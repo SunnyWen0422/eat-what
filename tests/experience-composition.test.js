@@ -14,7 +14,7 @@ const plain = value => value == null ? value : JSON.parse(JSON.stringify(value))
 const target = { date: '2026-10-09', mealType: 'dinner' }
 
 // Production page/store/preferences are real. Only WeChat and HTTP are replaced;
-// context responses preserve the old draft and mark needs_regeneration as Java does.
+// Context responses preserve the current menu; changed settings apply to the next generation.
 function fixture() {
   let account = 'A'
   const memory = new Map(), calls = [], navigation = [], rows = new Map()
@@ -94,13 +94,14 @@ for (const mode of ['today', 'result', 'assistant']) {
     assert.deepEqual(plain(page.data.context.counts), { meat: 2, veg: 1 })
     assert.deepEqual(plain(page.data.draft.dishes), before)
     assert.equal(page.data.compositionVisible, false)
-    assert.equal(page.data.conditionsNotice, '条件已更新')
-    assert.equal(page.data.primaryLabel, '按新搭配换一套')
+    assert.equal(page.data.conditionsNotice, '')
+    assert.equal(page.data.primaryAction, 'onConfirmPlan')
+    assert.equal(page.data.primaryLabel, '保存到日历')
     assert.equal(f.calls.length, 1); assert.equal(f.calls[0].type, 'context')
     assert.deepEqual(f.memory.get('A:experiencePreferences').compositionByMeal.dinner, { mode: 'manual', counts: { meat: 2, veg: 1 } })
     page.onPeopleInput({ detail: { value: '7' } }); await page.flushDraft()
     assert.deepEqual(plain(page.data.context.counts), { meat: 2, veg: 1 })
-    await page.onPrimaryAction(); assert.equal(f.calls.at(-1).body.command, 'regenerate')
+    await page.onRegenerate(); assert.equal(f.calls.at(-1).body.command, 'regenerate')
     assert.deepEqual(plain(page.data.draft.dishes), before)
   })
 }
@@ -179,9 +180,9 @@ test('requirements apply and temporary filters retain menus and never write hard
   const dishes = plain(page.data.draft.dishes), hard = page.data.hardExclusionSummary
   page.onOpenRequirements(); page.onClearRequirements(); await page.onApplyRequirements()
   assert.deepEqual(plain(page.data.draft.dishes), dishes); assert.equal(page.data.hardExclusionSummary, hard)
-  assert.equal(page.data.conditionsNotice, '条件已更新')
+  assert.equal(page.data.conditionsNotice, '')
   f.memory.set('A:pendingRecommendationCriteria', { cuisineCodes: ['SICHUAN'] }); await page.onShow()
-  assert.deepEqual(plain(page.data.draft.dishes), dishes); assert.equal(page.data.conditionsNotice, '条件已更新'); assert.match(page.data.filterSummary, /川菜/)
+  assert.deepEqual(plain(page.data.draft.dishes), dishes); assert.equal(page.data.conditionsNotice, ''); assert.match(page.data.filterSummary, /川菜/)
   assert.ok(f.calls.every(call => call.type !== 'preferences'))
 })
 test('independent people sheet retains the same stepper and cannot reset manual counts', async t => {
@@ -250,9 +251,9 @@ test('filter surface explicitly keeps long-term exclusions and labels temporary 
   const filter=fs.readFileSync('pages/recommend-filter/recommend-filter.wxml','utf8')
   assert.match(filter,/仅用于本餐.*长期忌口/);assert.match(filter,/清空本餐筛选/)
 })
-test('invalid people input also disables the new whole-menu regeneration action', () => {
+test('invalid people input disables generation for an empty menu without reviving forced regeneration', () => {
   const view=require('../utils/meal-workspace-presentation').deriveWorkspacePresentation({status:'needs_regeneration',syncStatus:'synced',peopleError:'人数无效',context:{...target,compositionMode:'manual'}})
-  assert.equal(view.primaryAction,'onRegenerate');assert.equal(view.primaryDisabled,true)
+  assert.equal(view.primaryAction,'onGenerate');assert.equal(view.primaryDisabled,true)
 })
 test('inherited object properties are never accepted as factual dish categories', () => {
   for(const type of ['__proto__','constructor','toString'])assert.equal(composition.normalizeDishType(type),null)

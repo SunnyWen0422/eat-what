@@ -200,7 +200,7 @@ test('failed quantity preview never erases real original ingredients', async () 
 test('recipe recovery is a real visible button and component actions have reachable handlers', () => {
   for(const route of ['customize/customize','dish-detail/dish-detail','favorite-dishes/favorite-dishes']) {
     const source=fs.readFileSync('pages/'+route+'.wxml','utf8')+fs.readFileSync('templates/recipe-selected-sheet.wxml','utf8')
-    assert.match(source,/label="核对原请求"[^>]*bind:action="onRetrySelection"/)
+    assert.match(source,/label="继续查看结果"[^>]*bind:action="onRetrySelection"/)
     assert.doesNotMatch(source,/bind:recover=/)
   }
 })

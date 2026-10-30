@@ -16,6 +16,15 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class AssistantV4StoreTest {
+    @Test void completed_save_reply_uses_receipt_target_and_keeps_prior_success_when_shopping_finishes(){
+        String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
+        Card calendar=new Card();calendar.setType("receipt");calendar.setReceiptRef("calendar-real");calendar.getData().put("date","2026-11-02");calendar.getData().put("mealType","dinner");
+        TurnView saved=store.completeWorkflowStep(1L,id,"step-1","calendar-real",calendar);
+        assertEquals("已保存到2026-11-02晚餐，正在准备下一步",saved.getReply());assertEquals("awaiting_confirmation",saved.getStatus());
+        Card shopping=new Card();shopping.setType("receipt");shopping.setReceiptRef("shopping-real");
+        TurnView done=store.completeWorkflowStep(1L,id,"step-2","shopping-real",shopping);
+        assertEquals("已保存到2026-11-02晚餐；已加入采购清单",done.getReply());assertEquals("completed",done.getStatus());assertEquals(2,done.getCards().size());
+    }
     @Test void failed_expired_action_retains_completed_receipt_and_cannot_regress_newer_state(){
         String id=store.claimTurn(1L,session(),request()).getTurnId();TurnRecord lease=store.acquireTurn(1L,id);initialPreview(id,lease);
         Card receipt=new Card();receipt.setType("receipt");receipt.setReceiptRef("calendar-real");

@@ -180,7 +180,7 @@ text.ew-heading, text.ew-title, text.ew-section-title, text.ew-reading { display
 .ew-menu-value { flex:0 1 auto; max-width:52%; color:#56645B; text-align:right; font-size:0.8125em; overflow-wrap:anywhere; }
 .ew-menu-title,.ew-menu-description { display:block; }
 .ew-menu-description { margin-top:4px; color:#56645B; font-size:0.8125em; line-height:1.5; }
-.ew-page button.ew-menu-row[disabled] { background:transparent; color:#56645B; opacity:.65; }
+.ew-page button.ew-menu-row[disabled] { background:#E8EBE5; color:#56645B; opacity:1; }
 .ew-page button.ew-menu-row.danger { color:#A93B30; }
 
 /* One label scale and compact visual chips, with 44px event targets. */

@@ -8,7 +8,7 @@ from __future__ import annotations
 import concurrent.futures
 import copy
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import hashlib
 import json
 from pathlib import Path
@@ -75,6 +75,8 @@ def check_nutrition_summary(recipes, summary):
             require(isinstance(actual, dict), "Diet review omitted " + field)
             for nutrient in NUTRIENTS:
                 expected = sum((Decimal(str(total[nutrient])) for total in known), Decimal(0))
+                if nutrient == "energyKcal":
+                    expected = expected.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
                 numeric_equal(actual.get(nutrient), expected, "Diet review " + field + "." + nutrient)
 
 
@@ -328,8 +330,14 @@ class Checks:
         return {"veganCandidates": len(vegan), "knownSoyFreeCandidates": len(no_soy), "knownQuickCandidates": len(quick)}
 
     def workspace(self):
-        # Distinct past slot makes actual-eaten validation legal without sharing another run's records.
-        day = str(date.today() - timedelta(days=1000 + int(uid().replace("-", "")[:8], 16) % 5000))
+        # A new past calendar slot keeps save-as-record review independent of a prior failed run.
+        for _ in range(20):
+            day = str(date.today() - timedelta(days=1000 + int(uid().replace("-", "")[:8], 16) % 5000))
+            existing = self.http("/recipe-records/overview?startDate=" + day + "&endDate=" + day)
+            if not existing["plans"] and not existing["consumptions"]:
+                break
+        else:
+            raise AssertionError("No fresh synthetic calendar slot was available")
         context = {"date": day, "mealType": "dinner", "people": 2, "compositionMode": "manual",
                    "counts": {"meat": 1, "veg": 1, "soup": 1, "staple": 0, "dessert": 0},
                    "requirements": "", "ownedIngredients": [], "recommendationPolicy": "balanced-v1"}
@@ -377,27 +385,30 @@ class Checks:
         repeated = self.http("/meal-workspaces/" + workspace["id"] + "/confirm", confirm_body)
         require(repeated["confirmation"] == workspace["confirmation"], "Plan replay changed receipt")
         overview = self.http("/recipe-records/overview?startDate=" + day + "&endDate=" + day)
-        require(len(overview["plans"]) == 1 and not overview["consumptions"], "Saving a plan invented actual consumption")
+        require(overview.get("recordPolicy") == "calendar-records-v1" and len(overview["plans"]) == 1
+                and len(overview["consumptions"]) == 1, "Calendar save did not produce exactly one unified meal record")
         planned = overview["plans"][0]
         require(set(planned["dishIds"]) == set(third), "Calendar lost selected canonical IDs")
-        actual_body = {"requestId": uid(), "expectedRevision": 0, "expectedPlanRevision": planned["revision"], "status": "eaten", "usePlan": True}
-        actual = self.http("/meal-consumptions/" + day + "/dinner", actual_body, method="PUT")
-        require(actual["status"] == "eaten" and len(actual["actualDishes"]) == 3, "Actual meal did not preserve the plan snapshot")
+        actual = overview["consumptions"][0]
+        require(actual["status"] == "recorded" and actual.get("sourceRecordId") == planned["id"]
+                and actual["revision"] == planned["revision"] and len(actual["actualDishes"]) == 3
+                and {int(entry["dishId"]) for entry in actual["actualDishes"]} == set(third),
+                "Saved record projection differs from its calendar source")
         for entry in actual["actualDishes"]:
             expected = self.recipes[int(entry["dishId"])]["calculatedNutrition"]
             snapshot = entry["nutritionSnapshot"]
-            require(snapshot.get("catalogRevision") == self.revision, "Actual nutrition lost canonical release")
-            nutrition_equal({**snapshot, "perServing": None}, expected, "Actual fixed recipe snapshot")
-        require(self.http("/meal-consumptions/" + day + "/dinner", actual_body, method="PUT")["revision"] == actual["revision"], "Actual meal replay duplicated revision")
+            require(snapshot.get("catalogRevision") == self.revision, "Recorded nutrition lost canonical release")
+            nutrition_equal({**snapshot, "perServing": None}, expected, "Recorded fixed recipe snapshot")
         review = self.http("/diet-reviews?startDate=" + day + "&endDate=" + day)
         nutrition = review["blocks"]["actualDetails"]["nutrition"]
         check_nutrition_summary([self.recipes[identifier] for identifier in third], nutrition)
         expected_covered = sum(self.recipes[identifier]["calculatedNutrition"]["total"] is not None for identifier in third)
         other = self.http("/recipe-records/overview?startDate=" + day + "&endDate=" + day, user=910002)
-        require(not other["plans"] and not other["consumptions"], "Calendar/actual records escaped ownership")
-        return {"generation": first, "singleReplacement": second, "nextRound": third, "planAndActualReplay": True,
+        require(not other["plans"] and not other["consumptions"], "Calendar records escaped ownership")
+        return {"generation": first, "singleReplacement": second, "nextRound": third, "calendarSaveReplay": True,
+                "recordBasis": "calendar_records", "recordCount": 1, "legacyConsumptionWriteUsed": False,
                 "homePeopleChange": {"from": 2, "to": 8, "fixedMenu": True},
-                "favoriteOwnership": True, "actualNutritionCovered": expected_covered,
+                "favoriteOwnership": True, "recordNutritionCovered": expected_covered,
                 "favoriteWeightNeutralityEvidence": "requires separate deterministic policy regression"}
 
     def shopping(self):
@@ -408,7 +419,7 @@ class Checks:
         groups = preview["dishes"]
         require(len(groups) == 1, "Shopping preview lost recipe")
         discretionary = [item for item in groups[0]["items"] if item["quantityKind"] == "DISCRETIONARY"]
-        require(discretionary and all(item.get("quantityValue") is None and item.get("quantityText") in (None, "") for item in discretionary), "Shopping guessed unknown quantities")
+        require(discretionary and all(item.get("quantityValue") is None and item.get("quantityText") in (None, "", "适量") for item in discretionary), "Shopping guessed unknown quantities")
         body = {"requestId": uid(), "previewId": preview["previewId"], "targetPeople": recipe["baseServings"],
                 "expectedListVersion": before["version"], "dishes": [{key: group[key] for key in ("selectionKey", "targetPeople", "items")} for group in groups]}
         saved = self.http("/shopping-list/items:batch-add", body)

@@ -34,6 +34,9 @@ public class MealWorkspacePlanner {
     public List<Dish> eligible(Long user,MealContext c) {
         return eligible(user,c,SelectionOrigin.AUTOMATIC);
     }
+    public void validateContext(MealContext c){
+        if(!metadata.validateCriteria(c.getCriteria()).isEmpty()||!metadata.validateCriteria(c.getRecommendationPreferences()).isEmpty())throw new IllegalArgumentException("本餐条件包含无效的标签或用时，请在设置中核对");
+    }
     public List<String> mergeRequiredTags(List<String> existing,List<String> added){return new BalancedRecommendationPolicy(metadata).mergeRequiredTags(existing,added);}
     public boolean preservesRequiredTags(List<String> existing,List<String> next){return new BalancedRecommendationPolicy(metadata).preservesRequiredTags(existing,next);}
     private List<Dish> eligible(Long user,MealContext c,SelectionOrigin origin) {
@@ -88,7 +91,6 @@ public class MealWorkspacePlanner {
     }
     private PlanDraft automatic(Long user,MealWorkspace w,RankedCandidates ranked,String command,Long target){
         MealContext c=w.getContext();PlanDraft prior=w.getDraft();
-        if("replace".equals(command)&&!MealWorkspaceRules.matchesContext(prior,c))throw new IllegalArgumentException("条件已变化，请重新安排整餐");
         if(!"replace".equals(command)&&!prior.getLockedDishIds().isEmpty()){
             // A candidate scope limits automatic new choices, not an explicitly
             // retained dish. Retained items still pass access and hard constraints.
@@ -169,14 +171,26 @@ public class MealWorkspacePlanner {
     public PlanDraft lockAndValidateAssistant(Long user,MealWorkspace w,List<Long> ids) {
         return lockAndValidate(user,w,ids,true);
     }
+    public PlanDraft lockMenuForSave(Long user,MealWorkspace w,List<Long> ids) {
+        lockRecipeSnapshots(user,w,ids,false);
+        return MealWorkspaceRules.copy(w.getDraft());
+    }
+    public void lockMenuForUndo(Long user,MealWorkspace w,List<Long> ids){
+        lockRecipeSnapshots(user,w,ids,true);
+    }
     private PlanDraft lockAndValidate(Long user,MealWorkspace w,List<Long> ids,boolean strictContent) {
+        lockRecipeSnapshots(user,w,ids,strictContent);
+        // New selections and assistant adjustments still enforce explicit restrictions.
+        return validateSelection(user,w,ids,"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC);
+    }
+    private void lockRecipeSnapshots(Long user,MealWorkspace w,List<Long> ids,boolean strictContent) {
+        List<Long> reviewedIds=w.getDraft().getDishes().stream().map(Dish::getId).collect(Collectors.toList());
+        if(ids.isEmpty()||!reviewedIds.equals(ids)||new HashSet<>(ids).size()!=ids.size())throw new IllegalArgumentException("菜单菜品信息无效");
         // Compare the locking current read; ordinary reads may use an earlier InnoDB snapshot.
         Map<Long,Dish> snapshots=enrich(dishes.lockReadableDishes(ids,user)).stream().collect(Collectors.toMap(Dish::getId,d->d));
         if(!snapshots.keySet().containsAll(ids))throw new MealConsumptionService.VersionConflict("菜品可用状态已变化，请重新安排");
         for(Dish reviewed:w.getDraft().getDishes()) if(!MealWorkspaceRules.sameRecipe(reviewed,snapshots.get(reviewed.getId())))throw new MealConsumptionService.VersionConflict("菜品信息已更新，请查看新方案后确认");
         if(strictContent)for(Dish reviewed:w.getDraft().getDishes())if(!Objects.equals(reviewed.getContentVersion(),snapshots.get(reviewed.getId()).getContentVersion()))throw new MealConsumptionService.VersionConflict("菜品内容版本已更新，请重新预览");
-        // This source is read from the server-owned persisted draft, never WorkspaceRequest.
-        return validateSelection(user,w,ids,"manual".equals(w.getDraft().getSource())?SelectionOrigin.USER_SELECTION:SelectionOrigin.AUTOMATIC);
     }
     public PlanDraft validateAgent(Long user,MealWorkspace w,List<Long> ids) {
         return validateSelection(user,w,ids,SelectionOrigin.AUTOMATIC);

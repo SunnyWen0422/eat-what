@@ -29,8 +29,9 @@
   <view wx:if="{{pagePresentation.showExpenses && detailsExpanded}}" class="shopping-costs">
     <ui-state wx:if="{{priceLoading}}" kind="loading" density="inline" title="正在读取费用" />
     <text wx:if="{{priceNotice}}" class="ew-muted">{{priceNotice}}</text>
-    <view class="cost-totals"><view><text class="cost-caption">待买参考</text><text class="cost-total-value">{{pendingPrice}}</text></view><view><text class="cost-caption">实际支出</text><text class="cost-total-value">{{actualSpend}}</text></view></view>
-    <text wx:if="{{pendingMissing}}" class="cost-note">{{pendingPrice === '—' ? '暂无可用参考价' : '参考合计不含未报价食材'}}</text>
+    <view class="cost-totals"><view><text class="cost-caption">待买已知小计</text><text class="cost-total-value">{{pendingPrice}}</text></view><view><text class="cost-caption">实际支出</text><text class="cost-total-value">{{actualSpend}}</text></view></view>
+    <text wx:if="{{pendingTotal}}" class="cost-coverage">已估算 {{pendingPriced}}/{{pendingTotal}} 项</text>
+    <text wx:if="{{pendingMissing}}" class="cost-note">{{pendingPrice === '—' ? '暂无可估算项目' : '缺有效报价或明确用量的食材未计入'}}</text>
     <view wx:for="{{pricingRows}}" wx:key="ingredientKey" class="cost-row"><view class="ew-grow"><text class="cost-name">{{item.displayName}}</text><text wx:if="{{item.quote}}" class="cost-reference">{{item.unitPriceText}} · {{item.quoteLabel}}</text></view><button class="ew-hit-target ew-link" data-key="{{item.ingredientKey}}" disabled="{{busy || !expensesEnabled || priceLoading}}" aria-label="记录{{item.displayName}}的实际支出" bindtap="onEditExpense">{{item.expense ? item.actualText : '记支出'}}</button></view>
   </view>
   <view class="shopping-bottom ew-bottom"><ui-button label="添加食材" variant="{{pagePresentation.addEmphasis}}" disabled="{{busy || loading}}" bind:action="onAddManual" /><ui-button wx:if="{{pagePresentation.showMore}}" label="复制菜谱" variant="secondary" disabled="{{busy}}" bind:action="onCopyList" /></view>

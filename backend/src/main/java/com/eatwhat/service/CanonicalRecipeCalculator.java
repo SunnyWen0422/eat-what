@@ -8,6 +8,9 @@ import java.util.regex.*;
 
 /** The one quantity/nutrition calculation contract. Display prose is never numeric input. */
 public final class CanonicalRecipeCalculator {
+ public static final String RULE_VERSION="eatwhat-main-ingredients-20261029-v1";
+ public static final String NUTRITION_SCOPE="main_ingredients";
+ public static final String NUTRITION_DESCRIPTION="主料营养参考（不含调味料和辅料）";
  private static final ObjectMapper JSON=new ObjectMapper();
  private static final MathContext MC=new MathContext(36,RoundingMode.HALF_EVEN);
  public static final List<String> NUTRIENTS=Arrays.asList("energyKcal","proteinG","fatG","carbohydrateG","fiberG","sodiumMg");
@@ -43,6 +46,7 @@ public final class CanonicalRecipeCalculator {
   }
   ObjectNode result=JSON.createObjectNode();result.set("recipeId",recipe.path("id"));put(result,"servings",diners);put(result,"diners",diners);put(result,"baseServings",base);result.put("quantityPolicy","fixed-recipe-v1");result.put("quantityBasis","fixed_recipe");result.put("portionBasis","equal_share_reference");result.put("catalogContractVersion",4);
   ArrayNode output=result.putArray("ingredients"),unknownReasons=JSON.createArrayNode();Set<String> unknownLines=new LinkedHashSet<>();Map<String,BigDecimal> nutrients=new LinkedHashMap<>();NUTRIENTS.forEach(n->nutrients.put(n,BigDecimal.ZERO));
+  int includedMainCount=0;
   for(Map.Entry<String,JsonNode> entry:lines.entrySet()){
    String id=entry.getKey();JsonNode line=entry.getValue(),standard=standards.get(line.path("ingredientId").asText());boolean identity="identity_only".equals(standard.path("definitionKnowledge").asText());
    BigDecimal conversion=nullableNumber(standard,"gramsPerUnit"),yield=nullableNumber(standard,"procurementYield");
@@ -51,15 +55,16 @@ public final class CanonicalRecipeCalculator {
    JsonNode facts=standard.path("nutritionPer100g");if(!facts.isObject()&&!identity)throw invalid("unknown nutrition requires identity_only");
    BigDecimal q=totals.get(id);boolean zero=q!=null&&q.signum()==0;BigDecimal grams=zero?BigDecimal.ZERO:q==null||conversion==null?null:q.multiply(conversion,MC);BigDecimal procurement=zero?BigDecimal.ZERO:q==null||yield==null?null:q.divide(yield,MC);
    ObjectNode row=output.addObject();row.put("lineId",id);row.put("ingredientId",line.path("ingredientId").asText());row.put("name",text(standard,"name"));put(row,"quantity",q);row.put("quantityKind",line.path("quantityKind").asText("exact"));row.put("quantityDisplay",q==null?"适量":display(q,line.path("unit").asText()));row.put("unit",line.path("unit").asText());put(row,"grams",grams);put(row,"procurementQuantity",procurement);row.put("preparation",line.path("preparation").asText());row.put("role",line.path("role").asText());row.put("optional",line.path("optional").asBoolean());row.put("enabled",enabled.get(id));row.set("ingredient",standard);
+   boolean contributes="main".equals(line.path("role").asText())&&enabled.get(id);if(contributes)includedMainCount++;
    boolean unknownRetention="unknown".equals(line.path("nutritionContribution").asText());
-   if(!zero){if(q==null)unknown(unknownReasons,unknownLines,id,"quantity");if(conversion==null)unknown(unknownReasons,unknownLines,id,"unitMass");if(!facts.isObject())unknown(unknownReasons,unknownLines,id,"ingredientNutrition");if(unknownRetention)unknown(unknownReasons,unknownLines,id,"processRetention");}
+   if(contributes&&!zero){if(q==null)unknown(unknownReasons,unknownLines,id,"quantity");if(conversion==null)unknown(unknownReasons,unknownLines,id,"unitMass");if(!facts.isObject())unknown(unknownReasons,unknownLines,id,"ingredientNutrition");if(unknownRetention)unknown(unknownReasons,unknownLines,id,"processRetention");}
    JsonNode retention=line.path("nutrientRetention");if(!retention.isMissingNode()&&!retention.isObject())throw invalid("retention must be object");Iterator<String> retained=retention.fieldNames();while(retained.hasNext())if(!NUTRIENTS.contains(retained.next()))throw invalid("unknown retention nutrient");
-   for(String n:NUTRIENTS){BigDecimal factor=retention.has(n)?number(retention,n):BigDecimal.ONE;if(factor.signum()<0||factor.compareTo(BigDecimal.ONE)>0)throw invalid("retention");BigDecimal per100=facts.isObject()?number(facts,n):null;if(per100!=null&&per100.signum()<0)throw invalid("negative nutrition");if(grams!=null&&per100!=null&&!unknownRetention)nutrients.put(n,nutrients.get(n).add(grams.multiply(per100,MC).divide(new BigDecimal("100"),MC).multiply(factor,MC),MC));}
+   for(String n:NUTRIENTS){BigDecimal factor=retention.has(n)?number(retention,n):BigDecimal.ONE;if(factor.signum()<0||factor.compareTo(BigDecimal.ONE)>0)throw invalid("retention");BigDecimal per100=facts.isObject()?number(facts,n):null;if(per100!=null&&per100.signum()<0)throw invalid("negative nutrition");if(contributes&&grams!=null&&per100!=null&&!unknownRetention)nutrients.put(n,nutrients.get(n).add(grams.multiply(per100,MC).divide(new BigDecimal("100"),MC).multiply(factor,MC),MC));}
   }
   result.set("steps",steps(recipe,lines,totals));
-  ObjectNode nutrition=result.putObject("nutrition");nutrition.put("completeness",unknownLines.isEmpty()?"complete":"partial");nutrition.set("unknownLineIds",JSON.valueToTree(unknownLines));nutrition.set("unknownReasons",unknownReasons);
+  ObjectNode nutrition=result.putObject("nutrition");nutrition.put("ruleVersion",RULE_VERSION);nutrition.put("scope",NUTRITION_SCOPE);nutrition.put("description",NUTRITION_DESCRIPTION);nutrition.put("includedMainCount",includedMainCount);boolean complete=includedMainCount>0&&unknownLines.isEmpty();nutrition.put("completeness",complete?"complete":"partial");if(includedMainCount==0)nutrition.put("unavailableReason","no_enabled_main_ingredients");nutrition.set("unknownLineIds",JSON.valueToTree(unknownLines));nutrition.set("unknownReasons",unknownReasons);
   ObjectNode subtotal=nutrition.putObject("quantifiedSubtotal"),total=JSON.createObjectNode(),per=JSON.createObjectNode();for(String n:NUTRIENTS){BigDecimal value=nutrients.get(n);total.put(n,round(value));if(diners!=null)per.put(n,round(value.divide(diners,MC)));}subtotal.set("total",total);subtotal.set("perServing",diners==null?NullNode.instance:per);
-  nutrition.set("total",unknownLines.isEmpty()?total.deepCopy():NullNode.instance);nutrition.set("perServing",unknownLines.isEmpty()&&diners!=null?per.deepCopy():NullNode.instance);if(diners==null)nutrition.put("perServingUnavailableReason","diners_not_specified");
+  nutrition.set("total",complete?total.deepCopy():NullNode.instance);nutrition.set("perServing",complete&&diners!=null?per.deepCopy():NullNode.instance);if(diners==null)nutrition.put("perServingUnavailableReason","diners_not_specified");
   ObjectNode tags=deriveTags(lines,enabled,standards);result.setAll(tags);return result;
  }
  private ArrayNode steps(JsonNode recipe,Map<String,JsonNode> lines,Map<String,BigDecimal> quantities){

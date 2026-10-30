@@ -30,11 +30,10 @@
       <text class="ew-muted">{{reportView.categoryCounts.classifiedCount}} / {{reportView.categoryCounts.entryCount}} 条实际菜品可识别类别。次数包含未分类条目，不代表营养摄入比例。</text>
     </view>
     <view wx:if="{{hasActualRecords && nutritionReference}}" class="ew-card nutrition-reference">
-      <view class="ew-row ew-between"><text class="ew-section-title">菜谱营养参考</text><text class="ew-muted">{{nutritionReference.coverage}}</text></view>
+      <view class="ew-row ew-between"><text class="ew-section-title">{{nutritionReference.title}}</text><text class="ew-muted">{{nutritionReference.coverage}}</text></view>
       <text wx:if="{{nutritionReference.available}}" class="ew-muted">{{nutritionReference.label}}</text>
-      <view wx:if="{{nutritionReference.available}}" class="nutrition-grid"><view wx:for="{{nutritionReference.rows}}" wx:key="key" class="nutrition-row"><text>{{item.label}}</text><text>{{item.value}} {{item.unit}}</text></view></view>
-      <text wx:else class="ew-muted">暂无完整菜谱营养资料</text>
-      <text class="ew-muted nutrition-note">{{nutritionReference.note}}</text>
+      <view wx:if="{{nutritionReference.available}}" class="nutrition-grid"><view wx:for="{{nutritionReference.rows}}" wx:key="key" class="nutrition-row"><text>{{item.label}}</text><view><text>{{item.value}} {{item.unit}}</text><view wx:if="{{item.key === 'energyKcal'}}" class="ew-muted ew-small">{{nutritionReference.note}}</view></view></view></view>
+      <text wx:else class="ew-muted">{{nutritionReference.emptyText}}</text>
     </view>
     <button class="ew-hit-target ew-link" bindtap="onToggleReviewDetails" aria-expanded="{{showReviewDetails}}">{{showReviewDetails ? '收起记录与依据' : '查看记录、缺失与计算依据'}}</button>
     <block wx:if="{{showReviewDetails}}">

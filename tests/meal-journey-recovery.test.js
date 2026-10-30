@@ -7,7 +7,7 @@ test('recovery priority is unknown conflict busy unapplied normal and remains a 
  assert.equal(deriveMealJourney({workspace:w,syncStatus:'conflict',busy:true}).recovery.state,'conflict')
  assert.equal(deriveMealJourney({workspace:{...w,status:'generating'},busy:true}).recovery.state,'busy')
  const needs={...w,status:'needs_regeneration'}
- assert.equal(deriveMealJourney({workspace:needs,actual:{status:'eaten'}}).recovery.state,'unapplied')
+ assert.equal(deriveMealJourney({workspace:needs,actual:{status:'eaten'}}).recovery,null)
  assert.equal(JSON.stringify(w),before)
 })
 test('saving to another day retains exact destination and purchased ingredients never imply eaten',()=>{
@@ -34,6 +34,6 @@ test('known awaiting confirmation differs from unknown send and an unrelated sou
 })
 test('ten repeated page confirmations still use one original write and do not record an actual meal',async t=>{
  const {fixture,target}=require('./fixtures/workspace-flow'),f=fixture(),page=f.createPage();t.after(()=>page.onUnload());await page.initializeWorkspace(target)
- await page.onConfirmPlan();await Promise.all(Array.from({length:10},()=>page.onApproveReplacement()))
+ await Promise.all(Array.from({length:10},()=>page.onConfirmPlan()))
  assert.equal(f.calls.filter(c=>c.type==='confirm').length,1);assert.equal(page.data.actual,null)
 })

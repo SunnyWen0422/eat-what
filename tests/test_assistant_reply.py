@@ -62,7 +62,7 @@ class AssistantReplyTest(unittest.TestCase):
         self.assertIn('left/right必须填写evidenceKeys中的key，不能填写菜名',prompt)
         self.assertIn('less_than的value是left的实际值',prompt)
         self.assertIn('draft_update由服务端直接修改本餐草稿',prompt)
-        self.assertIn('contextPatch修改整餐条件时必须给出selectedDishIds完整菜单',prompt)
+        self.assertIn('contextPatch不代表重新选菜',prompt)
         self.assertEqual(1,len(calls))
 
     def test_basis_is_user_data_not_system_instruction(self):

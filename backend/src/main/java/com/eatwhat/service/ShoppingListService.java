@@ -36,6 +36,9 @@ import java.util.Set;
 
 @Service
 public class ShoppingListService {
+    private com.eatwhat.mapper.CanonicalCatalogMapper catalogIngredients;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setCatalogIngredients(com.eatwhat.mapper.CanonicalCatalogMapper catalogIngredients) { this.catalogIngredients=catalogIngredients; }
     private com.eatwhat.mapper.ShoppingExpenseMapper expenses;
     @org.springframework.beans.factory.annotation.Autowired
     public void setExpenses(com.eatwhat.mapper.ShoppingExpenseMapper expenses) { this.expenses=expenses; }
@@ -88,6 +91,7 @@ public class ShoppingListService {
             }
             response.getDishes().add(dto);
         }
+        decorateIngredientLabels(response.getDishes());
         response.setPurchaseSummary(buildSummary(response.getDishes()));
         calculateCounts(response, allItems);
         if (expenses != null) {
@@ -96,6 +100,24 @@ public class ShoppingListService {
             for (com.eatwhat.dto.ShoppingExpense e : expenses.find(list.getId())) if(keys.contains(e.getIngredientKey())) response.getExpenses().put(e.getIngredientKey(),e);
         }
         return response;
+    }
+
+    private void decorateIngredientLabels(List<ShoppingDishDTO> dishes) {
+        Set<String> ids=new HashSet<>();
+        for(ShoppingDishDTO dish:dishes)for(ShoppingPreviewItemDTO item:dish.getItems()) {
+            item.setVariantLabel(item.getNormalizedVariant()==null?"":item.getNormalizedVariant());
+            if(dish.getDishId()!=null && item.getNormalizedVariant()!=null && !item.getNormalizedVariant().isEmpty())ids.add(item.getNormalizedVariant());
+        }
+        if(ids.isEmpty() || catalogIngredients==null)return;
+        Map<String,String> names=new HashMap<>();
+        for(String document:catalogIngredients.ingredients(ids)) {
+            try {com.fasterxml.jackson.databind.JsonNode ingredient=objectMapper.readTree(document);names.put(ingredient.path("id").asText(),ingredient.path("name").asText());}
+            catch(java.io.IOException error){throw new IllegalStateException("食材名称暂未读到",error);}
+        }
+        for(ShoppingDishDTO dish:dishes)for(ShoppingPreviewItemDTO item:dish.getItems()) {
+            String name=names.get(item.getNormalizedVariant());
+            if(dish.getDishId()!=null && name!=null && (name.equals(item.getCanonicalName()) || name.equals(item.getDisplayName())))item.setVariantLabel("");
+        }
     }
 
     @Transactional

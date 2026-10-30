@@ -2,6 +2,7 @@
   <ui-state wx:if="{{loading}}" kind="loading" title="正在读取本餐做法" />
   <ui-state wx:elif="{{errorMessage}}" kind="error" title="{{errorMessage}}" action-label="{{planChanged ? '返回核对本餐' : '重新读取'}}" bind:action="onErrorAction" />
   <block wx:else><text wx:if="{{resumeNotice}}" class="ew-notice" aria-role="status">{{resumeNotice}}</text><scroll-view wx:if="{{dishes.length > 1}}" scroll-x class="dish-switch-scroll"><view class="ew-tabs"><button wx:for="{{dishes}}" wx:key="id" class="ew-hit-target {{dishIndex === index ? 'active' : ''}}" aria-pressed="{{dishIndex === index}}" data-index="{{index}}" bindtap="onChooseDish">{{item.name}}</button></view></scroll-view>
+    <text wx:if="{{recipeSourceNotice}}" class="ew-notice" aria-role="status">{{recipeSourceNotice}}</text>
     <button class="ew-hit-target ew-link" aria-expanded="{{ingredientsVisible}}" bindtap="onIngredients">查看食材</button>
     <ui-card><view id="cooking-step-heading" class="cooking-step-heading"><text class="ew-title">{{dishName}}</text><text wx:if="{{steps.length}}" class="ew-muted">步骤 {{stepIndex + 1}} / {{steps.length}}</text></view><view wx:if="{{steps.length}}" class="cooking-step">{{steps[stepIndex]}}</view><text wx:else class="ew-notice">{{recipeMode ? '这份菜谱还没有烹饪步骤。' : '这餐缺少做法步骤，请返回查看原菜谱。'}}</text></ui-card>
     <ui-button wx:if="{{!recipeMode}}" label="查看这餐记录" variant="secondary" bind:action="onRecordActual" />

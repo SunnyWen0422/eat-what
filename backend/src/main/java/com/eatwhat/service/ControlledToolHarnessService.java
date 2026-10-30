@@ -92,9 +92,9 @@ public class ControlledToolHarnessService {
                     summary.add(mealSummary(step.binding));
                 } else if(ControlledToolRegistry.READ_MEAL.equals(step.tool)) {
                     summary.add("查看 "+step.arguments.get("date")+" "+mealLabel((String)step.arguments.get("mealType"))+" 的当前内容");
-                } else summary.add("查看 "+step.arguments.get("startDate")+" 至 "+step.arguments.get("endDate")+" 的实际用餐回顾");
+                } else summary.add("查看 "+step.arguments.get("startDate")+" 至 "+step.arguments.get("endDate")+" 的饮食回顾");
             }
-            summary.add("保存计划不计入实际用餐；回顾只统计已明确记录吃过的餐次。");
+            summary.add("保存即记录，未来菜单到对应日期计入饮食回顾。");
             task.summary=String.join("\n",summary);task.message="请核对服务器预览后确认";
             db.insert(task.id,user,key,hash,encode(task));return task;
         });
@@ -141,7 +141,7 @@ public class ControlledToolHarnessService {
                     if(ControlledToolRegistry.READ_REVIEW.equals(step.tool))latest.report=step.result;
                     boolean complete=latest.steps.stream().allMatch(s->"completed".equals(s.status));
                     latest.status=complete?"completed":"running";latest.retryable=!complete;
-                    latest.message=complete?"已完成；保存计划不计入实际用餐，回顾仅统计实际记录":"已完成部分步骤，继续处理";
+                    latest.message=complete?"已完成；已保存的餐次已记录，未来菜单到对应日期计入饮食回顾":"已完成部分步骤，继续处理";
                     save(user,latest);return latest;
                 });
                 if(terminal(task))return afterCommit(user,task);
@@ -180,7 +180,7 @@ public class ControlledToolHarnessService {
             MealWorkspace saved=workspaces.mutate(user,(String)step.binding.get("workspaceId"),"confirm",request);
             Map<String,Object> result=new LinkedHashMap<>();result.put("executed",true);result.put("workspaceId",saved.getId());
             result.put("workspaceRevision",saved.getRevision());result.put("confirmation",saved.getConfirmation());
-            result.put("countsAsActual",false);return result;
+            result.put("reviewBasis","calendar_records");result.put("reviewFromDate",step.binding.get("date"));return result;
         }
         if(ControlledToolRegistry.READ_MEAL.equals(step.tool)) {
             String date=(String)step.arguments.get("date"),meal=(String)step.arguments.get("mealType");
@@ -231,7 +231,7 @@ public class ControlledToolHarnessService {
         }
         if("completed".equals(task.status)&&(failed||task.retryable)){
             final boolean pending=failed;
-            return tx.execute(status->{lock(user);ControlledToolTask latest=get(user,task.id);latest.retryable=pending;latest.message=pending?"已保存，后续步骤暂未完成，可重试原确认继续":"已完成；保存计划不计入实际用餐";save(user,latest);return latest;});
+            return tx.execute(status->{lock(user);ControlledToolTask latest=get(user,task.id);latest.retryable=pending;latest.message=pending?"已保存，后续步骤暂未完成，可重试原确认继续":"已完成；保存即记录，未来菜单到对应日期计入饮食回顾";save(user,latest);return latest;});
         }return task;
     }
     private void requirePendingExtensionsEnabled(ControlledToolTask task) {

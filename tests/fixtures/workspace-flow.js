@@ -7,10 +7,10 @@ const target = { date: '2026-10-06', mealType: 'dinner' }
 
 // Only the platform and HTTP boundary are simulated. Page handlers and the store
 // use production code, including request identity, revision and account guards.
-function fixture() {
+function fixture({ journals = false } = {}) {
   let account = 'A'
   const memory = new Map(), rows = new Map(), plans = new Map(), navigation = [], calls = []
-  const util = { getCurrentUserIdentity: () => account, getUserStorageKey: key => account + ':' + key }
+  const util = { getCurrentUserIdentity: () => account, getUserStorageKey: key => (journals ? 'user:' : '') + account + ':' + key }
   const wx = {
     getStorageSync: key => plain(memory.get(key)),
     setStorageSync: (key, value) => memory.set(key, plain(value)),
@@ -18,6 +18,7 @@ function fixture() {
     getAppBaseInfo: () => ({ fontSizeScaleFactor: 1 }),
     navigateTo: value => navigation.push(value.url),
   }
+  if (journals) wx.getStorageInfoSync = () => ({ keys: [...memory.keys()] })
   function row(meal = target) {
     const id = `${account}:${meal.date}:${meal.mealType}`
     if (!rows.has(id)) rows.set(id, {

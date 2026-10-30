@@ -110,7 +110,7 @@ TOOL_ARGUMENTS = {
     "read_current_meal": obj(),
     "read_calendar": obj({"startDate": DATE, "endDate": DATE, "cursor": DATE}, ["startDate", "endDate"]),
     "read_actual_diet_review": obj({"startDate": DATE, "endDate": DATE, "cursor": DATE}, ["startDate", "endDate"]),
-    "read_shopping": obj({"status": string(20, ["pending", "checked", "all"]), "cursor": CURSOR, "limit": integer(1, 30)}),
+    "read_shopping": obj({"status": string(20, ["pending", "checked", "all"]), "cursor": CURSOR, "limit": integer(1, 30), "includePrices": BOOL}),
     "get_recommendation_options": obj({"group": string(40, ["cuisine", "flavor", "scene", "diet", "method"])}),
     "read_favorites": obj({"query": string(200, nonempty=True), "cursor": dict(string(19), pattern=r"[1-9][0-9]{0,18}"), "limit": integer(1, 20)}),
     "read_saved_menus": obj({"query": string(200, nonempty=True), "menuId": ID, "cursor": dict(string(19), pattern=r"[1-9][0-9]{0,18}"), "limit": integer(1, 20)}),
@@ -134,8 +134,11 @@ HANDOFF_REFS = {"record_actual": obj(), "edit_preferences": obj(),
 def navigation_schema():
     variants=[]
     for kind,ref in HANDOFF_REFS.items():
+        # Only date-bound handoffs accept a destination meal. Keep this aligned
+        # with AssistantGuidanceService so a valid model result can be executed.
+        target = obj({"date":DATE,"mealType":string(20,MEALS)}) if kind in ("record_actual","use_personal_menu") else obj()
         variants.append(obj({"kind":string(40,[kind]),"ref":copy.deepcopy(ref),
-            "target":obj({"date":DATE,"mealType":string(20,MEALS)}),
+            "target":target,
             "userText":TEXT},["kind","ref"]))
     return obj({"type":string(20,["navigation"]),"navigationIntent":{"anyOf":variants}},["type","navigationIntent"])
 
@@ -176,14 +179,14 @@ DISH = obj({"id": ID, "name": nullable(string(200)), "type": nullable(string(40,
 ACTIVE = obj({"workspaceId": string(100), "workspaceRevision": integer(), "planVersion": integer(), "date": DATE,
     "mealType": string(20, MEALS), "people": nullable(integer(1, 50)), "compositionMode": string(30), "counts": COUNTS,
     "totalCookMinutes": nullable(integer(1, 480)), "currentDishes": array(DISH, 10), "lockedDishIds": IDS,
-    "source": nullable(string(100))})
+    "source": nullable(string(100)), "canUndo": BOOL})
 MENU = obj({"kind": string(20, ["menu"]), "id": ID, "name": nullable(string(200)), "people": nullable(integer(1, 50)),
     "dishIds": nullable(array(ID, 10)), "version": nullable(integer())})
 NUTRIENT_VALUES = obj({key: NUMBER for key in ("energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg")},
                       ["energyKcal", "proteinG", "fatG", "carbohydrateG", "fiberG", "sodiumMg"])
 ACTUAL_NUTRITION = obj({"basis": string(30, ["recipe_baseline"]), "personalIntakeAvailable": {"type": "boolean", "enum": [False]},
     "entryCount": integer(), "coveredCount": integer(), "unknownCount": integer(), "complete": BOOL,
-    "knownTotal": nullable(NUTRIENT_VALUES), "total": nullable(NUTRIENT_VALUES)},
+    "knownTotal": nullable(NUTRIENT_VALUES), "total": nullable(NUTRIENT_VALUES), "nutritionVersion": string(64, nonempty=True), "scope": string(30, ["main_ingredients"]), "description": string(500)},
     ["basis", "personalIntakeAvailable", "entryCount", "coveredCount", "unknownCount", "complete", "knownTotal", "total"])
 ACTUAL = obj({"date": DATE, "mealType": nullable(string(20, MEALS)), "status": string(20, ["recorded"]),
     "revision": nullable(integer()), "dishes": array(obj({"dishId": nullable({"anyOf": [ID, string(20)]}),
@@ -227,7 +230,10 @@ CONTEXT = obj({"schemaVersion": string(30, [VERSION]), "requestContext": obj({"e
 RECIPE = copy.deepcopy(DISH)
 RECIPE_NUTRITION = obj({"completeness": string(20, ["complete", "partial"]), "total": nullable(NUTRIENT_VALUES),
                         "perServing": nullable(NUTRIENT_VALUES),
-                        "perServingUnavailableReason": string(40, ["diners_not_specified"])}, ["completeness", "total", "perServing"])
+                        "perServingUnavailableReason": string(40, ["diners_not_specified"]),
+                        "scope": string(30, ["main_ingredients"]), "description": string(500),
+                        "ruleVersion": string(100, nonempty=True), "includedMainCount": integer(),
+                        "unavailableReason": string(40, ["no_enabled_main_ingredients"])}, ["completeness", "total", "perServing"])
 RECIPE["properties"].update({"detailLevel": string(10, ["summary", "full"]),
     "omittedFields": array(string(40, ["ingredients", "ingredientFacts", "steps", "stepFacts", "methods", "tagCodes", "name", "contentVersion", "datasetVersion", "cuisineCode"]), 10),
     "basePeople": nullable({"type": "number", "minimum": 1, "maximum": 50}), "diners": nullable(integer(1,50)), "ingredients": nullable(string(10000)),
@@ -245,9 +251,14 @@ READ_ITEMS = {**{k: RECIPE for k in READS[:4]}, "read_current_meal": ACTIVE, "re
               "read_favorites": RECIPE, "read_saved_menus": MENU,
               "get_recommendation_options": obj({"group": string(40, ["cuisine","flavor","scene","diet","method"]),
                   "code": nullable(string(40)), "label": nullable(string(200)), "kind": nullable(string(40))}, ["group"])}
+PRICE_ESTIMATE = obj({"scope": string(40, ["pending_source_items"]), "coveredCount": integer(), "missingCount": integer(), "totalCount": integer(),
+    "knownSubtotalCents": nullable(integer(0, 9007199254740991)), "totalCents": nullable(integer(0, 9007199254740991)),
+    "complete": BOOL, "serviceAvailable": BOOL, "quoteDates": array(DATE, 8),
+    "sources": array(obj({"quoteDate": DATE, "sourceUrl": nullable(string(2000)), "sourceLabel": string(200)}, ["quoteDate", "sourceUrl", "sourceLabel"]), 8),
+    "sourcesTruncated": BOOL}, ["scope", "coveredCount", "missingCount", "totalCount", "knownSubtotalCents", "totalCents", "complete", "serviceAvailable", "quoteDates", "sources"])
 RESULT = obj({"callId": string(100, nonempty=True), "name": string(60, READS), "items": array(obj(), 30),
     "nextCursor": nullable(string(100)), "truncated": BOOL, "sourceVersion": nullable(string(100)),
-    "unknownFields": array(string(100), 100)}, ["callId", "name", "items", "truncated"])
+    "unknownFields": array(string(100), 100), "priceEstimate": PRICE_ESTIMATE}, ["callId", "name", "items", "truncated"])
 FRAME = obj({"role": string(20, ["user", "assistant"]), "content": string(2000)}, ["role", "content"])
 
 
@@ -260,7 +271,7 @@ def tool_catalog(capabilities=None):
         "get_dish_methods": "用户询问做法且上下文没有步骤时，读取指定真实菜谱的原始做法；不为普通选菜重复查询。",
         "read_current_meal": "仅在activeMeal缺少必要当前餐字段或用户明确要求刷新时读取；activeMeal已有版本及currentDishes时避免重复，优先复用授权快照。",
         "read_calendar": "仅用户明确查询日历或必要日历来源缺失时读取指定日期范围；不为普通生成额外调用。",
-        "read_shopping": "仅用户明确查询购物清单或必要采购来源缺失时读取；不为普通生成额外调用，数量未知保持未知。",
+        "read_shopping": "用户查询购物清单时读取；询问参考花费时设置includePrices=true，返回整份待买清单已知小计与覆盖项目数（不受材料分页影响），并非实付或下单。缺价/缺量不补零；complete=false时不得把knownSubtotalCents说成整单总价。金额单位为分，报价使用返回日期。仅查清单时无需includePrices，不为普通生成额外调用。",
         "read_actual_diet_review": "用户明确查询饮食回顾且上下文缺少必要记录时调用，优先复用recentActual；保存到日历即记录，未来菜单到对应日期才纳入回顾。",
         "get_recommendation_options": "读取现有筛选分类及合法代码。未指定group先返回分类，具体代码按组查询；不得自造代码，include标签仍按OR匹配。",
         "read_favorites": "只读当前用户仍可访问的收藏菜谱，按菜名query筛选及游标分页；返回真实菜ID，不创建菜单。",
@@ -277,6 +288,15 @@ def read_result(value):
     schema["properties"]["items"] = array(READ_ITEMS[value["name"]], 30)
     validate(value, schema)
     if value["name"] == "read_shopping": shopping_facts(value["items"])
+    if "priceEstimate" in value:
+        if value["name"] != "read_shopping": raise StepValidationError("price estimate belongs to shopping reads")
+        estimate=value["priceEstimate"]
+        if estimate["coveredCount"] + estimate["missingCount"] != estimate["totalCount"]: raise StepValidationError("invalid estimate coverage")
+        complete=estimate["coveredCount"] > 0 and estimate["missingCount"] == 0
+        if estimate["complete"] != complete: raise StepValidationError("invalid estimate completeness")
+        if (estimate["knownSubtotalCents"] is None) != (estimate["coveredCount"] == 0): raise StepValidationError("unknown estimate must stay null")
+        if estimate["totalCents"] != (estimate["knownSubtotalCents"] if complete else None): raise StepValidationError("partial estimate cannot be a total")
+        if not estimate["serviceAvailable"] and estimate["coveredCount"]: raise StepValidationError("failed estimate cannot provide prices")
     return value
 
 

@@ -20,14 +20,15 @@ public class WorkspaceAssistantToolAdapter implements AssistantCapabilityService
   DraftIntent intent=json.convertValue(step.getArguments(),DraftIntent.class);
   TurnBinding binding=new TurnBinding();binding.setScope(scope);binding.setStepId(step.getStepId());binding.setRequestId(step.getRequestId());
   MealWorkspace saved=applyDraft(user,intent,binding);
-  WorkspaceRef ref=reference(saved);Card card=new Card();card.setId(step.getRequestId());card.setType(saved.getDraft().getDishes().isEmpty()?"receipt":"menu");card.setTitle("本餐已调整");card.setText(saved.getMessage());
-  if(!saved.getDraft().getExplanations().isEmpty())card.setText(String.join("；",saved.getDraft().getExplanations()));
+  WorkspaceRef ref=reference(saved);Card card=new Card();card.setId(step.getRequestId());card.setType(saved.getDraft().getDishes().isEmpty()?"receipt":"menu");card.setTitle("menu_undo".equals(saved.getDraft().getChangeKind())?"已恢复上一版菜单":"configuration".equals(saved.getDraft().getChangeKind())?"本餐设置已更新":"本餐菜单已更新");card.setText(saved.getMessage());
+  if("configuration".equals(saved.getDraft().getChangeKind()))card.setText(null);
+  else if(!saved.getDraft().getExplanations().isEmpty())card.setText(String.join("；",saved.getDraft().getExplanations()));
   card.setReceiptRef("workspace:"+saved.getId()+":"+step.getRequestId());card.setWorkspaceRef(ref);
   card.getData().put("people",saved.getContext().getPeople());card.getData().put("date",saved.getContext().getDate());card.getData().put("mealType",saved.getContext().getMealType());
   List<Map<String,Object>> dishes=new ArrayList<>();
   saved.getDraft().getDishes().forEach(d->{Map<String,Object> item=new LinkedHashMap<>();item.put("id",d.getId());item.put("name",d.getName());item.put("type",d.getType());item.put("image",d.getImage());item.put("cookMinutes",d.getCookMinutes());dishes.add(item);});
-  card.getData().put("dishes",dishes);card.getData().put("canUndo",!saved.getDraft().getHistory().isEmpty());
-  TurnResult result=new TurnResult();result.setStatus("completed");result.setReply("本餐已调整，可以撤销最近一次修改");result.setWorkspaceRef(ref);result.getCards().add(card);return result;
+  card.getData().put("dishes",dishes);card.getData().put("canUndo","menu".equals(saved.getDraft().getChangeKind())&&saved.getDraft().isCanUndo());card.getData().put("changeKind",saved.getDraft().getChangeKind());
+  TurnResult result=new TurnResult();result.setStatus("completed");result.setReply(saved.getMessage());result.setWorkspaceRef(ref);result.getCards().add(card);return result;
  }
  public MealWorkspace applyDraft(Long user,DraftIntent intent,TurnBinding binding){
   TurnScope scope=binding.getScope();

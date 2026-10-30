@@ -22,33 +22,52 @@ function scaled(value, places) {
 function shanghaiDate(now = new Date()) { return new Date(now.getTime() + 8 * 3600000).toISOString().slice(0, 10) }
 function usableQuote(quote, today) {
   if (!quote || quote.status !== 'AVAILABLE' || !/^\d{4}-\d{2}-\d{2}$/.test(quote.quoteDate || '')) return false
+  if (!Number.isFinite(Date.parse(quote.quoteDate)) || new Date(quote.quoteDate).toISOString().slice(0, 10) !== quote.quoteDate) return false
   const age = (Date.parse(today) - Date.parse(quote.quoteDate)) / 86400000
   return age >= 0 && age <= 7
 }
+function matchesIdentity(item, quote) {
+  // Old quote DTOs serialized a default empty variant without echoing canonicalName.
+  // Their exact query identity is carried by ingredientKey; an echoed identity must match fully.
+  const echoedVariant = quote.canonicalName != null || !!quote.normalizedVariant
+  return !(quote.ingredientKey != null && quote.ingredientKey !== ingredientKey(item) || quote.canonicalName != null && quote.canonicalName !== (item.canonicalName || item.displayName) || echoedVariant && quote.normalizedVariant != null && quote.normalizedVariant !== (item.normalizedVariant || ''))
+}
 function estimate(item, quote, today) {
   if (!usableQuote(quote, today) || item.userOverride || item.parseStatus !== 'PARSED' || item.calculationStatus !== 'CALCULATED') return null
+  // New servers echo the exact requested identity after applying the stored official mapping.
+  // Legacy responses are still bound to their requested ingredient key by the query adapter.
+  if (!matchesIdentity(item, quote)) return null
   const factor = { g: 1, kg: 1000, ml: 1, l: 1000 }
-  if (!factor[item.unitCode] || !factor[quote.unitCode] || item.unitFamily !== quote.unitFamily) return null
+  const family = { g: 'mass', kg: 'mass', ml: 'volume', l: 'volume' }
+  if (!factor[item.unitCode] || !factor[quote.unitCode] || item.unitFamily !== family[item.unitCode] || quote.unitFamily !== family[quote.unitCode] || item.unitFamily !== quote.unitFamily) return null
   const quantity = scaled(item.quantityValue, 4), price = scaled(quote.price, 4), base = scaled(quote.unitQuantity, 4)
-  if (quantity == null || price == null || !base || price <= 0) return null
+  if (quantity == null || quantity <= 0 || price == null || !base || price <= 0) return null
   const numerator = quantity * factor[item.unitCode] * price
   const denominator = base * factor[quote.unitCode] * 100
   if (!Number.isSafeInteger(numerator) || !Number.isSafeInteger(denominator)) return null
-  return Math.floor(numerator / denominator + 0.5)
+  const whole = Math.floor(numerator / denominator)
+  return whole + (numerator % denominator >= Math.ceil(denominator / 2) ? 1 : 0)
 }
 const money = cents => cents == null ? '—' : '¥' + (cents / 100).toFixed(2)
 function buildPricing(list, quotes = {}, today = shanghaiDate()) {
   const groups = new Map(), dishCosts = {}
+  const sources = new Map()
   let pendingCents = 0, pendingMissing = 0, pendingPriced = 0
   for (const dish of list.dishes || []) {
     let cents = 0, missing = 0, priced = 0
     for (const raw of dish.items || []) {
       const item = { ...raw, sourceDishId: dish.dishId || raw.sourceDishId }
-      const key = ingredientKey(item), quote = quotes[key], cost = estimate(item, quote, today)
-      if (!groups.has(key)) groups.set(key, { ingredientKey: key, displayName: item.displayName || item.canonicalName || '未命名食材', canonicalName: item.canonicalName || item.displayName, normalizedVariant: item.normalizedVariant || '', items: [], cents: 0, missing: 0, priced: 0, quote: usableQuote(quote, today) ? quote : null })
+      const key = ingredientKey(item), quote = quotes[key]
+      let cost = estimate(item, quote, today)
+      if (!item.checked && cost != null && !Number.isSafeInteger(pendingCents + cost)) cost = null
+      if (!groups.has(key)) groups.set(key, { ingredientKey: key, displayName: item.displayName || item.canonicalName || '未命名食材', canonicalName: item.canonicalName || item.displayName, normalizedVariant: item.normalizedVariant || '', variantLabel:item.variantLabel, items: [], cents: 0, missing: 0, priced: 0, quote: usableQuote(quote, today) && matchesIdentity(item, quote) ? quote : null })
       const group = groups.get(key); group.items.push(item)
       if (cost == null) { missing++; group.missing++ } else { cents += cost; priced++; group.cents += cost; group.priced++ }
-      if (!item.checked) { if (cost == null) pendingMissing++; else { pendingCents += cost; pendingPriced++ } }
+      if (!item.checked) { if (cost == null) pendingMissing++; else {
+        pendingCents += cost; pendingPriced++
+        const source = { quoteDate: quote.quoteDate, sourceUrl: quote.sourceUrl || null, sourceLabel: quote.sourceLabel || '上海市发展和改革委员会' }
+        sources.set(JSON.stringify(source), source)
+      } }
     }
     dishCosts[dish.selectionKey] = { cents, missing, priced }
   }
@@ -63,8 +82,14 @@ function buildPricing(list, quotes = {}, today = shanghaiDate()) {
       quoteLabel: q ? (q.quoteDate === today ? '报价日期 ' : '最近报价 ') + q.quoteDate : '暂无官方参考价',
       actualText: expense ? money(amountCents(expense.amount)) : '—', channel: expense && expense.channel || '', expense: expense || null }
   })
-  return { rows, dishCosts, pendingText: money(pendingPriced ? pendingCents : null), pendingMissing, pendingPriced, actualText: money(recorded ? actualCents : null), recorded, total: rows.length }
+  const pendingTotal = pendingMissing + pendingPriced
+  const complete = pendingTotal > 0 && pendingMissing === 0
+  const estimateSummary = { scope: 'pending_source_items', coveredCount: pendingPriced, missingCount: pendingMissing, totalCount: pendingTotal,
+    knownSubtotalCents: pendingPriced ? pendingCents : null, totalCents: complete ? pendingCents : null, complete,
+    quoteDates: [...new Set([...sources.values()].map(source => source.quoteDate))].sort(), sources: [...sources.values()] }
+  return { rows, dishCosts, pendingText: money(estimateSummary.knownSubtotalCents), pendingMissing, pendingPriced, pendingTotal, estimateSummary, actualText: money(recorded ? actualCents : null), recorded, total: rows.length }
 }
+function summarizeEstimate(list, quotes = {}, today = shanghaiDate()) { return buildPricing(list, quotes, today).estimateSummary }
 function copyList(list = {}, status = 'pending') {
   const groups = require('./shopping-view').buildShoppingView(list, status).groups
   if (!groups.length) return ''
@@ -76,4 +101,4 @@ function copyList(list = {}, status = 'pending') {
   })].join('\n\n')
 }
 function copyPending(list) { return copyList(list, 'pending') }
-module.exports = { CHANNELS, ingredientKey, amountCents, estimate, buildPricing, copyPending, copyList, shanghaiDate, money }
+module.exports = { CHANNELS, ingredientKey, amountCents, estimate, buildPricing, summarizeEstimate, copyPending, copyList, shanghaiDate, money }

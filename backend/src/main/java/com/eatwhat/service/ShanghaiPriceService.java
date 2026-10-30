@@ -24,7 +24,12 @@ public class ShanghaiPriceService {
             if(item==null || item.getIngredientKey()==null || item.getIngredientKey().length()>2200 || item.getCanonicalName()==null || item.getCanonicalName().length()>120 || item.getNormalizedVariant()!=null && item.getNormalizedVariant().length()>255) throw new IllegalArgumentException("食材查询无效");
             IngredientQuote q=enabled ? mapper.latest(item.getCanonicalName(),item.getNormalizedVariant()==null?"":item.getNormalizedVariant()) : null;
             if(q==null) q=new IngredientQuote();
-            else { LocalDate date=LocalDate.parse(q.getQuoteDate()); q.setStatus(date.isAfter(today)||date.isBefore(today.minusDays(7)) ? "STALE":"AVAILABLE"); }
+            else {
+                try { LocalDate date=LocalDate.parse(q.getQuoteDate()); q.setStatus(date.isAfter(today)||date.isBefore(today.minusDays(7)) ? "STALE":"AVAILABLE"); }
+                catch(java.time.format.DateTimeParseException | NullPointerException error) { q.setStatus("MISSING"); }
+            }
+            q.setCanonicalName(item.getCanonicalName());
+            q.setNormalizedVariant(item.getNormalizedVariant()==null?"":item.getNormalizedVariant());
             q.setIngredientKey(item.getIngredientKey()); result.put(item.getIngredientKey(),q);
         }
         return result;

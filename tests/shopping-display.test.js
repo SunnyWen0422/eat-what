@@ -4,6 +4,22 @@ const {buildShoppingView}=require('../utils/shopping-view')
 const pricing=require('../utils/shopping-prices')
 const raw=(id,name,amount)=>({id,displayName:name,canonicalName:name,quantityText:amount,sourceQuantityText:amount,calculationStatus:'NEEDS_ADJUSTMENT',checked:false})
 
+test('canonical ingredient identity is never used as a label, pricing key remains unchanged',()=>{
+ const item={...raw(1,'盐','5g'),normalizedVariant:'salt',variantLabel:'',sourceDishId:9}
+ const list={dishes:[{dishId:9,dishName:'蒸菜',items:[item]}]},before=structuredClone(list)
+ assert.equal(ingredientName(item),'盐')
+ assert.equal(buildShoppingView(list).rows[0].name,'盐')
+ assert.equal(pricing.buildPricing(list).rows[0].displayName,'盐')
+ assert.match(pricing.copyList(list),/1\. 盐  5g/)
+ assert.doesNotMatch(pricing.copyList(list),/salt/)
+ assert.equal(pricing.ingredientKey(item),pricing.ingredientKey({...item,variantLabel:undefined}))
+ assert.deepEqual(list,before)
+})
+
+test('explicit purchasing specification remains visible independently of identity',()=>{
+ assert.equal(ingredientName({displayName:'鸡腿',normalizedVariant:'chicken-leg-boneless',variantLabel:'去骨'}),'鸡腿（去骨）')
+})
+
 test('source-shaped ingredients render only explicit amounts, with no internal provenance or cooking repetition',()=>{
  const rows=[raw(1,'五香粉（直接使用）','五香粉|6|克|调味料|直接使用|2名成年人总量+15%冗余|步骤'),raw(2,'鱼（去鳞去内脏并清洗）','鱼 690克（去鳞去内脏并清洗）'),raw(3,'洋葱（去皮切丝）','洋葱|290|克|主料|去皮切丝|2名成年人总量+15%冗余|菜名+步骤')]
  const list={dishes:[{dishId:7,items:rows}]},before=structuredClone(list)

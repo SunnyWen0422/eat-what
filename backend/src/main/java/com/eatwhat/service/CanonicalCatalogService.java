@@ -16,16 +16,20 @@ public class CanonicalCatalogService {
  // recipeJson remains the immutable persisted calculation document; recipe is its customer projection.
  private JsonNode rawRecipe(Dish dish){JsonNode raw=dish.getRecipeJson()==null?dish.getRecipe():parse(dish.getRecipeJson());if(raw==null||!raw.isObject())throw new IllegalStateException("Canonical recipe is unavailable");return raw;}
  public List<JsonNode> searchIngredients(String keyword){if(keyword==null)keyword="";if(keyword.length()>100)throw new IllegalArgumentException("Ingredient search is too long");List<JsonNode> out=new ArrayList<>();for(String value:mapper.searchIngredients(keyword.trim()))out.add(customerIngredient(parse(value)));return out;}
- public JsonNode metadata(){JsonNode value=parse(mapper.metadata());if(!value.path("catalogContractVersion").isIntegralNumber()||value.path("catalogContractVersion").asInt()!=4||!"fixed-recipe-v1".equals(value.path("quantityPolicy").asText()))throw new IllegalStateException("Canonical fixed-recipe catalog is unavailable");return value;}
+ public JsonNode metadata(){JsonNode value=parse(mapper.metadata());if(!value.path("catalogContractVersion").isIntegralNumber()||value.path("catalogContractVersion").asInt()!=4||!"fixed-recipe-v1".equals(value.path("quantityPolicy").asText()))throw new IllegalStateException("Canonical fixed-recipe catalog is unavailable");((ObjectNode)value).put("nutritionRuleVersion",CanonicalRecipeCalculator.RULE_VERSION);((ObjectNode)value).put("nutritionScope",CanonicalRecipeCalculator.NUTRITION_SCOPE);return value;}
  public Map<String,JsonNode> standards(Collection<Dish> dishes){
   Set<String> required=new LinkedHashSet<>();for(Dish d:dishes){if(d==null)continue;for(JsonNode i:rawRecipe(d).path("ingredients"))required.add(CanonicalRecipeCalculator.text(i,"ingredientId"));}
+  return ingredientDefinitions(required,false);
+ }
+ /** Exact identities only. Historical readers retain missing definitions as unknown. */
+ public Map<String,JsonNode> ingredientDefinitions(Collection<String> required,boolean allowMissing){
   Map<String,JsonNode> raw=new LinkedHashMap<>();Set<String> pending=new LinkedHashSet<>(required);
   while(!pending.isEmpty()){
    Set<String> batch=new LinkedHashSet<>(pending);pending.clear();for(String value:mapper.ingredients(batch)){JsonNode node=parse(value);raw.put(node.path("id").asText(),node);}
-   for(String id:batch){JsonNode node=raw.get(id);if(node==null)throw new IllegalStateException("Canonical ingredient is unavailable: "+id);for(JsonNode child:node.path("compositionSource").path("constituents")){String childId=CanonicalRecipeCalculator.text(child,"ingredientId");if(!raw.containsKey(childId))pending.add(childId);}}
+   for(String id:batch){JsonNode node=raw.get(id);if(node==null){if(allowMissing)continue;throw new IllegalStateException("Canonical ingredient is unavailable: "+id);}for(JsonNode child:node.path("compositionSource").path("constituents")){String childId=CanonicalRecipeCalculator.text(child,"ingredientId");if(!raw.containsKey(childId)&&!batch.contains(childId))pending.add(childId);}}
    if(raw.size()>2000)throw new IllegalStateException("Ingredient expansion exceeds catalog bounds");
   }
-  Map<String,JsonNode> out=new LinkedHashMap<>();for(String id:raw.keySet())out.put(id,ingredientFacts(id,raw,new LinkedHashSet<>()));return out;
+  Map<String,JsonNode> out=new LinkedHashMap<>();for(String id:raw.keySet())out.put(id,allowMissing?raw.get(id).deepCopy():ingredientFacts(id,raw,new LinkedHashSet<>()));return out;
  }
  private JsonNode ingredientFacts(String id,Map<String,JsonNode> raw,Set<String> path){
   if(!path.add(id)||path.size()>20)throw new IllegalStateException("Invalid compound ingredient cycle");ObjectNode value=raw.get(id).deepCopy();ArrayNode children=value.putArray("constituentIngredients");for(JsonNode child:value.path("compositionSource").path("constituents"))children.add(ingredientFacts(child.path("ingredientId").asText(),raw,new LinkedHashSet<>(path)));return value;
@@ -64,7 +68,7 @@ public class CanonicalCatalogService {
   ObjectNode out=json.createObjectNode();for(String field:Arrays.asList("id","name","aliases","group","unit","specification","animal","animalOrigins","allergens"))if(ingredient.has(field))out.set(field,ingredient.get(field).deepCopy());
   if(ingredient.path("constituentIngredients").isArray()){ArrayNode children=out.putArray("constituentIngredients");for(JsonNode child:ingredient.path("constituentIngredients"))children.add(customerIngredient(child));}return out;
  }
- private ObjectNode customerNutrition(JsonNode value){ObjectNode out=json.createObjectNode();for(String field:Arrays.asList("completeness","total","perServing","perServingUnavailableReason"))if(value.has(field))out.set(field,value.get(field).deepCopy());return out;}
+ private ObjectNode customerNutrition(JsonNode value){ObjectNode out=json.createObjectNode();for(String field:Arrays.asList("completeness","total","perServing","perServingUnavailableReason","scope","description","unavailableReason","includedMainCount"))if(value.has(field))out.set(field,value.get(field).deepCopy());return out;}
  private ObjectNode customerCalculation(ObjectNode value){ObjectNode out=value.deepCopy();out.set("nutrition",customerNutrition(value.path("nutrition")));for(JsonNode row:out.path("ingredients"))((ObjectNode)row).set("ingredient",customerIngredient(row.path("ingredient")));removeInternal(out);return out;}
  private ObjectNode customerRecipe(JsonNode recipe,JsonNode scaled,Map<String,JsonNode> definitions){
   ObjectNode out=recipe.deepCopy();removeInternal(out);out.put("catalogContractVersion",4);out.put("quantityPolicy","fixed-recipe-v1");out.put("quantityBasis","fixed_recipe");out.put("portionBasis","equal_share_reference");out.putNull("diners");out.set("calculatedNutrition",customerNutrition(scaled.path("nutrition")));for(String tag:Arrays.asList("dietaryCodes","allergenCodes","compositionCodes"))out.set(tag,scaled.path(tag).deepCopy());
@@ -77,7 +81,7 @@ public class CanonicalCatalogService {
  /** Persist only authoring facts plus deterministic derived cache; supplied derived claims are discarded. */
  public void prepareWrite(Dish dish){
   if(dish==null||dish.getRecipe()==null||!dish.getRecipe().isObject())throw new IllegalArgumentException("请使用结构化菜谱编辑器填写材料、份数和步骤");ObjectNode recipe=dish.getRecipe().deepCopy();
-  recipe.remove(Arrays.asList("calculatedNutrition","catalogRevision","scaledRecipe","provenance","dietaryCodes","allergenCodes","compositionCodes","scaling","quantityBasis","portionBasis","diners","servings"));recipe.put("quantityPolicy","fixed-recipe-v1");for(JsonNode line:recipe.path("ingredients")){if(!line.isObject())throw new IllegalArgumentException("Invalid ingredient line");((ObjectNode)line).remove(Arrays.asList("ingredient","scaleRule"));}if(dish.getId()!=null)recipe.put("id",dish.getId());else recipe.remove("id");
+  recipe.remove(Arrays.asList("calculatedNutrition","nutritionVersion","catalogRevision","scaledRecipe","provenance","dietaryCodes","allergenCodes","compositionCodes","scaling","quantityBasis","portionBasis","diners","servings"));recipe.put("quantityPolicy","fixed-recipe-v1");for(JsonNode line:recipe.path("ingredients")){if(!line.isObject())throw new IllegalArgumentException("Invalid ingredient line");((ObjectNode)line).remove(Arrays.asList("ingredient","scaleRule"));}if(dish.getId()!=null)recipe.put("id",dish.getId());else recipe.remove("id");
   CanonicalRecipeCalculator.text(recipe,"name");String category=CanonicalRecipeCalculator.text(recipe,"categoryCode");JsonNode meta=metadata(),taxonomy=meta.path("taxonomy").path("entries");if(!taxonomy.has(category)||!"category".equals(taxonomy.path(category).path("dimension").asText()))throw new IllegalArgumentException("Invalid recipe category");
   if(!recipe.path("mealCodes").isArray()||recipe.path("mealCodes").size()==0)throw new IllegalArgumentException("Recipe meals required");for(JsonNode meal:recipe.path("mealCodes"))if(!taxonomy.has(meal.asText())||!"meal".equals(taxonomy.path(meal.asText()).path("dimension").asText()))throw new IllegalArgumentException("Invalid meal");
   validateAuthoring(recipe);dish.setRecipe(recipe);Map<String,JsonNode> definitions=standards(Collections.singletonList(dish));ObjectNode scaled=calculator.calculate(recipe,definitions,null);

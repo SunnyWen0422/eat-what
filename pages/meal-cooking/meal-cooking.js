@@ -42,7 +42,7 @@ Page({
   this.setData({ingredientsVisible:false,reducedMotion:require('../../utils/experience-preferences')().get().reducedMotion})
   if(this._scope!==scope){this.disposeMealActual();this.setData({actualVisible:false,actualQuick:false,actualText:'',actualSavedMessage:'',actualBusy:false,actualUnknown:false,ingredientsVisible:false})}
   this._scope=scope
-  this.setData({loading:true,errorMessage:'',planChanged:false,resumeNotice:'',dishes:[],steps:[],ingredients:[],canRecordActual:!this.data.recipeMode&&this._target.date<=flow.today()})
+  this.setData({loading:true,errorMessage:'',planChanged:false,resumeNotice:'',recipeSourceNotice:'',dishes:[],steps:[],ingredients:[],canRecordActual:!this.data.recipeMode&&this._target.date<=flow.today()})
   try{
    if(this.data.recipeMode){
     const dish=await api.getDishById(this._recipeId)
@@ -56,9 +56,20 @@ Page({
    if(!this._alive||scope!==getUserStorageKey('cooking')||epoch!==this._epoch)return
    const plan=flow.mealViews(overview,this._target.date).find(m=>m.mealType===this._target.mealType).plan
    if(!plan||plan.revision!==this._target.planRevision)throw Error('本餐安排已变化，请返回核对后重新进入做饭模式。')
-   const dishes=await Promise.all((plan.dishIds||[]).map(async id=>{const dish=await api.getDishById(id);return readingDish(dish)}))
+   const snapshots=new Map((plan.dishDetails||[]).map(dish=>[Number(dish.id||dish.dishId),dish]))
+   const currentRecipeNames=[]
+   const dishes=await Promise.all((plan.dishIds||[]).map(async id=>{
+    const saved=snapshots.get(Number(id))
+    // A saved recipe belongs to this meal, even when the live catalog changes.
+    if(saved&&saved.recipe)return readingDish({...saved,id:Number(id)})
+    const dish=await api.getDishById(id)
+    if(!dish||Number(dish.id)!==Number(id))throw Error('本餐做法信息不完整，请返回核对菜谱。')
+    currentRecipeNames.push(dish.name)
+    return readingDish(dish)
+   }))
    if(!this._alive||scope!==getUserStorageKey('cooking')||epoch!==this._epoch)return
    if(!dishes.length || (plan.dishIds||[]).some(id=>!dishes.some(d=>Number(d.id||d.dishId)===Number(id))))throw Error('本餐做法信息不完整，请返回核对菜谱。')
+   this.setData({recipeSourceNotice:currentRecipeNames.length?`${currentRecipeNames.join('、')}：旧记录未保存完整做法，显示当前菜谱。`:''})
    this._progressContext={...this._target,scope};this.initializeReading(dishes)
   }catch(error){if(this._alive&&scope===getUserStorageKey('cooking')&&epoch===this._epoch)this.setData({errorMessage:flow.errorMessage(error,'做法暂未读到，请重新读取。'),planChanged:!!(error.message&&/安排已变化|做法信息不完整/.test(error.message))})}
   finally{if(this._alive&&scope===getUserStorageKey('cooking')&&epoch===this._epoch)this.setData({loading:false})}

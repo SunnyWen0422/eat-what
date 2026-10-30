@@ -46,6 +46,60 @@ function fixture(route = 'settings') {
 const input = value => ({ detail: { value } })
 const tap = value => ({ currentTarget: { dataset: { value } } })
 
+test('failed preference save survives a successful reread and explicit retry clears the draft', async () => {
+  const f = fixture(); await f.page.onLoad()
+  f.page.onIngredientInput(input('花生')); f.page.onAddIngredient()
+  f.api.updateUserPreferences = async () => { throw { isNetworkError: true } }
+  await f.page.onSave()
+  assert.match(f.page.data.statusText, /草稿.*保留|保留.*草稿/)
+  await f.page.onLoad()
+  assert.deepEqual(plain(f.page.data.preferences.excludedIngredients), ['花生'])
+  assert.equal(f.page.data.synced, false)
+  assert.match(f.page.data.statusText, /未同步/)
+  f.api.updateUserPreferences = async value => ({ preferences: value })
+  await f.page.onSave()
+  assert.equal(f.page.data.synced, true)
+  f.api.getUserPreferences = async () => ({ preferences: { excludedIngredients: ['芝麻'] } })
+  await f.page.onLoad()
+  assert.deepEqual(plain(f.page.data.preferences.excludedIngredients), ['芝麻'])
+})
+
+test('an older preference read cannot overwrite a just-saved preference', async () => {
+  const f = fixture(), store = f.load('preference-store').createPreferenceStore()
+  let resolve
+  f.api.getUserPreferences = () => new Promise(done => { resolve = done })
+  const pending = store.load()
+  await store.save({ excludedIngredients: ['花生'] })
+  resolve({ preferences: {} })
+  const result = await pending
+  assert.deepEqual(plain(result.preferences.excludedIngredients), ['花生'])
+  assert.deepEqual(plain(store.readCache().excludedIngredients), ['花生'])
+})
+
+test('saving the same preference value still supersedes a read that began before the save', async () => {
+  const f = fixture(), store = f.load('preference-store').createPreferenceStore()
+  store.writeCache({ excludedIngredients: ['花生'] })
+  let resolve
+  f.api.getUserPreferences = () => new Promise(done => { resolve = done })
+  const reading = store.load()
+  await store.save({ excludedIngredients: ['花生'] })
+  resolve({ preferences: { excludedIngredients: ['芝麻'] } })
+  assert.deepEqual(plain((await reading).preferences.excludedIngredients), ['花生'])
+  assert.deepEqual(plain(store.readCache().excludedIngredients), ['花生'])
+})
+
+test('late older preference save cannot erase a newer unsynced draft or another account', async () => {
+  const f = fixture(), store = f.load('preference-store').createPreferenceStore()
+  let resolve
+  f.api.updateUserPreferences = value => value.excludedIngredients[0] === '花生' ? new Promise(done => { resolve = done }) : Promise.reject({ isNetworkError: true })
+  const older = store.save({ excludedIngredients: ['花生'] })
+  await store.save({ excludedIngredients: ['芝麻'] })
+  resolve({ preferences: { excludedIngredients: ['花生'] } }); await older
+  assert.deepEqual(plain((await store.load()).preferences.excludedIngredients), ['芝麻'])
+  f.switch()
+  assert.deepEqual(plain((await store.load()).preferences.excludedIngredients), [])
+})
+
 test('unadded ingredient is never silently omitted', async () => {
   const f = fixture(); await f.page.onLoad()
   f.page.onIngredientInput(input(' 花生 ')); await f.page.onSave()

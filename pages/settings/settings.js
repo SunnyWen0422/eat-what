@@ -71,7 +71,7 @@ Page({
       featureEnabled,
       balancedRecommendation: optionsResult.synced&&this.options.recommendationPolicyVersion==='balanced-v1',
       learningResetEnabled: optionsResult.synced&&this.options.learningResetEnabled===true,
-      statusText: preferenceResult.synced ? '' : '当前使用本机偏好',
+      statusText: preferenceResult.synced ? '' : preferenceResult.pending ? '有未同步的偏好，点击保存重试' : '当前使用本机偏好',
     })
     this._editInitial = JSON.stringify({ preferences: normalizePreferences(preferenceResult.preferences), peopleDraft: String(preferences.defaultPeople), ingredientDraft: '' })
     this.syncEditLeaveAlert()

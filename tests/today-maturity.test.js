@@ -1,4 +1,4 @@
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs')
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm')
 const {deriveWorkspacePresentation}=require('../utils/meal-workspace-presentation')
 const target={date:'2026-10-15',mealType:'dinner',people:2,counts:{meat:1,veg:1},compositionMode:'manual'}
 const view=(patch={})=>deriveWorkspacePresentation({status:'draft',syncStatus:'synced',context:target,draft:{planVersion:1,dishes:[{id:7,type:'meat'},{id:8,type:'veg'}],history:[]},canConfirm:true,...patch})
@@ -6,7 +6,7 @@ test('one actionable state wins over repeated progress and result text',()=>{
  const result=view({syncStatus:'unknown',errorMessage:'连接暂未完成',status:'needs_regeneration'})
  assert.equal(result.workspaceNotice.kind,'warning');assert.match(result.workspaceNotice.text,/待核对/);assert.equal(result.primaryAction,'onRetryWorkspace')
  assert.equal(result.showActionFeedback,false)
- const unapplied=view({status:'needs_regeneration'});assert.match(unapplied.workspaceNotice.text,/条件已修改/);assert.equal(unapplied.primaryAction,'onRegenerate')
+ const unapplied=view({status:'needs_regeneration'});assert.equal(unapplied.workspaceNotice,null);assert.equal(unapplied.resultNotice,null);assert.equal(unapplied.primaryAction,'onConfirmPlan')
  assert.equal(view().workspaceNotice,null)
 })
 test('shortage retains exact missing categories while unknown categories do not invent counts',()=>{
@@ -14,7 +14,7 @@ test('shortage retains exact missing categories while unknown categories do not 
  const unknown=view({status:'needs_input',draft:{dishes:[{id:7,type:'unknown'}]}});assert.match(unknown.workspaceNotice.text,/分类/);assert.doesNotMatch(unknown.workspaceNotice.text,/还缺\d/)
 })
 test('replacement feedback stays at the affected row and undo remains reachable',()=>{
- const result=view({draft:{dishes:[{id:9,type:'meat'}],history:[{}]},actionFeedback:{state:'success',kind:'replace',message:'已换为清蒸鱼',undoAvailable:true}})
+ const result=view({draft:{dishes:[{id:9,type:'meat'}],history:[{}],canUndo:true},actionFeedback:{state:'success',kind:'replace',message:'已换为清蒸鱼',undoAvailable:true}})
  assert.equal(result.showActionFeedback,false);assert.equal(result.showMenuUndo,true)
 })
 test('composition sheet uses the approved concise persistence notice',()=>{
@@ -30,6 +30,11 @@ test('current meal click and keep action leave the current menu and selected dis
 // Offline display cases: production projection and shared WXML. Existing page/store
 // flows below remain the authority for writes and navigation; no network is used.
 const workspaceTemplate=()=>fs.readFileSync('templates/meal-workspace.wxml','utf8')
+const noticeVisible=result=>{
+ const condition=workspaceTemplate().match(/<view wx:if="\{\{([^"\n]+)\}\}" class="workspace-notice/)
+ assert.ok(condition,'the main notice must have a visibility condition')
+ return !!vm.runInNewContext(condition[1],result)
+}
 const savedTarget={date:'2027-01-01',mealType:'lunch'}
 test('cross-day save plus replace shows one scoped result',()=>{
  const result=view({saveState:'changed',savedTarget,actionFeedback:{kind:'replace',state:'success'}})
@@ -48,18 +53,19 @@ test('unknown new request suppresses misleading success',()=>{
  assert.equal(result.menuState,'recover');assert.equal(result.primaryAction,'onRecoverJourney')
  assert.equal(result.resultNotice.kind,'warning');assert.match(result.resultNotice.text,/待核对.*此前已保存到2027年1月1日午餐.*尚未确认保存/)
  const source=workspaceTemplate()
- assert.match(source,/wx:if="\{\{resultNotice\}\}"/)
- assert.match(source,/resultNotice.action[^\n]+bindtap="onPrimaryAction"/)
+ assert.equal(noticeVisible(result),true)
+ assert.match(source,/<ui-button[^>]+label="\{\{primaryLabel\}\}"[^>]+bind:action="onPrimaryAction"/)
  assert.doesNotMatch(source,/class="workspace-saved-result"/)
  assert.match(source,/savedTarget[^\n]+bindtap="onViewSavedMeal"/)
 })
 test('recovery and exclusion notices remain in the main content independently of settings sheets',()=>{
  const source=workspaceTemplate(),main=source.split('</scroll-view>')[0]
  assert.match(main,/wx:if="\{\{hardExclusionsUnavailable\}\}" class="workspace-exclusions" role="alert"/)
- assert.match(main,/wx:if="\{\{resultNotice\}\}" class="workspace-notice/)
+ assert.equal(noticeVisible(view({syncStatus:'conflict'})),true)
  assert.doesNotMatch(main,/wx:if="[^"]*(?:settingsExpanded|mealSettingsVisible|requirementsVisible)/)
  assert.match(source,/<ui-sheet[^>]*visible="\{\{requirementsVisible\}\}"/)
- assert.match(view({status:'needs_regeneration'}).resultNotice.text,/条件已修改/)
+ assert.equal(view({status:'needs_regeneration'}).resultNotice,null)
+ assert.equal(view({status:'needs_regeneration'}).primaryAction,'onConfirmPlan')
  assert.match(view({syncStatus:'conflict'}).resultNotice.text,/已有更新/)
  for(const [patch,action] of [[{status:'needs_input',draft:{dishes:[{id:8,type:'veg'}]}},'composition'],[{status:'failed'},'choose']]){
   const result=view(patch);assert.equal(result.workspaceNotice.action,action)
@@ -90,5 +96,6 @@ test('pending row replacement keeps progress at the affected row',()=>{
   assert.equal(recovery.menuState,state);assert.match(recovery.resultNotice.text,text)
  }
  const unapplied=view({status:'needs_regeneration',actionFeedback:pending.actionFeedback})
- assert.match(unapplied.resultNotice.text,/条件已修改/)
+ assert.equal(unapplied.resultNotice,null)
+ assert.equal(unapplied.primaryAction,'onConfirmPlan')
 })

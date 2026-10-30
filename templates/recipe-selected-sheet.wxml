@@ -1,7 +1,7 @@
 <ui-sheet visible="{{showMealSelected}}" title="本餐已选菜品" bind:close="onHideMealSelected">
   <view class="recipe-selected-context"><text>{{selectedMeal.targetLabel}} · {{selectedMeal.people}} 人</text><text class="recipe-selected-count">{{selectedMeal.count}} 道菜</text></view>
   <view wx:if="{{selectedMeal.count}}" class="recipe-selected-status">{{selectedMeal.message}}</view>
-  <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="核对原请求" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
+  <action-feedback wx:if="{{selectionFeedback}}" feedback="{{selectionFeedback}}" /><ui-button wx:if="{{selectionFeedback.state === 'unknown'}}" label="继续查看结果" variant="secondary" loading="{{selectionBusy}}" bind:action="onRetrySelection" />
   <view wx:if="{{selectionError}}" class="ew-error" aria-live="polite">{{selectionError}}</view>
   <compact-dish-row wx:for="{{mealSelectedDishes}}" wx:key="id" class="recipe-selected-preview" dish="{{item}}" mode="remove" data-id="{{item.id}}" disabled="{{selectionBusy || selectionLoading || selectionBlocked}}" bind:view="onSelectedDish" bind:remove="onRemoveMealDish" />
   <view wx:if="{{!selectedMeal.count}}" class="ew-muted">还没选菜</view>

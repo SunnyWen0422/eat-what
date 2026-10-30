@@ -1,0 +1,40 @@
+{
+  "today": "2026-10-28",
+  "baseItem": { "sourceDishId": 1, "canonicalName": "番茄", "normalizedVariant": "", "quantityValue": 300, "unitCode": "g", "unitFamily": "mass", "parseStatus": "PARSED", "calculationStatus": "CALCULATED" },
+  "baseQuote": { "canonicalName": "番茄", "normalizedVariant": "", "status": "AVAILABLE", "quoteDate": "2026-10-28", "price": 6, "unitQuantity": 500, "unitCode": "g", "unitFamily": "mass", "sourceUrl": "https://fgw.sh.gov.cn/fixture-official-retail", "sourceLabel": "上海市发展和改革委员会" },
+  "cases": [
+    { "name": "exact current mass", "expectedCents": 360 },
+    { "name": "seven day quote remains usable", "quote": { "quoteDate": "2026-10-21" }, "expectedCents": 360 },
+    { "name": "eight day quote is unknown", "quote": { "quoteDate": "2026-10-20" }, "expectedCents": null },
+    { "name": "future quote is unknown", "quote": { "quoteDate": "2026-10-29" }, "expectedCents": null },
+    { "name": "invalid calendar date is unknown", "quote": { "quoteDate": "2026-02-30" }, "expectedCents": null },
+    { "name": "exact kilograms", "item": { "quantityValue": 0.3, "unitCode": "kg" }, "expectedCents": 360 },
+    { "name": "exact volume without density", "item": { "quantityValue": 50, "unitCode": "ml", "unitFamily": "volume" }, "quote": { "unitCode": "l", "unitFamily": "volume", "unitQuantity": 1, "price": 12 }, "expectedCents": 60 },
+    { "name": "no mass volume conversion", "item": { "unitCode": "ml", "unitFamily": "volume" }, "expectedCents": null },
+    { "name": "wrongly labelled unit family", "item": { "unitFamily": "volume" }, "quote": { "unitFamily": "volume" }, "expectedCents": null },
+    { "name": "unknown amount", "item": { "quantityValue": null, "quantityText": "适量" }, "expectedCents": null },
+    { "name": "count has no guessed grams", "item": { "quantityValue": 2, "unitCode": "个", "unitFamily": "count" }, "expectedCents": null },
+    { "name": "manual override remains unknown", "item": { "userOverride": true }, "expectedCents": null },
+    { "name": "unparsed manual text remains unknown", "item": { "sourceDishId": null, "parseStatus": "MANUAL", "quantityText": "300克" }, "expectedCents": null },
+    { "name": "structured exact manual follows same gate", "item": { "sourceDishId": null }, "expectedCents": 360 },
+    { "name": "similar name is not equivalent", "quote": { "canonicalName": "西红柿" }, "expectedCents": null },
+    { "name": "spec mismatch", "item": { "normalizedVariant": "去皮" }, "quote": { "normalizedVariant": "整颗" }, "expectedCents": null },
+    { "name": "exact nonempty spec", "item": { "normalizedVariant": "整颗" }, "quote": { "normalizedVariant": "整颗" }, "expectedCents": 360 },
+    { "name": "legacy exact query has no echoed identity", "item": { "normalizedVariant": "整颗" }, "quote": { "canonicalName": null, "normalizedVariant": "" }, "expectedCents": 360 },
+    { "name": "wrong ingredient response key", "quote": { "ingredientKey": "foreign" }, "expectedCents": null },
+    { "name": "rounded half cent", "item": { "quantityValue": 1 }, "quote": { "price": 2.5 }, "expectedCents": 1 },
+    { "name": "small known amount can round to zero", "item": { "quantityValue": 0.1 }, "quote": { "price": 1 }, "expectedCents": 0 },
+    { "name": "zero quote is unavailable", "quote": { "price": 0 }, "expectedCents": null },
+    { "name": "zero quantity is not a quantified purchase", "item": { "quantityValue": 0 }, "expectedCents": null },
+    { "name": "unsafe decimal arithmetic is unknown", "item": { "quantityValue": 10000000, "unitCode": "kg" }, "expectedCents": null }
+  ],
+  "numericBoundary": { "repeat": 151, "item": { "quantityValue": 10000000 }, "quote": { "unitQuantity": 0.0001 }, "coveredCount": 150, "missingCount": 1, "knownSubtotalCents": 9000000000000000 },
+  "summary": {
+    "items": [
+      { "canonicalName": "番茄", "quantityValue": 300 },
+      { "canonicalName": "盐", "quantityValue": null, "quantityText": "适量" },
+      { "canonicalName": "番茄", "quantityValue": 200, "checked": true }
+    ],
+    "expected": { "scope": "pending_source_items", "coveredCount": 1, "missingCount": 1, "totalCount": 2, "knownSubtotalCents": 360, "totalCents": null, "complete": false, "quoteDates": ["2026-10-28"], "sources": [{ "quoteDate": "2026-10-28", "sourceUrl": "https://fgw.sh.gov.cn/fixture-official-retail", "sourceLabel": "上海市发展和改革委员会" }] }
+  }
+}

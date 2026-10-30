@@ -32,7 +32,7 @@ class CanonicalAssistantReadTest {
  @Test void recordReadExposesSavedRecipeNutritionAsIntegerEnergy() throws Exception {
   AssistantReadToolTest.Fixture f=new AssistantReadToolTest.Fixture();
   com.eatwhat.entity.RecipeRecord record=AssistantReadToolTest.saved("2026-10-01","青菜");
-  record.getDishDetails().get(0).setRecipe(f.json.readTree("{\"baseServings\":2,\"calculatedNutrition\":{\"completeness\":\"complete\",\"total\":{\"energyKcal\":100.6,\"proteinG\":2,\"fatG\":3,\"carbohydrateG\":4,\"fiberG\":1,\"sodiumMg\":50}}}"));
+  record.getDishDetails().get(0).setRecipe(f.json.readTree("{\"baseServings\":2,\"calculatedNutrition\":{\"scope\":\"main_ingredients\",\"completeness\":\"complete\",\"total\":{\"energyKcal\":100.6,\"proteinG\":2,\"fatG\":3,\"carbohydrateG\":4,\"fiberG\":1,\"sodiumMg\":50}}}"));
   when(f.meals.overview(anyLong(),anyString(),anyString())).thenReturn(AssistantV4ContextService.map("plans",Arrays.asList(record)));
   ToolRead call=f.call("read_actual_diet_review","startDate","2026-10-01","endDate","2026-10-01");ReadResult read=f.reads().read(7L,call,f.scope);
   String reply=new AssistantFactReplyFormatter().format(Arrays.asList(AssistantFactReplyFormatter.AuthorizedReadFact.fromRead(read,call)),new ModelContext());

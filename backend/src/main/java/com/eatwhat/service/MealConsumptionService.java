@@ -12,6 +12,9 @@ import java.util.*;
 
 @Service
 public class MealConsumptionService {
+    private HistoricalRecipeNutritionService historicalNutrition;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setHistoricalNutrition(HistoricalRecipeNutritionService service){historicalNutrition=service;}
     private MealBehaviorService behavior;
     @org.springframework.beans.factory.annotation.Autowired
     public void setMealBehaviorService(MealBehaviorService behavior) { this.behavior=behavior; }
@@ -71,12 +74,14 @@ public class MealConsumptionService {
         LocalDate a=date(start),b=date(end);
         if(b.isBefore(a)||java.time.temporal.ChronoUnit.DAYS.between(a,b)>366)throw new IllegalArgumentException("日期范围应在 367 天以内");
         List<RecipeRecord> records=plans.selectRangeDays(userId,a.toString(),b.toString());
+        if(historicalNutrition!=null)records=historicalNutrition.displayRecords(userId,records);
         List<MealConsumption> actual=MealRecordProjection.from(records);
         actual.forEach(this::hydrate);
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("plans",records);
         result.put("recordPolicy","calendar-records-v1");
         result.put("consumptions",actual);
+        if(historicalNutrition!=null)result.put("nutritionVersion",historicalNutrition.currentVersion());
         Map<String,Long> revisions = new LinkedHashMap<>();
         for (RecipeRecord slot : plans.slotRevisions(userId,start,end)) revisions.put(slot.getRecordDateString()+"|"+slot.getMealType(),slot.getRevision());
         result.put("planRevisions",revisions);
@@ -85,9 +90,9 @@ public class MealConsumptionService {
     @Transactional(readOnly=true)
     @SuppressWarnings("unchecked")
     public Map<String,Object> review(Long userId,String start,String end) {
-        Map<String,Object> overview=overview(userId,start,end);
-        return calculator.report(userId, (List<MealConsumption>) overview.get("consumptions"),
-            (List<RecipeRecord>) overview.get("plans"), date(start), date(end), Instant.now());
+        LocalDate a=date(start),b=date(end);
+        if(b.isBefore(a)||java.time.temporal.ChronoUnit.DAYS.between(a,b)>366)throw new IllegalArgumentException("日期范围应在 367 天以内");
+        return calculator.report(userId, Collections.emptyList(),plans.selectRangeDays(userId,start,end),a,b,Instant.now());
     }
     public static class VersionConflict extends RuntimeException {
         public VersionConflict(String message) {
